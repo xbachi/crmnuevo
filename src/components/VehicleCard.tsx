@@ -294,16 +294,33 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
           </div>
           
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Año</span>
+            <span className="text-sm text-gray-600">Fecha Matric</span>
             <span className="text-sm font-semibold text-gray-900">
-              {vehiculo.año || 'N/A'}
+              {vehiculo.fechaMatriculacion ? (() => {
+                try {
+                  const fecha = new Date(vehiculo.fechaMatriculacion)
+                  if (isNaN(fecha.getTime())) {
+                    // Si es una fecha inválida, intentar parsear como string
+                    const partes = vehiculo.fechaMatriculacion.split('/')
+                    if (partes.length === 3) {
+                      // Formato dd/mm/yyyy
+                      const fechaValida = new Date(partes[2], partes[1] - 1, partes[0])
+                      return fechaValida.toLocaleDateString('es-ES')
+                    }
+                    return vehiculo.fechaMatriculacion // Mostrar el valor original si no se puede parsear
+                  }
+                  return fecha.toLocaleDateString('es-ES')
+                } catch (error) {
+                  return vehiculo.fechaMatriculacion // Mostrar el valor original si hay error
+                }
+              })() : 'N/A'}
             </span>
           </div>
           
           <div className="flex justify-between items-center">
             <span className="text-sm text-gray-600">Color</span>
             <span className="text-sm font-semibold text-gray-900">
-              N/A
+              {vehiculo.color || 'N/A'}
             </span>
           </div>
         </div>

@@ -59,12 +59,18 @@ export default function KanbanPage() {
   }, [vehiculos, searchTerm, searchField])
 
   const filterVehiculos = () => {
+    // Primero filtrar vehículos vendidos (no mostrar en Kanban)
+    const vehiculosEnProceso = vehiculos.filter(vehiculo => {
+      const estado = vehiculo.estado?.toLowerCase()
+      return estado !== 'vendido' && estado !== 'vendida'
+    })
+
     if (!searchTerm.trim()) {
-      setFilteredVehiculos(vehiculos)
+      setFilteredVehiculos(vehiculosEnProceso)
       return
     }
 
-    const filtered = vehiculos.filter(vehiculo => {
+    const filtered = vehiculosEnProceso.filter(vehiculo => {
       if (searchField === 'todos') {
         return (
           vehiculo.referencia.toLowerCase().includes(searchTerm.toLowerCase()) ||

@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Inversor } from '@/lib/database'
-import Navigation from '@/components/Navigation'
 import { InvestorCard } from '@/components/InvestorCard'
 import { useSimpleToast } from '@/hooks/useSimpleToast'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
@@ -102,7 +101,6 @@ export default function DashboardInversoresPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-primary-50 to-primary-100">
-        <Navigation />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-slate-800 mb-2">Dashboard Inversores</h1>
@@ -116,8 +114,6 @@ export default function DashboardInversoresPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-primary-50 to-primary-100">
-      <Navigation />
-      
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <div className="flex justify-between items-center mb-4">

@@ -18,6 +18,8 @@ interface Vehiculo {
   estado: string
   orden: number
   createdAt: string
+  color?: string
+  fechaMatriculacion?: string
   esCocheInversor?: boolean
   inversorId?: number
   inversorNombre?: string
@@ -37,6 +39,15 @@ interface Vehiculo {
   fotoInversor?: string
 }
 
+interface PaginationInfo {
+  page: number
+  limit: number
+  total: number
+  pages: number
+  hasNext: boolean
+  hasPrev: boolean
+}
+
 export default function ListaVehiculos() {
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>([])
   const [filteredVehiculos, setFilteredVehiculos] = useState<Vehiculo[]>([])
@@ -44,7 +55,9 @@ export default function ListaVehiculos() {
   const [viewMode, setViewMode] = useState<'lista' | 'cartas'>('cartas')
   const [searchTerm, setSearchTerm] = useState('')
   const [searchField, setSearchField] = useState<'todos' | 'referencia' | 'marca' | 'modelo' | 'matricula' | 'bastidor' | 'tipo'>('todos')
-  const [statusFilter, setStatusFilter] = useState<'todos' | 'activos' | 'vendidos'>('todos')
+  const [statusFilter, setStatusFilter] = useState<'todos' | 'activos' | 'vendidos'>('activos')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  const [typeFilter, setTypeFilter] = useState<'todos' | 'Compra' | 'Coche R' | 'Deposito' | 'inversores'>('todos')
   const [editingVehiculo, setEditingVehiculo] = useState<Vehiculo | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editFormData, setEditFormData] = useState({
@@ -55,10 +68,25 @@ export default function ListaVehiculos() {
     bastidor: '',
     kms: '',
     tipo: '',
+    color: '',
+    fechaMatriculacion: '',
     inversorId: ''
   })
   const [inversores, setInversores] = useState<any[]>([])
   const [isUpdating, setIsUpdating] = useState(false)
+  
+  // Estados para paginación
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    page: 1,
+    limit: 50,
+    total: 0,
+    pages: 0,
+    hasNext: false,
+    hasPrev: false
+  })
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  
   const { showToast, ToastContainer } = useToast()
   const { showConfirm, ConfirmModalComponent } = useConfirmModal()
 
@@ -87,11 +115,25 @@ export default function ListaVehiculos() {
     }
   }
 
+  const loadMoreVehiculos = async () => {
+    if (pagination.hasNext && !isLoadingMore) {
+      await fetchVehiculos(currentPage + 1)
+    }
+  }
+
+  const refreshVehiculos = async () => {
+    // Limpiar cache
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('vehiculos-cache-page-')) {
+        localStorage.removeItem(key)
+      }
+    })
+    setCurrentPage(1)
+    await fetchVehiculos(1, true)
+  }
+
   useEffect(() => {
-    // Limpiar cache al cargar la página para mostrar datos actuales
-    localStorage.removeItem('vehiculos-cache')
-    localStorage.removeItem('vehiculos-cache-time')
-    fetchVehiculos(true)
+    fetchVehiculos()
     fetchInversores()
   }, [])
 
@@ -109,7 +151,7 @@ export default function ListaVehiculos() {
 
   useEffect(() => {
     filterVehiculos()
-  }, [vehiculos, searchTerm, searchField, statusFilter])
+  }, [vehiculos, searchTerm, statusFilter, sortOrder, typeFilter])
 
   const filterVehiculos = () => {
     let filtered = vehiculos
@@ -132,50 +174,89 @@ export default function ListaVehiculos() {
       })
     }
 
-    // Aplicar filtro de búsqueda
-    if (searchTerm.trim()) {
+    // Aplicar filtro de tipo
+    if (typeFilter !== 'todos') {
       filtered = filtered.filter(vehiculo => {
-        if (searchField === 'todos') {
-          return (
-            vehiculo.referencia.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            vehiculo.marca.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            vehiculo.modelo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            vehiculo.matricula.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            vehiculo.bastidor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            vehiculo.tipo.toLowerCase().includes(searchTerm.toLowerCase())
-          )
+        if (typeFilter === 'inversores') {
+          return vehiculo.esCocheInversor === true
         } else {
-          const fieldValue = vehiculo[searchField].toString().toLowerCase()
-          return fieldValue.includes(searchTerm.toLowerCase())
+          return vehiculo.tipo === typeFilter
         }
       })
     }
 
+    // Aplicar filtro de búsqueda (siempre en todos los campos)
+    if (searchTerm.trim()) {
+      filtered = filtered.filter(vehiculo => {
+        return (
+          vehiculo.referencia.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          vehiculo.marca.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          vehiculo.modelo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          vehiculo.matricula.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          vehiculo.bastidor.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          vehiculo.tipo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (vehiculo.inversorNombre && vehiculo.inversorNombre.toLowerCase().includes(searchTerm.toLowerCase()))
+        )
+      })
+    }
+
+    // Aplicar ordenamiento por referencia
+    filtered.sort((a, b) => {
+      // Intentar convertir a número, si falla usar comparación de strings
+      const refA = a.referencia
+      const refB = b.referencia
+      
+      // Si ambos son números
+      const numA = parseInt(refA)
+      const numB = parseInt(refB)
+      
+      if (!isNaN(numA) && !isNaN(numB)) {
+        return sortOrder === 'asc' ? numA - numB : numB - numA
+      }
+      
+      // Si no son números, ordenar alfabéticamente
+      if (sortOrder === 'asc') {
+        return refA.localeCompare(refB)
+      } else {
+        return refB.localeCompare(refA)
+      }
+    })
+
     setFilteredVehiculos(filtered)
   }
 
-  const fetchVehiculos = async (forceRefresh = false) => {
+  const fetchVehiculos = async (page = 1, forceRefresh = false) => {
     try {
-      setIsLoading(true)
+      if (page === 1) {
+        setIsLoading(true)
+      } else {
+        setIsLoadingMore(true)
+      }
       
       // Usar cache del navegador si está disponible y no se fuerza refresh
-      const cacheKey = 'vehiculos-cache'
+      const cacheKey = `vehiculos-cache-page-${page}`
       const cachedData = localStorage.getItem(cacheKey)
       const cacheTime = localStorage.getItem(`${cacheKey}-time`)
       
-      // Si hay datos en cache y son recientes (menos de 5 minutos), usarlos
+      // Si hay datos en cache y son recientes (menos de 3 minutos), usarlos
       if (!forceRefresh && cachedData && cacheTime) {
         const now = Date.now()
         const cacheAge = now - parseInt(cacheTime)
-        if (cacheAge < 5 * 60 * 1000) { // 5 minutos
-          const cachedVehiculos = JSON.parse(cachedData)
-          setVehiculos(cachedVehiculos)
+        if (cacheAge < 3 * 60 * 1000) { // 3 minutos
+          const cachedResponse = JSON.parse(cachedData)
+          if (page === 1) {
+            setVehiculos(cachedResponse.vehiculos)
+          } else {
+            setVehiculos(prev => [...prev, ...cachedResponse.vehiculos])
+          }
+          setPagination(cachedResponse.pagination)
           setIsLoading(false)
+          setIsLoadingMore(false)
           return
         }
       }
       
-      const response = await fetch('/api/vehiculos', {
+      const response = await fetch(`/api/vehiculos?page=${page}&limit=50`, {
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
@@ -185,11 +266,19 @@ export default function ListaVehiculos() {
       
       if (response.ok) {
         const data = await response.json()
-        setVehiculos(data)
+        console.log(`🚗 Vehículos cargados - Página ${page}:`, data.vehiculos.length)
         
         // Guardar en cache
         localStorage.setItem(cacheKey, JSON.stringify(data))
         localStorage.setItem(`${cacheKey}-time`, Date.now().toString())
+        
+        if (page === 1) {
+          setVehiculos(data.vehiculos)
+        } else {
+          setVehiculos(prev => [...prev, ...data.vehiculos])
+        }
+        setPagination(data.pagination)
+        setCurrentPage(page)
       } else {
         showToast('Error al cargar los vehículos', 'error')
       }
@@ -198,12 +287,15 @@ export default function ListaVehiculos() {
       showToast('Error al cargar los vehículos', 'error')
     } finally {
       setIsLoading(false)
+      setIsLoadingMore(false)
     }
   }
 
   const handleEdit = (vehiculo: Vehiculo) => {
+    console.log('✏️ Abriendo modal de edición para vehículo:', vehiculo.id)
+    console.log('✏️ Color del vehículo:', vehiculo.color)
     setEditingVehiculo(vehiculo)
-    setEditFormData({
+    const formData = {
       referencia: vehiculo.referencia,
       marca: vehiculo.marca,
       modelo: vehiculo.modelo,
@@ -211,17 +303,33 @@ export default function ListaVehiculos() {
       bastidor: vehiculo.bastidor,
       kms: vehiculo.kms.toString(),
       tipo: vehiculo.tipo,
+      color: vehiculo.color || '',
+      fechaMatriculacion: vehiculo.fechaMatriculacion || '',
       inversorId: vehiculo.inversorId?.toString() || ''
-    })
+    }
+    console.log('✏️ Datos del formulario inicializados:', formData)
+    console.log('✏️ Color inicializado:', formData.color)
+    setEditFormData(formData)
     setShowEditModal(true)
   }
 
   const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
-    setEditFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
+    console.log('🔄 Cambiando campo:', name, 'a valor:', value)
+    if (name === 'color') {
+      console.log('🎨 CAMBIO DE COLOR DETECTADO:', value)
+    }
+    setEditFormData(prev => {
+      const newData = {
+        ...prev,
+        [name]: value
+      }
+      console.log('📝 Nuevos datos del formulario:', newData)
+      if (name === 'color') {
+        console.log('🎨 Color en formulario:', newData.color)
+      }
+      return newData
+    })
   }
 
   const handleDelete = (id: number) => {
@@ -258,6 +366,9 @@ export default function ListaVehiculos() {
     e.preventDefault()
     if (!editingVehiculo) return
 
+    console.log('🚀 Iniciando actualización de vehículo:', editingVehiculo.id)
+    console.log('📋 Datos del formulario:', editFormData)
+
     setIsUpdating(true)
     try {
       const updatedVehiculo = {
@@ -269,11 +380,18 @@ export default function ListaVehiculos() {
         bastidor: editFormData.bastidor,
         kms: parseInt(editFormData.kms),
         tipo: editFormData.tipo,
+        color: editFormData.color,
+        fechaMatriculacion: editFormData.fechaMatriculacion,
         esCocheInversor: editFormData.tipo === 'Inversor',
         inversorId: editFormData.tipo === 'Inversor' ? parseInt(editFormData.inversorId) : undefined
       }
 
-      const response = await fetch('/api/vehiculos', {
+      console.log('📤 Enviando a API:', updatedVehiculo)
+      console.log('🔗 URL de la API:', `/api/vehiculos/${editingVehiculo.id}`)
+      console.log('🎨 COLOR ENVIADO:', updatedVehiculo.color)
+      console.log('🎨 editFormData.color:', editFormData.color)
+
+      const response = await fetch(`/api/vehiculos/${editingVehiculo.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -281,9 +399,41 @@ export default function ListaVehiculos() {
         body: JSON.stringify(updatedVehiculo)
       })
 
+      console.log('📥 Respuesta de la API:', response.status, response.statusText)
+      
       if (response.ok) {
-        // Forzar recarga sin usar cache
-        await fetchVehiculos(true)
+        const result = await response.json()
+        console.log('✅ Vehículo actualizado exitosamente:', result)
+        console.log('🔍 result.vehiculo:', result.vehiculo)
+        console.log('🔍 result.vehiculo.color:', result.vehiculo?.color)
+        console.log('🔍 result.vehiculo.fechaMatriculacion:', result.vehiculo?.fechaMatriculacion)
+        
+        // Actualizar el vehículo en el estado local inmediatamente
+        setVehiculos(prevVehiculos => {
+          console.log('🔄 Vehículos antes de actualizar:', prevVehiculos.length)
+          const updatedVehiculos = prevVehiculos.map(v => {
+            if (v.id === editingVehiculo.id) {
+              const updated = { ...v, ...result.vehiculo }
+              console.log('🔄 Vehículo actualizado:', updated)
+              console.log('🔄 Color actualizado:', updated.color)
+              return updated
+            }
+            return v
+          })
+          console.log('🔄 Vehículos después de actualizar:', updatedVehiculos.length)
+          return updatedVehiculos
+        })
+        
+        // Limpiar cache completamente
+        localStorage.removeItem('vehiculos-cache')
+        localStorage.removeItem('vehiculos-cache-time')
+        
+        // Recargar datos frescos de la base de datos
+        setTimeout(async () => {
+          console.log('🔄 Recargando datos frescos...')
+          await fetchVehiculos(true)
+        }, 100)
+        
         setShowEditModal(false)
         setEditingVehiculo(null)
         showToast('Vehículo actualizado exitosamente', 'success')
@@ -331,185 +481,255 @@ export default function ListaVehiculos() {
   return (
     <div className="min-h-full bg-gradient-to-br from-slate-50 via-green-50 to-emerald-100">
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Stats Header */}
-        <div className="mb-8">
-          <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-slate-200/60 shadow-lg">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h1 className="text-3xl font-bold text-slate-800 mb-2">
-                  📋 Lista de Vehículos
-                </h1>
-                <p className="text-slate-600">
-                  {vehiculos.length} vehículo{vehiculos.length !== 1 ? 's' : ''} registrado{vehiculos.length !== 1 ? 's' : ''}
-                </p>
-              </div>
-              <div className="mt-4 sm:mt-0 flex flex-col space-y-4">
-                {/* Barra de búsqueda */}
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <div className="flex-1">
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="Buscar vehículos..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full px-4 py-3 pl-10 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white/80 backdrop-blur-sm transition-all duration-300"
-                      />
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg className="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                      </div>
-                      {searchTerm && (
-                        <button
-                          onClick={() => setSearchTerm('')}
-                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
-                        >
-                          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      )}
-                    </div>
+        {/* Header Moderno - Estilo Navegación */}
+        <div className="mb-6">
+          {/* Título y stats compactos */}
+          <div className="bg-slate-800 rounded-xl shadow-xl border border-slate-700 mb-4">
+            <div className="px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
+                    <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                    </svg>
                   </div>
-                  
-                  <select
-                    value={searchField}
-                    onChange={(e) => setSearchField(e.target.value as any)}
-                    className="px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white/80 backdrop-blur-sm transition-all duration-300 min-w-[150px]"
-                  >
-                    <option value="todos">Todos los campos</option>
-                    <option value="referencia">Referencia</option>
-                    <option value="marca">Marca</option>
-                    <option value="modelo">Modelo</option>
-                    <option value="matricula">Matrícula</option>
-                    <option value="bastidor">Bastidor</option>
-                    <option value="tipo">Tipo</option>
-                  </select>
+                  <div>
+                    <h1 className="text-xl font-bold text-white">Vehículos</h1>
+                    <p className="text-slate-300 text-sm">
+                      {vehiculos.length} registrados • {filteredVehiculos.length} mostrados
+                    </p>
+                  </div>
                 </div>
-
-                {/* Filtros y acciones */}
-                <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
-                  {/* Filtro de vista */}
-                  <div className="flex bg-slate-100 rounded-xl p-1">
-                    <button
-                      onClick={() => setViewMode('lista')}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                        viewMode === 'lista'
-                          ? 'bg-white text-slate-800 shadow-sm'
-                          : 'text-slate-600 hover:text-slate-800'
-                      }`}
-                    >
-                      📋 Lista
-                    </button>
-                    <button
-                      onClick={() => setViewMode('cartas')}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                        viewMode === 'cartas'
-                          ? 'bg-white text-slate-800 shadow-sm'
-                          : 'text-slate-600 hover:text-slate-800'
-                      }`}
-                    >
-                      🃏 Cartas
-                    </button>
-                  </div>
-
-                  <div className="flex space-x-4">
-                    <button
-                      onClick={() => {
-                        localStorage.removeItem('vehiculos-cache')
-                        localStorage.removeItem('vehiculos-cache-time')
-                        fetchVehiculos(true)
-                      }}
-                      className="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium"
-                      title="Actualizar datos desde la base de datos"
-                    >
-                      🔄 Actualizar
-                    </button>
-                    <div className="bg-blue-100 rounded-xl px-4 py-2">
-                      <span className="text-blue-800 font-semibold text-sm">Total: {vehiculos.length}</span>
-                    </div>
-                    <div className="bg-green-100 rounded-xl px-4 py-2">
-                      <span className="text-green-800 font-semibold text-sm">Mostrando: {filteredVehiculos.length}</span>
-                    </div>
-                    <a
-                      href="/cargar-vehiculo"
-                      className="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 transform hover:scale-105 shadow-lg font-semibold"
-                    >
-                      ➕ Nuevo Vehículo
-                    </a>
-                    <button
-                      onClick={() => {
-                        showConfirm(
-                          'Borrar Todos los Vehículos',
-                          `¿Estás seguro de que quieres eliminar TODOS los ${vehiculos.length} vehículos? Esta acción no se puede deshacer.`,
-                          async () => {
-                            try {
-                              const response = await fetch('/api/vehiculos/clear-all', {
-                                method: 'DELETE'
-                              })
-                              
-                              if (response.ok) {
-                                localStorage.removeItem('vehiculos-cache')
-                                localStorage.removeItem('vehiculos-cache-time')
-                                await fetchVehiculos(true)
-                                showToast('Todos los vehículos han sido eliminados', 'success')
-                              } else {
-                                showToast('Error al eliminar los vehículos', 'error')
-                              }
-                            } catch (error) {
-                              console.error('Error eliminando vehículos:', error)
+                <div className="flex items-center space-x-3">
+                  <button
+                    onClick={refreshVehiculos}
+                    className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center space-x-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    <span>Actualizar</span>
+                  </button>
+                  <a
+                    href="/cargar-vehiculo"
+                    className="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg text-sm font-medium transition-all shadow-lg flex items-center space-x-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span>Nuevo</span>
+                  </a>
+                  <button
+                    onClick={() => {
+                      showConfirm(
+                        'Borrar Todos los Vehículos',
+                        `¿Estás seguro de que quieres eliminar TODOS los ${vehiculos.length} vehículos? Esta acción no se puede deshacer.`,
+                        async () => {
+                          try {
+                            const response = await fetch('/api/vehiculos/clear-all', {
+                              method: 'DELETE'
+                            })
+                            
+                            if (response.ok) {
+                              localStorage.removeItem('vehiculos-cache')
+                              localStorage.removeItem('vehiculos-cache-time')
+                              await fetchVehiculos(true)
+                              showToast('Todos los vehículos han sido eliminados', 'success')
+                            } else {
                               showToast('Error al eliminar los vehículos', 'error')
                             }
-                          },
-                          'danger'
-                        )
-                      }}
-                      className="px-6 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl hover:from-red-700 hover:to-red-800 transition-all duration-300 transform hover:scale-105 shadow-lg font-semibold"
-                    >
-                      🗑️ Borrar Todos
-                    </button>
-                  </div>
+                          } catch (error) {
+                            console.error('Error eliminando vehículos:', error)
+                            showToast('Error al eliminar los vehículos', 'error')
+                          }
+                        },
+                        'danger'
+                      )
+                    }}
+                    className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center space-x-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    <span>Borrar Todos</span>
+                  </button>
                 </div>
+              </div>
+            </div>
+          </div>
 
-                {/* Filtros de estado */}
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm font-medium text-slate-700">Estado:</span>
-                    <div className="flex bg-slate-100 rounded-lg p-1">
-                      <button
-                        onClick={() => setStatusFilter('todos')}
-                        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ${
-                          statusFilter === 'todos'
-                            ? 'bg-white text-slate-800 shadow-sm'
-                            : 'text-slate-600 hover:text-slate-800'
-                        }`}
-                      >
-                        Todos
-                      </button>
-                      <button
-                        onClick={() => setStatusFilter('activos')}
-                        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ${
-                          statusFilter === 'activos'
-                            ? 'bg-white text-green-700 shadow-sm'
-                            : 'text-slate-600 hover:text-slate-800'
-                        }`}
-                      >
-                        Activos
-                      </button>
-                      <button
-                        onClick={() => setStatusFilter('vendidos')}
-                        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ${
-                          statusFilter === 'vendidos'
-                            ? 'bg-white text-red-700 shadow-sm'
-                            : 'text-slate-600 hover:text-slate-800'
-                        }`}
-                      >
-                        Vendidos
-                      </button>
-                    </div>
-                  </div>
+          {/* Barra de filtros mejorada - Dos líneas */}
+          <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/60 p-4 space-y-4">
+            
+            {/* LÍNEA 1: Búsqueda + Vista */}
+            <div className="flex items-center gap-4">
+              {/* Búsqueda más grande */}
+              <div className="flex-1">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Buscar en todos los campos (referencia, marca, modelo, matrícula...)"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3 text-base border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white transition-all shadow-sm"
+                  />
+                  <svg className="absolute left-4 top-3.5 h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600"
+                    >
+                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
+              </div>
+
+              {/* Vista con iconos */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-slate-600">👁️ Vista:</span>
+                <div className="flex bg-slate-100 rounded-xl p-1">
+                  <button
+                    onClick={() => setViewMode('cartas')}
+                    className={`px-3 py-2 rounded-lg transition-all flex items-center space-x-2 ${
+                      viewMode === 'cartas' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-600 hover:text-slate-800'
+                    }`}
+                    title="Vista de cartas"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14-7v16l-2-2v-12a2 2 0 00-2-2H9a2 2 0 00-2 2v12l-2 2V4a2 2 0 012-2h10a2 2 0 012 2z" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => setViewMode('lista')}
+                    className={`px-3 py-2 rounded-lg transition-all flex items-center space-x-2 ${
+                      viewMode === 'lista' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-600 hover:text-slate-800'
+                    }`}
+                    title="Vista de lista"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+            {/* LÍNEA 2: Filtros centrados con más espaciado */}
+            <div className="flex items-center justify-center gap-12">
+              
+              {/* Filtros de tipo sin iconos */}
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-semibold text-slate-700">
+                  Tipo:
+                </span>
+                <div className="flex bg-slate-50 rounded-lg p-1 border border-slate-200">
+                  <button
+                    onClick={() => setTypeFilter('todos')}
+                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                      typeFilter === 'todos' ? 'bg-white text-slate-800 shadow-sm border border-slate-200' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
+                    }`}
+                  >
+                    Todos
+                  </button>
+                  <button
+                    onClick={() => setTypeFilter('Compra')}
+                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                      typeFilter === 'Compra' ? 'bg-green-50 text-green-700 shadow-sm border border-green-200' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
+                    }`}
+                  >
+                    Compra
+                  </button>
+                  <button
+                    onClick={() => setTypeFilter('Coche R')}
+                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                      typeFilter === 'Coche R' ? 'bg-blue-50 text-blue-700 shadow-sm border border-blue-200' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
+                    }`}
+                  >
+                    R
+                  </button>
+                  <button
+                    onClick={() => setTypeFilter('Deposito')}
+                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                      typeFilter === 'Deposito' ? 'bg-purple-50 text-purple-700 shadow-sm border border-purple-200' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
+                    }`}
+                  >
+                    Dep.
+                  </button>
+                  <button
+                    onClick={() => setTypeFilter('inversores')}
+                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                      typeFilter === 'inversores' ? 'bg-amber-50 text-amber-700 shadow-sm border border-amber-200' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
+                    }`}
+                  >
+                    Inv.
+                  </button>
+                </div>
+              </div>
+
+              {/* Filtros de estado con iconos - Orden: Activos, Vendidos, Todos */}
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-semibold text-slate-700 flex items-center gap-1">
+                  📊 Estado:
+                </span>
+                <div className="flex bg-slate-50 rounded-lg p-1 border border-slate-200">
+                  <button
+                    onClick={() => setStatusFilter('activos')}
+                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-1.5 ${
+                      statusFilter === 'activos' ? 'bg-green-50 text-green-700 shadow-sm border border-green-200' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
+                    }`}
+                  >
+                    <span className="text-xs">✅</span>
+                    Activos
+                  </button>
+                  <button
+                    onClick={() => setStatusFilter('vendidos')}
+                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-1.5 ${
+                      statusFilter === 'vendidos' ? 'bg-red-50 text-red-700 shadow-sm border border-red-200' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
+                    }`}
+                  >
+                    <span className="text-xs">💰</span>
+                    Vendidos
+                  </button>
+                  <button
+                    onClick={() => setStatusFilter('todos')}
+                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-1.5 ${
+                      statusFilter === 'todos' ? 'bg-white text-slate-800 shadow-sm border border-slate-200' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
+                    }`}
+                  >
+                    <span className="text-xs">⚪</span>
+                    Todos
+                  </button>
+                </div>
+              </div>
+
+              {/* Ordenamiento */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-slate-600">📊 Orden:</span>
+                <button
+                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all flex items-center space-x-2 ${
+                    sortOrder === 'asc' 
+                      ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-sm' 
+                      : 'bg-orange-50 border-orange-200 text-orange-700 shadow-sm'
+                  }`}
+                >
+                  <span>Ref.</span>
+                  {sortOrder === 'asc' ? (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                    </svg>
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  )}
+                </button>
               </div>
             </div>
           </div>
@@ -584,12 +804,9 @@ export default function ListaVehiculos() {
                     <tr key={vehiculo.id} className="hover:bg-slate-50/80 transition-colors duration-200">
                       <td className="px-3 py-4">
                         <div className="flex items-center">
-                          <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg flex items-center justify-center mr-2">
+                          <div className="w-12 h-10 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg flex items-center justify-center mr-2">
                             <span className="text-white font-bold text-xs">
-                              #{vehiculo.referencia.length > 4 
-                                ? vehiculo.referencia.substring(0, 4) 
-                                : vehiculo.referencia
-                              }
+                              {vehiculo.referencia}
                             </span>
                           </div>
                         </div>
@@ -632,34 +849,31 @@ export default function ListaVehiculos() {
                           {vehiculo.kms.toLocaleString()}
                         </span>
                       </td>
-                      <td className="px-3 py-4 hidden sm:table-cell">
-                        <div className="flex flex-col space-y-1">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTipoColor(vehiculo.tipo)}`}>
-                            {getTipoText(vehiculo.tipo)}
-                          </span>
-                          {vehiculo.esCocheInversor && vehiculo.inversorNombre && (
-                            <span className="inline-flex px-2 py-1 text-xs bg-purple-50 text-purple-700 rounded border border-purple-200">
-                              {vehiculo.inversorNombre}
-                            </span>
-                          )}
-                        </div>
+                      <td className="px-2 py-4 hidden sm:table-cell">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded ${getTipoColor(vehiculo.tipo)}`}>
+                          {getTipoText(vehiculo.tipo)}
+                        </span>
                       </td>
                       <td className="px-3 py-4 hidden lg:table-cell text-slate-600 text-xs">
                         {new Date(vehiculo.createdAt).toLocaleDateString()}
                       </td>
                       <td className="px-3 py-4">
-                        <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-1">
+                        <div className="flex space-x-2">
                           <button 
                             onClick={() => handleEdit(vehiculo)}
-                            className="text-green-600 hover:text-green-800 hover:bg-green-50 px-2 py-1 rounded text-xs transition-all duration-200"
+                            className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
                           >
-                            ✏️
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
                           </button>
                           <button 
                             onClick={() => handleDelete(vehiculo.id)}
-                            className="text-red-600 hover:text-red-800 hover:bg-red-50 px-2 py-1 rounded text-xs transition-all duration-200"
+                            className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
                           >
-                            🗑️
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
                           </button>
                         </div>
                       </td>
@@ -674,7 +888,7 @@ export default function ListaVehiculos() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
             {filteredVehiculos.map((vehiculo) => (
               <VehicleCard
-                key={vehiculo.id}
+                key={`${vehiculo.id}-${vehiculo.color}-${vehiculo.fechaMatriculacion}-${vehiculo.updatedAt}`}
                 vehiculo={vehiculo}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
@@ -684,6 +898,41 @@ export default function ListaVehiculos() {
                 }}
               />
             ))}
+          </div>
+        )}
+
+        {/* Botón para cargar más vehículos */}
+        {pagination.hasNext && (
+          <div className="mt-8 flex justify-center">
+            <button
+              onClick={loadMoreVehiculos}
+              disabled={isLoadingMore}
+              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 text-white rounded-lg font-medium transition-all duration-200 flex items-center space-x-2"
+            >
+              {isLoadingMore ? (
+                <>
+                  <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Cargando...</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  <span>Cargar más vehículos ({pagination.total - vehiculos.length} restantes)</span>
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* Información de paginación */}
+        {pagination.total > 0 && (
+          <div className="mt-6 text-center text-sm text-slate-600">
+            Mostrando {vehiculos.length} de {pagination.total} vehículos
           </div>
         )}
 
@@ -843,6 +1092,37 @@ export default function ListaVehiculos() {
                     <option value="Deposito Venta">Deposito Venta</option>
                     <option value="Inversor">Inversor</option>
                   </select>
+                </div>
+
+                {/* Color y Fecha de Matriculación */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label htmlFor="edit-color" className="block text-sm font-semibold text-slate-700">
+                      Color
+                    </label>
+                    <input
+                      type="text"
+                      id="edit-color"
+                      name="color"
+                      value={editFormData.color}
+                      onChange={handleEditInputChange}
+                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white/80 backdrop-blur-sm transition-all duration-300"
+                      placeholder="Ej: Blanco, Negro, Azul..."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="edit-fechaMatriculacion" className="block text-sm font-semibold text-slate-700">
+                      Fecha de Matriculación
+                    </label>
+                    <input
+                      type="date"
+                      id="edit-fechaMatriculacion"
+                      name="fechaMatriculacion"
+                      value={editFormData.fechaMatriculacion}
+                      onChange={handleEditInputChange}
+                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white/80 backdrop-blur-sm transition-all duration-300"
+                    />
+                  </div>
                 </div>
 
                 {/* Campo de inversor - solo visible cuando tipo es "Inversor" */}

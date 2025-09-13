@@ -48,7 +48,6 @@ export async function PUT(
       capitalAportado: data.capitalAportado ? Number(data.capitalAportado) : 0,
       fechaAporte: data.fechaAporte,
       capitalInvertido: data.capitalInvertido ? Number(data.capitalInvertido) : undefined,
-      capitalDisponible: data.capitalDisponible ? Number(data.capitalDisponible) : undefined,
       notasInternas: data.notasInternas?.trim()
     })
     

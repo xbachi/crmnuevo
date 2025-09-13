@@ -21,6 +21,7 @@ export interface Vehiculo {
   orden: number
   createdAt: Date
   updatedAt: Date
+  color?: string | null
   fechaMatriculacion?: string | null
   año?: number | null
   itv?: string | null
@@ -51,14 +52,26 @@ export interface Vehiculo {
   fotoInversor?: string | null
 }
 
-export async function getVehiculos(): Promise<Vehiculo[]> {
+export async function getVehiculos(limit?: number, offset?: number): Promise<Vehiculo[]> {
   const client = await pool.connect()
   try {
+    // Consulta optimizada: solo campos necesarios para la lista
+    const limitClause = limit ? `LIMIT ${limit}` : ''
+    const offsetClause = offset ? `OFFSET ${offset}` : ''
+    
     const result = await client.query(`
-      SELECT v.*, i.nombre as inversor_nombre 
+      SELECT 
+        v.id, v.referencia, v.marca, v.modelo, v.matricula, v.bastidor, 
+        v.kms, v.tipo, v.estado, v.orden, v."createdAt", v."updatedAt",
+        v.color, v."fechaMatriculacion", v.año, v."esCocheInversor", 
+        v."inversorId", v."fechaCompra", v."precioCompra", v."gastosTransporte",
+        v."gastosTasas", v."gastosMecanica", v."gastosPintura", v."gastosLimpieza",
+        v."gastosOtros", v."precioPublicacion", v."precioVenta", v."beneficioNeto",
+        v."notasInversor", v."fotoInversor", i.nombre as inversor_nombre 
       FROM "Vehiculo" v
       LEFT JOIN "Inversor" i ON v."inversorId" = i.id
-      ORDER BY v.id ASC
+      ORDER BY v."createdAt" DESC, v.id DESC
+      ${limitClause} ${offsetClause}
     `)
     
     return result.rows.map(row => ({
@@ -74,15 +87,9 @@ export async function getVehiculos(): Promise<Vehiculo[]> {
       orden: row.orden,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
+      color: row.color,
       fechaMatriculacion: row.fechaMatriculacion,
       año: row.año,
-      itv: row.itv,
-      seguro: row.seguro,
-      segundaLlave: row.segundaLlave,
-      documentacion: row.documentacion,
-      carpeta: row.carpeta,
-      master: row.master,
-      hojasA: row.hojasA,
       esCocheInversor: row.esCocheInversor,
       inversorId: row.inversorId,
       inversor: row.inversor_nombre ? {
@@ -106,6 +113,19 @@ export async function getVehiculos(): Promise<Vehiculo[]> {
   } catch (error) {
     console.error('Error obteniendo vehículos:', error)
     return []
+  } finally {
+    client.release()
+  }
+}
+
+export async function getVehiculosCount(): Promise<number> {
+  const client = await pool.connect()
+  try {
+    const result = await client.query('SELECT COUNT(*) as count FROM "Vehiculo"')
+    return parseInt(result.rows[0].count)
+  } catch (error) {
+    console.error('Error obteniendo conteo de vehículos:', error)
+    return 0
   } finally {
     client.release()
   }
@@ -180,21 +200,21 @@ export async function saveVehiculo(vehiculoData: Omit<Vehiculo, 'id' | 'createdA
     const result = await client.query(`
       INSERT INTO "Vehiculo" (
         referencia, marca, modelo, matricula, bastidor, kms, tipo, estado, orden,
-        "fechaMatriculacion", año, itv, seguro, "segundaLlave", documentacion,
+        color, "fechaMatriculacion", año, itv, seguro, "segundaLlave", documentacion,
         carpeta, master, "hojasA", "esCocheInversor", "inversorId",
         "fechaCompra", "precioCompra", "gastosTransporte", "gastosTasas",
         "gastosMecanica", "gastosPintura", "gastosLimpieza", "gastosOtros",
         "precioPublicacion", "precioVenta", "beneficioNeto", "notasInversor",
         "fotoInversor", "createdAt", "updatedAt"
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
-        $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, NOW(), NOW()
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21,
+        $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, NOW(), NOW()
       ) RETURNING *
     `, [
       vehiculoData.referencia, vehiculoData.marca, vehiculoData.modelo,
       vehiculoData.matricula, vehiculoData.bastidor, vehiculoData.kms,
       vehiculoData.tipo, vehiculoData.estado, vehiculoData.orden,
-      vehiculoData.fechaMatriculacion, vehiculoData.año, vehiculoData.itv,
+      vehiculoData.color, vehiculoData.fechaMatriculacion, vehiculoData.año, vehiculoData.itv,
       vehiculoData.seguro, vehiculoData.segundaLlave, vehiculoData.documentacion,
       vehiculoData.carpeta, vehiculoData.master, vehiculoData.hojasA,
       vehiculoData.esCocheInversor, vehiculoData.inversorId,
@@ -247,12 +267,22 @@ export async function updateVehiculo(id: number, vehiculoData: Partial<Vehiculo>
     const values = fields.map(field => vehiculoData[field as keyof Vehiculo])
     const setClause = fields.map((field, index) => `"${field}" = $${index + 2}`).join(', ')
     
+    console.log('🔄 Actualizando vehículo ID:', id)
+    console.log('📋 Campos a actualizar:', fields)
+    console.log('💾 Valores:', values)
+    console.log('🔧 SET clause:', setClause)
+    console.log('🔍 vehiculoData completo:', vehiculoData)
+    
     const result = await client.query(`
       UPDATE "Vehiculo" 
       SET ${setClause}, "updatedAt" = NOW()
       WHERE id = $1 
       RETURNING *
     `, [id, ...values])
+    
+    console.log('✅ Resultado de actualización:', result.rows[0])
+    console.log('✅ Número de filas afectadas:', result.rowCount)
+    console.log('✅ Resultado completo:', result)
     
     return result.rows[0] as Vehiculo || null
   } catch (error) {
@@ -280,12 +310,19 @@ export async function saveInversor(inversorData: any) {
   const client = await pool.connect()
   try {
     const result = await client.query(`
-      INSERT INTO "Inversor" (nombre, email, telefono, "capitalAportado", "capitalInvertido", activo, "createdAt", "updatedAt")
+      INSERT INTO "Inversor" (
+        nombre, email, "capitalAportado", "fechaAporte", "capitalInvertido", 
+        "notasInternas", "createdAt", "updatedAt"
+      )
       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
       RETURNING *
     `, [
-      inversorData.nombre, inversorData.email, inversorData.telefono,
-      inversorData.capitalAportado, inversorData.capitalInvertido, inversorData.activo
+      inversorData.nombre, 
+      inversorData.email, 
+      inversorData.capitalAportado || 0,
+      inversorData.fechaAporte,
+      inversorData.capitalInvertido || 0,
+      inversorData.notasInternas
     ])
     return result.rows[0]
   } catch (error) {
@@ -356,17 +393,26 @@ export async function saveCliente(clienteData: any) {
       INSERT INTO "Cliente" (
         nombre, apellidos, email, telefono, "fechaNacimiento", direccion,
         ciudad, "codigoPostal", provincia, dni, "vehiculosInteres",
-        "presupuestoMaximo", preferencias, observaciones, activo,
+        "presupuestoMaximo", "kilometrajeMaximo", "añoMinimo", 
+        "combustiblePreferido", "cambioPreferido", "coloresDeseados",
+        "necesidadesEspeciales", "formaPagoPreferida", "comoLlego",
+        "fechaPrimerContacto", estado, prioridad, "proximoPaso",
+        etiquetas, "notasAdicionales", observaciones, activo,
         "createdAt", "updatedAt"
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW()
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, NOW(), NOW()
       ) RETURNING *
     `, [
       clienteData.nombre, clienteData.apellidos, clienteData.email,
       clienteData.telefono, clienteData.fechaNacimiento, clienteData.direccion,
       clienteData.ciudad, clienteData.codigoPostal, clienteData.provincia,
       clienteData.dni, clienteData.vehiculosInteres, clienteData.presupuestoMaximo,
-      clienteData.preferencias, clienteData.observaciones, clienteData.activo
+      clienteData.kilometrajeMaximo, clienteData.añoMinimo, clienteData.combustiblePreferido,
+      clienteData.cambioPreferido, clienteData.coloresDeseados, clienteData.necesidadesEspeciales,
+      clienteData.formaPagoPreferida, clienteData.comoLlego, clienteData.fechaPrimerContacto,
+      clienteData.estado, clienteData.prioridad, clienteData.proximoPaso,
+      clienteData.etiquetas, clienteData.notasAdicionales, clienteData.observaciones,
+      clienteData.activo
     ])
     return result.rows[0]
   } catch (error) {
@@ -393,7 +439,27 @@ export async function getClienteById(id: number) {
 export async function updateCliente(id: number, clienteData: any) {
   const client = await pool.connect()
   try {
-    const fields = Object.keys(clienteData).filter(key => key !== 'id')
+    // Campos válidos según el esquema de la base de datos actualizado
+    const validFields = [
+      'nombre', 'apellidos', 'email', 'telefono', 'fechaNacimiento', 
+      'direccion', 'ciudad', 'codigoPostal', 'provincia', 'dni',
+      'vehiculosInteres', 'presupuestoMaximo', 'kilometrajeMaximo', 
+      'añoMinimo', 'combustiblePreferido', 'cambioPreferido',
+      'coloresDeseados', 'necesidadesEspeciales', 'formaPagoPreferida',
+      'comoLlego', 'fechaPrimerContacto', 'estado', 'prioridad',
+      'proximoPaso', 'etiquetas', 'notasAdicionales', 'observaciones', 'activo'
+    ]
+    
+    // Filtrar solo campos válidos
+    const fields = Object.keys(clienteData).filter(key => 
+      key !== 'id' && validFields.includes(key)
+    )
+    
+    // Si no hay campos válidos, no hacer nada
+    if (fields.length === 0) {
+      return await getClienteById(id)
+    }
+    
     const values = fields.map(field => clienteData[field])
     const setClause = fields.map((field, index) => `"${field}" = $${index + 2}`).join(', ')
     
@@ -580,32 +646,71 @@ export async function buscarClientesPorVehiculo(vehiculoInfo: string) {
 export async function getInversorMetrics(inversorId: number) {
   const client = await pool.connect()
   try {
-    const result = await client.query(`
+    // Obtener datos del inversor
+    const inversorResult = await client.query(`
+      SELECT "capitalAportado", "capitalInvertido"
+      FROM "Inversor" 
+      WHERE id = $1
+    `, [inversorId])
+    
+    const inversor = inversorResult.rows[0]
+    if (!inversor) {
+      throw new Error('Inversor no encontrado')
+    }
+    
+    // Obtener métricas de vehículos con costo total calculado
+    const vehiculosResult = await client.query(`
       SELECT 
         COUNT(*) as total_vehiculos,
-        SUM("precioCompra") as total_invertido,
+        COUNT(CASE WHEN estado = 'VENDIDO' THEN 1 END) as total_vendidos,
+        COUNT(CASE WHEN estado != 'VENDIDO' THEN 1 END) as total_en_stock,
         SUM("precioVenta") as total_vendido,
         SUM("beneficioNeto") as beneficio_total,
-        AVG("beneficioNeto") as beneficio_promedio
+        AVG("beneficioNeto") as beneficio_promedio,
+        -- Calcular costo total real de todos los vehículos
+        SUM(
+          COALESCE("precioCompra", 0) + 
+          COALESCE("gastosTransporte", 0) + 
+          COALESCE("gastosTasas", 0) + 
+          COALESCE("gastosMecanica", 0) + 
+          COALESCE("gastosPintura", 0) + 
+          COALESCE("gastosLimpieza", 0) + 
+          COALESCE("gastosOtros", 0)
+        ) as total_costo_real
       FROM "Vehiculo" 
       WHERE "inversorId" = $1
     `, [inversorId])
     
-    return result.rows[0] || {
-      total_vehiculos: 0,
-      total_invertido: 0,
-      total_vendido: 0,
-      beneficio_total: 0,
-      beneficio_promedio: 0
+    const metrics = vehiculosResult.rows[0]
+    
+    // Calcular valores
+    const capitalAportado = parseFloat(inversor.capitalAportado) || 0
+    const capitalInvertidoReal = parseFloat(metrics.total_costo_real) || 0 // Capital realmente invertido en vehículos
+    const capitalDisponible = capitalAportado - capitalInvertidoReal // Puede ser negativo
+    const beneficioAcumulado = parseFloat(metrics.beneficio_total) || 0
+    const roi = capitalInvertidoReal > 0 ? (beneficioAcumulado / capitalInvertidoReal) * 100 : 0
+    
+    return {
+      beneficioAcumulado: beneficioAcumulado,
+      capitalInvertido: capitalInvertidoReal, // Capital realmente invertido en vehículos
+      capitalAportado: capitalAportado,
+      capitalDisponible: capitalDisponible, // Puede ser negativo
+      roi: roi,
+      totalVendidos: parseInt(metrics.total_vendidos) || 0,
+      totalEnStock: parseInt(metrics.total_en_stock) || 0,
+      diasPromedioEnStock: 0 // TODO: Implementar cálculo de días promedio
     }
   } catch (error) {
     console.error('Error obteniendo métricas del inversor:', error)
     return {
-      total_vehiculos: 0,
-      total_invertido: 0,
-      total_vendido: 0,
-      beneficio_total: 0,
-      beneficio_promedio: 0
+      beneficioAcumulado: 0,
+      capitalInvertido: 0,
+      capitalAportado: 0,
+      capitalDisponible: 0,
+      roi: 0,
+      totalVendidos: 0,
+      totalEnStock: 0,
+      diasPromedioEnStock: 0
     }
   } finally {
     client.release()

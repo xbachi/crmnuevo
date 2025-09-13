@@ -13,10 +13,11 @@ interface InvestorVehicleCardProps {
   } | null
   onView: (id: number) => void
   onEdit?: (vehiculo: Vehiculo) => void
+  onEditVehiculo?: (vehiculo: Vehiculo) => void
   onPhotoUpload?: (vehiculoId: number, photoUrl: string) => void
 }
 
-export function InvestorVehicleCard({ vehiculo, inversor, onView, onEdit, onPhotoUpload }: InvestorVehicleCardProps) {
+export function InvestorVehicleCard({ vehiculo, inversor, onView, onEdit, onEditVehiculo, onPhotoUpload }: InvestorVehicleCardProps) {
   const [showPhotoModal, setShowPhotoModal] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [localPhotoUrl, setLocalPhotoUrl] = useState<string | null>(null)
@@ -140,11 +141,6 @@ export function InvestorVehicleCard({ vehiculo, inversor, onView, onEdit, onPhot
               ) : (
                 <p className="text-sm text-gray-600">
                   Vehículo
-                  {vehiculo.fechaCompra && (
-                    <span className="ml-2 text-gray-500">
-                      • Comprado: {formatDate(vehiculo.fechaCompra)}
-                    </span>
-                  )}
                 </p>
               )}
               {/* Información del inversor en el header */}
@@ -189,15 +185,51 @@ export function InvestorVehicleCard({ vehiculo, inversor, onView, onEdit, onPhot
           <div className="flex items-center space-x-2">
             <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
             <span className="text-sm font-medium text-gray-700">Estado Actual:</span>
+            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getEstadoColor(vehiculo.estado)}`}>
+              {vehiculo.estado || 'Sin Estado'}
+            </span>
           </div>
-          <span className={`px-3 py-1 text-sm font-semibold rounded-full ${getEstadoColor(vehiculo.estado)}`}>
-            {vehiculo.estado || 'Sin Estado'}
-          </span>
+          <div className="flex items-center space-x-2">
+            <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-sm text-gray-600">Días en stock:</span>
+            <span className="text-sm font-medium text-blue-600">{diasEnStock}</span>
+          </div>
         </div>
       </div>
 
       {/* Contenido principal */}
       <div className="p-6">
+        {/* Información básica del vehículo */}
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 mb-4 border border-blue-200">
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="flex items-center space-x-2">
+              <span className="text-gray-600 font-medium">Matrícula:</span>
+              <span className="font-semibold text-gray-900">{vehiculo.matricula}</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-gray-600 font-medium">Bastidor:</span>
+              <span className="font-semibold text-gray-900 text-xs">{vehiculo.bastidor}</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-gray-600 font-medium">KMs:</span>
+              <span className="font-semibold text-gray-900">{vehiculo.kms?.toLocaleString()}</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-gray-600 font-medium">Color:</span>
+              <span className="font-semibold text-gray-900">{vehiculo.color || 'No especificado'}</span>
+            </div>
+            {vehiculo.fechaMatriculacion && (
+              <div className="flex items-center space-x-2 col-span-2">
+                <span className="text-gray-600 font-medium">Fecha Matriculación:</span>
+                <span className="font-semibold text-gray-900">
+                  {new Date(vehiculo.fechaMatriculacion).toLocaleDateString('es-ES')}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Información financiera */}
         <div className="space-y-4">
@@ -215,116 +247,107 @@ export function InvestorVehicleCard({ vehiculo, inversor, onView, onEdit, onPhot
             </div>
           )}
 
-          {/* Precios principales */}
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            {vehiculo.precioCompra && (
-              <div className="bg-gray-50 rounded-lg p-3">
-                <p className="text-gray-500 text-xs font-medium mb-1">Precio de compra</p>
-                <p className="font-bold text-gray-900 text-lg">{formatCurrency(vehiculo.precioCompra)}</p>
-              </div>
-            )}
-            
-            {esVendido && vehiculo.precioVenta && (
-              <div className="bg-gray-50 rounded-lg p-3">
-                <p className="text-gray-500 text-xs font-medium mb-1">Precio de venta</p>
-                <p className="font-bold text-gray-900 text-lg">{formatCurrency(vehiculo.precioVenta)}</p>
-              </div>
-            )}
-            
-            {!esVendido && vehiculo.precioPublicacion && (
-              <div className="bg-gray-50 rounded-lg p-3">
-                <p className="text-gray-500 text-xs font-medium mb-1">Precio de publicación</p>
-                <p className="font-bold text-gray-900 text-lg">{formatCurrency(vehiculo.precioPublicacion)}</p>
-              </div>
-            )}
-            
-            {esVendido && vehiculo.beneficioNeto !== undefined && (
-              <div className={`rounded-lg p-3 ${vehiculo.beneficioNeto >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
-                <p className="text-gray-500 text-xs font-medium mb-1">Beneficio neto</p>
-                <p className={`font-bold text-lg ${vehiculo.beneficioNeto >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatCurrency(vehiculo.beneficioNeto)}
-                </p>
-              </div>
-            )}
-          </div>
 
             {/* Desglose de gastos */}
-            {(vehiculo.gastosTransporte || vehiculo.gastosTasas || vehiculo.gastosMecanica || vehiculo.gastosPintura || vehiculo.gastosLimpieza || vehiculo.gastosOtros) && (
-              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                <h4 className="text-sm font-semibold text-blue-800 mb-3 flex items-center">
+            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+              <h4 className="text-sm font-semibold text-blue-800 mb-3 flex items-center justify-between">
+                <div className="flex items-center">
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                   </svg>
                   Desglose de Gastos
-                </h4>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  {vehiculo.gastosTransporte && (
-                    <div className="flex justify-between bg-white rounded px-2 py-1">
-                      <span className="text-gray-600">Transporte:</span>
-                      <span className="font-semibold text-gray-900">{formatCurrency(vehiculo.gastosTransporte)}</span>
-                    </div>
-                  )}
-                  {vehiculo.gastosTasas && (
-                    <div className="flex justify-between bg-white rounded px-2 py-1">
-                      <span className="text-gray-600">Tasas/Gestoría:</span>
-                      <span className="font-semibold text-gray-900">{formatCurrency(vehiculo.gastosTasas)}</span>
-                    </div>
-                  )}
-                  {vehiculo.gastosMecanica && (
-                    <div className="flex justify-between bg-white rounded px-2 py-1">
-                      <span className="text-gray-600">Mecánica:</span>
-                      <span className="font-semibold text-gray-900">{formatCurrency(vehiculo.gastosMecanica)}</span>
-                    </div>
-                  )}
-                  {vehiculo.gastosPintura && (
-                    <div className="flex justify-between bg-white rounded px-2 py-1">
-                      <span className="text-gray-600">Pintura:</span>
-                      <span className="font-semibold text-gray-900">{formatCurrency(vehiculo.gastosPintura)}</span>
-                    </div>
-                  )}
-                  {vehiculo.gastosLimpieza && (
-                    <div className="flex justify-between bg-white rounded px-2 py-1">
-                      <span className="text-gray-600">Limpieza:</span>
-                      <span className="font-semibold text-gray-900">{formatCurrency(vehiculo.gastosLimpieza)}</span>
-                    </div>
-                  )}
-                  {vehiculo.gastosOtros && (
-                    <div className="flex justify-between bg-white rounded px-2 py-1">
-                      <span className="text-gray-600">Otros:</span>
-                      <span className="font-semibold text-gray-900">{formatCurrency(vehiculo.gastosOtros)}</span>
-                    </div>
-                  )}
                 </div>
-                
-                {/* Total de gastos */}
-                {(() => {
-                  const totalGastos = (vehiculo.gastosTransporte || 0) + 
-                                    (vehiculo.gastosTasas || 0) + 
-                                    (vehiculo.gastosMecanica || 0) + 
-                                    (vehiculo.gastosPintura || 0) + 
-                                    (vehiculo.gastosLimpieza || 0) + 
-                                    (vehiculo.gastosOtros || 0)
-                  return totalGastos > 0 ? (
-                    <div className="mt-3 pt-2 border-t border-blue-200 flex justify-between text-sm font-bold bg-white rounded px-2 py-1">
-                      <span className="text-blue-800">Total gastos:</span>
-                      <span className="text-blue-900">{formatCurrency(totalGastos)}</span>
-                    </div>
-                  ) : null
-                })()}
-              </div>
-            )}
-
-            {!esVendido && (
-              <div className="bg-gray-50 rounded-lg p-3 flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <button
+                  onClick={() => onEditVehiculo(vehiculo)}
+                  className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-full transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
-                  <span className="text-sm text-gray-600">Días en stock</span>
+                </button>
+              </h4>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="flex justify-between bg-white rounded px-2 py-1">
+                  <span className="text-gray-600">Precio compra:</span>
+                  <span className="font-semibold text-gray-900">
+                    {vehiculo.precioCompra ? formatCurrency(vehiculo.precioCompra) : '-'}
+                  </span>
                 </div>
-                <span className="font-bold text-gray-900">{diasEnStock} días</span>
+                <div className="flex justify-between bg-white rounded px-2 py-1">
+                  <span className="text-gray-600">Transporte:</span>
+                  <span className="font-semibold text-gray-900">
+                    {vehiculo.gastosTransporte ? formatCurrency(vehiculo.gastosTransporte) : '-'}
+                  </span>
+                </div>
+                <div className="flex justify-between bg-white rounded px-2 py-1">
+                  <span className="text-gray-600">Tasas/Gestoría:</span>
+                  <span className="font-semibold text-gray-900">
+                    {vehiculo.gastosTasas ? formatCurrency(vehiculo.gastosTasas) : '-'}
+                  </span>
+                </div>
+                <div className="flex justify-between bg-white rounded px-2 py-1">
+                  <span className="text-gray-600">Mecánica:</span>
+                  <span className="font-semibold text-gray-900">
+                    {vehiculo.gastosMecanica ? formatCurrency(vehiculo.gastosMecanica) : '-'}
+                  </span>
+                </div>
+                <div className="flex justify-between bg-white rounded px-2 py-1">
+                  <span className="text-gray-600">Pintura:</span>
+                  <span className="font-semibold text-gray-900">
+                    {vehiculo.gastosPintura ? formatCurrency(vehiculo.gastosPintura) : '-'}
+                  </span>
+                </div>
+                <div className="flex justify-between bg-white rounded px-2 py-1">
+                  <span className="text-gray-600">Limpieza:</span>
+                  <span className="font-semibold text-gray-900">
+                    {vehiculo.gastosLimpieza ? formatCurrency(vehiculo.gastosLimpieza) : '-'}
+                  </span>
+                </div>
+                <div className="flex justify-between bg-white rounded px-2 py-1">
+                  <span className="text-gray-600">Otros:</span>
+                  <span className="font-semibold text-gray-900">
+                    {vehiculo.gastosOtros ? formatCurrency(vehiculo.gastosOtros) : '-'}
+                  </span>
+                </div>
+                {esVendido && vehiculo.precioVenta && (
+                  <div className="flex justify-between bg-white rounded px-2 py-1">
+                    <span className="text-gray-600">Precio venta:</span>
+                    <span className="font-semibold text-gray-900">
+                      {formatCurrency(vehiculo.precioVenta)}
+                    </span>
+                  </div>
+                )}
+                {esVendido && vehiculo.beneficioNeto !== undefined && (
+                  <div className="flex justify-between bg-white rounded px-2 py-1">
+                    <span className="text-gray-600">Beneficio:</span>
+                    <span className={`font-semibold ${vehiculo.beneficioNeto >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {formatCurrency(vehiculo.beneficioNeto)}
+                    </span>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
+
+            {/* Costo total */}
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 border border-green-200">
+              <div className="flex justify-between items-center bg-green-100 rounded-lg px-3 py-2 border border-green-300">
+                <span className="text-sm font-bold text-green-800">COSTO TOTAL:</span>
+                <span className="font-bold text-green-900 text-base">
+                  {(() => {
+                    const totalGastos = (vehiculo.gastosTransporte || 0) + 
+                                      (vehiculo.gastosTasas || 0) + 
+                                      (vehiculo.gastosMecanica || 0) + 
+                                      (vehiculo.gastosPintura || 0) + 
+                                      (vehiculo.gastosLimpieza || 0) + 
+                                      (vehiculo.gastosOtros || 0)
+                    const precioCompra = vehiculo.precioCompra || 0
+                    const costoTotal = precioCompra + totalGastos
+                    return formatCurrency(costoTotal)
+                  })()}
+                </span>
+              </div>
+            </div>
+
           </div>
 
         {/* Foto */}

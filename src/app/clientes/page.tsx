@@ -34,6 +34,7 @@ export default function ClientesPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState<'fecha' | 'nombre' | 'prioridad'>('fecha')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  const [currentVehiculoInput, setCurrentVehiculoInput] = useState('')
   
   // Form data
   const [formData, setFormData] = useState({
@@ -41,6 +42,7 @@ export default function ClientesPage() {
     apellidos: '',
     telefono: '',
     email: '',
+    dni: '',
     comoLlego: '',
     estado: 'nuevo' as const,
     prioridad: 'media' as const,
@@ -55,8 +57,7 @@ export default function ClientesPage() {
       cambioPreferido: 'cualquiera' as const,
       coloresDeseados: [] as string[],
       necesidadesEspeciales: [] as string[],
-      formaPagoPreferida: 'cualquiera' as const,
-      notasAdicionales: ''
+      formaPagoPreferida: 'cualquiera' as const
     }
   })
 
@@ -66,7 +67,68 @@ export default function ClientesPage() {
       const response = await fetch('/api/clientes')
       if (!response.ok) throw new Error('Error al cargar clientes')
       const data = await response.json()
-      setClientes(data)
+      
+      // Mapear datos de la base de datos al formato esperado por el frontend
+      const clientesMapeados = data.map((cliente: any) => {
+        // Parsear vehiculosInteres
+        let vehiculosInteres = []
+        if (cliente.vehiculosInteres) {
+          try {
+            vehiculosInteres = JSON.parse(cliente.vehiculosInteres)
+          } catch (e) {
+            vehiculosInteres = []
+          }
+        }
+        
+        // Parsear etiquetas
+        let etiquetas = []
+        if (cliente.etiquetas) {
+          try {
+            etiquetas = JSON.parse(cliente.etiquetas)
+          } catch (e) {
+            etiquetas = []
+          }
+        }
+        
+        // Parsear coloresDeseados
+        let coloresDeseados = []
+        if (cliente.coloresDeseados) {
+          try {
+            coloresDeseados = JSON.parse(cliente.coloresDeseados)
+          } catch (e) {
+            coloresDeseados = []
+          }
+        }
+        
+        // Parsear necesidadesEspeciales
+        let necesidadesEspeciales = []
+        if (cliente.necesidadesEspeciales) {
+          try {
+            necesidadesEspeciales = JSON.parse(cliente.necesidadesEspeciales)
+          } catch (e) {
+            necesidadesEspeciales = []
+          }
+        }
+        
+        return {
+          ...cliente,
+          // Mapear para compatibilidad con el frontend existente
+          intereses: {
+            vehiculosInteres: vehiculosInteres,
+            precioMaximo: cliente.presupuestoMaximo || 0,
+            kilometrajeMaximo: cliente.kilometrajeMaximo || 0,
+            añoMinimo: cliente.añoMinimo || 0,
+            combustiblePreferido: cliente.combustiblePreferido || 'cualquiera',
+            cambioPreferido: cliente.cambioPreferido || 'cualquiera',
+            coloresDeseados: coloresDeseados,
+            necesidadesEspeciales: necesidadesEspeciales,
+            formaPagoPreferida: cliente.formaPagoPreferida || 'cualquiera'
+          },
+          etiquetas: etiquetas
+        }
+      })
+      
+      setClientes(clientesMapeados)
     } catch (error) {
       console.error('Error:', error)
       showToast('Error al cargar clientes', 'error')
@@ -156,19 +218,34 @@ export default function ClientesPage() {
         },
         body: JSON.stringify({
           ...formData,
-          fechaPrimerContacto: new Date().toISOString().split('T')[0]
+          fechaPrimerContacto: new Date().toISOString().split('T')[0],
+          // Mapear campos de intereses a campos de la base de datos
+          vehiculosInteres: formData.intereses.vehiculosInteres.length > 0 ? JSON.stringify(formData.intereses.vehiculosInteres) : null,
+          presupuestoMaximo: formData.intereses.precioMaximo || null,
+          kilometrajeMaximo: formData.intereses.kilometrajeMaximo || null,
+          añoMinimo: formData.intereses.añoMinimo || null,
+          combustiblePreferido: formData.intereses.combustiblePreferido || null,
+          cambioPreferido: formData.intereses.cambioPreferido || null,
+          coloresDeseados: formData.intereses.coloresDeseados.length > 0 ? JSON.stringify(formData.intereses.coloresDeseados) : null,
+          necesidadesEspeciales: formData.intereses.necesidadesEspeciales.length > 0 ? JSON.stringify(formData.intereses.necesidadesEspeciales) : null,
+          formaPagoPreferida: formData.intereses.formaPagoPreferida || null,
+          etiquetas: formData.etiquetas.length > 0 ? JSON.stringify(formData.etiquetas) : null,
+          // Remover el campo intereses
+          intereses: undefined
         })
       })
 
       if (response.ok) {
         await fetchClientes()
         setShowForm(false)
+        setCurrentVehiculoInput('')
         setFormData({
-          nombre: '',
-          apellidos: '',
-          telefono: '',
-          email: '',
-          comoLlego: '',
+        nombre: '',
+        apellidos: '',
+        telefono: '',
+        email: '',
+        dni: '',
+        comoLlego: '',
           estado: 'nuevo',
           prioridad: 'media',
           proximoPaso: '',
@@ -183,7 +260,6 @@ export default function ClientesPage() {
             coloresDeseados: [],
             necesidadesEspeciales: [],
             formaPagoPreferida: 'cualquiera',
-            notasAdicionales: ''
           }
         })
         showToast('Cliente creado correctamente', 'success')
@@ -212,16 +288,14 @@ export default function ClientesPage() {
       apellidos: '',
       telefono: '',
       email: '',
-      whatsapp: '',
+      dni: '',
       comoLlego: '',
-      fechaPrimerContacto: '',
       estado: 'nuevo',
       prioridad: 'media',
       proximoPaso: '',
       etiquetas: [],
       intereses: {
-        vehiculoPrincipal: '',
-        modelosAlternativos: [],
+        vehiculosInteres: [],
         precioMaximo: 0,
         kilometrajeMaximo: 0,
         añoMinimo: 0,
@@ -292,20 +366,20 @@ export default function ClientesPage() {
       const matchesSearch = cliente.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            cliente.apellidos.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            cliente.telefono.includes(searchTerm) ||
-                           cliente.email?.toLowerCase().includes(searchTerm.toLowerCase())
+                           cliente.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           cliente.dni?.toLowerCase().includes(searchTerm.toLowerCase())
       
       const matchesVehicleSearch = !vehicleSearchTerm || 
-        cliente.intereses.vehiculoPrincipal?.toLowerCase().includes(vehicleSearchTerm.toLowerCase()) ||
-        cliente.intereses.modelosAlternativos?.some(modelo => 
-          modelo.toLowerCase().includes(vehicleSearchTerm.toLowerCase())
+        cliente.intereses?.vehiculosInteres?.some(vehiculo => 
+          vehiculo.toLowerCase().includes(vehicleSearchTerm.toLowerCase())
         )
       
-      const matchesEstado = !estadoFilter || cliente.estado === estadoFilter
-      const matchesPrioridad = !prioridadFilter || cliente.prioridad === prioridadFilter
+      const matchesEstado = !estadoFilter || (cliente.estado || 'nuevo') === estadoFilter
+      const matchesPrioridad = !prioridadFilter || (cliente.prioridad || 'media') === prioridadFilter
       
       // Filtros por intereses
       const precioMaxValue = parseInt(precioMaxFilter)
-      const clientePrecio = cliente.intereses.precioMaximo
+      const clientePrecio = cliente.intereses?.precioMaximo || 0
       // Lógica corregida: si filtro 15k, mostrar clientes que pueden gastar 15k o más
       const matchesPrecioMax = !precioMaxFilter || 
         (clientePrecio > 0 && precioMaxValue > 0 && clientePrecio >= precioMaxValue)
@@ -316,22 +390,22 @@ export default function ClientesPage() {
       }
       
       const matchesKilometraje = !kilometrajeFilter || 
-        (cliente.intereses.kilometrajeMaximo > 0 && parseInt(kilometrajeFilter) > 0 && cliente.intereses.kilometrajeMaximo >= parseInt(kilometrajeFilter))
+        ((cliente.intereses?.kilometrajeMaximo || 0) > 0 && parseInt(kilometrajeFilter) > 0 && (cliente.intereses?.kilometrajeMaximo || 0) >= parseInt(kilometrajeFilter))
       
       const matchesAñoMin = !añoMinFilter || 
-        (cliente.intereses.añoMinimo > 0 && parseInt(añoMinFilter) > 0 && cliente.intereses.añoMinimo >= parseInt(añoMinFilter))
+        ((cliente.intereses?.añoMinimo || 0) > 0 && parseInt(añoMinFilter) > 0 && (cliente.intereses?.añoMinimo || 0) <= parseInt(añoMinFilter))
       
       const matchesCombustible = !combustibleFilter || 
-        cliente.intereses.combustiblePreferido === combustibleFilter ||
-        (combustibleFilter === 'cualquiera' && cliente.intereses.combustiblePreferido === 'cualquiera')
+        cliente.intereses?.combustiblePreferido === combustibleFilter ||
+        (combustibleFilter === 'cualquiera' && cliente.intereses?.combustiblePreferido === 'cualquiera')
       
       const matchesCambio = !cambioFilter || 
-        cliente.intereses.cambioPreferido === cambioFilter ||
-        (cambioFilter === 'cualquiera' && cliente.intereses.cambioPreferido === 'cualquiera')
+        cliente.intereses?.cambioPreferido === cambioFilter ||
+        (cambioFilter === 'cualquiera' && cliente.intereses?.cambioPreferido === 'cualquiera')
       
       const matchesPago = !pagoFilter || 
-        cliente.intereses.formaPagoPreferida === pagoFilter ||
-        (pagoFilter === 'cualquiera' && cliente.intereses.formaPagoPreferida === 'cualquiera')
+        cliente.intereses?.formaPagoPreferida === pagoFilter ||
+        (pagoFilter === 'cualquiera' && cliente.intereses?.formaPagoPreferida === 'cualquiera')
       
       return matchesSearch && matchesVehicleSearch && matchesEstado && matchesPrioridad &&
              matchesPrecioMax && matchesKilometraje && matchesAñoMin && 
@@ -371,76 +445,177 @@ export default function ClientesPage() {
   }
 
   return (
-    <div className="min-h-full bg-gradient-to-br from-slate-50 via-primary-50 to-primary-100">
+    <div className="min-h-full bg-gradient-to-br from-slate-50 via-orange-50 to-red-100">
       <main className="max-w-7xl mx-auto px-6 py-8">
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h1 className="text-3xl font-bold text-slate-800 mb-2">Gestión de Clientes</h1>
-              <p className="text-slate-600">Registra y haz seguimiento de todos los clientes</p>
-            </div>
-            <div className="flex space-x-3">
-              <button
-                onClick={() => setShowNotifications(true)}
-                className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></div>
-              </button>
-              <button
-                onClick={() => setShowExporter(true)}
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </button>
-              <button
-                onClick={() => router.push('/clientes/dashboard')}
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              </button>
-              <button
-                onClick={handleCreate}
-                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center space-x-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                <span>Agregar Cliente</span>
-              </button>
+        {/* Header Moderno - Estilo Navegación */}
+        <div className="mb-6">
+          {/* Título y stats compactos */}
+          <div className="bg-slate-800 rounded-xl shadow-xl border border-slate-700 mb-4">
+            <div className="px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg flex items-center justify-center">
+                    <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h1 className="text-xl font-bold text-white">Clientes</h1>
+                    <p className="text-slate-300 text-sm">
+                      {clientes.length} registrados • {filteredClientes.length} mostrados
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <button
+                    onClick={() => fetchClientes()}
+                    className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center space-x-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    <span>Actualizar</span>
+                  </button>
+                  <button
+                    onClick={() => setShowNotifications(true)}
+                    className="relative px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center space-x-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Notificaciones</span>
+                    <div className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></div>
+                  </button>
+                  <button
+                    onClick={() => setShowExporter(true)}
+                    className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center space-x-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>Exportar</span>
+                  </button>
+                  <button
+                    onClick={() => router.push('/clientes/dashboard')}
+                    className="px-3 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center space-x-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    <span>Dashboard</span>
+                  </button>
+                  <button
+                    onClick={handleCreate}
+                    className="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg text-sm font-medium transition-all shadow-lg flex items-center space-x-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span>Nuevo</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Búsqueda y filtros */}
-          <div className="space-y-4">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0 lg:space-x-4">
-              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
-                <input
-                  type="text"
-                  placeholder="Buscar clientes..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                />
-                
-                <input
-                  type="text"
-                  placeholder="Buscar por coche interesado..."
-                  value={vehicleSearchTerm}
-                  onChange={(e) => setVehicleSearchTerm(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                />
-                
+          {/* Barra de filtros mejorada - Dos líneas */}
+          <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/60 p-4 space-y-4">
+            
+            {/* LÍNEA 1: Búsqueda + Vista */}
+            <div className="flex items-center gap-4">
+              {/* Búsqueda de clientes */}
+              <div className="flex-1">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Buscar clientes por nombre, apellidos..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3 text-base border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition-all shadow-sm"
+                  />
+                  <svg className="absolute left-4 top-3.5 h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600"
+                    >
+                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Búsqueda de vehículo interesado */}
+              <div className="flex-1">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Buscar por coche interesado..."
+                    value={vehicleSearchTerm}
+                    onChange={(e) => setVehicleSearchTerm(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3 text-base border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition-all shadow-sm"
+                  />
+                  <svg className="absolute left-4 top-3.5 h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14-7v16l-2-2v-12a2 2 0 00-2-2H9a2 2 0 00-2 2v12l-2 2V4a2 2 0 012-2h10a2 2 0 012 2z" />
+                  </svg>
+                  {vehicleSearchTerm && (
+                    <button
+                      onClick={() => setVehicleSearchTerm('')}
+                      className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600"
+                    >
+                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Vista con iconos - Solo a la derecha */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-slate-600">👁️ Vista:</span>
+                <div className="flex bg-slate-100 rounded-xl p-1">
+                  <button
+                    onClick={() => setViewMode('cards')}
+                    className={`px-3 py-2 rounded-lg transition-all flex items-center space-x-2 ${
+                      viewMode === 'cards' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-600 hover:text-slate-800'
+                    }`}
+                    title="Vista de cartas"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14-7v16l-2-2v-12a2 2 0 00-2-2H9a2 2 0 00-2 2v12l-2 2V4a2 2 0 012-2h10a2 2 0 012 2z" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={`px-3 py-2 rounded-lg transition-all flex items-center space-x-2 ${
+                      viewMode === 'list' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-600 hover:text-slate-800'
+                    }`}
+                    title="Vista de lista"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+            {/* LÍNEA 2: Dropdowns de filtros */}
+            <div className="flex items-center justify-center gap-8">
+              
+              {/* Dropdown de Estado */}
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-semibold text-slate-700">Estado:</span>
                 <select
                   value={estadoFilter}
                   onChange={(e) => setEstadoFilter(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="px-4 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition-all shadow-sm"
                 >
                   <option value="">Todos los estados</option>
                   <option value="nuevo">Nuevo</option>
@@ -449,11 +624,15 @@ export default function ClientesPage() {
                   <option value="cerrado">Cerrado</option>
                   <option value="descartado">Descartado</option>
                 </select>
-                
+              </div>
+
+              {/* Dropdown de Prioridad */}
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-semibold text-slate-700">Prioridad:</span>
                 <select
                   value={prioridadFilter}
                   onChange={(e) => setPrioridadFilter(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="px-4 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition-all shadow-sm"
                 >
                   <option value="">Todas las prioridades</option>
                   <option value="alta">Alta</option>
@@ -461,87 +640,66 @@ export default function ClientesPage() {
                   <option value="baja">Baja</option>
                 </select>
               </div>
-              
-              <div className="flex items-center space-x-4">
-                <button
-                  onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                  className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors flex items-center space-x-2"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
-                  </svg>
-                  <span>Filtros Avanzados</span>
-                </button>
-                
-                <div className="flex bg-gray-100 rounded-lg p-1">
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                      viewMode === 'list' 
-                        ? 'bg-white text-gray-900 shadow-sm' 
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    Lista
-                  </button>
-                  <button
-                    onClick={() => setViewMode('cards')}
-                    className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                      viewMode === 'cards' 
-                        ? 'bg-white text-gray-900 shadow-sm' 
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    Tarjetas
-                  </button>
-                </div>
-              </div>
+
+              {/* Filtros avanzados */}
+              <button
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all flex items-center space-x-2 ${
+                  showAdvancedFilters ? 'bg-orange-100 text-orange-700 border border-orange-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
+                </svg>
+                <span>Filtros Avanzados</span>
+              </button>
+
             </div>
             
-            {/* Filtros avanzados */}
-            {showAdvancedFilters && (
-              <div className="bg-gray-50 p-4 rounded-lg border">
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Filtros por Intereses del Cliente</h3>
+          {/* Filtros avanzados expandibles */}
+          {showAdvancedFilters && (
+            <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/60 p-4">
+              <h3 className="text-sm font-medium text-slate-700 mb-4">🔍 Filtros por Intereses del Cliente</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                   <div>
-                    <label className="block text-xs text-gray-600 mb-1">Precio máximo (€)</label>
+                    <label className="block text-xs text-slate-600 mb-1">Precio máximo (€)</label>
                     <input
                       type="number"
                       placeholder="Ej: 15000"
                       value={precioMaxFilter}
                       onChange={(e) => setPrecioMaxFilter(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     />
                   </div>
                   
                   <div>
-                    <label className="block text-xs text-gray-600 mb-1">Kilometraje máximo</label>
+                    <label className="block text-xs text-slate-600 mb-1">Kilometraje máximo</label>
                     <input
                       type="number"
                       placeholder="Ej: 50000"
                       value={kilometrajeFilter}
                       onChange={(e) => setKilometrajeFilter(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     />
                   </div>
                   
                   <div>
-                    <label className="block text-xs text-gray-600 mb-1">Año mínimo</label>
+                    <label className="block text-xs text-slate-600 mb-1">Año mínimo</label>
                     <input
                       type="number"
                       placeholder="Ej: 2020"
                       value={añoMinFilter}
                       onChange={(e) => setAñoMinFilter(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     />
                   </div>
                   
                   <div>
-                    <label className="block text-xs text-gray-600 mb-1">Combustible</label>
+                    <label className="block text-xs text-slate-600 mb-1">Combustible</label>
                     <select
                       value={combustibleFilter}
                       onChange={(e) => setCombustibleFilter(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     >
                       <option value="">Todos</option>
                       <option value="diesel">Diésel</option>
@@ -553,11 +711,11 @@ export default function ClientesPage() {
                   </div>
                   
                   <div>
-                    <label className="block text-xs text-gray-600 mb-1">Cambio</label>
+                    <label className="block text-xs text-slate-600 mb-1">Cambio</label>
                     <select
                       value={cambioFilter}
                       onChange={(e) => setCambioFilter(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     >
                       <option value="">Todos</option>
                       <option value="manual">Manual</option>
@@ -567,11 +725,11 @@ export default function ClientesPage() {
                   </div>
                   
                   <div>
-                    <label className="block text-xs text-gray-600 mb-1">Forma de pago</label>
+                    <label className="block text-xs text-slate-600 mb-1">Forma de pago</label>
                     <select
                       value={pagoFilter}
                       onChange={(e) => setPagoFilter(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     >
                       <option value="">Todas</option>
                       <option value="financiacion">Financiación</option>
@@ -607,22 +765,23 @@ export default function ClientesPage() {
 
         {/* Formulario de creación */}
         {showForm && (
-          <div className="mb-8 bg-white rounded-xl shadow-lg border border-gray-200 p-8">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-gray-900">Nuevo Cliente</h2>
-              <button
-                onClick={handleCancel}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+          <div className="mb-8 max-w-2xl mx-auto">
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200">
+              <div className="flex justify-between items-center p-4 border-b border-slate-200">
+                <h2 className="text-lg font-semibold text-slate-800">Nuevo Cliente</h2>
+                <button
+                  onClick={handleCancel}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
           
-            <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="p-4 space-y-3">
               {/* Datos básicos */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <label htmlFor="nombre" className="block text-sm font-medium text-slate-700 mb-1">
                     Nombre *
@@ -634,7 +793,7 @@ export default function ClientesPage() {
                     value={formData.nombre}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"
                     placeholder="Ej: Juan"
                   />
                 </div>
@@ -650,7 +809,7 @@ export default function ClientesPage() {
                     value={formData.apellidos}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"
                     placeholder="Ej: Pérez García"
                   />
                 </div>
@@ -666,7 +825,7 @@ export default function ClientesPage() {
                     value={formData.telefono}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"
                     placeholder="Ej: 666 123 456"
                   />
                 </div>
@@ -681,8 +840,23 @@ export default function ClientesPage() {
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"
                     placeholder="Ej: juan@email.com"
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="dni" className="block text-sm font-medium text-slate-700 mb-1">
+                    DNI <span className="text-gray-500 text-xs">(opcional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="dni"
+                    name="dni"
+                    value={formData.dni}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    placeholder="Ej: 12345678A"
                   />
                 </div>
                 
@@ -695,7 +869,7 @@ export default function ClientesPage() {
                     name="comoLlego"
                     value={formData.comoLlego}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"
                   >
                     <option value="No especificado">No especificado</option>
                     <option value="Google">Google</option>
@@ -707,91 +881,74 @@ export default function ClientesPage() {
                 </div>
                 
                 
-                <div>
-                  <label htmlFor="estado" className="block text-sm font-medium text-slate-700 mb-1">
-                    Estado
-                  </label>
-                  <select
-                    id="estado"
-                    name="estado"
-                    value={formData.estado}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                  >
-                    <option value="nuevo">Nuevo</option>
-                    <option value="en_seguimiento">En Seguimiento</option>
-                    <option value="cita_agendada">Cita Agendada</option>
-                    <option value="cerrado">Cerrado</option>
-                    <option value="descartado">Descartado</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label htmlFor="prioridad" className="block text-sm font-medium text-slate-700 mb-1">
-                    Prioridad
-                  </label>
-                  <select
-                    id="prioridad"
-                    name="prioridad"
-                    value={formData.prioridad}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                  >
-                    <option value="alta">Alta</option>
-                    <option value="media">Media</option>
-                    <option value="baja">Baja</option>
-                  </select>
-                </div>
               </div>
               
               {/* Intereses básicos */}
-              <div className="border-t border-gray-200 pt-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Intereses del Cliente</h3>
+              <div className="border-t border-gray-200 pt-3">
+                <h3 className="text-sm font-medium text-gray-900 mb-2">Intereses del Cliente</h3>
                 
                 {/* Vehículos de interés */}
-                <div className="mb-6">
+                <div className="mb-3">
                   <label className="block text-sm font-medium text-slate-700 mb-2">
                     Vehículos de interés
                   </label>
-                  <div className="space-y-2">
-                    {formData.intereses.vehiculosInteres.map((vehiculo, index) => (
-                      <div key={index} className="flex items-center space-x-2">
-                        <input
-                          type="text"
-                          value={vehiculo}
-                          onChange={(e) => updateVehiculoInteres(index, e.target.value)}
-                          onKeyPress={(e) => handleVehiculoKeyPress(e, index)}
-                          className="flex-1 px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                          placeholder="Ej: Renault Clio, BMW Serie 3, etc."
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeVehiculoInteres(index)}
-                          className="px-3 py-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors"
+                  <div className="relative">
+                    {/* Tags existentes */}
+                    <div className="flex flex-wrap gap-2 mb-2 min-h-[40px] p-2 border border-slate-300 rounded-md bg-white">
+                      {formData.intereses.vehiculosInteres.filter(v => v.trim()).map((vehiculo, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800 border border-blue-200"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={addVehiculoInteres}
-                      className="flex items-center space-x-2 px-3 py-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-md transition-colors border border-green-200"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                      <span>Agregar vehículo</span>
-                    </button>
+                          {vehiculo}
+                          <button
+                            type="button"
+                            onClick={() => removeVehiculoInteres(index)}
+                            className="ml-2 text-blue-600 hover:text-blue-800"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </span>
+                      ))}
+                      {/* Input para agregar nuevos */}
+                      <input
+                        type="text"
+                        value={currentVehiculoInput}
+                        onChange={(e) => setCurrentVehiculoInput(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            const inputValue = currentVehiculoInput.trim()
+                            if (inputValue) {
+                              // Agregar el vehículo a la lista
+                              setFormData(prev => ({
+                                ...prev,
+                                intereses: {
+                                  ...prev.intereses,
+                                  vehiculosInteres: [...prev.intereses.vehiculosInteres.filter(v => v.trim()), inputValue]
+                                }
+                              }))
+                              // Limpiar el input
+                              setCurrentVehiculoInput('')
+                            }
+                          }
+                        }}
+                        className="flex-1 min-w-[200px] px-2 py-1 border-none outline-none bg-transparent text-sm"
+                        placeholder={formData.intereses.vehiculosInteres.length === 0 ? "Escribe un vehículo y presiona Enter (ej: Fiat Punto)" : "Agregar otro vehículo..."}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      💡 Escribe un vehículo y presiona Enter para agregarlo. Puedes agregar múltiples vehículos.
+                    </p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label htmlFor="intereses.precioMaximo" className="block text-sm font-medium text-slate-700 mb-1">
-                      Precio máximo (€)
+                    <label htmlFor="intereses.precioMaximo" className="block text-xs font-medium text-slate-700 mb-1">
+                      Precio máx (€)
                     </label>
                     <input
                       type="number"
@@ -799,14 +956,14 @@ export default function ClientesPage() {
                       name="intereses.precioMaximo"
                       value={formData.intereses.precioMaximo}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                      placeholder="Ej: 15000"
+                      className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"
+                      placeholder="15000"
                     />
                   </div>
                   
                   <div>
-                    <label htmlFor="intereses.kilometrajeMaximo" className="block text-sm font-medium text-slate-700 mb-1">
-                      Kilometraje máximo
+                    <label htmlFor="intereses.kilometrajeMaximo" className="block text-xs font-medium text-slate-700 mb-1">
+                      KM máx
                     </label>
                     <input
                       type="number"
@@ -814,14 +971,14 @@ export default function ClientesPage() {
                       name="intereses.kilometrajeMaximo"
                       value={formData.intereses.kilometrajeMaximo}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                      placeholder="Ej: 50000"
+                      className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"
+                      placeholder="50000"
                     />
                   </div>
                   
                   <div>
-                    <label htmlFor="intereses.añoMinimo" className="block text-sm font-medium text-slate-700 mb-1">
-                      Año mínimo
+                    <label htmlFor="intereses.añoMinimo" className="block text-xs font-medium text-slate-700 mb-1">
+                      Año mín
                     </label>
                     <input
                       type="number"
@@ -829,21 +986,21 @@ export default function ClientesPage() {
                       name="intereses.añoMinimo"
                       value={formData.intereses.añoMinimo}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                      placeholder="Ej: 2020"
+                      className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"
+                      placeholder="2020"
                     />
                   </div>
                   
                   <div>
-                    <label htmlFor="intereses.combustiblePreferido" className="block text-sm font-medium text-slate-700 mb-1">
-                      Combustible preferido
+                    <label htmlFor="intereses.combustiblePreferido" className="block text-xs font-medium text-slate-700 mb-1">
+                      Combustible
                     </label>
                     <select
                       id="intereses.combustiblePreferido"
                       name="intereses.combustiblePreferido"
                       value={formData.intereses.combustiblePreferido}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                      className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"
                     >
                       <option value="cualquiera">Cualquiera</option>
                       <option value="diesel">Diésel</option>
@@ -854,15 +1011,15 @@ export default function ClientesPage() {
                   </div>
                   
                   <div>
-                    <label htmlFor="intereses.cambioPreferido" className="block text-sm font-medium text-slate-700 mb-1">
-                      Cambio preferido
+                    <label htmlFor="intereses.cambioPreferido" className="block text-xs font-medium text-slate-700 mb-1">
+                      Cambio
                     </label>
                     <select
                       id="intereses.cambioPreferido"
                       name="intereses.cambioPreferido"
                       value={formData.intereses.cambioPreferido}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                      className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"
                     >
                       <option value="cualquiera">Cualquiera</option>
                       <option value="manual">Manual</option>
@@ -871,15 +1028,15 @@ export default function ClientesPage() {
                   </div>
                   
                   <div>
-                    <label htmlFor="intereses.formaPagoPreferida" className="block text-sm font-medium text-slate-700 mb-1">
-                      Forma de pago preferida
+                    <label htmlFor="intereses.formaPagoPreferida" className="block text-xs font-medium text-slate-700 mb-1">
+                      Pago
                     </label>
                     <select
                       id="intereses.formaPagoPreferida"
                       name="intereses.formaPagoPreferida"
                       value={formData.intereses.formaPagoPreferida}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                      className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"
                     >
                       <option value="cualquiera">Cualquiera</option>
                       <option value="financiacion">Financiación</option>
@@ -889,21 +1046,6 @@ export default function ClientesPage() {
                   </div>
                 </div>
                 
-                {/* Notas adicionales */}
-                <div className="mt-6">
-                  <label htmlFor="intereses.notasAdicionales" className="block text-sm font-medium text-slate-700 mb-1">
-                    Notas adicionales
-                  </label>
-                  <textarea
-                    id="intereses.notasAdicionales"
-                    name="intereses.notasAdicionales"
-                    value={formData.intereses.notasAdicionales}
-                    onChange={handleInputChange}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                    placeholder="Ej: Busca familiar 7 plazas, necesita maletero grande, etc."
-                  />
-                </div>
               </div>
               
               <div className="flex justify-end space-x-3">
@@ -921,7 +1063,8 @@ export default function ClientesPage() {
                   Crear Cliente
                 </button>
               </div>
-            </form>
+              </form>
+            </div>
           </div>
         )}
 
@@ -957,35 +1100,29 @@ export default function ClientesPage() {
               {filteredClientes.map((cliente) => (
                 <div 
                   key={cliente.id} 
-                  className="bg-white rounded-xl shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow cursor-pointer"
+                  className="bg-white rounded-xl shadow-md border border-gray-200 p-6 hover:shadow-xl transition-all duration-200 cursor-pointer group"
                   onClick={() => handleView(cliente.id)}
                 >
                   <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900">{cliente.nombre} {cliente.apellidos}</h3>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">{cliente.nombre} {cliente.apellidos}</h3>
                       <p className="text-sm text-gray-600">{cliente.telefono}</p>
                       {cliente.email && (
                         <p className="text-sm text-gray-500">{cliente.email}</p>
                       )}
+                      {cliente.dni && (
+                        <p className="text-sm text-gray-500">DNI: {cliente.dni}</p>
+                      )}
                     </div>
-                    <div className="flex space-x-2">
+                    <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleView(cliente.id)
-                        }}
-                        className="px-3 py-1 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600 transition-colors"
+                        onClick={() => handleDeleteClick(cliente)}
+                        className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                        title="Eliminar cliente"
                       >
-                        Ver
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleDeleteClick(cliente)
-                        }}
-                        className="px-3 py-1 bg-red-500 text-white text-sm rounded-md hover:bg-red-600 transition-colors"
-                      >
-                        Eliminar
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
                       </button>
                     </div>
                   </div>
@@ -993,18 +1130,18 @@ export default function ClientesPage() {
                   <div className="space-y-2 text-sm text-gray-600">
                     <div className="flex items-center justify-between">
                       <span>Estado:</span>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEstadoColor(cliente.estado)}`}>
-                        {cliente.estado.replace('_', ' ')}
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEstadoColor(cliente.estado || 'nuevo')}`}>
+                        {(cliente.estado || 'nuevo').replace('_', ' ')}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span>Prioridad:</span>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPrioridadColor(cliente.prioridad)}`}>
-                        {cliente.prioridad}
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPrioridadColor(cliente.prioridad || 'media')}`}>
+                        {cliente.prioridad || 'media'}
                       </span>
                     </div>
-                    <p>Interés: <span className="font-medium">{cliente.intereses.vehiculoPrincipal || 'No especificado'}</span></p>
-                    <p>Presupuesto: <span className="font-medium">€{cliente.intereses.precioMaximo.toLocaleString()}</span></p>
+                    <p>Interés: <span className="font-medium">{cliente.intereses?.vehiculosInteres?.join(', ') || 'No especificado'}</span></p>
+                    <p>Presupuesto: <span className="font-medium">€{(cliente.intereses?.precioMaximo || 0).toLocaleString()}</span></p>
                     {cliente.proximoPaso && (
                       <p className="text-blue-600 font-medium">Próximo: {cliente.proximoPaso}</p>
                     )}
@@ -1029,7 +1166,7 @@ export default function ClientesPage() {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredClientes.map((cliente) => (
-                      <tr key={cliente.id} className="hover:bg-gray-50">
+                      <tr key={cliente.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleView(cliente.id)}>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">{cliente.nombre} {cliente.apellidos}</div>
                         </td>
@@ -1038,36 +1175,36 @@ export default function ClientesPage() {
                           {cliente.email && (
                             <div className="text-sm text-gray-500">{cliente.email}</div>
                           )}
+                          {cliente.dni && (
+                            <div className="text-sm text-gray-500">DNI: {cliente.dni}</div>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEstadoColor(cliente.estado)}`}>
-                            {cliente.estado.replace('_', ' ')}
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEstadoColor(cliente.estado || 'nuevo')}`}>
+                            {(cliente.estado || 'nuevo').replace('_', ' ')}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPrioridadColor(cliente.prioridad)}`}>
-                            {cliente.prioridad}
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPrioridadColor(cliente.prioridad || 'media')}`}>
+                            {cliente.prioridad || 'media'}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-600">{cliente.intereses.vehiculoPrincipal || 'No especificado'}</div>
+                          <div className="text-sm text-gray-600">{cliente.intereses?.vehiculosInteres?.join(', ') || 'No especificado'}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-600">€{cliente.intereses.precioMaximo.toLocaleString()}</div>
+                          <div className="text-sm text-gray-600">€{(cliente.intereses?.precioMaximo || 0).toLocaleString()}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex space-x-3">
-                            <button
-                              onClick={() => handleView(cliente.id)}
-                              className="text-blue-600 hover:text-blue-900"
-                            >
-                              Ver
-                            </button>
+                          <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
                             <button
                               onClick={() => handleDeleteClick(cliente)}
-                              className="text-red-600 hover:text-red-900"
+                              className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                              title="Eliminar cliente"
                             >
-                              Eliminar
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
                             </button>
                           </div>
                         </td>
@@ -1079,7 +1216,6 @@ export default function ClientesPage() {
             </div>
           )
         )}
-      </main>
 
       {/* Modal de confirmación de eliminación */}
       {clienteToDelete && (
@@ -1125,20 +1261,21 @@ export default function ClientesPage() {
         </div>
       )}
 
-      <ToastContainer />
+        <ToastContainer />
 
-      {/* Modales */}
-      <NotificationCenter 
-        isOpen={showNotifications} 
-        onClose={() => setShowNotifications(false)} 
-      />
-      
-      <DataExporter 
-        clientes={clientes}
-        isOpen={showExporter} 
-        onClose={() => setShowExporter(false)} 
-      />
+        {/* Modales */}
+        <NotificationCenter 
+          isOpen={showNotifications} 
+          onClose={() => setShowNotifications(false)} 
+        />
+        
+        <DataExporter 
+          clientes={clientes}
+          isOpen={showExporter} 
+          onClose={() => setShowExporter(false)} 
+        />
 
+      </main>
     </div>
   )
 }

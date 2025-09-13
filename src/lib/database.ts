@@ -61,6 +61,7 @@ export interface Cliente {
   apellidos: string
   telefono: string
   email?: string
+  dni?: string
   whatsapp?: string
   comoLlego: string
   fechaPrimerContacto: string
@@ -74,8 +75,7 @@ export interface Cliente {
 }
 
 export interface InteresesCliente {
-  vehiculoPrincipal: string
-  modelosAlternativos: string[]
+  vehiculosInteres: string[]
   precioMaximo: number
   kilometrajeMaximo: number
   añoMinimo: number

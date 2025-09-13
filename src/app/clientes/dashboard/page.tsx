@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Navigation from '@/components/Navigation'
 
 interface Cliente {
   id: number
@@ -204,8 +203,6 @@ export default function DashboardClientes() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation />
-      
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-6 py-4">

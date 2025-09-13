@@ -14,6 +14,8 @@ export default function CargarVehiculo() {
     bastidor: '',
     kms: '',
     tipo: '',
+    color: '',
+    fechaMatriculacion: '',
     esCocheInversor: false,
     inversorId: '',
     fechaCompra: '',
@@ -33,6 +35,51 @@ export default function CargarVehiculo() {
   const router = useRouter()
   const { showToast, ToastContainer } = useToast()
 
+  const formatReferencia = (value: string, tipo: string) => {
+    if (!value) return value
+    
+    // Limpiar el valor de espacios y caracteres especiales
+    const cleanValue = value.replace(/[^a-zA-Z0-9#-]/g, '')
+    
+    if (tipo === 'Compra') {
+      // Para compras: siempre con #
+      if (cleanValue.startsWith('#')) {
+        return cleanValue
+      } else {
+        return `#${cleanValue}`
+      }
+    } else if (tipo === 'Inversor') {
+      // Para inversores: siempre con I-
+      if (cleanValue.startsWith('I-')) {
+        return cleanValue
+      } else if (cleanValue.startsWith('I')) {
+        return cleanValue.replace('I', 'I-')
+      } else {
+        return `I-${cleanValue}`
+      }
+    } else if (tipo === 'Deposito') {
+      // Para depósito: siempre con D-
+      if (cleanValue.startsWith('D-')) {
+        return cleanValue
+      } else if (cleanValue.startsWith('D')) {
+        return cleanValue.replace('D', 'D-')
+      } else {
+        return `D-${cleanValue}`
+      }
+    } else if (tipo === 'Reserva') {
+      // Para reserva: siempre con R-
+      if (cleanValue.startsWith('R-')) {
+        return cleanValue
+      } else if (cleanValue.startsWith('R')) {
+        return cleanValue.replace('R', 'R-')
+      } else {
+        return `R-${cleanValue}`
+      }
+    }
+    
+    return cleanValue
+  }
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target
     setFormData(prev => {
@@ -41,11 +88,24 @@ export default function CargarVehiculo() {
         [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
       }
       
+      // Formatear referencia automáticamente
+      if (name === 'referencia') {
+        newData.referencia = formatReferencia(value, prev.tipo)
+      }
+      
       // Si se selecciona "Inversor" como tipo, marcar automáticamente como coche de inversor
       if (name === 'tipo' && value === 'Inversor') {
         newData.esCocheInversor = true
+        // Re-formatear la referencia con el nuevo tipo
+        if (prev.referencia) {
+          newData.referencia = formatReferencia(prev.referencia, value)
+        }
       } else if (name === 'tipo' && value !== 'Inversor') {
         newData.esCocheInversor = false
+        // Re-formatear la referencia con el nuevo tipo
+        if (prev.referencia) {
+          newData.referencia = formatReferencia(prev.referencia, value)
+        }
         // Limpiar campos de inversor si se cambia el tipo
         newData.inversorId = ''
         newData.fechaCompra = ''
@@ -180,7 +240,7 @@ export default function CargarVehiculo() {
                   onChange={handleInputChange}
                   required
                   className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                  placeholder="Ej: #1040"
+                  placeholder="Ej: #1040, I-9, D-5, R-3"
                 />
               </div>
 
@@ -269,6 +329,37 @@ export default function CargarVehiculo() {
                   required
                   className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors font-mono"
                   placeholder="Ej: W0L00000000000000"
+                />
+              </div>
+            </div>
+
+            {/* Color y Fecha de Matriculación */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="color" className="block text-sm font-medium text-slate-700 mb-1">
+                  Color
+                </label>
+                <input
+                  type="text"
+                  id="color"
+                  name="color"
+                  value={formData.color}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                  placeholder="Ej: Blanco, Negro, Azul..."
+                />
+              </div>
+              <div>
+                <label htmlFor="fechaMatriculacion" className="block text-sm font-medium text-slate-700 mb-1">
+                  Fecha de Matriculación
+                </label>
+                <input
+                  type="date"
+                  id="fechaMatriculacion"
+                  name="fechaMatriculacion"
+                  value={formData.fechaMatriculacion}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                 />
               </div>
             </div>

@@ -82,11 +82,28 @@ model Cliente {
   provincia        String?
   dni              String?  @unique
   fechaRegistro    DateTime @default(now())
-  vehiculosInteres String?
-  presupuestoMaximo Float?
-  preferencias     String?
-  observaciones    String?
-  activo           Boolean  @default(true)
+  
+  // Campos de intereses del cliente
+  vehiculosInteres     String? // JSON array de vehículos de interés
+  presupuestoMaximo    Float?
+  kilometrajeMaximo    Int?
+  añoMinimo            Int?
+  combustiblePreferido String? @default("cualquiera")
+  cambioPreferido      String? @default("cualquiera")
+  coloresDeseados      String? // JSON array
+  necesidadesEspeciales String? // JSON array
+  formaPagoPreferida   String? @default("cualquiera")
+  
+  // Campos adicionales
+  comoLlego           String?
+  fechaPrimerContacto DateTime?
+  estado              String? @default("nuevo")
+  prioridad           String? @default("media")
+  proximoPaso         String?
+  etiquetas           String? // JSON array
+  notasAdicionales    String?
+  observaciones       String?
+  activo              Boolean  @default(true)
   
   notas            NotaCliente[]
   createdAt        DateTime @default(now())

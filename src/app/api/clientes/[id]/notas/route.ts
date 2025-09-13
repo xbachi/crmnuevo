@@ -3,9 +3,10 @@ import { getNotasByCliente, addNotaCliente } from '@/lib/direct-database'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const id = parseInt(params.id)
+  const { id: idParam } = await params
+  const id = parseInt(idParam)
   if (isNaN(id)) {
     return NextResponse.json({ error: 'ID de cliente inválido' }, { status: 400 })
   }
@@ -21,9 +22,10 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const id = parseInt(params.id)
+  const { id: idParam } = await params
+  const id = parseInt(idParam)
   if (isNaN(id)) {
     return NextResponse.json({ error: 'ID de cliente inválido' }, { status: 400 })
   }

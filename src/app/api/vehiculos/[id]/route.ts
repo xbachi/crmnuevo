@@ -34,14 +34,26 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const body = await request.json()
     
+    console.log('🔍 Datos recibidos para actualizar:', body)
+    console.log('🔍 body.color:', body.color)
+    console.log('🔍 body.fechaMatriculacion:', body.fechaMatriculacion)
+    
     // Verificar que el vehículo existe
     const vehiculoExistente = await getVehiculoById(id)
     if (!vehiculoExistente) {
       return NextResponse.json({ error: 'Vehículo no encontrado' }, { status: 404 })
     }
 
+    console.log('📝 Vehículo existente:', vehiculoExistente)
+    console.log('📝 Vehículo existente.color:', vehiculoExistente.color)
+    console.log('📝 Vehículo existente.fechaMatriculacion:', vehiculoExistente.fechaMatriculacion)
+    
     // Actualizar el vehículo con los nuevos datos
     const vehiculoActualizado = await updateVehiculo(id, body)
+    
+    console.log('✅ Vehículo actualizado:', vehiculoActualizado)
+    console.log('✅ Vehículo actualizado.color:', vehiculoActualizado?.color)
+    console.log('✅ Vehículo actualizado.fechaMatriculacion:', vehiculoActualizado?.fechaMatriculacion)
 
     return NextResponse.json(vehiculoActualizado)
   } catch (error) {

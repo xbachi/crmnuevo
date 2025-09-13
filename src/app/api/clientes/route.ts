@@ -28,35 +28,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'El teléfono es obligatorio' }, { status: 400 })
     }
     
-    if (!data.intereses) {
-      return NextResponse.json({ error: 'Los intereses son obligatorios' }, { status: 400 })
-    }
     
-    const cliente = await saveCliente({
+    // Preparar datos para la base de datos
+    const clienteData = {
       nombre: data.nombre.trim(),
       apellidos: data.apellidos.trim(),
       telefono: data.telefono.trim(),
       email: data.email?.trim(),
-      whatsapp: data.whatsapp?.trim(),
+      dni: data.dni?.trim(),
       comoLlego: data.comoLlego || 'No especificado',
       fechaPrimerContacto: data.fechaPrimerContacto || new Date().toISOString().split('T')[0],
       estado: data.estado || 'nuevo',
       prioridad: data.prioridad || 'media',
-      intereses: {
-        vehiculoPrincipal: data.intereses.vehiculosInteres?.[0] || '',
-        modelosAlternativos: data.intereses.vehiculosInteres?.slice(1) || [],
-        precioMaximo: data.intereses.precioMaximo || 0,
-        kilometrajeMaximo: data.intereses.kilometrajeMaximo || 0,
-        añoMinimo: data.intereses.añoMinimo || 0,
-        combustiblePreferido: data.intereses.combustiblePreferido || 'cualquiera',
-        cambioPreferido: data.intereses.cambioPreferido || 'cualquiera',
-        coloresDeseados: data.intereses.coloresDeseados || [],
-        necesidadesEspeciales: data.intereses.necesidadesEspeciales || [],
-        formaPagoPreferida: data.intereses.formaPagoPreferida || 'cualquiera'
-      },
       proximoPaso: data.proximoPaso?.trim(),
-      etiquetas: data.etiquetas || []
-    })
+      // Campos de intereses mapeados directamente
+      vehiculosInteres: data.vehiculosInteres,
+      presupuestoMaximo: data.presupuestoMaximo,
+      kilometrajeMaximo: data.kilometrajeMaximo,
+      añoMinimo: data.añoMinimo,
+      combustiblePreferido: data.combustiblePreferido,
+      cambioPreferido: data.cambioPreferido,
+      coloresDeseados: data.coloresDeseados,
+      necesidadesEspeciales: data.necesidadesEspeciales,
+      formaPagoPreferida: data.formaPagoPreferida,
+      notasAdicionales: data.notasAdicionales,
+      etiquetas: data.etiquetas
+    }
+    
+    const cliente = await saveCliente(clienteData)
     
     return NextResponse.json(cliente, { status: 201 })
   } catch (error) {

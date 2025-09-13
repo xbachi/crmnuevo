@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getVehiculos, saveVehiculo, checkUniqueFields, updateVehiculo, deleteVehiculo, getInversores } from '@/lib/direct-database'
+import { getVehiculos, getVehiculosCount, saveVehiculo, checkUniqueFields, updateVehiculo, deleteVehiculo, getInversores } from '@/lib/direct-database'
 import { promises as fs } from 'fs'
 import { generateFolderName, getFolderPathsByTipo } from '@/config/folders'
 import { writeVehiculoToSheets } from '@/lib/googleSheets'
@@ -15,6 +15,8 @@ export async function POST(request: NextRequest) {
       bastidor, 
       kms, 
       tipo,
+      color,
+      fechaMatriculacion,
       esCocheInversor,
       inversorId,
       fechaCompra,
@@ -58,6 +60,8 @@ export async function POST(request: NextRequest) {
       bastidor,
       kms: parseInt(kms),
       tipo,
+      color: color || undefined,
+      fechaMatriculacion: fechaMatriculacion || undefined,
       esCocheInversor: esCocheInversor || false,
       inversorId: inversorId || undefined,
       fechaCompra: fechaCompra || undefined,
@@ -132,9 +136,23 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const vehiculos = await getVehiculos()
+    const { searchParams } = new URL(request.url)
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '50')
+    const offset = (page - 1) * limit
+    
+    console.log(`🚀 Cargando vehículos: página ${page}, límite ${limit}`)
+    
+    // Obtener vehículos con paginación
+    const [vehiculos, total] = await Promise.all([
+      getVehiculos(limit, offset),
+      getVehiculosCount()
+    ])
+    
+    console.log(`📊 Vehículos cargados: ${vehiculos.length} de ${total} total`)
+    
     const inversores = await getInversores()
     
     // Crear un mapa de inversores para búsqueda rápida
@@ -146,11 +164,20 @@ export async function GET() {
       inversorNombre: vehiculo.inversorId ? inversoresMap.get(vehiculo.inversorId) : undefined
     }))
     
-    // Ordenar por fecha de creación (más recientes primero)
-    vehiculosConInversor.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    const response = {
+      vehiculos: vehiculosConInversor,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+        hasNext: page * limit < total,
+        hasPrev: page > 1
+      }
+    }
 
     // Agregar headers de cache para mejorar performance
-    return NextResponse.json(vehiculosConInversor, {
+    return NextResponse.json(response, {
       headers: {
         'Cache-Control': 'public, max-age=60, s-maxage=60',
         'Content-Type': 'application/json'
@@ -176,7 +203,9 @@ export async function PUT(request: NextRequest) {
       matricula, 
       bastidor, 
       kms, 
-      tipo, 
+      tipo,
+      color,
+      fechaMatriculacion,
       esCocheInversor, 
       inversorId 
     } = body
@@ -218,6 +247,8 @@ export async function PUT(request: NextRequest) {
       bastidor,
       kms: parseInt(kms),
       tipo,
+      color: color || undefined,
+      fechaMatriculacion: fechaMatriculacion || undefined,
       esCocheInversor: esCocheInversor || false,
       inversorId: inversorId || undefined
     })

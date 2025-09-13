@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Inversor, Vehiculo } from '@/lib/database'
+import { Inversor, Vehiculo } from '@/lib/direct-database'
 import { InvestorMetrics } from '@/components/InvestorMetrics'
 import { InvestorVehicleCard } from '@/components/InvestorVehicleCard'
 import { useSimpleToast } from '@/hooks/useSimpleToast'
@@ -47,7 +47,7 @@ export default function InvestorDashboardPage() {
   const [editingVehiculo, setEditingVehiculo] = useState<Vehiculo | null>(null)
   const [isEditingVehiculo, setIsEditingVehiculo] = useState(false)
 
-  const inversorId = params.id as string
+  const inversorId = (params.id as string).split('-')[0] // Extraer solo el ID del slug
 
   const calculateAnnualizedROI = () => {
     if (!inversor?.fechaAporte || !metrics?.roi) return 0
@@ -677,6 +677,7 @@ export default function InvestorDashboardPage() {
                 inversor={inversor}
                 onView={handleViewVehicle}
                 onEdit={handleEditVehiculo}
+                onEditVehiculo={handleEditVehiculo}
                 onPhotoUpload={handlePhotoUpload}
               />
             ))}
@@ -686,7 +687,14 @@ export default function InvestorDashboardPage() {
 
       {/* Modal de edición de vehículo */}
       {isEditingVehiculo && editingVehiculo && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              handleCancelEditVehiculo()
+            }
+          }}
+        >
           <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold text-gray-900 mb-4">
               Editar Vehículo - {editingVehiculo.marca} {editingVehiculo.modelo}
@@ -711,9 +719,7 @@ export default function InvestorDashboardPage() {
                     gastosPintura: formData.get('gastosPintura') ? parseFloat(formData.get('gastosPintura') as string) : undefined,
                     gastosLimpieza: formData.get('gastosLimpieza') ? parseFloat(formData.get('gastosLimpieza') as string) : undefined,
                     gastosOtros: formData.get('gastosOtros') ? parseFloat(formData.get('gastosOtros') as string) : undefined,
-                    precioPublicacion: formData.get('precioPublicacion') ? parseFloat(formData.get('precioPublicacion') as string) : undefined,
                     precioVenta: formData.get('precioVenta') ? parseFloat(formData.get('precioVenta') as string) : undefined,
-                    beneficioNeto: formData.get('beneficioNeto') ? parseFloat(formData.get('beneficioNeto') as string) : undefined,
                     notasInversor: formData.get('notasInversor') as string || undefined,
                     fotoInversor: photoUrl
                   }
@@ -730,45 +736,117 @@ export default function InvestorDashboardPage() {
                   gastosPintura: formData.get('gastosPintura') ? parseFloat(formData.get('gastosPintura') as string) : undefined,
                   gastosLimpieza: formData.get('gastosLimpieza') ? parseFloat(formData.get('gastosLimpieza') as string) : undefined,
                   gastosOtros: formData.get('gastosOtros') ? parseFloat(formData.get('gastosOtros') as string) : undefined,
-                  precioPublicacion: formData.get('precioPublicacion') ? parseFloat(formData.get('precioPublicacion') as string) : undefined,
                   precioVenta: formData.get('precioVenta') ? parseFloat(formData.get('precioVenta') as string) : undefined,
-                  beneficioNeto: formData.get('beneficioNeto') ? parseFloat(formData.get('beneficioNeto') as string) : undefined,
                   notasInversor: formData.get('notasInversor') as string || undefined,
                   fotoInversor: fotoInversor
                 }
                 handleSaveVehiculo(vehiculoData)
               }
             }}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Precio de Compra (€)
-                  </label>
-                  <input
-                    type="number"
-                    name="precioCompra"
-                    defaultValue={editingVehiculo.precioCompra || ''}
-                    step="0.01"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
-                </div>
+              {/* Precio de Compra */}
+              <div className="mb-6">
+                <label className="block text-base font-medium text-gray-700 mb-2">
+                  💰 Precio de Compra (€)
+                </label>
+                <input
+                  type="number"
+                  name="precioCompra"
+                  defaultValue={editingVehiculo.precioCompra || ''}
+                  step="0.01"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  placeholder="0.00"
+                />
+              </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Precio de Publicación (€)
-                  </label>
-                  <input
-                    type="number"
-                    name="precioPublicacion"
-                    defaultValue={editingVehiculo.precioPublicacion || ''}
-                    step="0.01"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
-                </div>
+              {/* Gastos Extras - Más pequeños */}
+              <div className="mb-6">
+                <h3 className="text-sm font-medium text-gray-700 mb-3">💸 Gastos Extras</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      🚛 Transporte (€)
+                    </label>
+                    <input
+                      type="number"
+                      name="gastosTransporte"
+                      defaultValue={editingVehiculo.gastosTransporte || ''}
+                      step="0.01"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-full focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                  </div>
 
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      📋 Tasas/Gestoría (€)
+                    </label>
+                    <input
+                      type="number"
+                      name="gastosTasas"
+                      defaultValue={editingVehiculo.gastosTasas || ''}
+                      step="0.01"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-full focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      🔧 Mecánica (€)
+                    </label>
+                    <input
+                      type="number"
+                      name="gastosMecanica"
+                      defaultValue={editingVehiculo.gastosMecanica || ''}
+                      step="0.01"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-full focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      🎨 Pintura (€)
+                    </label>
+                    <input
+                      type="number"
+                      name="gastosPintura"
+                      defaultValue={editingVehiculo.gastosPintura || ''}
+                      step="0.01"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-full focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      🧽 Limpieza (€)
+                    </label>
+                    <input
+                      type="number"
+                      name="gastosLimpieza"
+                      defaultValue={editingVehiculo.gastosLimpieza || ''}
+                      step="0.01"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-full focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      📄 Otros Gastos (€)
+                    </label>
+                    <input
+                      type="number"
+                      name="gastosOtros"
+                      defaultValue={editingVehiculo.gastosOtros || ''}
+                      step="0.01"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-full focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Precio de Venta */}
+              <div className="mb-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Precio de Venta (€)
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    ✅ Precio de Venta (€)
                   </label>
                   <input
                     type="number"
@@ -778,99 +856,21 @@ export default function InvestorDashboardPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   />
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Beneficio Neto (€)
-                  </label>
-                  <input
-                    type="number"
-                    name="beneficioNeto"
-                    defaultValue={editingVehiculo.beneficioNeto || ''}
-                    step="0.01"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
+                
+                {/* Beneficio calculado automáticamente */}
+                <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-xs font-medium text-green-800">
+                      💡 El beneficio se calculará automáticamente: Precio de Venta - (Precio de Compra + Gastos)
+                    </span>
+                  </div>
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Gastos Transporte (€)
-                  </label>
-                  <input
-                    type="number"
-                    name="gastosTransporte"
-                    defaultValue={editingVehiculo.gastosTransporte || ''}
-                    step="0.01"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Gastos Tasas/Gestoria (€)
-                  </label>
-                  <input
-                    type="number"
-                    name="gastosTasas"
-                    defaultValue={editingVehiculo.gastosTasas || ''}
-                    step="0.01"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Gastos Mecánica (€)
-                  </label>
-                  <input
-                    type="number"
-                    name="gastosMecanica"
-                    defaultValue={editingVehiculo.gastosMecanica || ''}
-                    step="0.01"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Gastos Pintura (€)
-                  </label>
-                  <input
-                    type="number"
-                    name="gastosPintura"
-                    defaultValue={editingVehiculo.gastosPintura || ''}
-                    step="0.01"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Gastos Limpieza (€)
-                  </label>
-                  <input
-                    type="number"
-                    name="gastosLimpieza"
-                    defaultValue={editingVehiculo.gastosLimpieza || ''}
-                    step="0.01"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Otros Gastos (€)
-                  </label>
-                  <input
-                    type="number"
-                    name="gastosOtros"
-                    defaultValue={editingVehiculo.gastosOtros || ''}
-                    step="0.01"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
+              <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Foto del Vehículo
                   </label>
@@ -933,7 +933,6 @@ export default function InvestorDashboardPage() {
                     placeholder="Notas adicionales sobre este vehículo..."
                   />
                 </div>
-              </div>
 
               <div className="flex justify-end space-x-3">
                 <button
