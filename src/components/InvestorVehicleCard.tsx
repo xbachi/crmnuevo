@@ -1,0 +1,427 @@
+'use client'
+
+import { useState, useRef } from 'react'
+import { Vehiculo } from '@/lib/database'
+import { formatDate } from '@/lib/utils'
+
+interface InvestorVehicleCardProps {
+  vehiculo: Vehiculo
+  inversor?: {
+    id: number
+    nombre: string
+    email?: string
+  } | null
+  onView: (id: number) => void
+  onEdit?: (vehiculo: Vehiculo) => void
+  onPhotoUpload?: (vehiculoId: number, photoUrl: string) => void
+}
+
+export function InvestorVehicleCard({ vehiculo, inversor, onView, onEdit, onPhotoUpload }: InvestorVehicleCardProps) {
+  const [showPhotoModal, setShowPhotoModal] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [localPhotoUrl, setLocalPhotoUrl] = useState<string | null>(null)
+  const [imageError, setImageError] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Helper function para normalizar valores booleanos
+  const isPositive = (value: string | boolean | null | undefined): boolean => {
+    if (typeof value === 'boolean') return value
+    if (!value) return false
+    const normalized = value.toString().toLowerCase().trim()
+    return normalized === 'si' || normalized === 'sí' || normalized === 'yes' || 
+           normalized === 'true' || normalized === '1' || 
+           (normalized !== 'no' && normalized !== 'false' && normalized !== '0' && normalized.length > 0)
+  }
+
+  // Helper function para normalizar estado vendido
+  const isVendido = (estado: string | null | undefined): boolean => {
+    if (!estado) return false
+    const normalized = estado.toString().toLowerCase().trim()
+    return normalized === 'vendido'
+  }
+
+  // Debug: mostrar información de la foto
+  console.log('Vehiculo fotoInversor:', vehiculo.fotoInversor)
+  console.log('Local photo URL:', localPhotoUrl)
+  console.log('Image error:', imageError)
+
+  const handlePhotoClick = () => {
+    if (vehiculo.fotoInversor || localPhotoUrl) {
+      setShowPhotoModal(true)
+    } else {
+      fileInputRef.current?.click()
+    }
+  }
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file || !onPhotoUpload) return
+
+    setIsUploading(true)
+    try {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const photoUrl = e.target?.result as string
+        setLocalPhotoUrl(photoUrl)
+        onPhotoUpload(vehiculo.id, photoUrl)
+        setIsUploading(false)
+      }
+      reader.readAsDataURL(file)
+    } catch (error) {
+      console.error('Error al cargar foto:', error)
+      setIsUploading(false)
+    }
+  }
+
+  const handleImageError = () => {
+    setImageError(true)
+  }
+
+  const getEstadoColor = (estado: string) => {
+    const estados = {
+      'REVI_INIC': 'bg-yellow-100 text-yellow-800',
+      'MECAUTO': 'bg-blue-100 text-blue-800',
+      'REVI_PINTURA': 'bg-orange-100 text-orange-800',
+      'PINTURA': 'bg-purple-100 text-purple-800',
+      'LIMPIEZA': 'bg-cyan-100 text-cyan-800',
+      'FOTOS': 'bg-indigo-100 text-indigo-800',
+      'PUBLICADO': 'bg-green-100 text-green-800',
+      'VENDIDO': 'bg-emerald-100 text-emerald-800',
+      '': 'bg-gray-100 text-gray-800'
+    }
+    return estados[estado as keyof typeof estados] || 'bg-gray-100 text-gray-800'
+  }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('es-ES', {
+      style: 'currency',
+      currency: 'EUR'
+    }).format(amount)
+  }
+
+  const calcularDiasEnStock = () => {
+    const fechaCompra = vehiculo.fechaCompra ? new Date(vehiculo.fechaCompra) : new Date(vehiculo.createdAt)
+    const ahora = new Date()
+    const dias = Math.floor((ahora.getTime() - fechaCompra.getTime()) / (1000 * 60 * 60 * 24))
+    return dias
+  }
+
+  const diasEnStock = calcularDiasEnStock()
+  const esVendido = isVendido(vehiculo.estado)
+  // Mostrar información básica si el vehículo tiene al menos precio de compra o está vendido
+  const tieneDatosFinancieros = vehiculo.precioCompra || (esVendido && (vehiculo.precioVenta || vehiculo.beneficioNeto))
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden">
+      {/* Header con estado destacado */}
+      <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
+        <div className="flex justify-between items-start">
+          <div className="flex items-start space-x-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl flex items-center justify-center shadow-sm">
+              <span className="text-white font-bold text-sm">
+                {vehiculo.referencia.length > 4 
+                  ? vehiculo.referencia.substring(0, 4) 
+                  : vehiculo.referencia
+                }
+              </span>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-gray-900">
+                {vehiculo.marca} {vehiculo.modelo}
+              </h3>
+              {/* Alerta de ITV vencida o info básica */}
+              {vehiculo.itv !== null && vehiculo.itv !== undefined && vehiculo.itv !== '' && !isPositive(vehiculo.itv) ? (
+                <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 bg-red-600 rounded-full">
+                  <svg className="w-3.5 h-3.5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-xs text-white font-semibold">ITV VENCIDA</span>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-600">
+                  Vehículo
+                  {vehiculo.fechaCompra && (
+                    <span className="ml-2 text-gray-500">
+                      • Comprado: {formatDate(vehiculo.fechaCompra)}
+                    </span>
+                  )}
+                </p>
+              )}
+              {/* Información del inversor en el header */}
+              {inversor && (
+                <p className="text-xs text-purple-600 font-medium mt-1">
+                  Inversor: {inversor.nombre}
+                </p>
+              )}
+            </div>
+          </div>
+          
+          <div className="flex space-x-1">
+            {onEdit && (
+              <button
+                onClick={() => onEdit(vehiculo)}
+                className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all duration-200"
+                title="Editar vehículo"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </button>
+            )}
+            <button
+              onClick={() => onView(vehiculo.id)}
+              className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
+              title="Ver detalles"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+
+      {/* Estado destacado */}
+      <div className="px-6 py-3 bg-gray-50 border-b border-gray-200">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+            <span className="text-sm font-medium text-gray-700">Estado Actual:</span>
+          </div>
+          <span className={`px-3 py-1 text-sm font-semibold rounded-full ${getEstadoColor(vehiculo.estado)}`}>
+            {vehiculo.estado || 'Sin Estado'}
+          </span>
+        </div>
+      </div>
+
+      {/* Contenido principal */}
+      <div className="p-6">
+
+        {/* Información financiera */}
+        <div className="space-y-4">
+          {/* Mensaje informativo si faltan datos financieros */}
+          {!tieneDatosFinancieros && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="flex items-center space-x-2">
+                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-sm text-blue-800">
+                  <span className="font-semibold">Información financiera pendiente.</span> Completa los datos de precio de compra para ver el análisis completo.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Precios principales */}
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            {vehiculo.precioCompra && (
+              <div className="bg-gray-50 rounded-lg p-3">
+                <p className="text-gray-500 text-xs font-medium mb-1">Precio de compra</p>
+                <p className="font-bold text-gray-900 text-lg">{formatCurrency(vehiculo.precioCompra)}</p>
+              </div>
+            )}
+            
+            {esVendido && vehiculo.precioVenta && (
+              <div className="bg-gray-50 rounded-lg p-3">
+                <p className="text-gray-500 text-xs font-medium mb-1">Precio de venta</p>
+                <p className="font-bold text-gray-900 text-lg">{formatCurrency(vehiculo.precioVenta)}</p>
+              </div>
+            )}
+            
+            {!esVendido && vehiculo.precioPublicacion && (
+              <div className="bg-gray-50 rounded-lg p-3">
+                <p className="text-gray-500 text-xs font-medium mb-1">Precio de publicación</p>
+                <p className="font-bold text-gray-900 text-lg">{formatCurrency(vehiculo.precioPublicacion)}</p>
+              </div>
+            )}
+            
+            {esVendido && vehiculo.beneficioNeto !== undefined && (
+              <div className={`rounded-lg p-3 ${vehiculo.beneficioNeto >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
+                <p className="text-gray-500 text-xs font-medium mb-1">Beneficio neto</p>
+                <p className={`font-bold text-lg ${vehiculo.beneficioNeto >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatCurrency(vehiculo.beneficioNeto)}
+                </p>
+              </div>
+            )}
+          </div>
+
+            {/* Desglose de gastos */}
+            {(vehiculo.gastosTransporte || vehiculo.gastosTasas || vehiculo.gastosMecanica || vehiculo.gastosPintura || vehiculo.gastosLimpieza || vehiculo.gastosOtros) && (
+              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                <h4 className="text-sm font-semibold text-blue-800 mb-3 flex items-center">
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  Desglose de Gastos
+                </h4>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  {vehiculo.gastosTransporte && (
+                    <div className="flex justify-between bg-white rounded px-2 py-1">
+                      <span className="text-gray-600">Transporte:</span>
+                      <span className="font-semibold text-gray-900">{formatCurrency(vehiculo.gastosTransporte)}</span>
+                    </div>
+                  )}
+                  {vehiculo.gastosTasas && (
+                    <div className="flex justify-between bg-white rounded px-2 py-1">
+                      <span className="text-gray-600">Tasas/Gestoría:</span>
+                      <span className="font-semibold text-gray-900">{formatCurrency(vehiculo.gastosTasas)}</span>
+                    </div>
+                  )}
+                  {vehiculo.gastosMecanica && (
+                    <div className="flex justify-between bg-white rounded px-2 py-1">
+                      <span className="text-gray-600">Mecánica:</span>
+                      <span className="font-semibold text-gray-900">{formatCurrency(vehiculo.gastosMecanica)}</span>
+                    </div>
+                  )}
+                  {vehiculo.gastosPintura && (
+                    <div className="flex justify-between bg-white rounded px-2 py-1">
+                      <span className="text-gray-600">Pintura:</span>
+                      <span className="font-semibold text-gray-900">{formatCurrency(vehiculo.gastosPintura)}</span>
+                    </div>
+                  )}
+                  {vehiculo.gastosLimpieza && (
+                    <div className="flex justify-between bg-white rounded px-2 py-1">
+                      <span className="text-gray-600">Limpieza:</span>
+                      <span className="font-semibold text-gray-900">{formatCurrency(vehiculo.gastosLimpieza)}</span>
+                    </div>
+                  )}
+                  {vehiculo.gastosOtros && (
+                    <div className="flex justify-between bg-white rounded px-2 py-1">
+                      <span className="text-gray-600">Otros:</span>
+                      <span className="font-semibold text-gray-900">{formatCurrency(vehiculo.gastosOtros)}</span>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Total de gastos */}
+                {(() => {
+                  const totalGastos = (vehiculo.gastosTransporte || 0) + 
+                                    (vehiculo.gastosTasas || 0) + 
+                                    (vehiculo.gastosMecanica || 0) + 
+                                    (vehiculo.gastosPintura || 0) + 
+                                    (vehiculo.gastosLimpieza || 0) + 
+                                    (vehiculo.gastosOtros || 0)
+                  return totalGastos > 0 ? (
+                    <div className="mt-3 pt-2 border-t border-blue-200 flex justify-between text-sm font-bold bg-white rounded px-2 py-1">
+                      <span className="text-blue-800">Total gastos:</span>
+                      <span className="text-blue-900">{formatCurrency(totalGastos)}</span>
+                    </div>
+                  ) : null
+                })()}
+              </div>
+            )}
+
+            {!esVendido && (
+              <div className="bg-gray-50 rounded-lg p-3 flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-sm text-gray-600">Días en stock</span>
+                </div>
+                <span className="font-bold text-gray-900">{diasEnStock} días</span>
+              </div>
+            )}
+          </div>
+
+        {/* Foto */}
+        <div className="mt-4">
+          {vehiculo.fotoInversor || localPhotoUrl ? (
+            <div 
+              className="cursor-pointer group relative"
+              onClick={handlePhotoClick}
+            >
+              {!imageError ? (
+                <img 
+                  src={localPhotoUrl || vehiculo.fotoInversor} 
+                  alt={`${vehiculo.marca} ${vehiculo.modelo}`}
+                  className="w-full h-32 object-cover rounded-lg shadow-sm group-hover:shadow-md transition-shadow"
+                  onError={(e) => {
+                    console.error('Error al cargar imagen:', e)
+                    setImageError(true)
+                  }}
+                  onLoad={() => {
+                    console.log('Imagen cargada correctamente')
+                    setImageError(false)
+                  }}
+                />
+              ) : (
+                <div className="w-full h-32 bg-gray-200 rounded-lg flex items-center justify-center">
+                  <div className="text-center text-gray-500">
+                    <svg className="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <p className="text-sm">Error al cargar imagen</p>
+                  </div>
+                </div>
+              )}
+              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-lg flex items-center justify-center transition-all">
+                <svg className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                </svg>
+              </div>
+            </div>
+          ) : (
+            <div 
+              className="bg-gray-100 rounded-lg h-32 flex items-center justify-center border-2 border-dashed border-gray-300 cursor-pointer hover:border-gray-400 hover:bg-gray-50 transition-colors"
+              onClick={handlePhotoClick}
+            >
+              <div className="text-center text-gray-500">
+                {isUploading ? (
+                  <div className="flex flex-col items-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-500 mb-2"></div>
+                    <p className="text-sm font-medium">Cargando...</p>
+                  </div>
+                ) : (
+                  <>
+                    <svg className="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <p className="text-sm font-medium">Haz clic para cargar foto</p>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* Input oculto para carga de archivos */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+        </div>
+      </div>
+      
+      {/* Modal para ver foto en grande */}
+      {showPhotoModal && vehiculo.fotoInversor && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="relative max-w-4xl max-h-full">
+            <button
+              onClick={() => setShowPhotoModal(false)}
+              className="absolute top-4 right-4 text-white hover:text-gray-300 z-10"
+            >
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <img 
+              src={vehiculo.fotoInversor} 
+              alt={`${vehiculo.marca} ${vehiculo.modelo}`}
+              className="max-w-full max-h-full object-contain rounded-lg"
+            />
+            <div className="absolute bottom-4 left-4 right-4 bg-black bg-opacity-50 text-white p-3 rounded-lg">
+              <p className="text-sm font-medium">{vehiculo.marca} {vehiculo.modelo}</p>
+              <p className="text-xs text-gray-300">Haz clic fuera para cerrar</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

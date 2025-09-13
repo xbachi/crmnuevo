@@ -1,0 +1,52 @@
+{
+  "name": "prueba-crm",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "db:seed": "node scripts/seed-database.js",
+    "migrate:postgresql": "node scripts/migrate-to-postgresql.js",
+    "migrate:supabase": "node scripts/migrate-to-supabase.js",
+    "clear-data": "node scripts/clear-all-data.js",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@tailwindcss/forms": "^0.5.10",
+    "@types/pg": "^8.15.5",
+    "clsx": "^2.1.1",
+    "googleapis": "^159.0.0",
+    "next": "15.5.2",
+    "pg": "^8.16.3",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "redis": "^4.6.12",
+    "sharp": "^0.33.2",
+    "tailwind-merge": "^3.3.1"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@prisma/client": "^6.16.1",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/redis": "^4.0.11",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.2",
+    "prisma": "^6.16.1",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

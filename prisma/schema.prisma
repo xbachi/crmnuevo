@@ -1,0 +1,108 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Vehiculo {
+  id        Int      @id @default(autoincrement())
+  referencia String   @unique
+  marca      String
+  modelo     String
+  matricula  String   @unique
+  bastidor   String   @unique
+  kms        Int
+  tipo       String   // "Compra", "Coche R", "Deposito Venta", "Inversor"
+  estado     String   @default("disponible") // "disponible", "vendido", "reservado"
+  orden      Int      @default(0)
+  
+  // Campos adicionales de Google Sheets
+  fechaMatriculacion String?
+  año               Int?
+  itv               String?
+  seguro            String?
+  segundaLlave      String?
+  documentacion     String?
+  carpeta           String?
+  master            String?
+  hojasA            String?
+  
+  // Campos de inversor
+  esCocheInversor   Boolean @default(false)
+  inversorId        Int?
+  inversor          Inversor? @relation(fields: [inversorId], references: [id])
+  fechaCompra       DateTime?
+  precioCompra      Float?
+  gastosTransporte  Float?
+  gastosTasas       Float?
+  gastosMecanica    Float?
+  gastosPintura     Float?
+  gastosLimpieza    Float?
+  gastosOtros       Float?
+  precioPublicacion Float?
+  precioVenta       Float?
+  beneficioNeto     Float?
+  notasInversor     String?
+  fotoInversor      String?
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Inversor {
+  id              Int      @id @default(autoincrement())
+  nombre          String
+  email           String?
+  telefono        String?
+  capitalAportado Float    @default(0)
+  capitalInvertido Float   @default(0)
+  activo          Boolean  @default(true)
+  
+  vehiculos       Vehiculo[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Cliente {
+  id               Int      @id @default(autoincrement())
+  nombre           String
+  apellidos        String
+  email            String?
+  telefono         String?
+  fechaNacimiento  DateTime?
+  direccion        String?
+  ciudad           String?
+  codigoPostal     String?
+  provincia        String?
+  dni              String?  @unique
+  fechaRegistro    DateTime @default(now())
+  vehiculosInteres String?
+  presupuestoMaximo Float?
+  preferencias     String?
+  observaciones    String?
+  activo           Boolean  @default(true)
+  
+  notas            NotaCliente[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model NotaCliente {
+  id        Int      @id @default(autoincrement())
+  clienteId Int
+  cliente   Cliente  @relation(fields: [clienteId], references: [id])
+  fecha     DateTime @default(now())
+  tipo      String   // "llamada", "email", "visita", "seguimiento"
+  contenido String
+  prioridad String   @default("media") // "alta", "media", "baja"
+  completada Boolean @default(false)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

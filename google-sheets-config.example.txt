@@ -1,0 +1,20 @@
+# Google Sheets Configuration
+# Copia este contenido a tu archivo .env.local
+
+GOOGLE_SERVICE_ACCOUNT_EMAIL=your-service-account@your-project.iam.gserviceaccount.com
+GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYOUR_PRIVATE_KEY_HERE\n-----END PRIVATE KEY-----\n"
+
+# NOTA: Los IDs de las hojas ya están configurados en el código:
+# - Ventas-Sevencars: 1RwnqBYlPMXj2rUJ3XqegrSQ-kM5RIJG61uGALy-pEH8
+# - COMPRAS: 1asyKq66_4_GUwkYQdgjSIOLR5wY3ur06ebgleFFWiW0
+
+# Instrucciones:
+# 1. Ve a Google Cloud Console
+# 2. Crea un proyecto o selecciona uno existente
+# 3. Habilita la Google Sheets API
+# 4. Crea una cuenta de servicio
+# 5. Descarga el archivo JSON de credenciales
+# 6. Copia el client_email y private_key del JSON
+# 7. Crea una hoja de cálculo en Google Sheets
+# 8. Comparte la hoja con el email de la cuenta de servicio
+# 9. Copia el ID de la hoja de cálculo de la URL

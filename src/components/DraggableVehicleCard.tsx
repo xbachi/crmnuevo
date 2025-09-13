@@ -1,0 +1,238 @@
+'use client'
+
+import { useState } from 'react'
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+
+interface Vehiculo {
+  id: number
+  referencia: string
+  marca: string
+  modelo: string
+  matricula: string
+  bastidor: string
+  kms: number
+  tipo: string
+  estado: string
+  orden: number
+  createdAt: string
+  // Campos adicionales de Google Sheets
+  fechaMatriculacion?: string
+  año?: number
+  itv?: string
+  seguro?: string
+  segundaLlave?: string
+  documentacion?: string
+  carpeta?: string
+  master?: string
+  hojasA?: string
+}
+
+interface DraggableVehicleCardProps {
+  vehiculo: Vehiculo
+}
+
+export default function DraggableVehicleCard({ vehiculo }: DraggableVehicleCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false)
+
+  // Helper function para normalizar valores booleanos
+  const isPositive = (value: string | boolean | null | undefined): boolean => {
+    if (typeof value === 'boolean') return value
+    if (!value) return false
+    const normalized = value.toString().toLowerCase().trim()
+    return normalized === 'si' || normalized === 'sí' || normalized === 'yes' || 
+           normalized === 'true' || normalized === '1' || 
+           (normalized !== 'no' && normalized !== 'false' && normalized !== '0' && normalized.length > 0)
+  }
+  
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: vehiculo.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  const getTipoColor = (tipo: string) => {
+    switch (tipo) {
+      case 'Compra':
+        return 'bg-green-100 text-green-800 border-green-200'
+      case 'Coche R':
+        return 'bg-blue-100 text-blue-800 border-blue-200'
+      case 'Deposito Venta':
+        return 'bg-orange-100 text-orange-800 border-orange-200'
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200'
+    }
+  }
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A'
+    return new Date(dateString).toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  }
+
+  const getStatusIcon = (field: string | boolean | undefined) => {
+    if (field === undefined || field === null || field === '') return '❌'
+    if (typeof field === 'boolean') return field ? '✅' : '❌'
+    return '✅'
+  }
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setIsExpanded(!isExpanded)
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className={`bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all ${
+        isDragging ? 'opacity-50 shadow-lg' : ''
+      }`}
+    >
+      {/* Header del acordeón - Siempre visible */}
+      <div 
+        className="p-3 cursor-pointer hover:bg-gray-50 transition-colors"
+        onClick={handleCardClick}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3 flex-1 min-w-0">
+            {/* Logo del vehículo */}
+            <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+              <span className="text-white font-bold text-xs">
+                {vehiculo.referencia.length > 3 
+                  ? vehiculo.referencia.substring(0, 3) 
+                  : vehiculo.referencia
+                }
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-sm font-bold text-gray-900 truncate">
+                  {vehiculo.marca} {vehiculo.modelo}
+                </h3>
+                <span className={`px-2 py-0.5 text-xs font-medium rounded-lg border ${getTipoColor(vehiculo.tipo)} flex-shrink-0 ml-2`}>
+                  {vehiculo.tipo === 'Compra' ? 'C' : vehiculo.tipo === 'Coche R' ? 'R' : 'D'}
+                </span>
+              </div>
+              {/* Alerta de ITV vencida o matrícula */}
+              {vehiculo.itv !== null && vehiculo.itv !== undefined && vehiculo.itv !== '' && !isPositive(vehiculo.itv) ? (
+                <div className="inline-flex items-center space-x-1 px-1.5 py-0.5 bg-red-600 rounded-full">
+                  <svg className="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-xs text-white font-semibold">ITV VENCIDA</span>
+                </div>
+              ) : (
+                <div className="text-xs text-gray-600 font-mono">
+                  {vehiculo.matricula}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="ml-2 flex-shrink-0">
+            <svg 
+              className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+                isExpanded ? 'rotate-180' : ''
+              }`} 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      {/* Contenido desplegable */}
+      {isExpanded && (
+        <div className="px-3 pb-3 border-t border-gray-100">
+          <div className="pt-3 space-y-3">
+            {/* Información básica en formato limpio */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-600">Bastidor</span>
+                <span className="text-xs font-semibold text-gray-900 font-mono">
+                  {vehiculo.bastidor.length > 12 
+                    ? `${vehiculo.bastidor.substring(0, 12)}...` 
+                    : vehiculo.bastidor
+                  }
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-600">Kilómetros</span>
+                <span className="text-xs font-semibold text-gray-900">
+                  {vehiculo.kms.toLocaleString()}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-600">Año</span>
+                <span className="text-xs font-semibold text-gray-900">
+                  {vehiculo.año || 'N/A'}
+                </span>
+              </div>
+            </div>
+
+            {/* Información adicional de Google Sheets */}
+            {true && (
+              <div className="bg-blue-50 rounded-lg p-2 border border-blue-200">
+                <div className="text-xs font-medium text-blue-900 mb-2">Información Adicional</div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-blue-600">2ª Llave:</span>
+                    <span className="font-medium text-blue-900">{vehiculo.segundaLlave || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-blue-600">Carpeta:</span>
+                    <span className="font-medium text-blue-900">{vehiculo.carpeta || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-blue-600">Master:</span>
+                    <span className="font-medium text-blue-900">{vehiculo.master || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-blue-600">Hojas A:</span>
+                    <span className="font-medium text-blue-900">{vehiculo.hojasA || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-blue-600">Docu:</span>
+                    <span className="font-medium text-blue-900">{vehiculo.documentacion || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-blue-600">ITV:</span>
+                    <span className="font-medium text-blue-900">{vehiculo.itv || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-blue-600">Seguro:</span>
+                    <span className="font-medium text-blue-900">{vehiculo.seguro || 'N/A'}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Fecha de creación */}
+            <div className="bg-gray-50 rounded-lg p-2">
+              <div className="text-xs font-medium text-gray-600 mb-1">Fecha de Registro</div>
+              <div className="text-xs font-semibold text-gray-900">
+                {formatDate(vehiculo.createdAt)}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
