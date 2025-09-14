@@ -50,6 +50,13 @@ export interface Vehiculo {
   beneficioNeto?: number | null
   notasInversor?: string | null
   fotoInversor?: string | null
+  itv?: string | null
+  seguro?: string | null
+  segundaLlave?: string | null
+  carpeta?: string | null
+  master?: string | null
+  hojasA?: string | null
+  documentacion?: string | null
 }
 
 export async function getVehiculos(limit?: number, offset?: number): Promise<Vehiculo[]> {
@@ -67,7 +74,8 @@ export async function getVehiculos(limit?: number, offset?: number): Promise<Veh
         v."inversorId", v."fechaCompra", v."precioCompra", v."gastosTransporte",
         v."gastosTasas", v."gastosMecanica", v."gastosPintura", v."gastosLimpieza",
         v."gastosOtros", v."precioPublicacion", v."precioVenta", v."beneficioNeto",
-        v."notasInversor", v."fotoInversor", i.nombre as inversor_nombre 
+        v."notasInversor", v."fotoInversor", v.itv, v.seguro, v."segundaLlave",
+        v.carpeta, v.master, v."hojasA", v.documentacion, i.nombre as inversor_nombre 
       FROM "Vehiculo" v
       LEFT JOIN "Inversor" i ON v."inversorId" = i.id
       ORDER BY v."createdAt" DESC, v.id DESC
@@ -108,7 +116,14 @@ export async function getVehiculos(limit?: number, offset?: number): Promise<Veh
       precioVenta: row.precioVenta,
       beneficioNeto: row.beneficioNeto,
       notasInversor: row.notasInversor,
-      fotoInversor: row.fotoInversor
+      fotoInversor: row.fotoInversor,
+      itv: row.itv,
+      seguro: row.seguro,
+      segundaLlave: row.segundaLlave,
+      carpeta: row.carpeta,
+      master: row.master,
+      hojasA: row.hojasA,
+      documentacion: row.documentacion
     }))
   } catch (error) {
     console.error('Error obteniendo vehículos:', error)
@@ -126,6 +141,401 @@ export async function getVehiculosCount(): Promise<number> {
   } catch (error) {
     console.error('Error obteniendo conteo de vehículos:', error)
     return 0
+  } finally {
+    client.release()
+  }
+}
+
+// Interfaces para Deals
+export interface Deal {
+  id: number
+  numero: string
+  clienteId: number
+  vehiculoId: number
+  cliente?: {
+    id: number
+    nombre: string
+    apellidos: string
+    email?: string
+    telefono?: string
+    dni?: string
+  }
+  vehiculo?: {
+    id: number
+    referencia: string
+    marca: string
+    modelo: string
+    matricula: string
+    bastidor: string
+    kms: number
+    precioPublicacion?: number
+    estado: string
+  }
+  estado: string
+  resultado?: string
+  motivo?: string
+  importeTotal?: number
+  importeSena?: number
+  formaPagoSena?: string
+  restoAPagar?: number
+  financiacion: boolean
+  entidadFinanciera?: string
+  fechaCreacion: Date
+  fechaReservaDesde?: Date
+  fechaReservaExpira?: Date
+  fechaVentaFirmada?: Date
+  fechaFacturada?: Date
+  fechaEntrega?: Date
+  contratoReserva?: string
+  contratoVenta?: string
+  factura?: string
+  recibos?: string
+  pagosSena?: string
+  pagosResto?: string
+  observaciones?: string
+  responsableComercial?: string
+  logHistorial?: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface DealCreateData {
+  clienteId: number
+  vehiculoId: number
+  importeTotal?: number
+  importeSena?: number
+  formaPagoSena?: string
+  restoAPagar?: number
+  financiacion?: boolean
+  entidadFinanciera?: string
+  fechaReservaDesde?: Date
+  fechaReservaExpira?: Date
+  observaciones?: string
+  responsableComercial?: string
+}
+
+// Funciones para manejar Deals
+export async function getDeals() {
+  const client = await pool.connect()
+  try {
+    const result = await client.query(`
+      SELECT 
+        d.*,
+        c.nombre as cliente_nombre,
+        c.apellidos as cliente_apellidos,
+        c.email as cliente_email,
+        c.telefono as cliente_telefono,
+        c.dni as cliente_dni,
+        v.referencia as vehiculo_referencia,
+        v.marca as vehiculo_marca,
+        v.modelo as vehiculo_modelo,
+        v.matricula as vehiculo_matricula,
+        v.bastidor as vehiculo_bastidor,
+        v.kms as vehiculo_kms,
+        v."precioPublicacion" as vehiculo_precio,
+        v.estado as vehiculo_estado
+      FROM "Deal" d
+      LEFT JOIN "Cliente" c ON d."clienteId" = c.id
+      LEFT JOIN "Vehiculo" v ON d."vehiculoId" = v.id
+      ORDER BY d."createdAt" DESC
+    `)
+    
+    return result.rows.map(row => ({
+      id: row.id,
+      numero: row.numero,
+      clienteId: row.clienteId,
+      vehiculoId: row.vehiculoId,
+      cliente: {
+        id: row.clienteId,
+        nombre: row.cliente_nombre,
+        apellidos: row.cliente_apellidos,
+        email: row.cliente_email,
+        telefono: row.cliente_telefono,
+        dni: row.cliente_dni
+      },
+      vehiculo: {
+        id: row.vehiculoId,
+        referencia: row.vehiculo_referencia,
+        marca: row.vehiculo_marca,
+        modelo: row.vehiculo_modelo,
+        matricula: row.vehiculo_matricula,
+        bastidor: row.vehiculo_bastidor,
+        kms: row.vehiculo_kms,
+        precioPublicacion: row.vehiculo_precio,
+        estado: row.vehiculo_estado
+      },
+      estado: row.estado,
+      resultado: row.resultado,
+      motivo: row.motivo,
+      importeTotal: row.importeTotal,
+      importeSena: row.importeSena,
+      formaPagoSena: row.formaPagoSena,
+      restoAPagar: row.restoAPagar,
+      financiacion: row.financiacion,
+      entidadFinanciera: row.entidadFinanciera,
+      fechaCreacion: row.fechaCreacion,
+      fechaReservaDesde: row.fechaReservaDesde,
+      fechaReservaExpira: row.fechaReservaExpira,
+      fechaVentaFirmada: row.fechaVentaFirmada,
+      fechaFacturada: row.fechaFacturada,
+      fechaEntrega: row.fechaEntrega,
+      contratoReserva: row.contratoReserva,
+      contratoVenta: row.contratoVenta,
+      factura: row.factura,
+      recibos: row.recibos,
+      pagosSena: row.pagosSena,
+      pagosResto: row.pagosResto,
+      observaciones: row.observaciones,
+      responsableComercial: row.responsableComercial,
+      logHistorial: row.logHistorial,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt
+    }))
+  } catch (error) {
+    console.error('Error obteniendo deals:', error)
+    return []
+  } finally {
+    client.release()
+  }
+}
+
+export async function getDealById(id: number): Promise<Deal | null> {
+  const client = await pool.connect()
+  try {
+    const result = await client.query(`
+      SELECT 
+        d.*,
+        c.nombre as cliente_nombre,
+        c.apellidos as cliente_apellidos,
+        c.email as cliente_email,
+        c.telefono as cliente_telefono,
+        c.dni as cliente_dni,
+        v.referencia as vehiculo_referencia,
+        v.marca as vehiculo_marca,
+        v.modelo as vehiculo_modelo,
+        v.matricula as vehiculo_matricula,
+        v.bastidor as vehiculo_bastidor,
+        v.kms as vehiculo_kms,
+        v."precioPublicacion" as vehiculo_precio,
+        v.estado as vehiculo_estado
+      FROM "Deal" d
+      LEFT JOIN "Cliente" c ON d."clienteId" = c.id
+      LEFT JOIN "Vehiculo" v ON d."vehiculoId" = v.id
+      WHERE d.id = $1
+    `, [id])
+    
+    if (result.rows.length === 0) return null
+    
+    const row = result.rows[0]
+    return {
+      id: row.id,
+      numero: row.numero,
+      clienteId: row.clienteId,
+      vehiculoId: row.vehiculoId,
+      cliente: {
+        id: row.clienteId,
+        nombre: row.cliente_nombre,
+        apellidos: row.cliente_apellidos,
+        email: row.cliente_email,
+        telefono: row.cliente_telefono,
+        dni: row.cliente_dni
+      },
+      vehiculo: {
+        id: row.vehiculoId,
+        referencia: row.vehiculo_referencia,
+        marca: row.vehiculo_marca,
+        modelo: row.vehiculo_modelo,
+        matricula: row.vehiculo_matricula,
+        bastidor: row.vehiculo_bastidor,
+        kms: row.vehiculo_kms,
+        precioPublicacion: row.vehiculo_precio,
+        estado: row.vehiculo_estado
+      },
+      estado: row.estado,
+      resultado: row.resultado,
+      motivo: row.motivo,
+      importeTotal: row.importeTotal,
+      importeSena: row.importeSena,
+      formaPagoSena: row.formaPagoSena,
+      restoAPagar: row.restoAPagar,
+      financiacion: row.financiacion,
+      entidadFinanciera: row.entidadFinanciera,
+      fechaCreacion: row.fechaCreacion,
+      fechaReservaDesde: row.fechaReservaDesde,
+      fechaReservaExpira: row.fechaReservaExpira,
+      fechaVentaFirmada: row.fechaVentaFirmada,
+      fechaFacturada: row.fechaFacturada,
+      fechaEntrega: row.fechaEntrega,
+      contratoReserva: row.contratoReserva,
+      contratoVenta: row.contratoVenta,
+      factura: row.factura,
+      recibos: row.recibos,
+      pagosSena: row.pagosSena,
+      pagosResto: row.pagosResto,
+      observaciones: row.observaciones,
+      responsableComercial: row.responsableComercial,
+      logHistorial: row.logHistorial,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt
+    }
+  } catch (error) {
+    console.error('Error obteniendo deal por ID:', error)
+    return null
+  } finally {
+    client.release()
+  }
+}
+
+export async function createDeal(dealData: DealCreateData) {
+  const client = await pool.connect()
+  try {
+    // Obtener la referencia del vehículo
+    const vehiculoResult = await client.query('SELECT referencia FROM "Vehiculo" WHERE id = $1', [dealData.vehiculoId])
+    const vehiculoRef = vehiculoResult.rows[0]?.referencia || '0000'
+    
+    // Generar número de deal con referencia del vehículo
+    const year = new Date().getFullYear()
+    const numero = `RES-${year}-${vehiculoRef}`
+    
+    // Insertar deal básico
+    const result = await client.query(`
+      INSERT INTO "Deal" (
+        numero, "clienteId", "vehiculoId", estado, "importeTotal", "importeSena", observaciones, "responsableComercial"
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *
+    `, [
+      numero,
+      dealData.clienteId,
+      dealData.vehiculoId,
+      'nuevo',
+      dealData.importeTotal,
+      dealData.importeSena,
+      dealData.observaciones,
+      dealData.responsableComercial
+    ])
+    
+    return result.rows[0]
+  } catch (error) {
+    console.error('Error creando deal:', error)
+    throw error
+  } finally {
+    client.release()
+  }
+}
+
+export async function updateDeal(id: number, dealData: Partial<DealCreateData>): Promise<Deal | null> {
+  const client = await pool.connect()
+  try {
+    // Obtener el deal actual para auditoría
+    const currentDeal = await getDealById(id)
+    if (!currentDeal) return null
+    
+    const oldEstado = currentDeal.estado
+    const newEstado = dealData.estado
+    const vehiculoId = currentDeal.vehiculoId
+    
+    // Construir query dinámico
+    const fields = []
+    const values = []
+    let paramIndex = 1
+    
+    Object.entries(dealData).forEach(([key, value]) => {
+      if (value !== undefined) {
+        fields.push(`"${key}" = $${paramIndex}`)
+        values.push(value)
+        paramIndex++
+      }
+    })
+    
+    if (fields.length === 0) return currentDeal
+    
+    // Agregar log de auditoría
+    const logEntry = {
+      fecha: new Date(),
+      usuario: 'sistema',
+      accion: 'Deal actualizado',
+      detalles: `Campos modificados: ${fields.join(', ')}`
+    }
+    
+    fields.push(`"logHistorial" = $${paramIndex}`)
+    values.push(JSON.stringify([...(JSON.parse(currentDeal.logHistorial || '[]')), logEntry]))
+    
+    values.push(id)
+    
+    const result = await client.query(`
+      UPDATE "Deal" 
+      SET ${fields.join(', ')}, "updatedAt" = NOW()
+      WHERE id = $${paramIndex + 1}
+      RETURNING *
+    `, values)
+    
+    if (result.rows.length === 0) return null
+    
+    // Actualizar estado del vehículo según el estado del deal
+    if (newEstado && newEstado !== oldEstado) {
+      let vehiculoEstado = 'disponible'
+      let dealActivoId = null
+      
+      switch (newEstado) {
+        case 'reservado':
+          vehiculoEstado = 'reservado'
+          dealActivoId = id
+          break
+        case 'vendido':
+          vehiculoEstado = 'vendido'
+          dealActivoId = id
+          break
+        case 'facturado':
+          vehiculoEstado = 'vendido' // Mantener como vendido
+          dealActivoId = id
+          break
+        case 'perdido':
+          vehiculoEstado = 'disponible'
+          dealActivoId = null
+          break
+        default:
+          vehiculoEstado = 'disponible'
+          dealActivoId = null
+      }
+      
+      console.log(`🚗 Actualizando vehículo ${vehiculoId} a estado: ${vehiculoEstado}`)
+      
+      await client.query(
+        'UPDATE vehiculos SET estado = $1, "dealActivoId" = $2, "updatedAt" = NOW() WHERE id = $3',
+        [vehiculoEstado, dealActivoId, vehiculoId]
+      )
+      
+      console.log('✅ Estado del vehículo actualizado correctamente')
+    }
+    
+    return await getDealById(id)
+  } catch (error) {
+    console.error('Error actualizando deal:', error)
+    throw error
+  } finally {
+    client.release()
+  }
+}
+
+export async function deleteDeal(id: number): Promise<boolean> {
+  const client = await pool.connect()
+  try {
+    // Obtener el deal antes de eliminar para liberar el vehículo
+    const deal = await getDealById(id)
+    if (!deal) return false
+    
+    // Eliminar el deal
+    const result = await client.query('DELETE FROM "Deal" WHERE id = $1', [id])
+    
+    // Liberar el vehículo (volver a disponible)
+    await client.query('UPDATE "Vehiculo" SET estado = $1, "dealActivoId" = NULL WHERE id = $2', [
+      'disponible',
+      deal.vehiculoId
+    ])
+    
+    return result.rowCount > 0
+  } catch (error) {
+    console.error('Error eliminando deal:', error)
+    return false
   } finally {
     client.release()
   }

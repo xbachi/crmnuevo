@@ -183,6 +183,8 @@ export default function CargarVehiculo() {
           bastidor: '',
           kms: '',
           tipo: '',
+          color: '',
+          fechaMatriculacion: '',
           esCocheInversor: false,
           inversorId: '',
           fechaCompra: '',
@@ -197,9 +199,20 @@ export default function CargarVehiculo() {
           precioVenta: '',
           notasInversor: ''
         })
+        
+        // Limpiar cache de vehículos para que se vea el nuevo vehículo
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('vehiculos-cache')) {
+            localStorage.removeItem(key)
+          }
+        })
+        
+        // Guardar timestamp de creación para detectar en la página de vehículos
+        localStorage.setItem('lastVehicleCreation', Date.now().toString())
+        
         // Redirigir después de un breve delay
         setTimeout(() => {
-          router.push('/vehiculos')
+          router.push('/vehiculos?refresh=true')
         }, 1500)
       } else {
         showToast(result.error || 'Error al crear el vehículo', 'error')
@@ -236,7 +249,7 @@ export default function CargarVehiculo() {
                   type="text"
                   id="referencia"
                   name="referencia"
-                  value={formData.referencia}
+                  value={formData.referencia || ''}
                   onChange={handleInputChange}
                   required
                   className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
@@ -251,7 +264,7 @@ export default function CargarVehiculo() {
                 <select
                   id="tipo"
                   name="tipo"
-                  value={formData.tipo}
+                  value={formData.tipo || ''}
                   onChange={handleInputChange}
                   required
                   className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
@@ -274,7 +287,7 @@ export default function CargarVehiculo() {
                   type="text"
                   id="marca"
                   name="marca"
-                  value={formData.marca}
+                  value={formData.marca || ''}
                   onChange={handleInputChange}
                   required
                   className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
@@ -290,7 +303,7 @@ export default function CargarVehiculo() {
                   type="text"
                   id="modelo"
                   name="modelo"
-                  value={formData.modelo}
+                  value={formData.modelo || ''}
                   onChange={handleInputChange}
                   required
                   className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
@@ -308,7 +321,7 @@ export default function CargarVehiculo() {
                   type="text"
                   id="matricula"
                   name="matricula"
-                  value={formData.matricula}
+                  value={formData.matricula || ''}
                   onChange={handleInputChange}
                   required
                   className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors font-mono"
@@ -324,7 +337,7 @@ export default function CargarVehiculo() {
                   type="text"
                   id="bastidor"
                   name="bastidor"
-                  value={formData.bastidor}
+                  value={formData.bastidor || ''}
                   onChange={handleInputChange}
                   required
                   className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors font-mono"
@@ -343,7 +356,7 @@ export default function CargarVehiculo() {
                   type="text"
                   id="color"
                   name="color"
-                  value={formData.color}
+                  value={formData.color || ''}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                   placeholder="Ej: Blanco, Negro, Azul..."
@@ -357,7 +370,7 @@ export default function CargarVehiculo() {
                   type="date"
                   id="fechaMatriculacion"
                   name="fechaMatriculacion"
-                  value={formData.fechaMatriculacion}
+                  value={formData.fechaMatriculacion || ''}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                 />
@@ -372,7 +385,7 @@ export default function CargarVehiculo() {
                 type="number"
                 id="kms"
                 name="kms"
-                value={formData.kms}
+                value={formData.kms || ''}
                 onChange={handleInputChange}
                 required
                 min="0"
@@ -397,7 +410,7 @@ export default function CargarVehiculo() {
                       <select
                         id="inversorId"
                         name="inversorId"
-                        value={formData.inversorId}
+                        value={formData.inversorId || ''}
                         onChange={handleInputChange}
                         required={formData.esCocheInversor}
                         className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
@@ -419,7 +432,7 @@ export default function CargarVehiculo() {
                         type="date"
                         id="fechaCompra"
                         name="fechaCompra"
-                        value={formData.fechaCompra}
+                        value={formData.fechaCompra || ''}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                       />
@@ -435,7 +448,7 @@ export default function CargarVehiculo() {
                         type="number"
                         id="precioCompra"
                         name="precioCompra"
-                        value={formData.precioCompra}
+                        value={formData.precioCompra || ''}
                         onChange={handleInputChange}
                         min="0"
                         step="0.01"
@@ -452,7 +465,7 @@ export default function CargarVehiculo() {
                         type="number"
                         id="precioPublicacion"
                         name="precioPublicacion"
-                        value={formData.precioPublicacion}
+                        value={formData.precioPublicacion || ''}
                         onChange={handleInputChange}
                         min="0"
                         step="0.01"
@@ -475,7 +488,7 @@ export default function CargarVehiculo() {
                           type="number"
                           id="gastosTransporte"
                           name="gastosTransporte"
-                          value={formData.gastosTransporte}
+                          value={formData.gastosTransporte || ''}
                           onChange={handleInputChange}
                           min="0"
                           step="0.01"
@@ -491,7 +504,7 @@ export default function CargarVehiculo() {
                           type="number"
                           id="gastosTasas"
                           name="gastosTasas"
-                          value={formData.gastosTasas}
+                          value={formData.gastosTasas || ''}
                           onChange={handleInputChange}
                           min="0"
                           step="0.01"
@@ -507,7 +520,7 @@ export default function CargarVehiculo() {
                           type="number"
                           id="gastosMecanica"
                           name="gastosMecanica"
-                          value={formData.gastosMecanica}
+                          value={formData.gastosMecanica || ''}
                           onChange={handleInputChange}
                           min="0"
                           step="0.01"
@@ -523,7 +536,7 @@ export default function CargarVehiculo() {
                           type="number"
                           id="gastosPintura"
                           name="gastosPintura"
-                          value={formData.gastosPintura}
+                          value={formData.gastosPintura || ''}
                           onChange={handleInputChange}
                           min="0"
                           step="0.01"
@@ -539,7 +552,7 @@ export default function CargarVehiculo() {
                           type="number"
                           id="gastosLimpieza"
                           name="gastosLimpieza"
-                          value={formData.gastosLimpieza}
+                          value={formData.gastosLimpieza || ''}
                           onChange={handleInputChange}
                           min="0"
                           step="0.01"
@@ -555,7 +568,7 @@ export default function CargarVehiculo() {
                           type="number"
                           id="gastosOtros"
                           name="gastosOtros"
-                          value={formData.gastosOtros}
+                          value={formData.gastosOtros || ''}
                           onChange={handleInputChange}
                           min="0"
                           step="0.01"
@@ -573,7 +586,7 @@ export default function CargarVehiculo() {
                     <textarea
                       id="notasInversor"
                       name="notasInversor"
-                      value={formData.notasInversor}
+                      value={formData.notasInversor || ''}
                       onChange={handleInputChange}
                       rows={2}
                       className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"

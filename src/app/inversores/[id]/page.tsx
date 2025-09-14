@@ -266,7 +266,7 @@ export default function InvestorDashboardPage() {
     { value: 'LIMPIEZA', label: 'Limpieza' },
     { value: 'FOTOS', label: 'Fotos' },
     { value: 'PUBLICADO', label: 'Publicado' },
-    { value: 'VENDIDO', label: 'Vendido' }
+    { value: 'vendido', label: 'Vendido' }
   ]
 
   if (isLoading) {

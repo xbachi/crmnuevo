@@ -365,8 +365,8 @@ export async function getInversorMetrics(inversorId: number, periodo?: { desde: 
     })
   }
   
-  const vendidos = vehiculosFiltrados.filter(v => v.estado === 'VENDIDO')
-  const enStock = vehiculosFiltrados.filter(v => v.estado !== 'VENDIDO')
+  const vendidos = vehiculosFiltrados.filter(v => v.estado === 'vendido')
+  const enStock = vehiculosFiltrados.filter(v => v.estado !== 'vendido')
   
   const beneficioAcumulado = vendidos.reduce((sum, v) => {
     const beneficio = Number(v.beneficioNeto) || 0

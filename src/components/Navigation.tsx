@@ -42,6 +42,12 @@ const UserIcon = () => (
   </svg>
 )
 
+const DealsIcon = () => (
+  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+    <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+  </svg>
+)
+
 const ImportIcon = () => (
   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
     <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -57,6 +63,7 @@ export default function Navigation() {
     { href: '/vehiculos', label: 'Vehículos', icon: VehiculosIcon },
     { href: '/clientes', label: 'Clientes', icon: ClientesIcon },
     { href: '/inversores', label: 'Inversores', icon: InversoresIcon },
+    { href: '/deals', label: 'Deals', icon: DealsIcon },
     { href: '/kanban', label: 'Kanban', icon: KanbanIcon },
     { href: '/importar-csv', label: 'Importar CSV', icon: ImportIcon }
   ]

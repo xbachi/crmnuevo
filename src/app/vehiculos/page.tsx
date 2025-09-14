@@ -37,6 +37,12 @@ interface Vehiculo {
   notasInversor?: string
   itv?: string
   fotoInversor?: string
+  seguro?: string
+  segundaLlave?: string
+  carpeta?: string
+  master?: string
+  hojasA?: string
+  documentacion?: string
 }
 
 interface PaginationInfo {
@@ -133,8 +139,48 @@ export default function ListaVehiculos() {
   }
 
   useEffect(() => {
-    fetchVehiculos()
+    // Verificar si hay parámetro de refresh en la URL
+    const urlParams = new URLSearchParams(window.location.search)
+    const shouldRefresh = urlParams.get('refresh') === 'true'
+    
+    if (shouldRefresh) {
+      // Limpiar cache y forzar recarga
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('vehiculos-cache')) {
+          localStorage.removeItem(key)
+        }
+      })
+      fetchVehiculos(1, true)
+      // Limpiar la URL
+      window.history.replaceState({}, '', '/vehiculos')
+    } else {
+      fetchVehiculos()
+    }
+    
     fetchInversores()
+    
+    // Escuchar cuando la ventana recupera el foco (usuario regresa de otra página)
+    const handleFocus = () => {
+      // Verificar si hay un timestamp reciente de creación de vehículo
+      const lastVehicleCreation = localStorage.getItem('lastVehicleCreation')
+      if (lastVehicleCreation) {
+        const now = Date.now()
+        const timeDiff = now - parseInt(lastVehicleCreation)
+        // Si fue hace menos de 10 segundos, refrescar
+        if (timeDiff < 10000) {
+          Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('vehiculos-cache')) {
+              localStorage.removeItem(key)
+            }
+          })
+          fetchVehiculos(1, true)
+          localStorage.removeItem('lastVehicleCreation')
+        }
+      }
+    }
+    
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
   }, [])
 
   const fetchInversores = async () => {
@@ -346,8 +392,15 @@ export default function ListaVehiculos() {
           })
 
           if (response.ok) {
+            // Limpiar cache completamente
+            Object.keys(localStorage).forEach(key => {
+              if (key.startsWith('vehiculos-cache')) {
+                localStorage.removeItem(key)
+              }
+            })
+            
             // Forzar recarga sin usar cache
-            await fetchVehiculos(true)
+            await fetchVehiculos(1, true)
             showToast('Vehículo eliminado exitosamente', 'success')
           } else {
             const error = await response.json()
@@ -408,31 +461,16 @@ export default function ListaVehiculos() {
         console.log('🔍 result.vehiculo.color:', result.vehiculo?.color)
         console.log('🔍 result.vehiculo.fechaMatriculacion:', result.vehiculo?.fechaMatriculacion)
         
-        // Actualizar el vehículo en el estado local inmediatamente
-        setVehiculos(prevVehiculos => {
-          console.log('🔄 Vehículos antes de actualizar:', prevVehiculos.length)
-          const updatedVehiculos = prevVehiculos.map(v => {
-            if (v.id === editingVehiculo.id) {
-              const updated = { ...v, ...result.vehiculo }
-              console.log('🔄 Vehículo actualizado:', updated)
-              console.log('🔄 Color actualizado:', updated.color)
-              return updated
-            }
-            return v
-          })
-          console.log('🔄 Vehículos después de actualizar:', updatedVehiculos.length)
-          return updatedVehiculos
+        // Limpiar cache completamente
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('vehiculos-cache')) {
+            localStorage.removeItem(key)
+          }
         })
         
-        // Limpiar cache completamente
-        localStorage.removeItem('vehiculos-cache')
-        localStorage.removeItem('vehiculos-cache-time')
-        
-        // Recargar datos frescos de la base de datos
-        setTimeout(async () => {
-          console.log('🔄 Recargando datos frescos...')
-          await fetchVehiculos(true)
-        }, 100)
+        // Recargar datos frescos de la base de datos inmediatamente
+        console.log('🔄 Recargando datos frescos...')
+        await fetchVehiculos(1, true)
         
         setShowEditModal(false)
         setEditingVehiculo(null)
@@ -533,7 +571,7 @@ export default function ListaVehiculos() {
                             if (response.ok) {
                               localStorage.removeItem('vehiculos-cache')
                               localStorage.removeItem('vehiculos-cache-time')
-                              await fetchVehiculos(true)
+                              await fetchVehiculos(1, true)
                               showToast('Todos los vehículos han sido eliminados', 'success')
                             } else {
                               showToast('Error al eliminar los vehículos', 'error')
@@ -800,8 +838,8 @@ export default function ListaVehiculos() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-slate-200">
-                  {filteredVehiculos.map((vehiculo) => (
-                    <tr key={vehiculo.id} className="hover:bg-slate-50/80 transition-colors duration-200">
+                  {filteredVehiculos.map((vehiculo, index) => (
+                    <tr key={`${vehiculo.id}-${vehiculo.updatedAt}-${index}`} className="hover:bg-slate-50/80 transition-colors duration-200">
                       <td className="px-3 py-4">
                         <div className="flex items-center">
                           <div className="w-12 h-10 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg flex items-center justify-center mr-2">
@@ -817,16 +855,29 @@ export default function ListaVehiculos() {
                             {vehiculo.marca} {vehiculo.modelo}
                           </div>
                 {/* Alerta de ITV vencida o info básica */}
-                {(vehiculo.itv === 'No' || vehiculo.itv === 'no' || vehiculo.itv === 'NO' || vehiculo.itv === false || !vehiculo.itv) && vehiculo.itv !== 'Sí' && vehiculo.itv !== 'si' && vehiculo.itv !== 'SI' ? (
-                            <div className="inline-flex items-center space-x-1 px-1.5 py-0.5 bg-red-600 rounded-full mt-1">
-                              <svg className="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                              </svg>
-                              <span className="text-xs text-white font-semibold">ITV VENCIDA</span>
-                            </div>
-                          ) : (
-                            <div className="text-slate-500 text-xs">Vehículo</div>
-                          )}
+                {(() => {
+                  const itvValue = vehiculo.itv
+                  const isItvValid = itvValue && (
+                    itvValue.toString().toLowerCase() === 'sí' || 
+                    itvValue.toString().toLowerCase() === 'si' || 
+                    itvValue.toString().toLowerCase() === 'yes' ||
+                    itvValue.toString().toLowerCase() === 'true'
+                  )
+                  
+                  if (itvValue && !isItvValid) {
+                    return (
+                      <div className="inline-flex items-center space-x-1 px-1.5 py-0.5 bg-red-600 rounded-full mt-1">
+                        <svg className="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-xs text-white font-semibold">ITV VENCIDA</span>
+                      </div>
+                    )
+                  }
+                  return (
+                    <div className="text-slate-500 text-xs">Vehículo</div>
+                  )
+                })()}
                         </div>
                       </td>
                       <td className="px-3 py-4">
@@ -886,9 +937,9 @@ export default function ListaVehiculos() {
         ) : (
           /* Vista de Cartas */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
-            {filteredVehiculos.map((vehiculo) => (
+            {filteredVehiculos.map((vehiculo, index) => (
               <VehicleCard
-                key={`${vehiculo.id}-${vehiculo.color}-${vehiculo.fechaMatriculacion}-${vehiculo.updatedAt}`}
+                key={`${vehiculo.id}-${vehiculo.updatedAt}-${index}`}
                 vehiculo={vehiculo}
                 onEdit={handleEdit}
                 onDelete={handleDelete}

@@ -62,7 +62,7 @@ export default function KanbanPage() {
     // Primero filtrar vehículos vendidos (no mostrar en Kanban)
     const vehiculosEnProceso = vehiculos.filter(vehiculo => {
       const estado = vehiculo.estado?.toLowerCase()
-      return estado !== 'vendido' && estado !== 'vendida'
+      return estado !== 'vendido'
     })
 
     if (!searchTerm.trim()) {
@@ -139,8 +139,10 @@ export default function KanbanPage() {
         const now = Date.now()
         const cacheAge = now - parseInt(cacheTime)
         if (cacheAge < 5 * 60 * 1000) { // 5 minutos
-          setVehiculos(JSON.parse(cachedData))
+          const cachedVehiculos = JSON.parse(cachedData)
+          setVehiculos(Array.isArray(cachedVehiculos) ? cachedVehiculos : [])
           setIsLoading(false)
+          return // Salir de la función si usamos cache
         }
       }
       
@@ -152,10 +154,12 @@ export default function KanbanPage() {
       
       if (response.ok) {
         const data = await response.json()
-        setVehiculos(data)
+        // La API ahora devuelve { vehiculos: [...], pagination: {...} }
+        const vehiculosArray = data.vehiculos || data
+        setVehiculos(Array.isArray(vehiculosArray) ? vehiculosArray : [])
         
         // Guardar en cache
-        localStorage.setItem(cacheKey, JSON.stringify(data))
+        localStorage.setItem(cacheKey, JSON.stringify(vehiculosArray))
         localStorage.setItem(`${cacheKey}-time`, Date.now().toString())
       } else {
         setError('Error al cargar los vehículos')
