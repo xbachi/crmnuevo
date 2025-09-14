@@ -198,9 +198,7 @@ export default function DealDetail() {
         
         // Navegar de vuelta a la página principal y refrescar vehículos
         setTimeout(() => {
-          // Marcar que se debe refrescar la página de vehículos
-          localStorage.setItem('needsVehicleRefresh', Date.now().toString())
-          router.push('/deals?refresh=true')
+          router.push('/deals')
         }, 1500)
       } catch (error) {
         console.error('Error actualizando estado:', error)
@@ -262,9 +260,7 @@ export default function DealDetail() {
         
         // Navegar de vuelta a la página principal y refrescar vehículos
         setTimeout(() => {
-          // Marcar que se debe refrescar la página de vehículos
-          localStorage.setItem('needsVehicleRefresh', Date.now().toString())
-          router.push('/deals?refresh=true')
+          router.push('/deals')
         }, 1500)
       } catch (error) {
         console.error('Error actualizando estado:', error)

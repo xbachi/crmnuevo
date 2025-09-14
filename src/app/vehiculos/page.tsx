@@ -129,12 +129,6 @@ export default function ListaVehiculos() {
   }
 
   const refreshVehiculos = async () => {
-    // Limpiar cache
-    Object.keys(localStorage).forEach(key => {
-      if (key.startsWith('vehiculos-cache-page-')) {
-        localStorage.removeItem(key)
-      }
-    })
     setCurrentPage(1)
     await fetchVehiculos(1, true)
   }
@@ -170,12 +164,6 @@ export default function ListaVehiculos() {
     const shouldRefresh = urlParams.get('refresh') === 'true'
     
     if (shouldRefresh) {
-      // Limpiar cache y forzar recarga
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('vehiculos-cache')) {
-          localStorage.removeItem(key)
-        }
-      })
       fetchVehiculos(1, true)
       // Limpiar la URL
       window.history.replaceState({}, '', '/vehiculos')
@@ -189,12 +177,6 @@ export default function ListaVehiculos() {
     const needsRefresh = localStorage.getItem('needsVehicleRefresh')
     if (needsRefresh) {
       localStorage.removeItem('needsVehicleRefresh')
-      // Limpiar cache y refrescar
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('vehiculos-cache')) {
-          localStorage.removeItem(key)
-        }
-      })
       fetchVehiculos(1, true)
     }
     
@@ -207,11 +189,6 @@ export default function ListaVehiculos() {
         const timeDiff = now - parseInt(lastVehicleCreation)
         // Si fue hace menos de 10 segundos, refrescar
         if (timeDiff < 10000) {
-          Object.keys(localStorage).forEach(key => {
-            if (key.startsWith('vehiculos-cache')) {
-              localStorage.removeItem(key)
-            }
-          })
           fetchVehiculos(1, true)
           localStorage.removeItem('lastVehicleCreation')
         }
@@ -230,12 +207,6 @@ export default function ListaVehiculos() {
         const needsRefresh = localStorage.getItem('needsVehicleRefresh')
         if (needsRefresh) {
           localStorage.removeItem('needsVehicleRefresh')
-          // Limpiar cache y refrescar
-          Object.keys(localStorage).forEach(key => {
-            if (key.startsWith('vehiculos-cache')) {
-              localStorage.removeItem(key)
-            }
-          })
           fetchVehiculos(1, true)
         }
       }
@@ -341,28 +312,6 @@ export default function ListaVehiculos() {
         setIsLoadingMore(true)
       }
       
-      // Usar cache del navegador si está disponible y no se fuerza refresh
-      const cacheKey = `vehiculos-cache-page-${page}`
-      const cachedData = localStorage.getItem(cacheKey)
-      const cacheTime = localStorage.getItem(`${cacheKey}-time`)
-      
-      // Si hay datos en cache y son recientes (menos de 3 minutos), usarlos
-      if (!forceRefresh && cachedData && cacheTime) {
-        const now = Date.now()
-        const cacheAge = now - parseInt(cacheTime)
-        if (cacheAge < 3 * 60 * 1000) { // 3 minutos
-          const cachedResponse = JSON.parse(cachedData)
-          if (page === 1) {
-            setVehiculos(cachedResponse.vehiculos)
-          } else {
-            setVehiculos(prev => [...prev, ...cachedResponse.vehiculos])
-          }
-          setPagination(cachedResponse.pagination)
-          setIsLoading(false)
-          setIsLoadingMore(false)
-          return
-        }
-      }
       
       const response = await fetch(`/api/vehiculos?page=${page}&limit=50`, {
         headers: {
@@ -376,9 +325,6 @@ export default function ListaVehiculos() {
         const data = await response.json()
         console.log(`🚗 Vehículos cargados - Página ${page}:`, data.vehiculos.length)
         
-        // Guardar en cache
-        localStorage.setItem(cacheKey, JSON.stringify(data))
-        localStorage.setItem(`${cacheKey}-time`, Date.now().toString())
         
         if (page === 1) {
           setVehiculos(data.vehiculos)
@@ -454,13 +400,6 @@ export default function ListaVehiculos() {
           })
 
           if (response.ok) {
-            // Limpiar cache completamente
-            Object.keys(localStorage).forEach(key => {
-              if (key.startsWith('vehiculos-cache')) {
-                localStorage.removeItem(key)
-              }
-            })
-            
             // Forzar recarga sin usar cache
             await fetchVehiculos(1, true)
             showToast('Vehículo eliminado exitosamente', 'success')
@@ -523,12 +462,6 @@ export default function ListaVehiculos() {
         console.log('🔍 result.vehiculo.color:', result.vehiculo?.color)
         console.log('🔍 result.vehiculo.fechaMatriculacion:', result.vehiculo?.fechaMatriculacion)
         
-        // Limpiar cache completamente
-        Object.keys(localStorage).forEach(key => {
-          if (key.startsWith('vehiculos-cache')) {
-            localStorage.removeItem(key)
-          }
-        })
         
         // Recargar datos frescos de la base de datos inmediatamente
         console.log('🔄 Recargando datos frescos...')
@@ -631,8 +564,6 @@ export default function ListaVehiculos() {
                             })
                             
                             if (response.ok) {
-                              localStorage.removeItem('vehiculos-cache')
-                              localStorage.removeItem('vehiculos-cache-time')
                               await fetchVehiculos(1, true)
                               showToast('Todos los vehículos han sido eliminados', 'success')
                             } else {

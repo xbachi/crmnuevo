@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { VehiculoService } from '@/lib/database-optimized'
-import { withCache, clearRelatedCache, CACHE_KEYS } from '@/lib/cache'
 import { writeVehiculoToSheets } from '@/lib/googleSheets'
 import { generateFolderName, getFolderPathsByTipo } from '@/config/folders'
 import { promises as fs } from 'fs'
@@ -18,30 +17,18 @@ export async function GET(request: NextRequest) {
     const orderBy = searchParams.get('orderBy') || 'createdAt'
     const orderDirection = (searchParams.get('orderDirection') || 'desc') as 'asc' | 'desc'
 
-    const filters = JSON.stringify({ search, tipo, estado, inversorId, orderBy, orderDirection })
-    const cacheKey = CACHE_KEYS.VEHICULOS_PAGE(page, limit, filters)
-
-    const result = await withCache(
-      cacheKey,
-      () => VehiculoService.getVehiculos({
-        page,
-        limit,
-        search,
-        tipo,
-        estado,
-        inversorId,
-        orderBy,
-        orderDirection
-      }),
-      300 // 5 minutos de cache
-    )
-
-    return NextResponse.json(result, {
-      headers: {
-        'Cache-Control': 'public, max-age=300, s-maxage=300',
-        'Content-Type': 'application/json'
-      }
+    const result = await VehiculoService.getVehiculos({
+      page,
+      limit,
+      search,
+      tipo,
+      estado,
+      inversorId,
+      orderBy,
+      orderDirection
     })
+
+    return NextResponse.json(result)
   } catch (error) {
     console.error('Error obteniendo vehículos:', error)
     return NextResponse.json(
@@ -154,8 +141,6 @@ export async function POST(request: NextRequest) {
       // No fallar la operación por errores de Google Sheets
     }
 
-    // Limpiar cache relacionado
-    await clearRelatedCache('vehiculos')
 
     return NextResponse.json({
       success: true,
@@ -185,8 +170,6 @@ export async function PUT(request: NextRequest) {
 
     const vehiculo = await VehiculoService.updateVehiculo(id, updateData)
 
-    // Limpiar cache relacionado
-    await clearRelatedCache('vehiculos')
 
     return NextResponse.json({
       success: true,
@@ -216,8 +199,6 @@ export async function DELETE(request: NextRequest) {
 
     await VehiculoService.deleteVehiculo(id)
 
-    // Limpiar cache relacionado
-    await clearRelatedCache('vehiculos')
 
     return NextResponse.json({
       success: true,

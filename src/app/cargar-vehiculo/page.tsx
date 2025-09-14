@@ -200,15 +200,6 @@ export default function CargarVehiculo() {
           notasInversor: ''
         })
         
-        // Limpiar cache de vehículos para que se vea el nuevo vehículo
-        Object.keys(localStorage).forEach(key => {
-          if (key.startsWith('vehiculos-cache')) {
-            localStorage.removeItem(key)
-          }
-        })
-        
-        // Guardar timestamp de creación para detectar en la página de vehículos
-        localStorage.setItem('lastVehicleCreation', Date.now().toString())
         
         // Redirigir después de un breve delay
         setTimeout(() => {

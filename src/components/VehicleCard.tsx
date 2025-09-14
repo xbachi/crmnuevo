@@ -331,7 +331,7 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
           <div className="flex items-center justify-between">
             <button
               onClick={() => setIsExpanded(!isExpanded)}
-              className="flex items-center space-x-2 text-left text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+              className="flex items-center space-x-2 text-left text-sm font-semibold text-blue-700 hover:text-blue-800 hover:bg-blue-50 px-3 py-2 rounded-lg border border-blue-200 bg-blue-50/50 transition-all duration-200 shadow-sm hover:shadow-md"
             >
               <span>Información adicional</span>
               <svg 
@@ -361,85 +361,85 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
             <div className="mt-6">
               {/* Información adicional de Google Sheets */}
               {true && (
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div className="flex justify-between items-center">
-                      <span className="text-blue-700 font-medium">2ª Llave:</span>
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200 shadow-sm">
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="flex items-center space-x-2 p-2 rounded bg-blue-100/50">
+                      <span className="text-blue-800 font-semibold">2ª Llave:</span>
                       {isEditingAdditional ? (
                         <select
                           value={editableFields.segundaLlave ? 'si' : 'no'}
                           onChange={(e) => handleFieldChange('segundaLlave', e.target.value === 'si')}
-                          className="text-blue-900 bg-white border border-blue-200 rounded px-2 py-1 text-xs"
+                          className="text-blue-900 bg-white border border-blue-300 rounded px-2 py-1 text-xs font-medium"
                         >
                           <option value="no">No</option>
                           <option value="si">Sí</option>
                         </select>
                       ) : (
-                        <span className="text-blue-900">{editableFields.segundaLlave ? 'Sí' : 'No'}</span>
+                        <span className="text-blue-900 font-medium">{editableFields.segundaLlave ? 'Sí' : 'No'}</span>
                       )}
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-blue-700 font-medium">Carpeta:</span>
+                    <div className="flex items-center space-x-2 p-2 rounded bg-blue-200/30">
+                      <span className="text-blue-800 font-semibold">Carpeta:</span>
                       {isEditingAdditional ? (
                         <select
                           value={editableFields.carpeta ? 'si' : 'no'}
                           onChange={(e) => handleFieldChange('carpeta', e.target.value === 'si')}
-                          className="text-blue-900 bg-white border border-blue-200 rounded px-2 py-1 text-xs"
+                          className="text-blue-900 bg-white border border-blue-300 rounded px-2 py-1 text-xs font-medium"
                         >
                           <option value="no">No</option>
                           <option value="si">Sí</option>
                         </select>
                       ) : (
-                        <span className="text-blue-900">{editableFields.carpeta ? 'Sí' : 'No'}</span>
+                        <span className="text-blue-900 font-medium">{editableFields.carpeta ? 'Sí' : 'No'}</span>
                       )}
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-blue-700 font-medium">Master:</span>
+                    <div className="flex items-center space-x-2 p-2 rounded bg-blue-100/50">
+                      <span className="text-blue-800 font-semibold">Master:</span>
                       {isEditingAdditional ? (
                         <select
                           value={editableFields.master ? 'si' : 'no'}
                           onChange={(e) => handleFieldChange('master', e.target.value === 'si')}
-                          className="text-blue-900 bg-white border border-blue-200 rounded px-2 py-1 text-xs"
+                          className="text-blue-900 bg-white border border-blue-300 rounded px-2 py-1 text-xs font-medium"
                         >
                           <option value="no">No</option>
                           <option value="si">Sí</option>
                         </select>
                       ) : (
-                        <span className="text-blue-900">{editableFields.master ? 'Sí' : 'No'}</span>
+                        <span className="text-blue-900 font-medium">{editableFields.master ? 'Sí' : 'No'}</span>
                       )}
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-blue-700 font-medium">Hojas A:</span>
+                    <div className="flex items-center space-x-2 p-2 rounded bg-blue-200/30">
+                      <span className="text-blue-800 font-semibold">Hojas A:</span>
                       {isEditingAdditional ? (
                         <select
                           value={editableFields.hojasA ? 'si' : 'no'}
                           onChange={(e) => handleFieldChange('hojasA', e.target.value === 'si')}
-                          className="text-blue-900 bg-white border border-blue-200 rounded px-2 py-1 text-xs"
+                          className="text-blue-900 bg-white border border-blue-300 rounded px-2 py-1 text-xs font-medium"
                         >
                           <option value="no">No</option>
                           <option value="si">Sí</option>
                         </select>
                       ) : (
-                        <span className="text-blue-900">{editableFields.hojasA ? 'Sí' : 'No'}</span>
+                        <span className="text-blue-900 font-medium">{editableFields.hojasA ? 'Sí' : 'No'}</span>
                       )}
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-blue-700 font-medium">Docu:</span>
+                    <div className="flex items-center space-x-2 p-2 rounded bg-blue-100/50">
+                      <span className="text-blue-800 font-semibold">Docu:</span>
                       {isEditingAdditional ? (
                         <select
                           value={editableFields.documentacion ? 'si' : 'no'}
                           onChange={(e) => handleFieldChange('documentacion', e.target.value === 'si')}
-                          className="text-blue-900 bg-white border border-blue-200 rounded px-2 py-1 text-xs"
+                          className="text-blue-900 bg-white border border-blue-300 rounded px-2 py-1 text-xs font-medium"
                         >
                           <option value="no">No</option>
                           <option value="si">Sí</option>
                         </select>
                       ) : (
-                        <span className="text-blue-900">{editableFields.documentacion ? 'Sí' : 'No'}</span>
+                        <span className="text-blue-900 font-medium">{editableFields.documentacion ? 'Sí' : 'No'}</span>
                       )}
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-blue-700 font-medium">ITV:</span>
+                    <div className="flex items-center space-x-2 p-2 rounded bg-blue-200/30">
+                      <span className="text-blue-800 font-semibold">ITV:</span>
                       {isEditingAdditional ? (
                         <select
                           value={vehiculo.itv === null || vehiculo.itv === undefined || vehiculo.itv === '' ? 'chequear' : (isPositive(vehiculo.itv) ? 'si' : 'no')}
@@ -450,14 +450,14 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
                               handleFieldChange('itv', e.target.value === 'si')
                             }
                           }}
-                          className="text-blue-900 bg-white border border-blue-200 rounded px-2 py-1 text-xs"
+                          className="text-blue-900 bg-white border border-blue-300 rounded px-2 py-1 text-xs font-medium"
                         >
                           <option value="chequear">Chequear</option>
                           <option value="no">No</option>
                           <option value="si">Sí</option>
                         </select>
                       ) : (
-                        <span className="text-blue-900">
+                        <span className="text-blue-900 font-medium">
                           {vehiculo.itv === null || vehiculo.itv === undefined || vehiculo.itv === '' 
                             ? 'Chequear' 
                             : (isPositive(vehiculo.itv) ? 'Sí' : 'No')
@@ -465,19 +465,19 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
                         </span>
                       )}
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-blue-700 font-medium">Seguro:</span>
+                    <div className="flex items-center space-x-2 p-2 rounded bg-blue-100/50">
+                      <span className="text-blue-800 font-semibold">Seguro:</span>
                       {isEditingAdditional ? (
                         <select
                           value={editableFields.seguro ? 'si' : 'no'}
                           onChange={(e) => handleFieldChange('seguro', e.target.value === 'si')}
-                          className="text-blue-900 bg-white border border-blue-200 rounded px-2 py-1 text-xs"
+                          className="text-blue-900 bg-white border border-blue-300 rounded px-2 py-1 text-xs font-medium"
                         >
                           <option value="no">No</option>
                           <option value="si">Sí</option>
                         </select>
                       ) : (
-                        <span className="text-blue-900">{editableFields.seguro ? 'Sí' : 'No'}</span>
+                        <span className="text-blue-900 font-medium">{editableFields.seguro ? 'Sí' : 'No'}</span>
                       )}
                     </div>
                   </div>
@@ -527,7 +527,7 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                 <span className="text-sm font-medium text-gray-700">Estado:</span>
                 <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                  {vehiculo.estado || 'Sin Estado'}
+                  {vehiculo.estado || 'Inicial'}
                 </span>
               </>
             )}

@@ -119,8 +119,6 @@ export default function CrearDeal() {
       console.log('✅ Deal creado:', newDeal)
 
       showToast('Deal creado exitosamente', 'success')
-      // Refresh cache para mostrar el nuevo deal
-      await fetch('/api/deals', { method: 'GET', cache: 'no-store' })
       router.push('/deals')
     } catch (error) {
       console.error('❌ Error creando deal:', error)

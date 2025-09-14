@@ -39,13 +39,13 @@ interface Vehiculo {
 
 interface KanbanBoardProps {
   vehiculos: Vehiculo[]
-  onUpdateVehiculos: (vehiculos: Vehiculo[]) => void
+  onUpdateVehiculos: (vehiculos: Vehiculo[] | ((prev: Vehiculo[]) => Vehiculo[])) => void
 }
 
 const ESTADOS = [
   {
     id: 'SIN_ESTADO',
-    title: 'Sin Estado',
+    title: 'Inicial',
     color: 'bg-slate-500'
   },
   {
@@ -55,7 +55,7 @@ const ESTADOS = [
   },
   {
     id: 'MECAUTO',
-    title: 'Mecánica/Automática',
+    title: 'Mecauto',
     color: 'bg-blue-600'
   },
   {
@@ -101,7 +101,7 @@ export default function KanbanBoard({ vehiculos, onUpdateVehiculos }: KanbanBoar
   // Agrupar vehículos por estado
   const vehiculosPorEstado = ESTADOS.reduce((acc, estado) => {
     if (estado.id === 'SIN_ESTADO') {
-      // Para "Sin Estado", incluir vehículos que no tienen estado definido, vacío, o estados inválidos
+      // Para "Inicial", incluir vehículos que no tienen estado definido, vacío, o estados inválidos
       const estadosValidos = ESTADOS.map(e => e.id).filter(id => id !== 'SIN_ESTADO')
       acc[estado.id] = vehiculos
         .filter(v => !v.estado || v.estado === '' || v.estado === 'SIN_ESTADO' || !estadosValidos.includes(v.estado))
@@ -113,6 +113,7 @@ export default function KanbanBoard({ vehiculos, onUpdateVehiculos }: KanbanBoar
     }
     return acc
   }, {} as Record<string, Vehiculo[]>)
+
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as number)
@@ -129,51 +130,23 @@ export default function KanbanBoard({ vehiculos, onUpdateVehiculos }: KanbanBoar
     if (!over) return
 
     const activeId = active.id as number
-    const overId = over.id as number
+    const overId = over.id
 
     // Encontrar el vehículo activo
     const activeVehiculo = vehiculos.find(v => v.id === activeId)
     if (!activeVehiculo) return
 
-    // Si se está moviendo dentro de la misma columna
-    if (activeVehiculo.estado === overId) {
-      const vehiculosEnEstado = vehiculosPorEstado[activeVehiculo.estado]
-      const oldIndex = vehiculosEnEstado.findIndex(v => v.id === activeId)
-      const newIndex = vehiculosEnEstado.findIndex(v => v.id === overId)
 
-      if (oldIndex !== newIndex) {
-        const newVehiculos = arrayMove(vehiculosEnEstado, oldIndex, newIndex)
-        
-        // Actualizar órdenes
-        const updates = newVehiculos.map((v, index) => ({
-          id: v.id,
-          estado: v.estado,
-          orden: index
-        }))
+    // Determinar si se está moviendo a una columna o a otro vehículo
+    const isMovingToColumn = typeof overId === 'string' && ESTADOS.some(estado => estado.id === overId)
+    const isMovingToVehicle = typeof overId === 'number'
 
-        try {
-          const response = await fetch('/api/vehiculos/kanban', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ updates })
-          })
-
-          if (response.ok) {
-            const updatedVehiculos = await response.json()
-            onUpdateVehiculos(updatedVehiculos)
-            showToast('Orden actualizado', 'success')
-          } else {
-            showToast('Error al actualizar el orden', 'error')
-          }
-        } catch (error) {
-          showToast('Error al actualizar el orden', 'error')
-        }
-      }
-    } else {
-      // Si se está moviendo a otra columna
+    if (isMovingToColumn) {
+      // Moviendo a una columna (cambio de estado)
       const newEstado = overId as string
       const vehiculosEnNuevoEstado = vehiculosPorEstado[newEstado] || []
       const newOrden = vehiculosEnNuevoEstado.length
+
 
       try {
         const response = await fetch('/api/vehiculos/kanban', {
@@ -190,13 +163,98 @@ export default function KanbanBoard({ vehiculos, onUpdateVehiculos }: KanbanBoar
 
         if (response.ok) {
           const updatedVehiculos = await response.json()
-          onUpdateVehiculos(updatedVehiculos)
+          
+          // Actualizar solo el vehículo que cambió
+          onUpdateVehiculos(prevVehiculos => {
+            const updatedMap = new Map(updatedVehiculos.map(v => [v.id, v]))
+            return prevVehiculos.map(v => updatedMap.get(v.id) || v)
+          })
           showToast(`Vehículo movido a ${ESTADOS.find(e => e.id === newEstado)?.title}`, 'success')
         } else {
           showToast('Error al mover el vehículo', 'error')
         }
       } catch (error) {
         showToast('Error al mover el vehículo', 'error')
+      }
+    } else if (isMovingToVehicle) {
+      // Moviendo a otro vehículo (cambio de orden)
+      const overVehiculo = vehiculos.find(v => v.id === overId)
+      if (!overVehiculo) return
+
+      // Si se está moviendo dentro de la misma columna
+      if (activeVehiculo.estado === overVehiculo.estado) {
+        // Determinar el estado correcto para la columna
+        const estadoColumna = activeVehiculo.estado || (activeVehiculo.estado === '' ? '' : 'SIN_ESTADO')
+        const vehiculosEnEstado = vehiculosPorEstado[estadoColumna] || vehiculosPorEstado['SIN_ESTADO']
+        const oldIndex = vehiculosEnEstado.findIndex(v => v.id === activeId)
+        const newIndex = vehiculosEnEstado.findIndex(v => v.id === overId)
+
+        if (oldIndex !== newIndex) {
+          const newVehiculos = arrayMove(vehiculosEnEstado, oldIndex, newIndex)
+          
+          // Actualizar órdenes
+          const updates = newVehiculos.map((v, index) => ({
+            id: v.id,
+            estado: v.estado || '',
+            orden: index
+          }))
+
+          try {
+            const response = await fetch('/api/vehiculos/kanban', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ updates })
+            })
+
+            if (response.ok) {
+              const updatedVehiculos = await response.json()
+              // Actualizar solo los vehículos que cambiaron
+              onUpdateVehiculos(prevVehiculos => {
+                const updatedMap = new Map(updatedVehiculos.map(v => [v.id, v]))
+                return prevVehiculos.map(v => updatedMap.get(v.id) || v)
+              })
+              showToast('Orden actualizado', 'success')
+            } else {
+              showToast('Error al actualizar el orden', 'error')
+            }
+          } catch (error) {
+            showToast('Error al actualizar el orden', 'error')
+          }
+        }
+      } else {
+        // Si se está moviendo a otra columna
+        const newEstado = overVehiculo.estado || ''
+        const estadoColumna = newEstado === '' ? 'SIN_ESTADO' : newEstado
+        const vehiculosEnNuevoEstado = vehiculosPorEstado[estadoColumna] || []
+        const newOrden = vehiculosEnNuevoEstado.length
+
+        try {
+          const response = await fetch('/api/vehiculos/kanban', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              updates: [{
+                id: activeId,
+                estado: newEstado,
+                orden: newOrden
+              }]
+            })
+          })
+
+          if (response.ok) {
+            const updatedVehiculos = await response.json()
+            // Actualizar solo el vehículo que cambió
+            onUpdateVehiculos(prevVehiculos => {
+              const updatedMap = new Map(updatedVehiculos.map(v => [v.id, v]))
+              return prevVehiculos.map(v => updatedMap.get(v.id) || v)
+            })
+            showToast(`Vehículo movido a ${ESTADOS.find(e => e.id === newEstado)?.title}`, 'success')
+          } else {
+            showToast('Error al mover el vehículo', 'error')
+          }
+        } catch (error) {
+          showToast('Error al mover el vehículo', 'error')
+        }
       }
     }
   }

@@ -51,6 +51,9 @@ export default function KanbanPage() {
   const { showConfirm, ConfirmModalComponent } = useConfirmModal()
 
   useEffect(() => {
+    // Limpiar cache del localStorage al cargar la página
+    localStorage.removeItem('vehiculos-cache')
+    localStorage.removeItem('vehiculos-cache-time')
     fetchVehiculos()
   }, [])
 
@@ -99,7 +102,7 @@ export default function KanbanPage() {
         const result = await response.json()
         setVehiculos(result.vehiculos)
         if (result.warning) {
-          showToast(result.warning, 'warning')
+          showToast(result.warning, 'info')
         } else {
           showToast('Datos actualizados correctamente', 'success')
         }
@@ -129,26 +132,9 @@ export default function KanbanPage() {
     try {
       setIsLoading(true)
       
-      // Usar cache del navegador si está disponible
-      const cacheKey = 'vehiculos-cache'
-      const cachedData = localStorage.getItem(cacheKey)
-      const cacheTime = localStorage.getItem(`${cacheKey}-time`)
-      
-      // Si hay datos en cache y son recientes (menos de 5 minutos), usarlos
-      if (cachedData && cacheTime) {
-        const now = Date.now()
-        const cacheAge = now - parseInt(cacheTime)
-        if (cacheAge < 5 * 60 * 1000) { // 5 minutos
-          const cachedVehiculos = JSON.parse(cachedData)
-          setVehiculos(Array.isArray(cachedVehiculos) ? cachedVehiculos : [])
-          setIsLoading(false)
-          return // Salir de la función si usamos cache
-        }
-      }
-      
       const response = await fetch('/api/vehiculos', {
         headers: {
-          'Cache-Control': 'max-age=60'
+          'Cache-Control': 'no-cache'
         }
       })
       
@@ -157,10 +143,6 @@ export default function KanbanPage() {
         // La API ahora devuelve { vehiculos: [...], pagination: {...} }
         const vehiculosArray = data.vehiculos || data
         setVehiculos(Array.isArray(vehiculosArray) ? vehiculosArray : [])
-        
-        // Guardar en cache
-        localStorage.setItem(cacheKey, JSON.stringify(vehiculosArray))
-        localStorage.setItem(`${cacheKey}-time`, Date.now().toString())
       } else {
         setError('Error al cargar los vehículos')
       }
@@ -387,7 +369,13 @@ export default function KanbanPage() {
       <div className="flex-1 overflow-hidden p-4">
         <KanbanBoard
           vehiculos={filteredVehiculos}
-          onUpdateVehiculos={setVehiculos}
+          onUpdateVehiculos={(update) => {
+            if (typeof update === 'function') {
+              setVehiculos(update)
+            } else {
+              setVehiculos(update)
+            }
+          }}
         />
       </div>
 

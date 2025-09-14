@@ -176,13 +176,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Agregar headers de cache para mejorar performance
-    return NextResponse.json(response, {
-      headers: {
-        'Cache-Control': 'public, max-age=60, s-maxage=60',
-        'Content-Type': 'application/json'
-      }
-    })
+    return NextResponse.json(response)
   } catch (error) {
     console.error('Error obteniendo vehículos:', error)
     return NextResponse.json(

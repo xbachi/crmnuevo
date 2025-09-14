@@ -186,7 +186,7 @@ export function InvestorVehicleCard({ vehiculo, inversor, onView, onEdit, onEdit
             <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
             <span className="text-sm font-medium text-gray-700">Estado Actual:</span>
             <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getEstadoColor(vehiculo.estado)}`}>
-              {vehiculo.estado || 'Sin Estado'}
+              {vehiculo.estado || 'Inicial'}
             </span>
           </div>
           <div className="flex items-center space-x-2">
