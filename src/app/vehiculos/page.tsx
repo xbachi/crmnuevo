@@ -848,11 +848,23 @@ export default function ListaVehiculos() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-slate-200">
-                  {filteredVehiculos.map((vehiculo, index) => (
-                    <tr key={`${vehiculo.id}-${vehiculo.updatedAt}-${index}`} className="hover:bg-slate-50/80 transition-colors duration-200">
+                  {filteredVehiculos.map((vehiculo, index) => {
+                    const isVendido = (estado: string | null | undefined): boolean => {
+                      if (!estado) return false
+                      const normalized = estado.toString().toLowerCase().trim()
+                      return normalized === 'vendido'
+                    }
+                    const vehiculoVendido = isVendido(vehiculo.estado)
+                    
+                    return (
+                    <tr key={`${vehiculo.id}-${vehiculo.updatedAt}-${index}`} className={`hover:bg-slate-50/80 transition-colors duration-200 ${vehiculoVendido ? 'opacity-60 grayscale' : ''}`}>
                       <td className="px-3 py-4">
                         <div className="flex items-center">
-                          <div className="w-12 h-10 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg flex items-center justify-center mr-2">
+                          <div className={`w-12 h-10 rounded-lg flex items-center justify-center mr-2 ${
+                            vehiculoVendido 
+                              ? 'bg-red-600' 
+                              : 'bg-gradient-to-r from-blue-500 to-cyan-600'
+                          }`}>
                             <span className="text-white font-bold text-xs">
                               {vehiculo.referencia}
                             </span>
@@ -861,11 +873,20 @@ export default function ListaVehiculos() {
                       </td>
                       <td className="px-3 py-4">
                         <div>
-                          <div className="text-slate-900 font-semibold text-sm truncate">
+                          <div className={`font-semibold text-sm truncate ${vehiculoVendido ? 'text-gray-500' : 'text-slate-900'}`}>
                             {vehiculo.marca} {vehiculo.modelo}
                           </div>
-                {/* Alerta de ITV vencida o info básica */}
+                {/* Indicador de VENDIDO o Alerta de ITV vencida o info básica */}
                 {(() => {
+                  if (vehiculoVendido) {
+                    return (
+                      <div className="inline-flex items-center space-x-1 px-2 py-1 bg-red-600 rounded-full mt-1">
+                        <span className="text-xs">🚗</span>
+                        <span className="text-xs text-white font-bold">VENDIDO</span>
+                      </div>
+                    )
+                  }
+                  
                   const itvValue = vehiculo.itv
                   const isItvValid = itvValue && (
                     itvValue.toString().toLowerCase() === 'sí' || 
@@ -891,14 +912,26 @@ export default function ListaVehiculos() {
                         </div>
                       </td>
                       <td className="px-3 py-4">
-                        <div className="bg-slate-100 rounded-lg px-2 py-1 inline-block">
-                          <span className="text-slate-800 font-mono font-bold text-sm">
+                        <div className={`rounded-lg px-2 py-1 inline-block ${
+                          vehiculoVendido 
+                            ? 'bg-gray-200' 
+                            : 'bg-slate-100'
+                        }`}>
+                          <span className={`font-mono font-bold text-sm ${
+                            vehiculoVendido 
+                              ? 'text-gray-500' 
+                              : 'text-slate-800'
+                          }`}>
                             {vehiculo.matricula}
                           </span>
                         </div>
                       </td>
                       <td className="px-3 py-4 hidden md:table-cell">
-                        <span className="text-slate-600 font-mono text-xs bg-slate-50 px-2 py-1 rounded truncate block">
+                        <span className={`font-mono text-xs px-2 py-1 rounded truncate block ${
+                          vehiculoVendido 
+                            ? 'text-gray-500 bg-gray-200' 
+                            : 'text-slate-600 bg-slate-50'
+                        }`}>
                           {vehiculo.bastidor.length > 12 
                             ? `${vehiculo.bastidor.substring(0, 12)}...` 
                             : vehiculo.bastidor
@@ -906,17 +939,27 @@ export default function ListaVehiculos() {
                         </span>
                       </td>
                       <td className="px-3 py-4">
-                        <span className="text-slate-800 font-bold text-sm">
+                        <span className={`font-bold text-sm ${
+                          vehiculoVendido 
+                            ? 'text-gray-500' 
+                            : 'text-slate-800'
+                        }`}>
                           {vehiculo.kms.toLocaleString()}
                         </span>
                       </td>
                       <td className="px-2 py-4 hidden sm:table-cell">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded ${getTipoColor(vehiculo.tipo)}`}>
-                          {getTipoText(vehiculo.tipo)}
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded ${
+                          vehiculoVendido 
+                            ? 'bg-red-600 text-white' 
+                            : getTipoColor(vehiculo.tipo)
+                        }`}>
+                          {vehiculoVendido ? 'VENDIDO' : getTipoText(vehiculo.tipo)}
                         </span>
                       </td>
-                      <td className="px-3 py-4 hidden lg:table-cell text-slate-600 text-xs">
-                        {new Date(vehiculo.createdAt).toLocaleDateString()}
+                      <td className="px-3 py-4 hidden lg:table-cell text-xs">
+                        <span className={vehiculoVendido ? 'text-gray-500' : 'text-slate-600'}>
+                          {new Date(vehiculo.createdAt).toLocaleDateString()}
+                        </span>
                       </td>
                       <td className="px-3 py-4">
                         <div className="flex space-x-2">
@@ -939,7 +982,8 @@ export default function ListaVehiculos() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  )
+                  })}
                 </tbody>
               </table>
             </div>
