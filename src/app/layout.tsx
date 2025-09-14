@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Navigation from "@/components/Navigation";
+import { ToastProvider } from "@/hooks/useToast";
 
 export const metadata: Metadata = {
   title: "SevenCars CRM",
@@ -15,12 +16,14 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body className="antialiased bg-white" suppressHydrationWarning>
-        <div className="flex min-h-screen">
-          <Navigation />
-          <main className="flex-1">
-            {children}
-          </main>
-        </div>
+        <ToastProvider>
+          <div className="flex min-h-screen">
+            <Navigation />
+            <main className="flex-1">
+              {children}
+            </main>
+          </div>
+        </ToastProvider>
       </body>
     </html>
   );

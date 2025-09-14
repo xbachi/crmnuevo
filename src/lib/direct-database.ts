@@ -310,6 +310,10 @@ export async function getDealById(id: number): Promise<Deal | null> {
         c.email as cliente_email,
         c.telefono as cliente_telefono,
         c.dni as cliente_dni,
+        c.direccion as cliente_direccion,
+        c.ciudad as cliente_ciudad,
+        c.provincia as cliente_provincia,
+        c."codigoPostal" as cliente_codPostal,
         v.referencia as vehiculo_referencia,
         v.marca as vehiculo_marca,
         v.modelo as vehiculo_modelo,
@@ -338,7 +342,11 @@ export async function getDealById(id: number): Promise<Deal | null> {
         apellidos: row.cliente_apellidos,
         email: row.cliente_email,
         telefono: row.cliente_telefono,
-        dni: row.cliente_dni
+        dni: row.cliente_dni,
+        direccion: row.cliente_direccion,
+        ciudad: row.cliente_ciudad,
+        provincia: row.cliente_provincia,
+        codPostal: row.cliente_codPostal
       },
       vehiculo: {
         id: row.vehiculoId,
@@ -400,8 +408,8 @@ export async function createDeal(dealData: DealCreateData) {
     // Insertar deal básico
     const result = await client.query(`
       INSERT INTO "Deal" (
-        numero, "clienteId", "vehiculoId", estado, "importeTotal", "importeSena", observaciones, "responsableComercial"
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *
+        numero, "clienteId", "vehiculoId", estado, "importeTotal", "importeSena", "formaPagoSena", observaciones, "responsableComercial"
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *
     `, [
       numero,
       dealData.clienteId,
@@ -409,6 +417,7 @@ export async function createDeal(dealData: DealCreateData) {
       'nuevo',
       dealData.importeTotal,
       dealData.importeSena,
+      dealData.formaPagoSena,
       dealData.observaciones,
       dealData.responsableComercial
     ])
@@ -808,7 +817,7 @@ export async function saveCliente(clienteData: any) {
     `, [
       clienteData.nombre, clienteData.apellidos, clienteData.email,
       clienteData.telefono, clienteData.fechaNacimiento, clienteData.direccion,
-      clienteData.ciudad, clienteData.codigoPostal, clienteData.provincia,
+      clienteData.ciudad, clienteData.codPostal, clienteData.provincia,
       clienteData.dni, clienteData.vehiculosInteres, clienteData.presupuestoMaximo,
       clienteData.kilometrajeMaximo, clienteData.añoMinimo, clienteData.combustiblePreferido,
       clienteData.cambioPreferido, clienteData.coloresDeseados, clienteData.necesidadesEspeciales,
@@ -863,8 +872,18 @@ export async function updateCliente(id: number, clienteData: any) {
       return await getClienteById(id)
     }
     
-    const values = fields.map(field => clienteData[field])
-    const setClause = fields.map((field, index) => `"${field}" = $${index + 2}`).join(', ')
+    const values = fields.map(field => {
+      // Mapear codPostal a codigoPostal para la base de datos
+      if (field === 'codPostal') {
+        return clienteData[field]
+      }
+      return clienteData[field]
+    })
+    const setClause = fields.map((field, index) => {
+      // Mapear codPostal a codigoPostal en la consulta SQL
+      const dbField = field === 'codPostal' ? 'codigoPostal' : field
+      return `"${dbField}" = $${index + 2}`
+    }).join(', ')
     
     const result = await client.query(`
       UPDATE "Cliente" 

@@ -195,11 +195,6 @@ export default function DealDetail() {
         })
         
         showToast('Estado actualizado a Reservado', 'success')
-        
-        // Navegar de vuelta a la página principal y refrescar vehículos
-        setTimeout(() => {
-          router.push('/deals')
-        }, 1500)
       } catch (error) {
         console.error('Error actualizando estado:', error)
       }
@@ -257,11 +252,6 @@ export default function DealDetail() {
         })
         
         showToast('Estado actualizado a Vendido', 'success')
-        
-        // Navegar de vuelta a la página principal y refrescar vehículos
-        setTimeout(() => {
-          router.push('/deals')
-        }, 1500)
       } catch (error) {
         console.error('Error actualizando estado:', error)
       }
@@ -330,11 +320,6 @@ export default function DealDetail() {
           addReminder(reminder)
           console.log('📝 Recordatorio creado:', reminder)
         }
-        
-        // Navegar de vuelta a la página principal para refrescar la lista
-        setTimeout(() => {
-          router.push('/deals?refresh=true')
-        }, 1500)
       } catch (error) {
         console.error('Error actualizando estado:', error)
       }
@@ -774,6 +759,170 @@ export default function DealDetail() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Última Actualización</label>
                   <p className="text-gray-900">{new Date(deal.updatedAt).toLocaleDateString()}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Documentación */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Documentación</h2>
+              
+              <div className="space-y-3">
+                {/* Contrato de Reserva */}
+                <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      deal.contratoReserva ? 'bg-green-100' : 'bg-gray-100'
+                    }`}>
+                      <svg className={`w-4 h-4 ${deal.contratoReserva ? 'text-green-600' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">Contrato de Reserva</p>
+                      <p className="text-sm text-gray-500">
+                        {deal.contratoReserva ? 'Generado' : 'No generado'}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleGenerarContratoReserva}
+                    disabled={isUpdating}
+                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                      deal.contratoReserva
+                        ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                        : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                    }`}
+                  >
+                    {deal.contratoReserva ? 'Descargar' : 'Generar'}
+                  </button>
+                </div>
+
+                {/* Contrato de Venta */}
+                <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      deal.contratoVenta ? 'bg-green-100' : 'bg-gray-100'
+                    }`}>
+                      <svg className={`w-4 h-4 ${deal.contratoVenta ? 'text-green-600' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">Contrato de Venta</p>
+                      <p className="text-sm text-gray-500">
+                        {deal.contratoVenta ? 'Generado' : 'No generado'}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleGenerarContratoVenta}
+                    disabled={isUpdating || !canGenerateContratoVenta}
+                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                      deal.contratoVenta
+                        ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                        : !canGenerateContratoVenta
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                    }`}
+                  >
+                    {deal.contratoVenta ? 'Descargar' : 'Generar'}
+                  </button>
+                </div>
+
+                {/* Factura */}
+                <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      deal.factura ? 'bg-green-100' : 'bg-gray-100'
+                    }`}>
+                      <svg className={`w-4 h-4 ${deal.factura ? 'text-green-600' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">Factura</p>
+                      <p className="text-sm text-gray-500">
+                        {deal.factura ? 'Generada' : 'No generada'}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleGenerarFactura}
+                    disabled={isUpdating || !canGenerateFactura}
+                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                      deal.factura
+                        ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                        : !canGenerateFactura
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                    }`}
+                  >
+                    {deal.factura ? 'Descargar' : 'Generar'}
+                  </button>
+                </div>
+
+                {/* Mandato Gestoría */}
+                <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">Mandato Gestoría</p>
+                      <p className="text-sm text-gray-500">Documento estándar</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => showToast('Funcionalidad en desarrollo', 'info')}
+                    className="px-3 py-1 bg-gray-100 text-gray-400 rounded-md text-sm font-medium cursor-not-allowed"
+                  >
+                    Próximamente
+                  </button>
+                </div>
+
+                {/* Contrato Parte 2 */}
+                <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">Contrato Parte 2</p>
+                      <p className="text-sm text-gray-500">Documento estándar</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => showToast('Funcionalidad en desarrollo', 'info')}
+                    className="px-3 py-1 bg-gray-100 text-gray-400 rounded-md text-sm font-medium cursor-not-allowed"
+                  >
+                    Próximamente
+                  </button>
+                </div>
+
+                {/* Hoja de Garantía */}
+                <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">Hoja de Garantía</p>
+                      <p className="text-sm text-gray-500">Documento estándar</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => showToast('Funcionalidad en desarrollo', 'info')}
+                    className="px-3 py-1 bg-gray-100 text-gray-400 rounded-md text-sm font-medium cursor-not-allowed"
+                  >
+                    Próximamente
+                  </button>
                 </div>
               </div>
             </div>

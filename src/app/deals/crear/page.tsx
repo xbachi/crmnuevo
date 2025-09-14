@@ -14,6 +14,7 @@ export default function CrearDeal() {
   const [isLoading, setIsLoading] = useState(false)
   const [montoReserva, setMontoReserva] = useState('')
   const [senna, setSenna] = useState('300')
+  const [formaPago, setFormaPago] = useState('')
   const [notas, setNotas] = useState('')
 
   const router = useRouter()
@@ -89,12 +90,18 @@ export default function CrearDeal() {
         return
       }
 
+      if (!formaPago) {
+        showToast('Debes seleccionar una forma de pago', 'error')
+        return
+      }
+
       // Preparar datos para enviar
       const dealData = {
         clienteId: selectedCliente.id,
         vehiculoId: selectedVehiculo.id,
         importeTotal: parseFloat(montoReserva),
         importeSena: parseFloat(senna),
+        formaPagoSena: formaPago,
         observaciones: notas,
         responsableComercial: 'Usuario' // Por ahora hardcodeado
       }
@@ -265,6 +272,25 @@ export default function CrearDeal() {
                   className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
+            </div>
+
+            {/* Forma de Pago */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Forma de Pago *
+              </label>
+              <select
+                value={formaPago}
+                onChange={(e) => setFormaPago(e.target.value)}
+                required
+                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Seleccionar forma de pago...</option>
+                <option value="tarjeta">Tarjeta</option>
+                <option value="transferencia">Transferencia</option>
+                <option value="efectivo">Efectivo</option>
+                <option value="bizum">Bizum</option>
+              </select>
             </div>
 
             {/* Notas */}

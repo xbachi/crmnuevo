@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
       vehiculoId: parseInt(data.vehiculoId),
       importeTotal: data.importeTotal ? parseFloat(data.importeTotal) : undefined,
       importeSena: data.importeSena ? parseFloat(data.importeSena) : undefined,
+      formaPagoSena: data.formaPagoSena,
       observaciones: data.observaciones,
       responsableComercial: data.responsableComercial || 'Usuario'
     })

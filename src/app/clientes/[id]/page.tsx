@@ -26,6 +26,11 @@ export default function ClienteDetailPage() {
     apellidos: '',
     telefono: '',
     email: '',
+    dni: '',
+    direccion: '',
+    ciudad: '',
+    provincia: '',
+    codPostal: '',
     comoLlego: '',
     fechaPrimerContacto: '',
     estado: 'nuevo' as const,
@@ -211,6 +216,11 @@ export default function ClienteDetailPage() {
         apellidos: data.apellidos,
         telefono: data.telefono,
         email: data.email || '',
+        dni: data.dni || '',
+        direccion: data.direccion || '',
+        ciudad: data.ciudad || '',
+        provincia: data.provincia || '',
+        codPostal: data.codPostal || '',
         comoLlego: data.comoLlego,
         fechaPrimerContacto: data.fechaPrimerContacto,
         estado: data.estado,
@@ -329,6 +339,11 @@ export default function ClienteDetailPage() {
         apellidos: editData.apellidos,
         telefono: editData.telefono,
         email: editData.email,
+        dni: editData.dni,
+        direccion: editData.direccion,
+        ciudad: editData.ciudad,
+        provincia: editData.provincia,
+        codPostal: editData.codPostal,
         comoLlego: editData.comoLlego,
         fechaPrimerContacto: editData.fechaPrimerContacto,
         estado: editData.estado,
@@ -362,6 +377,11 @@ export default function ClienteDetailPage() {
           apellidos: updatedCliente.apellidos || '',
           telefono: updatedCliente.telefono || '',
           email: updatedCliente.email || '',
+          dni: updatedCliente.dni || '',
+          direccion: updatedCliente.direccion || '',
+          ciudad: updatedCliente.ciudad || '',
+          provincia: updatedCliente.provincia || '',
+          codPostal: updatedCliente.codPostal || '',
           comoLlego: updatedCliente.comoLlego || '',
           fechaPrimerContacto: updatedCliente.fechaPrimerContacto || '',
           estado: updatedCliente.estado || 'nuevo',
@@ -453,6 +473,11 @@ export default function ClienteDetailPage() {
           apellidos: updatedCliente.apellidos,
           telefono: updatedCliente.telefono,
           email: updatedCliente.email || '',
+          dni: updatedCliente.dni || '',
+          direccion: updatedCliente.direccion || '',
+          ciudad: updatedCliente.ciudad || '',
+          provincia: updatedCliente.provincia || '',
+          codPostal: updatedCliente.codPostal || '',
           comoLlego: updatedCliente.comoLlego,
           fechaPrimerContacto: updatedCliente.fechaPrimerContacto,
           estado: updatedCliente.estado,
@@ -752,6 +777,71 @@ export default function ClienteDetailPage() {
                       />
                     </div>
                     <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">DNI</label>
+                      <input
+                        type="text"
+                        name="dni"
+                        value={editData.dni}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        placeholder="Ej: 12345678A"
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Campos de dirección */}
+                  <div className="border-t border-gray-200 pt-4">
+                    <h4 className="text-sm font-medium text-gray-700 mb-3">Dirección (opcional)</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
+                        <input
+                          type="text"
+                          name="direccion"
+                          value={editData.direccion}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          placeholder="Ej: Calle Mayor 123"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Ciudad</label>
+                        <input
+                          type="text"
+                          name="ciudad"
+                          value={editData.ciudad}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          placeholder="Ej: Valencia"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Provincia</label>
+                        <input
+                          type="text"
+                          name="provincia"
+                          value={editData.provincia}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          placeholder="Ej: Valencia"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Código Postal</label>
+                        <input
+                          type="text"
+                          name="codPostal"
+                          value={editData.codPostal}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          placeholder="Ej: 46001"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Cómo llegó</label>
                       <select
                         name="comoLlego"
@@ -813,27 +903,69 @@ export default function ClienteDetailPage() {
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-500">Teléfono</p>
-                    <p className="font-medium text-gray-900">{cliente.telefono}</p>
-                  </div>
-                  {cliente.email && (
+                <div className="space-y-4">
+                  {/* Información básica */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-gray-500">Email</p>
-                      <p className="font-medium text-gray-900">{cliente.email}</p>
+                      <p className="text-sm text-gray-500">Teléfono</p>
+                      <p className="font-medium text-gray-900">{cliente.telefono}</p>
+                    </div>
+                    {cliente.email && (
+                      <div>
+                        <p className="text-sm text-gray-500">Email</p>
+                        <p className="font-medium text-gray-900">{cliente.email}</p>
+                      </div>
+                    )}
+                    {cliente.dni && (
+                      <div>
+                        <p className="text-sm text-gray-500">DNI</p>
+                        <p className="font-medium text-gray-900">{cliente.dni}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm text-gray-500">Cómo llegó</p>
+                      <p className="font-medium text-gray-900">{cliente.comoLlego || 'No especificado'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Primer contacto</p>
+                      <p className="font-medium text-gray-900">
+                        {cliente.fechaPrimerContacto ? new Date(cliente.fechaPrimerContacto).toLocaleDateString('es-ES') : 'No especificado'}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Información de dirección */}
+                  {(cliente.direccion || cliente.ciudad || cliente.provincia || cliente.codPostal) && (
+                    <div className="border-t border-gray-200 pt-4">
+                      <h4 className="text-sm font-medium text-gray-700 mb-3">Dirección</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {cliente.direccion && (
+                          <div>
+                            <p className="text-sm text-gray-500">Dirección</p>
+                            <p className="font-medium text-gray-900">{cliente.direccion}</p>
+                          </div>
+                        )}
+                        {cliente.ciudad && (
+                          <div>
+                            <p className="text-sm text-gray-500">Ciudad</p>
+                            <p className="font-medium text-gray-900">{cliente.ciudad}</p>
+                          </div>
+                        )}
+                        {cliente.provincia && (
+                          <div>
+                            <p className="text-sm text-gray-500">Provincia</p>
+                            <p className="font-medium text-gray-900">{cliente.provincia}</p>
+                          </div>
+                        )}
+                        {cliente.codPostal && (
+                          <div>
+                            <p className="text-sm text-gray-500">Código Postal</p>
+                            <p className="font-medium text-gray-900">{cliente.codPostal}</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
-                  <div>
-                    <p className="text-sm text-gray-500">Cómo llegó</p>
-                    <p className="font-medium text-gray-900">{cliente.comoLlego || 'No especificado'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Primer contacto</p>
-                    <p className="font-medium text-gray-900">
-                      {cliente.fechaPrimerContacto ? new Date(cliente.fechaPrimerContacto).toLocaleDateString('es-ES') : 'No especificado'}
-                    </p>
-                  </div>
                 </div>
               )}
             </div>
