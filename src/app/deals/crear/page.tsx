@@ -38,11 +38,31 @@ export default function CrearDeal() {
 
   const fetchVehiculos = async () => {
     try {
-      const response = await fetch('/api/vehiculos')
-      if (response.ok) {
-        const data = await response.json()
-        setVehiculos(data.vehiculos || data)
-      }
+      // Obtener todos los vehículos
+      const vehiculosResponse = await fetch('/api/vehiculos')
+      if (!vehiculosResponse.ok) return
+      
+      const vehiculosData = await vehiculosResponse.json()
+      const todosVehiculos = vehiculosData.vehiculos || vehiculosData
+      
+      // Obtener deals activos para filtrar vehículos reservados
+      const dealsResponse = await fetch('/api/deals')
+      if (!dealsResponse.ok) return
+      
+      const dealsData = await dealsResponse.json()
+      
+      // Filtrar vehículos que NO estén reservados o vendidos
+      const vehiculosDisponibles = todosVehiculos.filter(vehiculo => {
+        // Un vehículo está reservado/vendido si tiene un deal activo con esos estados
+        const estaReservadoOVendido = dealsData.some(deal => 
+          deal.vehiculoId === vehiculo.id && 
+          (deal.estado === 'reservado' || deal.estado === 'vendido' || deal.estado === 'facturado')
+        )
+        return !estaReservadoOVendido
+      })
+      
+      setVehiculos(vehiculosDisponibles)
+      console.log(`🚗 Vehículos disponibles: ${vehiculosDisponibles.length} (filtrados vehículos reservados/vendidos)`)
     } catch (error) {
       console.error('Error fetching vehiculos:', error)
     }
@@ -179,7 +199,7 @@ export default function CrearDeal() {
               </label>
               <input
                 type="text"
-                placeholder="Escribir marca, modelo o matrícula..."
+                placeholder="Escribir marca, modelo, matrícula o referencia..."
                 value={selectedVehiculo ? `${selectedVehiculo.marca} ${selectedVehiculo.modelo} - ${selectedVehiculo.matricula}` : vehiculoSearch}
                 onChange={(e) => {
                   setVehiculoSearch(e.target.value)
@@ -192,9 +212,15 @@ export default function CrearDeal() {
               {vehiculoSearch && !selectedVehiculo && (
                 <div className="mt-2 border border-slate-200 rounded-lg bg-white">
                   {vehiculos
-                    .filter(vehiculo => 
-                      `${vehiculo.marca} ${vehiculo.modelo} ${vehiculo.matricula}`.toLowerCase().includes(vehiculoSearch.toLowerCase())
-                    )
+                    .filter(vehiculo => {
+                      const searchLower = vehiculoSearch.toLowerCase()
+                      return (
+                        vehiculo.marca?.toLowerCase().includes(searchLower) ||
+                        vehiculo.modelo?.toLowerCase().includes(searchLower) ||
+                        vehiculo.matricula?.toLowerCase().includes(searchLower) ||
+                        vehiculo.referencia?.toLowerCase().includes(searchLower)
+                      )
+                    })
                     .slice(0, 3)
                     .map(vehiculo => (
                       <div

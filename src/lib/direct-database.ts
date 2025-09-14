@@ -413,7 +413,12 @@ export async function createDeal(dealData: DealCreateData) {
       dealData.responsableComercial
     ])
     
-    return result.rows[0]
+    const newDeal = result.rows[0]
+    
+    // NO actualizar el estado del vehículo al crear el deal
+    // Solo se actualiza cuando se genera el contrato de reserva
+    
+    return newDeal
   } catch (error) {
     console.error('Error creando deal:', error)
     throw error
@@ -475,36 +480,24 @@ export async function updateDeal(id: number, dealData: Partial<DealCreateData>):
       let vehiculoEstado = 'disponible'
       let dealActivoId = null
       
-      switch (newEstado) {
-        case 'reservado':
-          vehiculoEstado = 'reservado'
-          dealActivoId = id
-          break
-        case 'vendido':
-          vehiculoEstado = 'vendido'
-          dealActivoId = id
-          break
-        case 'facturado':
-          vehiculoEstado = 'vendido' // Mantener como vendido
-          dealActivoId = id
-          break
-        case 'perdido':
-          vehiculoEstado = 'disponible'
-          dealActivoId = null
-          break
-        default:
-          vehiculoEstado = 'disponible'
-          dealActivoId = null
+      if (newEstado === 'reservado') {
+        vehiculoEstado = 'reservado'
+        dealActivoId = id
+      } else if (newEstado === 'vendido') {
+        vehiculoEstado = 'vendido'
+        dealActivoId = id
+      } else if (newEstado === 'facturado') {
+        vehiculoEstado = 'vendido'
+        dealActivoId = id
+      } else {
+        vehiculoEstado = 'disponible'
+        dealActivoId = null
       }
       
-      console.log(`🚗 Actualizando vehículo ${vehiculoId} a estado: ${vehiculoEstado}`)
-      
       await client.query(
-        'UPDATE vehiculos SET estado = $1, "dealActivoId" = $2, "updatedAt" = NOW() WHERE id = $3',
+        'UPDATE "Vehiculo" SET estado = $1, "dealActivoId" = $2, "updatedAt" = NOW() WHERE id = $3',
         [vehiculoEstado, dealActivoId, vehiculoId]
       )
-      
-      console.log('✅ Estado del vehículo actualizado correctamente')
     }
     
     return await getDealById(id)
@@ -1122,6 +1115,51 @@ export async function getInversorMetrics(inversorId: number) {
       totalEnStock: 0,
       diasPromedioEnStock: 0
     }
+  } finally {
+    client.release()
+  }
+}
+
+export async function cleanupOrphanVehicles() {
+  const client = await pool.connect()
+  try {
+    console.log('🧹 Iniciando limpieza de vehículos huérfanos...')
+    
+    // Buscar vehículos que tienen dealActivoId pero el deal no existe
+    const orphanVehicles = await client.query(`
+      SELECT v.id, v.referencia, v.marca, v.modelo, v.estado, v."dealActivoId"
+      FROM "Vehiculo" v
+      LEFT JOIN "Deal" d ON v."dealActivoId" = d.id
+      WHERE v."dealActivoId" IS NOT NULL 
+      AND d.id IS NULL
+    `)
+    
+    console.log(`🔍 Encontrados ${orphanVehicles.rows.length} vehículos huérfanos`)
+    
+    if (orphanVehicles.rows.length > 0) {
+      // Liberar todos los vehículos huérfanos
+      const updateResult = await client.query(`
+        UPDATE "Vehiculo" 
+        SET estado = 'disponible', "dealActivoId" = NULL, "updatedAt" = NOW()
+        WHERE id IN (${orphanVehicles.rows.map((_, index) => `$${index + 1}`).join(', ')})
+      `, orphanVehicles.rows.map(v => v.id))
+      
+      console.log(`✅ Liberados ${updateResult.rowCount} vehículos huérfanos`)
+      
+      // Log de los vehículos liberados
+      orphanVehicles.rows.forEach(vehicle => {
+        console.log(`🚗 Vehículo ${vehicle.id} (${vehicle.marca} ${vehicle.modelo}) liberado`)
+      })
+    }
+    
+    return {
+      orphanCount: orphanVehicles.rows.length,
+      cleanedCount: orphanVehicles.rows.length > 0 ? orphanVehicles.rows.length : 0,
+      vehicles: orphanVehicles.rows
+    }
+  } catch (error) {
+    console.error('Error limpiando vehículos huérfanos:', error)
+    throw error
   } finally {
     client.release()
   }

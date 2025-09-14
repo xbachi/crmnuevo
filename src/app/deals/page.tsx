@@ -62,7 +62,7 @@ export default function DealsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
-  const [activeTab, setActiveTab] = useState<'nuevo' | 'reservado' | 'vendido' | 'facturado'>('nuevo')
+  const [activeTab, setActiveTab] = useState<'todos' | 'nuevo' | 'reservado' | 'vendido' | 'facturado'>('todos')
   const [timeFilter, setTimeFilter] = useState<'all' | 'week' | 'month' | '3months' | '6months'>('all')
   
   const router = useRouter()
@@ -141,8 +141,9 @@ export default function DealsPage() {
   }
 
   const getFilteredDeals = () => {
-    let filtered = getDealsByEstado(activeTab)
+    let filtered = deals
     
+    // Si hay término de búsqueda, buscar en TODOS los estados primero
     if (searchTerm) {
       filtered = filtered.filter(deal => 
         deal.cliente?.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -152,6 +153,14 @@ export default function DealsPage() {
         deal.vehiculo?.matricula?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         deal.numero?.toLowerCase().includes(searchTerm.toLowerCase())
       )
+      
+      // Si hay búsqueda, NO filtrar por estado - mostrar TODOS los resultados de búsqueda
+      return getFilteredDealsByTime(filtered)
+    }
+    
+    // Solo si NO hay búsqueda, aplicar filtro de estado
+    if (activeTab !== 'todos') {
+      filtered = filtered.filter(deal => deal.estado === activeTab)
     }
     
     return getFilteredDealsByTime(filtered)
@@ -160,13 +169,37 @@ export default function DealsPage() {
   const calculateMetrics = () => {
     const allDeals = getFilteredDealsByTime(deals)
     const totalDeals = allDeals.length
-    const totalValue = allDeals.reduce((sum, deal) => sum + (deal.importeTotal || 0), 0)
-    const averageValue = totalDeals > 0 ? totalValue / totalDeals : 0
+    
+    // Debug: Log de deals para ver qué datos tenemos
+    console.log('📊 Calculando métricas para', totalDeals, 'deals')
+    console.log('📋 Primeros 3 deals:', allDeals.slice(0, 3).map(d => ({
+      id: d.id,
+      numero: d.numero,
+      importeTotal: d.importeTotal,
+      tipo: typeof d.importeTotal
+    })))
+    
+    // Calcular valor total y promedio solo de deals con importeTotal válido
+    const dealsWithValue = allDeals.filter(deal => {
+      const importe = Number(deal.importeTotal)
+      return !isNaN(importe) && importe > 0
+    })
+    
+    console.log('💰 Deals con valor válido:', dealsWithValue.length)
+    
+    const totalValue = dealsWithValue.reduce((sum, deal) => {
+      const importe = Number(deal.importeTotal) || 0
+      return sum + (isNaN(importe) ? 0 : importe)
+    }, 0)
+    
+    const averageValue = dealsWithValue.length > 0 ? totalValue / dealsWithValue.length : 0
+    
+    console.log('📈 Total Value:', totalValue, 'Average:', averageValue)
     
     return {
       total: totalDeals,
-      totalValue,
-      averageValue,
+      totalValue: isNaN(totalValue) ? 0 : totalValue,
+      averageValue: isNaN(averageValue) ? 0 : averageValue,
       nuevos: getDealsByEstado('nuevo').length,
       reservados: getDealsByEstado('reservado').length,
       vendidos: getDealsByEstado('vendido').length,
@@ -175,6 +208,11 @@ export default function DealsPage() {
   }
 
   const formatCurrency = (amount: number) => {
+    // Verificar si el amount es válido
+    if (isNaN(amount) || amount === null || amount === undefined) {
+      return '€0,00'
+    }
+    
     return new Intl.NumberFormat('es-ES', {
       style: 'currency',
       currency: 'EUR'
@@ -192,27 +230,33 @@ export default function DealsPage() {
       <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-200">
         <h3 className="text-lg font-bold text-slate-900 mb-4">Dashboard</h3>
         
-        {/* Filtros de tiempo */}
+        {/* Filtros de tiempo - Mejorado */}
         <div className="mb-6">
-          <h4 className="text-sm font-medium text-slate-700 mb-3">Período</h4>
+          <h4 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
+            <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            Período de Análisis
+          </h4>
           <div className="flex flex-wrap gap-2">
             {[
-              { key: 'all', label: 'Todos' },
-              { key: 'week', label: 'Semana' },
-              { key: 'month', label: 'Mes' },
-              { key: '3months', label: '3 Meses' },
-              { key: '6months', label: '6 Meses' }
+              { key: 'all', label: 'Todos', icon: '📊' },
+              { key: 'week', label: '7 días', icon: '📅' },
+              { key: 'month', label: '30 días', icon: '🗓️' },
+              { key: '3months', label: '3 meses', icon: '📆' },
+              { key: '6months', label: '6 meses', icon: '📈' }
             ].map(period => (
               <button
                 key={period.key}
                 onClick={() => setTimeFilter(period.key as any)}
-                className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
                   timeFilter === period.key
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg transform scale-105'
+                    : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200 hover:border-slate-300 hover:shadow-sm'
                 }`}
               >
-                {period.label}
+                <span>{period.icon}</span>
+                <span>{period.label}</span>
               </button>
             ))}
           </div>
@@ -236,25 +280,42 @@ export default function DealsPage() {
           </div>
         </div>
 
-        {/* Estados */}
+        {/* Estados - Mejorado */}
         <div className="mt-6">
-          <h4 className="text-sm font-medium text-slate-700 mb-3">Por Estado</h4>
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-slate-600">Nuevos</span>
-              <span className="text-lg font-bold text-blue-900">{metrics.nuevos}</span>
+          <h4 className="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
+            <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            Distribución por Estado
+          </h4>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center p-3 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl border border-blue-200">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                <span className="text-sm font-medium text-blue-800">Nuevos</span>
+              </div>
+              <span className="text-xl font-bold text-blue-900 bg-white px-3 py-1 rounded-lg shadow-sm">{metrics.nuevos}</span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-slate-600">Reservados</span>
-              <span className="text-lg font-bold text-yellow-900">{metrics.reservados}</span>
+            <div className="flex justify-between items-center p-3 bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-xl border border-yellow-200">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                <span className="text-sm font-medium text-yellow-800">Reservados</span>
+              </div>
+              <span className="text-xl font-bold text-yellow-900 bg-white px-3 py-1 rounded-lg shadow-sm">{metrics.reservados}</span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-slate-600">Vendidos</span>
-              <span className="text-lg font-bold text-green-900">{metrics.vendidos}</span>
+            <div className="flex justify-between items-center p-3 bg-gradient-to-r from-green-50 to-green-100 rounded-xl border border-green-200">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                <span className="text-sm font-medium text-green-800">Vendidos</span>
+              </div>
+              <span className="text-xl font-bold text-green-900 bg-white px-3 py-1 rounded-lg shadow-sm">{metrics.vendidos}</span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-slate-600">Facturados</span>
-              <span className="text-lg font-bold text-purple-900">{metrics.facturados}</span>
+            <div className="flex justify-between items-center p-3 bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl border border-purple-200">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                <span className="text-sm font-medium text-purple-800">Facturados</span>
+              </div>
+              <span className="text-xl font-bold text-purple-900 bg-white px-3 py-1 rounded-lg shadow-sm">{metrics.facturados}</span>
             </div>
           </div>
         </div>
@@ -309,7 +370,7 @@ export default function DealsPage() {
                 <div className="relative">
                   <input
                     type="text"
-                    placeholder="Buscar deals por cliente, vehículo..."
+                    placeholder="Buscar en todos los deals por cliente, vehículo..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-12 pr-4 py-3 text-base border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white transition-all shadow-sm"
@@ -343,7 +404,7 @@ export default function DealsPage() {
             </div>
 
             {/* LÍNEA 2: Filtros de estado */}
-            <div className="flex items-center justify-center gap-8">
+            <div className="flex items-center gap-8">
               
               {/* Filtro de Estado */}
               <div className="flex items-center gap-3">
@@ -402,6 +463,27 @@ export default function DealsPage() {
                     </span>
                   </button>
                 </div>
+              </div>
+
+              {/* Botón "Todos" separado */}
+              <div className="flex items-center">
+                <button
+                  onClick={() => setActiveTab('todos')}
+                  className={`px-4 py-2 rounded-xl transition-all flex items-center space-x-2 ${
+                    activeTab === 'todos' 
+                      ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg' 
+                      : 'bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 hover:from-indigo-200 hover:to-purple-200'
+                  }`}
+                >
+                  <span className="font-medium">Todos</span>
+                  <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                    activeTab === 'todos' 
+                      ? 'bg-white text-indigo-500' 
+                      : 'bg-indigo-200 text-indigo-800'
+                  }`}>
+                    {deals.length}
+                  </span>
+                </button>
               </div>
 
             </div>

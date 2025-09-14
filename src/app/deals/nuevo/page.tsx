@@ -93,13 +93,31 @@ export default function NuevoDealPage() {
 
   const fetchVehiculos = async () => {
     try {
-      const response = await fetch('/api/vehiculos?limit=1000') // Traer más vehículos
-      if (response.ok) {
-        const data = await response.json()
-        // Traer todos los vehículos (no filtrar por estado)
-        setVehiculos(data.vehiculos || [])
-        console.log(`🚗 Vehículos cargados: ${data.vehiculos?.length || 0}`)
-      }
+      // Obtener todos los vehículos
+      const vehiculosResponse = await fetch('/api/vehiculos?limit=1000')
+      if (!vehiculosResponse.ok) return
+      
+      const vehiculosData = await vehiculosResponse.json()
+      const todosVehiculos = vehiculosData.vehiculos || []
+      
+      // Obtener deals activos para filtrar vehículos reservados
+      const dealsResponse = await fetch('/api/deals')
+      if (!dealsResponse.ok) return
+      
+      const dealsData = await dealsResponse.json()
+      
+      // Filtrar vehículos que NO estén reservados o vendidos
+      const vehiculosDisponibles = todosVehiculos.filter(vehiculo => {
+        // Un vehículo está reservado/vendido si tiene un deal activo con esos estados
+        const estaReservadoOVendido = dealsData.some(deal => 
+          deal.vehiculoId === vehiculo.id && 
+          (deal.estado === 'reservado' || deal.estado === 'vendido' || deal.estado === 'facturado')
+        )
+        return !estaReservadoOVendido
+      })
+      
+      setVehiculos(vehiculosDisponibles)
+      console.log(`🚗 Vehículos disponibles: ${vehiculosDisponibles.length} (filtrados vehículos reservados/vendidos)`)
     } catch (error) {
       console.error('Error cargando vehículos:', error)
     }

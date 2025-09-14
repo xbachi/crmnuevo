@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import RemindersList from '@/components/RemindersList'
+import DashboardReminders from '@/components/DashboardReminders'
 
 interface DashboardStats {
   totalVehiculos: number
@@ -13,22 +15,6 @@ interface DashboardStats {
   vehiculosItvVencida: number
 }
 
-interface VehiculoItvVencida {
-  id: number
-  referencia: string
-  marca: string
-  modelo: string
-  matricula: string
-}
-
-interface Reminder {
-  id: number
-  title: string
-  description: string
-  type: 'warning' | 'info' | 'success' | 'urgent'
-  date?: string
-  priority: 'high' | 'medium' | 'low'
-}
 
 export default function Home() {
   const [stats, setStats] = useState<DashboardStats>({
@@ -40,9 +26,6 @@ export default function Home() {
     beneficioTotal: 0,
     vehiculosItvVencida: 0
   })
-  const [reminders, setReminders] = useState<Reminder[]>([])
-  const [vehiculosItvVencida, setVehiculosItvVencida] = useState<VehiculoItvVencida[]>([])
-  const [showItvDetails, setShowItvDetails] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -64,61 +47,6 @@ export default function Home() {
         vehiculosItvVencida: 3
       })
 
-      // Simular datos de vehículos con ITV vencida
-      setVehiculosItvVencida([
-        {
-          id: 1,
-          referencia: "#100",
-          marca: "Audi",
-          modelo: "A4",
-          matricula: "5678ABC"
-        },
-        {
-          id: 2,
-          referencia: "#101",
-          marca: "BMW",
-          modelo: "X3",
-          matricula: "1234DEF"
-        },
-        {
-          id: 3,
-          referencia: "#102",
-          marca: "Mercedes",
-          modelo: "C-Class",
-          matricula: "9876GHI"
-        }
-      ])
-
-      setReminders([
-        {
-          id: 1,
-          title: 'ITV Vencida',
-          description: `${stats.vehiculosItvVencida} vehículos tienen la ITV vencida y necesitan renovación`,
-          type: 'urgent',
-          priority: 'high'
-        },
-        {
-          id: 2,
-          title: 'Seguro por Vencer',
-          description: '5 vehículos tienen el seguro próximo a vencer en los próximos 30 días',
-          type: 'warning',
-          priority: 'medium'
-        },
-        {
-          id: 3,
-          title: 'Revisión Mecánica',
-          description: 'Audi A4 (Ref: #100) requiere revisión mecánica programada',
-          type: 'info',
-          priority: 'medium'
-        },
-        {
-          id: 4,
-          title: 'Documentación Pendiente',
-          description: '2 vehículos necesitan documentación adicional',
-          type: 'info',
-          priority: 'low'
-        }
-      ])
 
       setIsLoading(false)
     } catch (error) {
@@ -127,35 +55,6 @@ export default function Home() {
     }
   }
 
-  const getReminderIcon = (type: string) => {
-    switch (type) {
-      case 'urgent':
-        return '🚨'
-      case 'warning':
-        return '⚠️'
-      case 'info':
-        return 'ℹ️'
-      case 'success':
-        return '✅'
-      default:
-        return '📋'
-    }
-  }
-
-  const getReminderColor = (type: string) => {
-    switch (type) {
-      case 'urgent':
-        return 'border-red-200 bg-red-50'
-      case 'warning':
-        return 'border-yellow-200 bg-yellow-50'
-      case 'info':
-        return 'border-blue-200 bg-blue-50'
-      case 'success':
-        return 'border-green-200 bg-green-50'
-      default:
-        return 'border-gray-200 bg-gray-50'
-    }
-  }
 
   if (isLoading) {
     return (
@@ -195,49 +94,28 @@ export default function Home() {
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-gray-900">Recordatorios Importantes</h2>
-                <span className="text-sm text-gray-500">{reminders.length} pendientes</span>
+                <div className="flex items-center gap-4">
+                  <Link 
+                    href="/deals" 
+                    className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    Ver todos los deals →
+                  </Link>
+                </div>
               </div>
               
-              <div className="space-y-4">
-                {reminders.map((reminder) => (
-                  <div
-                    key={reminder.id}
-                    className={`p-4 rounded-lg border-l-4 ${getReminderColor(reminder.type)} ${
-                      reminder.id === 1 ? 'cursor-pointer hover:bg-opacity-80 transition-all duration-200' : ''
-                    }`}
-                    onClick={reminder.id === 1 ? () => setShowItvDetails(!showItvDetails) : undefined}
-                  >
-                    <div className="flex items-start space-x-3">
-                      <span className="text-xl">{getReminderIcon(reminder.type)}</span>
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-900">{reminder.title}</h3>
-                        <p className="text-sm text-gray-600 mt-1">{reminder.description}</p>
-                        {reminder.id === 1 && showItvDetails && (
-                          <div className="mt-3 p-3 bg-red-100 rounded-lg border border-red-200">
-                            <h4 className="text-sm font-medium text-red-800 mb-2">Vehículos con ITV vencida:</h4>
-                            <div className="space-y-2">
-                              {vehiculosItvVencida.map((vehiculo) => (
-                                <div key={vehiculo.id} className="text-sm text-red-700 bg-white rounded px-2 py-1">
-                                  {vehiculo.referencia} - {vehiculo.marca} {vehiculo.modelo} ({vehiculo.matricula})
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        reminder.priority === 'high' 
-                          ? 'bg-red-100 text-red-800' 
-                          : reminder.priority === 'medium'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {reminder.priority === 'high' ? 'Alta' : reminder.priority === 'medium' ? 'Media' : 'Baja'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+              {/* Recordatorios específicos del dashboard */}
+              <DashboardReminders />
+              
+              {/* Separador */}
+              <div className="border-t border-gray-200 my-6"></div>
+              
+              {/* Recordatorios manuales (del sistema de recordatorios) */}
+              <div className="mb-4">
+                <h3 className="text-sm font-medium text-gray-700 mb-3">Recordatorios Manuales</h3>
+                <RemindersList maxItems={5} className="mb-4" />
               </div>
+              
             </div>
 
             {/* Acciones Rápidas */}

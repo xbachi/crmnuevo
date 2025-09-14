@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useToast } from '@/components/Toast'
 import { generarContratoReserva, generarContratoVenta, generarFactura } from '@/lib/contractGenerator'
+import { addReminder, createDocumentacionReminder } from '@/lib/reminders'
 
 interface Deal {
   id: number
@@ -91,6 +92,9 @@ export default function DealDetail() {
     descripcion: '',
     fecha: ''
   })
+  
+  // Estado para el modal de confirmación
+  const [showCancelModal, setShowCancelModal] = useState(false)
 
   useEffect(() => {
     if (params.id) {
@@ -192,8 +196,10 @@ export default function DealDetail() {
         
         showToast('Estado actualizado a Reservado', 'success')
         
-        // Navegar de vuelta a la página principal para refrescar la lista
+        // Navegar de vuelta a la página principal y refrescar vehículos
         setTimeout(() => {
+          // Marcar que se debe refrescar la página de vehículos
+          localStorage.setItem('needsVehicleRefresh', Date.now().toString())
           router.push('/deals?refresh=true')
         }, 1500)
       } catch (error) {
@@ -254,8 +260,10 @@ export default function DealDetail() {
         
         showToast('Estado actualizado a Vendido', 'success')
         
-        // Navegar de vuelta a la página principal para refrescar la lista
+        // Navegar de vuelta a la página principal y refrescar vehículos
         setTimeout(() => {
+          // Marcar que se debe refrescar la página de vehículos
+          localStorage.setItem('needsVehicleRefresh', Date.now().toString())
           router.push('/deals?refresh=true')
         }, 1500)
       } catch (error) {
@@ -316,6 +324,17 @@ export default function DealDetail() {
         
         showToast('Estado actualizado a Facturado', 'success')
         
+        // Crear recordatorio para documentación de cambio de nombre
+        if (deal.cliente && deal.vehiculo) {
+          const reminder = createDocumentacionReminder(
+            deal.id,
+            `${deal.cliente.nombre} ${deal.cliente.apellidos}`,
+            deal.vehiculo.referencia
+          )
+          addReminder(reminder)
+          console.log('📝 Recordatorio creado:', reminder)
+        }
+        
         // Navegar de vuelta a la página principal para refrescar la lista
         setTimeout(() => {
           router.push('/deals?refresh=true')
@@ -328,6 +347,37 @@ export default function DealDetail() {
       showToast('Error al generar la factura', 'error')
     } finally {
       setIsUpdating(false)
+    }
+  }
+
+  const handleAnularReserva = async () => {
+    if (!deal) return
+    
+    try {
+      setIsUpdating(true)
+      
+      // Eliminar el deal (esto también liberará el vehículo automáticamente)
+      const response = await fetch(`/api/deals/${deal.id}`, {
+        method: 'DELETE'
+      })
+      
+      if (response.ok) {
+        showToast('Reserva anulada y vehículo liberado', 'success')
+        
+        // Redirigir a la lista de deals
+        setTimeout(() => {
+          router.push('/deals')
+        }, 1500)
+      } else {
+        throw new Error('Error al anular la reserva')
+      }
+      
+    } catch (error) {
+      console.error('Error anulando reserva:', error)
+      showToast('Error anulando la reserva', 'error')
+    } finally {
+      setIsUpdating(false)
+      setShowCancelModal(false)
     }
   }
 
@@ -731,9 +781,68 @@ export default function DealDetail() {
                 </div>
               </div>
             </div>
+
+            {/* Botón Anular Reserva */}
+            {(deal.estado === 'nuevo' || deal.estado === 'reservado') && (
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <div className="text-center">
+                  <button
+                    onClick={() => setShowCancelModal(true)}
+                    disabled={isUpdating}
+                    className="px-6 py-3 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Anular Reserva
+                  </button>
+                  <p className="text-sm text-gray-500 mt-2">
+                    Esto eliminará el deal y liberará el vehículo
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Modal de Confirmación */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 19.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                ¿Anular Reserva?
+              </h3>
+              <p className="text-sm text-gray-500 mb-6">
+                ¿Estás seguro de que quieres anular la reserva del deal <strong>{deal?.numero}</strong>?<br/><br/>
+                Esto liberará el vehículo <strong>{deal?.vehiculo?.marca} {deal?.vehiculo?.modelo}</strong> y eliminará el deal permanentemente.
+              </p>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowCancelModal(false)}
+                  disabled={isUpdating}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleAnularReserva}
+                  disabled={isUpdating}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                >
+                  {isUpdating ? 'Anulando...' : 'Sí, Anular'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
