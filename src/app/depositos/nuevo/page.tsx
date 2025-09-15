@@ -69,16 +69,30 @@ export default function NuevoDepositoPage() {
     precio_publicacion: ''
   })
 
+  // Debounce para búsqueda de clientes
   useEffect(() => {
-    if (searchCliente.length >= 2) {
-      searchClientes()
-    }
+    const timeoutId = setTimeout(() => {
+      if (searchCliente.length >= 2) {
+        searchClientes()
+      } else {
+        setClientes([])
+      }
+    }, 300)
+
+    return () => clearTimeout(timeoutId)
   }, [searchCliente])
 
+  // Debounce para búsqueda de vehículos
   useEffect(() => {
-    if (searchVehiculo.length >= 2) {
-      searchVehiculos()
-    }
+    const timeoutId = setTimeout(() => {
+      if (searchVehiculo.length >= 2) {
+        searchVehiculos()
+      } else {
+        setVehiculos([])
+      }
+    }, 300)
+
+    return () => clearTimeout(timeoutId)
   }, [searchVehiculo])
 
   const searchClientes = async () => {
@@ -118,6 +132,8 @@ export default function NuevoDepositoPage() {
         setSelectedCliente(cliente)
         setDepositoData(prev => ({ ...prev, cliente_id: cliente.id }))
         setShowClienteForm(false)
+        setSearchCliente('') // Limpiar búsqueda
+        setClientes([]) // Limpiar resultados
         setNewCliente({ nombre: '', apellidos: '', email: '', telefono: '', dni: '' })
         showToast('Cliente creado exitosamente', 'success')
       } else {
@@ -127,6 +143,20 @@ export default function NuevoDepositoPage() {
     } catch (error) {
       showToast('Error al crear cliente', 'error')
     }
+  }
+
+  const selectCliente = (cliente: Cliente) => {
+    setSelectedCliente(cliente)
+    setDepositoData(prev => ({ ...prev, cliente_id: cliente.id }))
+    setSearchCliente('')
+    setClientes([])
+  }
+
+  const selectVehiculo = (vehiculo: Vehiculo) => {
+    setSelectedVehiculo(vehiculo)
+    setDepositoData(prev => ({ ...prev, vehiculo_id: vehiculo.id }))
+    setSearchVehiculo('')
+    setVehiculos([])
   }
 
   const createVehiculo = async () => {
@@ -150,6 +180,8 @@ export default function NuevoDepositoPage() {
         setSelectedVehiculo(vehiculo)
         setDepositoData(prev => ({ ...prev, vehiculo_id: vehiculo.id }))
         setShowVehiculoForm(false)
+        setSearchVehiculo('') // Limpiar búsqueda
+        setVehiculos([]) // Limpiar resultados
         setNewVehiculo({ referencia: '', marca: '', modelo: '', matricula: '', bastidor: '', kms: '', precio_compra: '', precio_publicacion: '' })
         showToast('Vehículo creado exitosamente', 'success')
       } else {
@@ -259,12 +291,7 @@ export default function NuevoDepositoPage() {
                     {clientes.map((cliente) => (
                       <button
                         key={cliente.id}
-                        onClick={() => {
-                          setSelectedCliente(cliente)
-                          setDepositoData(prev => ({ ...prev, cliente_id: cliente.id }))
-                          setSearchCliente('')
-                          setClientes([])
-                        }}
+                        onClick={() => selectCliente(cliente)}
                         className="w-full px-4 py-3 text-left hover:bg-slate-50 border-b border-slate-100 last:border-b-0"
                       >
                         <div className="font-medium text-slate-900">{cliente.nombre} {cliente.apellidos}</div>
@@ -413,12 +440,7 @@ export default function NuevoDepositoPage() {
                     {vehiculos.map((vehiculo) => (
                       <button
                         key={vehiculo.id}
-                        onClick={() => {
-                          setSelectedVehiculo(vehiculo)
-                          setDepositoData(prev => ({ ...prev, vehiculo_id: vehiculo.id }))
-                          setSearchVehiculo('')
-                          setVehiculos([])
-                        }}
+                        onClick={() => selectVehiculo(vehiculo)}
                         className="w-full px-4 py-3 text-left hover:bg-slate-50 border-b border-slate-100 last:border-b-0"
                       >
                         <div className="font-medium text-slate-900">{vehiculo.marca} {vehiculo.modelo}</div>

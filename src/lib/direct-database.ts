@@ -109,7 +109,7 @@ export async function getVehiculos(limit?: number, offset?: number): Promise<Veh
         d.id as deposito_id, d.estado as deposito_estado
       FROM "Vehiculo" v
       LEFT JOIN "Inversor" i ON v."inversorId" = i.id
-      LEFT JOIN depositos d ON v.id = d.vehiculo_id AND d.estado = 'ACTIVO'
+      LEFT JOIN "depositos" d ON v.id = d.vehiculo_id AND d.estado = 'ACTIVO'
       ORDER BY v."createdAt" DESC, v.id DESC
       ${limitClause} ${offsetClause}
     `)
