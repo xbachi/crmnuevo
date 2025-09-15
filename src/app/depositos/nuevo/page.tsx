@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { useToast, ToastContainer } from '@/hooks/useToast'
+import VehicleForm from '@/components/VehicleForm'
 
 interface Cliente {
   id: number
@@ -28,25 +28,20 @@ export default function NuevoDepositoPage() {
   const router = useRouter()
   const { showToast, ToastContainer } = useToast()
   
-  const [currentStep, setCurrentStep] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
   
-  // Datos del depósito
-  const [depositoData, setDepositoData] = useState({
-    cliente_id: null as number | null,
-    vehiculo_id: null as number | null,
-    precio_venta: '',
-    comision_porcentaje: '5.0',
-    notas: ''
-  })
-  
-  // Búsquedas
-  const [searchCliente, setSearchCliente] = useState('')
-  const [searchVehiculo, setSearchVehiculo] = useState('')
-  const [clientes, setClientes] = useState<Cliente[]>([])
-  const [vehiculos, setVehiculos] = useState<Vehiculo[]>([])
+  // Búsquedas (igual que en deals)
+  const [clienteSearch, setClienteSearch] = useState('')
+  const [vehiculoSearch, setVehiculoSearch] = useState('')
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null)
   const [selectedVehiculo, setSelectedVehiculo] = useState<Vehiculo | null>(null)
+  const [clientes, setClientes] = useState<Cliente[]>([])
+  const [vehiculos, setVehiculos] = useState<Vehiculo[]>([])
+  
+  // Datos del depósito
+  const [precioVenta, setPrecioVenta] = useState('')
+  const [comisionPorcentaje, setComisionPorcentaje] = useState('5.0')
+  const [notas, setNotas] = useState('')
   
   // Formularios de creación
   const [showClienteForm, setShowClienteForm] = useState(false)
@@ -56,7 +51,17 @@ export default function NuevoDepositoPage() {
     apellidos: '',
     email: '',
     telefono: '',
-    dni: ''
+    dni: '',
+    direccion: '',
+    ciudad: '',
+    provincia: '',
+    codPostal: '',
+    comoLlego: 'No especificado',
+    fechaPrimerContacto: new Date().toISOString().split('T')[0],
+    estado: 'nuevo',
+    prioridad: 'media',
+    proximoPaso: '',
+    notas: ''
   })
   const [newVehiculo, setNewVehiculo] = useState({
     referencia: '',
@@ -66,56 +71,47 @@ export default function NuevoDepositoPage() {
     bastidor: '',
     kms: '',
     precio_compra: '',
-    precio_publicacion: ''
+    precio_publicacion: '',
+    color: '',
+    fechaMatriculacion: '',
+    año: '',
+    itv: false,
+    seguro: false,
+    segundaLlave: false,
+    carpeta: false,
+    master: false,
+    hojasA: false,
+    documentacion: false
   })
 
-  // Debounce para búsqueda de clientes
+  // Cargar datos iniciales (igual que en deals)
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (searchCliente.length >= 2) {
-        searchClientes()
-      } else {
-        setClientes([])
-      }
-    }, 300)
+    fetchClientes()
+    fetchVehiculos()
+  }, [])
 
-    return () => clearTimeout(timeoutId)
-  }, [searchCliente])
-
-  // Debounce para búsqueda de vehículos
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (searchVehiculo.length >= 2) {
-        searchVehiculos()
-      } else {
-        setVehiculos([])
-      }
-    }, 300)
-
-    return () => clearTimeout(timeoutId)
-  }, [searchVehiculo])
-
-  const searchClientes = async () => {
+  const fetchClientes = async () => {
     try {
-      const response = await fetch(`/api/clientes/buscar?q=${encodeURIComponent(searchCliente)}`)
+      const response = await fetch('/api/clientes')
       if (response.ok) {
         const data = await response.json()
         setClientes(data)
       }
     } catch (error) {
-      console.error('Error searching clientes:', error)
+      console.error('Error fetching clientes:', error)
     }
   }
 
-  const searchVehiculos = async () => {
+  const fetchVehiculos = async () => {
     try {
-      const response = await fetch(`/api/vehiculos?search=${encodeURIComponent(searchVehiculo)}&tipo=D`)
+      // Obtener vehículos de tipo D (Depósito)
+      const response = await fetch('/api/vehiculos?tipo=D')
       if (response.ok) {
         const data = await response.json()
-        setVehiculos(data)
+        setVehiculos(data.vehiculos || data)
       }
     } catch (error) {
-      console.error('Error searching vehiculos:', error)
+      console.error('Error fetching vehiculos:', error)
     }
   }
 
@@ -130,11 +126,25 @@ export default function NuevoDepositoPage() {
       if (response.ok) {
         const cliente = await response.json()
         setSelectedCliente(cliente)
-        setDepositoData(prev => ({ ...prev, cliente_id: cliente.id }))
         setShowClienteForm(false)
-        setSearchCliente('') // Limpiar búsqueda
-        setClientes([]) // Limpiar resultados
-        setNewCliente({ nombre: '', apellidos: '', email: '', telefono: '', dni: '' })
+        setClienteSearch('')
+        setNewCliente({
+          nombre: '',
+          apellidos: '',
+          email: '',
+          telefono: '',
+          dni: '',
+          direccion: '',
+          ciudad: '',
+          provincia: '',
+          codPostal: '',
+          comoLlego: 'No especificado',
+          fechaPrimerContacto: new Date().toISOString().split('T')[0],
+          estado: 'nuevo',
+          prioridad: 'media',
+          proximoPaso: '',
+          notas: ''
+        })
         showToast('Cliente creado exitosamente', 'success')
       } else {
         const error = await response.json()
@@ -145,20 +155,6 @@ export default function NuevoDepositoPage() {
     }
   }
 
-  const selectCliente = (cliente: Cliente) => {
-    setSelectedCliente(cliente)
-    setDepositoData(prev => ({ ...prev, cliente_id: cliente.id }))
-    setSearchCliente('')
-    setClientes([])
-  }
-
-  const selectVehiculo = (vehiculo: Vehiculo) => {
-    setSelectedVehiculo(vehiculo)
-    setDepositoData(prev => ({ ...prev, vehiculo_id: vehiculo.id }))
-    setSearchVehiculo('')
-    setVehiculos([])
-  }
-
   const createVehiculo = async () => {
     try {
       const vehiculoData = {
@@ -166,7 +162,8 @@ export default function NuevoDepositoPage() {
         tipo: 'D', // Tipo Depósito
         kms: parseInt(newVehiculo.kms) || 0,
         precio_compra: parseFloat(newVehiculo.precio_compra) || 0,
-        precio_publicacion: parseFloat(newVehiculo.precio_publicacion) || 0
+        precio_publicacion: parseFloat(newVehiculo.precio_publicacion) || 0,
+        año: parseInt(newVehiculo.año) || new Date().getFullYear()
       }
       
       const response = await fetch('/api/vehiculos', {
@@ -178,11 +175,28 @@ export default function NuevoDepositoPage() {
       if (response.ok) {
         const vehiculo = await response.json()
         setSelectedVehiculo(vehiculo)
-        setDepositoData(prev => ({ ...prev, vehiculo_id: vehiculo.id }))
         setShowVehiculoForm(false)
-        setSearchVehiculo('') // Limpiar búsqueda
-        setVehiculos([]) // Limpiar resultados
-        setNewVehiculo({ referencia: '', marca: '', modelo: '', matricula: '', bastidor: '', kms: '', precio_compra: '', precio_publicacion: '' })
+        setVehiculoSearch('')
+        setNewVehiculo({
+          referencia: '',
+          marca: '',
+          modelo: '',
+          matricula: '',
+          bastidor: '',
+          kms: '',
+          precio_compra: '',
+          precio_publicacion: '',
+          color: '',
+          fechaMatriculacion: '',
+          año: '',
+          itv: false,
+          seguro: false,
+          segundaLlave: false,
+          carpeta: false,
+          master: false,
+          hojasA: false,
+          documentacion: false
+        })
         showToast('Vehículo creado exitosamente', 'success')
       } else {
         const error = await response.json()
@@ -193,445 +207,457 @@ export default function NuevoDepositoPage() {
     }
   }
 
-  const handleSubmit = async () => {
-    if (!depositoData.cliente_id || !depositoData.vehiculo_id) {
-      showToast('Debe seleccionar un cliente y un vehículo', 'error')
-      return
-    }
-
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
     setIsLoading(true)
+    
     try {
+      // Validaciones (igual que en deals)
+      if (!selectedCliente) {
+        showToast('Debes seleccionar un cliente', 'error')
+        return
+      }
+      
+      if (!selectedVehiculo) {
+        showToast('Debes seleccionar un vehículo', 'error')
+        return
+      }
+
+      // Preparar datos para enviar
+      const depositoData = {
+        cliente_id: selectedCliente.id,
+        vehiculo_id: selectedVehiculo.id,
+        precio_venta: precioVenta ? parseFloat(precioVenta) : null,
+        comision_porcentaje: parseFloat(comisionPorcentaje),
+        notas: notas,
+        fecha_inicio: new Date().toISOString().split('T')[0]
+      }
+
+             console.log('📤 Enviando depósito:', depositoData)
+             console.log('🔍 Debug: selectedCliente.id =', selectedCliente.id, 'selectedVehiculo.id =', selectedVehiculo.id)
+             console.log('🔍 Debug: selectedVehiculo completo =', selectedVehiculo)
+
+             // Enviar a la API
       const response = await fetch('/api/depositos', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...depositoData,
-          precio_venta: depositoData.precio_venta ? parseFloat(depositoData.precio_venta) : null,
-          comision_porcentaje: parseFloat(depositoData.comision_porcentaje),
-          fecha_inicio: new Date().toISOString().split('T')[0]
-        })
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(depositoData)
       })
 
-      if (response.ok) {
-        const deposito = await response.json()
-        showToast('Depósito creado exitosamente', 'success')
-        router.push(`/depositos/${deposito.id}`)
-      } else {
-        const error = await response.json()
-        showToast(`Error: ${error.error}`, 'error')
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Error al crear el depósito')
       }
+
+      const newDeposito = await response.json()
+      console.log('✅ Depósito creado:', newDeposito)
+
+      showToast('Depósito creado exitosamente', 'success')
+      router.push(`/depositos/${newDeposito.id}`)
     } catch (error) {
-      showToast('Error al crear depósito', 'error')
+      console.error('❌ Error creando depósito:', error)
+      showToast(`Error al crear el depósito: ${error.message}`, 'error')
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center space-x-4 mb-4">
-            <Link href="/depositos" className="text-slate-600 hover:text-slate-900">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </Link>
-            <h1 className="text-3xl font-bold text-slate-900">Nuevo Depósito de Venta</h1>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-2xl mx-auto px-4">
+        <div className="bg-white rounded-xl shadow-lg">
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-slate-200">
+            <div className="flex items-center justify-between">
+              <h1 className="text-xl font-bold text-slate-900">Crear Nuevo Depósito</h1>
+              <button
+                onClick={() => router.push('/depositos')}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           </div>
           
-          {/* Progress Steps */}
-          <div className="flex items-center space-x-4">
-            <div className={`flex items-center space-x-2 ${currentStep >= 1 ? 'text-green-600' : 'text-slate-400'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= 1 ? 'bg-green-600 text-white' : 'bg-slate-200'}`}>
-                1
-              </div>
-              <span className="font-medium">Datos del Cliente</span>
-            </div>
-            <div className="w-8 h-0.5 bg-slate-200"></div>
-            <div className={`flex items-center space-x-2 ${currentStep >= 2 ? 'text-green-600' : 'text-slate-400'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= 2 ? 'bg-green-600 text-white' : 'bg-slate-200'}`}>
-                2
-              </div>
-              <span className="font-medium">Datos del Vehículo</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8">
-          {/* Paso 1: Datos del Cliente */}
-          {currentStep === 1 && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-slate-900">Seleccionar Cliente</h2>
-              
-              {/* Búsqueda de cliente */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Buscar cliente existente
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Buscar por nombre, email, teléfono o DNI..."
-                    value={searchCliente}
-                    onChange={(e) => setSearchCliente(e.target.value)}
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                    <svg className="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </div>
-                </div>
-                
-                {/* Lista de clientes encontrados */}
-                {clientes.length > 0 && (
-                  <div className="mt-2 border border-slate-200 rounded-lg max-h-48 overflow-y-auto">
-                    {clientes.map((cliente) => (
-                      <button
+          {/* Form */}
+          <div className="p-6 space-y-6">
+            {/* Cliente */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Cliente *
+              </label>
+              <input
+                type="text"
+                placeholder="Escribir nombre del cliente..."
+                value={selectedCliente ? `${selectedCliente.nombre} ${selectedCliente.apellidos}` : clienteSearch}
+                onChange={(e) => {
+                  setClienteSearch(e.target.value)
+                  if (selectedCliente) {
+                    setSelectedCliente(null)
+                  }
+                }}
+                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              {clienteSearch && !selectedCliente && (
+                <div className="mt-2 border border-slate-200 rounded-lg bg-white">
+                  {clientes
+                    .filter(cliente => 
+                      `${cliente.nombre} ${cliente.apellidos}`.toLowerCase().includes(clienteSearch.toLowerCase())
+                    )
+                    .slice(0, 3)
+                    .map(cliente => (
+                      <div
                         key={cliente.id}
-                        onClick={() => selectCliente(cliente)}
-                        className="w-full px-4 py-3 text-left hover:bg-slate-50 border-b border-slate-100 last:border-b-0"
+                        onClick={() => {
+                          setSelectedCliente(cliente)
+                          setClienteSearch('')
+                        }}
+                        className="px-4 py-2 hover:bg-gray-50 cursor-pointer border-b border-slate-100 last:border-b-0"
                       >
-                        <div className="font-medium text-slate-900">{cliente.nombre} {cliente.apellidos}</div>
-                        <div className="text-sm text-slate-500">{cliente.email} • {cliente.telefono}</div>
-                      </button>
-                    ))}
-                  </div>
-                )}
+                        {cliente.nombre} {cliente.apellidos}
+                      </div>
+                    ))
+                  }
+                </div>
+              )}
+              
+              {/* Botón crear cliente - siempre visible */}
+              <div className="mt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowClienteForm(!showClienteForm)}
+                  className="w-full px-4 py-2 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center space-x-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  <span>Crear nuevo cliente</span>
+                  <svg className={`w-4 h-4 transition-transform ${showClienteForm ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
               </div>
 
-              {/* Cliente seleccionado */}
-              {selectedCliente && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-medium text-green-900">{selectedCliente.nombre} {selectedCliente.apellidos}</div>
-                      <div className="text-sm text-green-700">{selectedCliente.email} • {selectedCliente.telefono}</div>
-                    </div>
+              {/* Acordeón para crear cliente - dentro del campo */}
+              {showClienteForm && (
+                <div className="mt-4 bg-slate-50 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-slate-900">Crear Nuevo Cliente</h3>
                     <button
-                      onClick={() => {
-                        setSelectedCliente(null)
-                        setDepositoData(prev => ({ ...prev, cliente_id: null }))
-                      }}
-                      className="text-green-600 hover:text-green-800"
+                      onClick={() => setShowClienteForm(false)}
+                      className="text-slate-500 hover:text-slate-700"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     </button>
                   </div>
-                </div>
-              )}
+                  
+                  <div className="space-y-4">
+                    {/* Información Personal */}
+                    <div className="bg-white rounded-lg p-4">
+                      <h4 className="font-medium text-slate-900 mb-3">Información Personal</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">Nombre *</label>
+                          <input
+                            type="text"
+                            value={newCliente.nombre}
+                            onChange={(e) => setNewCliente(prev => ({ ...prev, nombre: e.target.value }))}
+                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">Apellidos *</label>
+                          <input
+                            type="text"
+                            value={newCliente.apellidos}
+                            onChange={(e) => setNewCliente(prev => ({ ...prev, apellidos: e.target.value }))}
+                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">Teléfono *</label>
+                          <input
+                            type="tel"
+                            value={newCliente.telefono}
+                            onChange={(e) => setNewCliente(prev => ({ ...prev, telefono: e.target.value }))}
+                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                          <input
+                            type="email"
+                            value={newCliente.email}
+                            onChange={(e) => setNewCliente(prev => ({ ...prev, email: e.target.value }))}
+                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">DNI</label>
+                          <input
+                            type="text"
+                            value={newCliente.dni}
+                            onChange={(e) => setNewCliente(prev => ({ ...prev, dni: e.target.value }))}
+                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                        </div>
+                      </div>
+                    </div>
 
-              {/* Crear nuevo cliente */}
-              <div className="border-t border-slate-200 pt-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-medium text-slate-900">O crear nuevo cliente</h3>
-                  <button
-                    onClick={() => setShowClienteForm(!showClienteForm)}
-                    className="text-green-600 hover:text-green-800 font-medium"
-                  >
-                    {showClienteForm ? 'Cancelar' : 'Crear cliente'}
-                  </button>
-                </div>
-
-                {showClienteForm && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Nombre</label>
-                      <input
-                        type="text"
-                        value={newCliente.nombre}
-                        onChange={(e) => setNewCliente(prev => ({ ...prev, nombre: e.target.value }))}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Apellidos</label>
-                      <input
-                        type="text"
-                        value={newCliente.apellidos}
-                        onChange={(e) => setNewCliente(prev => ({ ...prev, apellidos: e.target.value }))}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-                      <input
-                        type="email"
-                        value={newCliente.email}
-                        onChange={(e) => setNewCliente(prev => ({ ...prev, email: e.target.value }))}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Teléfono</label>
-                      <input
-                        type="tel"
-                        value={newCliente.telefono}
-                        onChange={(e) => setNewCliente(prev => ({ ...prev, telefono: e.target.value }))}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-slate-700 mb-1">DNI</label>
-                      <input
-                        type="text"
-                        value={newCliente.dni}
-                        onChange={(e) => setNewCliente(prev => ({ ...prev, dni: e.target.value }))}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div className="md:col-span-2">
+                    <div className="flex justify-end space-x-2">
                       <button
+                        type="button"
+                        onClick={() => setShowClienteForm(false)}
+                        className="px-4 py-2 text-slate-600 hover:text-slate-800"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
                         onClick={createCliente}
-                        className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                       >
                         Crear Cliente
                       </button>
                     </div>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
+            </div>
 
-              {/* Botón siguiente */}
-              <div className="flex justify-end">
+            {/* Vehículo */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Vehículo *
+              </label>
+              <input
+                type="text"
+                placeholder="Escribir marca, modelo, matrícula o referencia..."
+                value={selectedVehiculo ? `${selectedVehiculo.marca || ''} ${selectedVehiculo.modelo || ''} - ${selectedVehiculo.matricula || ''}` : vehiculoSearch}
+                onChange={(e) => {
+                  setVehiculoSearch(e.target.value)
+                  if (selectedVehiculo) {
+                    setSelectedVehiculo(null)
+                  }
+                }}
+                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              {vehiculoSearch && !selectedVehiculo && (
+                <div className="mt-2 border border-slate-200 rounded-lg bg-white">
+                  {vehiculos
+                    .filter(vehiculo => {
+                      const searchLower = vehiculoSearch.toLowerCase()
+                      return (
+                        vehiculo.marca?.toLowerCase().includes(searchLower) ||
+                        vehiculo.modelo?.toLowerCase().includes(searchLower) ||
+                        vehiculo.matricula?.toLowerCase().includes(searchLower) ||
+                        vehiculo.referencia?.toLowerCase().includes(searchLower)
+                      )
+                    })
+                    .slice(0, 3)
+                    .map(vehiculo => (
+                      <div
+                        key={vehiculo.id}
+                        onClick={() => {
+                          setSelectedVehiculo(vehiculo)
+                          setVehiculoSearch('')
+                        }}
+                        className="px-4 py-2 hover:bg-gray-50 cursor-pointer border-b border-slate-100 last:border-b-0"
+                      >
+                        {vehiculo.marca} {vehiculo.modelo} - {vehiculo.matricula}
+                      </div>
+                    ))
+                  }
+                </div>
+              )}
+              
+              {/* Botón crear vehículo - siempre visible */}
+              <div className="mt-2">
                 <button
-                  onClick={() => setCurrentStep(2)}
-                  disabled={!selectedCliente}
-                  className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  type="button"
+                  onClick={() => setShowVehiculoForm(!showVehiculoForm)}
+                  className="w-full px-4 py-2 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center space-x-2"
                 >
-                  Siguiente
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  <span>Crear nuevo vehículo</span>
+                  <svg className={`w-4 h-4 transition-transform ${showVehiculoForm ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
                 </button>
               </div>
-            </div>
-          )}
 
-          {/* Paso 2: Datos del Vehículo */}
-          {currentStep === 2 && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-slate-900">Seleccionar Vehículo</h2>
-              
-              {/* Búsqueda de vehículo */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Buscar vehículo existente
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Buscar por marca, modelo, matrícula o bastidor..."
-                    value={searchVehiculo}
-                    onChange={(e) => setSearchVehiculo(e.target.value)}
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                    <svg className="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </div>
-                </div>
-                
-                {/* Lista de vehículos encontrados */}
-                {vehiculos.length > 0 && (
-                  <div className="mt-2 border border-slate-200 rounded-lg max-h-48 overflow-y-auto">
-                    {vehiculos.map((vehiculo) => (
-                      <button
-                        key={vehiculo.id}
-                        onClick={() => selectVehiculo(vehiculo)}
-                        className="w-full px-4 py-3 text-left hover:bg-slate-50 border-b border-slate-100 last:border-b-0"
-                      >
-                        <div className="font-medium text-slate-900">{vehiculo.marca} {vehiculo.modelo}</div>
-                        <div className="text-sm text-slate-500">{vehiculo.matricula} • {vehiculo.bastidor}</div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Vehículo seleccionado */}
-              {selectedVehiculo && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-medium text-green-900">{selectedVehiculo.marca} {selectedVehiculo.modelo}</div>
-                      <div className="text-sm text-green-700">{selectedVehiculo.matricula} • {selectedVehiculo.bastidor}</div>
-                    </div>
+              {/* Acordeón para crear vehículo - dentro del campo */}
+              {showVehiculoForm && (
+                <div className="mt-4 bg-slate-50 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-slate-900">Crear Nuevo Vehículo</h3>
                     <button
-                      onClick={() => {
-                        setSelectedVehiculo(null)
-                        setDepositoData(prev => ({ ...prev, vehiculo_id: null }))
-                      }}
-                      className="text-green-600 hover:text-green-800"
+                      onClick={() => setShowVehiculoForm(false)}
+                      className="text-slate-500 hover:text-slate-700"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     </button>
                   </div>
+                  
+                  <VehicleForm
+                    asForm={true}
+                    initialData={{
+                      ...newVehiculo,
+                      tipo: 'Deposito Venta' // Fijar el tipo para depósitos
+                    }}
+                    onSubmit={async (data) => {
+                      const vehiculoData = {
+                        referencia: data.referencia,
+                        marca: data.marca,
+                        modelo: data.modelo,
+                        matricula: data.matricula,
+                        bastidor: data.bastidor,
+                        kms: parseInt(data.kms) || 0,
+                        tipo: 'D', // Tipo Depósito
+                        color: data.color,
+                        fechaMatriculacion: data.fechaMatriculacion,
+                        esCocheInversor: false,
+                        inversorId: null,
+                        fechaCompra: null,
+                        precioCompra: null,
+                        gastosTransporte: null,
+                        gastosTasas: null,
+                        gastosMecanica: null,
+                        gastosPintura: null,
+                        gastosLimpieza: null,
+                        gastosOtros: null,
+                        precioPublicacion: null,
+                        precioVenta: null,
+                        beneficioNeto: null,
+                        notasInversor: null,
+                        fotoInversor: null
+                      }
+
+                      console.log('🚗 Enviando datos de vehículo:', vehiculoData)
+                      const response = await fetch('/api/vehiculos', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(vehiculoData)
+                      })
+
+                      console.log('📡 Respuesta de creación de vehículo:', response.status, response.ok)
+                      
+                      if (response.ok) {
+                        const responseData = await response.json()
+                        console.log('📦 Respuesta completa de la API:', responseData)
+                        
+                        // La API devuelve { success: true, vehiculo: {...} }
+                        const vehiculo = responseData.vehiculo || responseData
+                        console.log('🚗 Vehículo extraído:', vehiculo)
+                        console.log('🆔 ID del vehículo:', vehiculo.id)
+                        
+                        // Actualizar la lista de vehículos
+                        await fetchVehiculos()
+                        
+                        // Seleccionar automáticamente el vehículo creado
+                        setSelectedVehiculo(vehiculo)
+                        console.log('✅ Vehículo seleccionado:', vehiculo)
+                        
+                        // Verificar que el estado se actualizó
+                        setTimeout(() => {
+                          console.log('🔍 Estado actualizado - selectedVehiculo:', vehiculo)
+                        }, 100)
+                        setShowVehiculoForm(false)
+                        setVehiculoSearch('')
+                        setNewVehiculo({
+                          referencia: '',
+                          marca: '',
+                          modelo: '',
+                          matricula: '',
+                          bastidor: '',
+                          kms: '',
+                          precio_compra: '',
+                          precio_publicacion: '',
+                          color: '',
+                          fechaMatriculacion: '',
+                          año: '',
+                          itv: false,
+                          seguro: false,
+                          segundaLlave: false,
+                          carpeta: false,
+                          master: false,
+                          hojasA: false,
+                          documentacion: false
+                        })
+                        showToast('Vehículo creado y seleccionado exitosamente', 'success')
+                      } else {
+                        const error = await response.json()
+                        console.error('❌ Error creando vehículo:', error)
+                        showToast(`Error: ${error.error}`, 'error')
+                      }
+                    }}
+                    onCancel={() => setShowVehiculoForm(false)}
+                    showInversorSection={false}
+                    fixedTipo="Deposito Venta"
+                    submitText="Crear Vehículo"
+                  />
                 </div>
               )}
+            </div>
 
-              {/* Crear nuevo vehículo */}
-              <div className="border-t border-slate-200 pt-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-medium text-slate-900">O crear nuevo vehículo</h3>
-                  <button
-                    onClick={() => setShowVehiculoForm(!showVehiculoForm)}
-                    className="text-green-600 hover:text-green-800 font-medium"
-                  >
-                    {showVehiculoForm ? 'Cancelar' : 'Crear vehículo'}
-                  </button>
-                </div>
-
-                {showVehiculoForm && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Referencia</label>
-                      <input
-                        type="text"
-                        value={newVehiculo.referencia}
-                        onChange={(e) => setNewVehiculo(prev => ({ ...prev, referencia: e.target.value }))}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Marca</label>
-                      <input
-                        type="text"
-                        value={newVehiculo.marca}
-                        onChange={(e) => setNewVehiculo(prev => ({ ...prev, marca: e.target.value }))}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Modelo</label>
-                      <input
-                        type="text"
-                        value={newVehiculo.modelo}
-                        onChange={(e) => setNewVehiculo(prev => ({ ...prev, modelo: e.target.value }))}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Matrícula</label>
-                      <input
-                        type="text"
-                        value={newVehiculo.matricula}
-                        onChange={(e) => setNewVehiculo(prev => ({ ...prev, matricula: e.target.value }))}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Bastidor</label>
-                      <input
-                        type="text"
-                        value={newVehiculo.bastidor}
-                        onChange={(e) => setNewVehiculo(prev => ({ ...prev, bastidor: e.target.value }))}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">KMs</label>
-                      <input
-                        type="number"
-                        value={newVehiculo.kms}
-                        onChange={(e) => setNewVehiculo(prev => ({ ...prev, kms: e.target.value }))}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Precio Compra</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={newVehiculo.precio_compra}
-                        onChange={(e) => setNewVehiculo(prev => ({ ...prev, precio_compra: e.target.value }))}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Precio Publicación</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={newVehiculo.precio_publicacion}
-                        onChange={(e) => setNewVehiculo(prev => ({ ...prev, precio_publicacion: e.target.value }))}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <button
-                        onClick={createVehiculo}
-                        className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
-                      >
-                        Crear Vehículo
-                      </button>
-                    </div>
-                  </div>
-                )}
+            {/* Datos del Depósito */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Precio de Venta Sugerido</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="Opcional"
+                  value={precioVenta}
+                  onChange={(e) => setPrecioVenta(e.target.value)}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
               </div>
-
-              {/* Datos adicionales del depósito */}
-              {selectedVehiculo && (
-                <div className="border-t border-slate-200 pt-6">
-                  <h3 className="text-lg font-medium text-slate-900 mb-4">Datos del Depósito</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Precio de Venta Sugerido</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={depositoData.precio_venta}
-                        onChange={(e) => setDepositoData(prev => ({ ...prev, precio_venta: e.target.value }))}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        placeholder="Opcional"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Comisión (%)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={depositoData.comision_porcentaje}
-                        onChange={(e) => setDepositoData(prev => ({ ...prev, comision_porcentaje: e.target.value }))}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Notas</label>
-                      <textarea
-                        value={depositoData.notas}
-                        onChange={(e) => setDepositoData(prev => ({ ...prev, notas: e.target.value }))}
-                        rows={3}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        placeholder="Notas adicionales sobre el depósito..."
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Botones */}
-              <div className="flex justify-between">
-                <button
-                  onClick={() => setCurrentStep(1)}
-                  className="bg-slate-200 text-slate-800 px-6 py-2 rounded-lg hover:bg-slate-300 transition-colors"
-                >
-                  Anterior
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  disabled={!selectedVehiculo || isLoading}
-                  className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isLoading ? 'Creando...' : 'Crear Depósito'}
-                </button>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Comisión (%)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={comisionPorcentaje}
+                  onChange={(e) => setComisionPorcentaje(e.target.value)}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
               </div>
             </div>
-          )}
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Notas</label>
+              <textarea
+                placeholder="Notas adicionales sobre el depósito..."
+                value={notas}
+                onChange={(e) => setNotas(e.target.value)}
+                rows={3}
+                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+
+            {/* Submit Button */}
+            <div className="flex justify-end">
+              <button
+                onClick={handleSubmit}
+                disabled={!selectedCliente || !selectedVehiculo || isLoading}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              >
+                {isLoading ? 'Creando...' : 'Crear Depósito'}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 

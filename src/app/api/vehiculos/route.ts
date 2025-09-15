@@ -7,6 +7,8 @@ import { writeVehiculoToSheets } from '@/lib/googleSheets'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
+    console.log('🚗 Recibiendo datos de vehículo:', body)
+    
     const { 
       referencia, 
       marca, 
@@ -34,8 +36,11 @@ export async function POST(request: NextRequest) {
       fotoInversor
     } = body
 
+    console.log('🔍 Campos extraídos:', { referencia, marca, modelo, matricula, bastidor, kms, tipo })
+
     // Validar datos requeridos
     if (!referencia || !marca || !modelo || !matricula || !bastidor || !kms || !tipo) {
+      console.log('❌ Faltan campos requeridos')
       return NextResponse.json(
         { error: 'Todos los campos son requeridos' },
         { status: 400 }
@@ -52,6 +57,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Crear el vehículo en la base de datos
+    console.log('💾 Guardando vehículo en la base de datos...')
     const vehiculo = await saveVehiculo({
       referencia,
       marca,
@@ -78,6 +84,7 @@ export async function POST(request: NextRequest) {
       notasInversor: notasInversor || undefined,
       fotoInversor: fotoInversor || undefined
     })
+    console.log('✅ Vehículo guardado:', vehiculo)
 
     // Crear nombre de carpeta en camelCase
     const folderName = generateFolderName(referencia, marca, modelo, matricula, tipo)
@@ -142,13 +149,15 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '50')
     const offset = (page - 1) * limit
+    const search = searchParams.get('search') || ''
+    const tipo = searchParams.get('tipo') || ''
     
-    console.log(`🚀 Cargando vehículos: página ${page}, límite ${limit}`)
+    console.log(`🚀 Cargando vehículos: página ${page}, límite ${limit}, búsqueda: "${search}", tipo: "${tipo}"`)
     
-    // Obtener vehículos con paginación
+    // Obtener vehículos con paginación y filtros
     const [vehiculos, total] = await Promise.all([
-      getVehiculos(limit, offset),
-      getVehiculosCount()
+      getVehiculos(limit, offset, search, tipo),
+      getVehiculosCount(search, tipo)
     ])
     
     console.log(`📊 Vehículos cargados: ${vehiculos.length} de ${total} total`)

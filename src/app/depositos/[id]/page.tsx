@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useToast, ToastContainer } from '@/hooks/useToast'
@@ -33,9 +33,10 @@ interface Deposito {
   }
 }
 
-export default function DepositoDetailPage({ params }: { params: { id: string } }) {
+export default function DepositoDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
   const { showToast, ToastContainer } = useToast()
+  const resolvedParams = use(params)
   
   const [deposito, setDeposito] = useState<Deposito | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -51,11 +52,11 @@ export default function DepositoDetailPage({ params }: { params: { id: string } 
 
   useEffect(() => {
     fetchDeposito()
-  }, [params.id])
+  }, [resolvedParams.id])
 
   const fetchDeposito = async () => {
     try {
-      const response = await fetch(`/api/depositos/${params.id}`)
+      const response = await fetch(`/api/depositos/${resolvedParams.id}`)
       if (response.ok) {
         const data = await response.json()
         setDeposito(data)
@@ -80,7 +81,7 @@ export default function DepositoDetailPage({ params }: { params: { id: string } 
   const handleUpdate = async () => {
     setIsUpdating(true)
     try {
-      const response = await fetch(`/api/depositos/${params.id}`, {
+      const response = await fetch(`/api/depositos/${resolvedParams.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -124,7 +125,7 @@ export default function DepositoDetailPage({ params }: { params: { id: string } 
 
       if (response.ok) {
         // Actualizar el depósito a finalizado
-        await fetch(`/api/depositos/${params.id}`, {
+        await fetch(`/api/depositos/${resolvedParams.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -141,6 +142,73 @@ export default function DepositoDetailPage({ params }: { params: { id: string } 
       }
     } catch (error) {
       showToast('Error al convertir en venta', 'error')
+    }
+  }
+
+  const generarContratoVenta = async () => {
+    if (!deposito) return
+    
+    try {
+      // Generar contrato de venta (similar al contrato de reserva)
+      const contratoData = {
+        cliente: deposito.cliente,
+        vehiculo: deposito.vehiculo,
+        deposito: deposito,
+        tipo: 'VENTA'
+      }
+      
+      const response = await fetch('/api/contratos/venta', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(contratoData)
+      })
+      
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `contrato_venta_${deposito.vehiculo.referencia}.pdf`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+        showToast('Contrato de venta generado exitosamente', 'success')
+      } else {
+        showToast('Error al generar contrato de venta', 'error')
+      }
+    } catch (error) {
+      showToast('Error al generar contrato de venta', 'error')
+    }
+  }
+
+  const marcarComoVendido = async () => {
+    if (!deposito) return
+    
+    try {
+      // Actualizar el depósito a finalizado
+      await fetch(`/api/depositos/${resolvedParams.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          estado: 'FINALIZADO',
+          fecha_fin: new Date().toISOString().split('T')[0]
+        })
+      })
+      
+      // Actualizar el vehículo como vendido
+      await fetch(`/api/vehiculos/${deposito.vehiculo_id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          estado: 'VENDIDO'
+        })
+      })
+      
+      showToast('Vehículo marcado como vendido exitosamente', 'success')
+      await fetchDeposito()
+    } catch (error) {
+      showToast('Error al marcar como vendido', 'error')
     }
   }
 
@@ -306,14 +374,6 @@ export default function DepositoDetailPage({ params }: { params: { id: string } 
                             <label className="text-sm font-medium text-slate-500">Referencia</label>
                             <p className="text-slate-900">{deposito.vehiculo.referencia}</p>
                           </div>
-                          <div>
-                            <Link
-                              href={`/vehiculos/${deposito.vehiculo.id}`}
-                              className="text-green-600 hover:text-green-800 font-medium"
-                            >
-                              Ver vehículo completo →
-                            </Link>
-                          </div>
                         </div>
                       </div>
                     </div>
@@ -409,12 +469,24 @@ export default function DepositoDetailPage({ params }: { params: { id: string } 
                   Ver Cliente
                 </Link>
                 
-                <Link
-                  href={`/vehiculos/${deposito.vehiculo_id}`}
-                  className="w-full bg-purple-100 text-purple-800 px-4 py-2 rounded-lg hover:bg-purple-200 transition-colors text-center block"
-                >
-                  Ver Vehículo
-                </Link>
+                {deposito.estado === 'ACTIVO' && (
+                  <>
+                    <button
+                      onClick={() => generarContratoVenta()}
+                      className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                      Descargar Contrato de Venta
+                    </button>
+                    
+                    <button
+                      onClick={() => marcarComoVendido()}
+                      className="w-full bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors"
+                    >
+                      Marcar como Vendido
+                    </button>
+                  </>
+                )}
+                
               </div>
             </div>
 

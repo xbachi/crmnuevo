@@ -89,12 +89,42 @@ export interface Vehiculo {
   documentacion?: string | null
 }
 
-export async function getVehiculos(limit?: number, offset?: number): Promise<Vehiculo[]> {
+export async function getVehiculos(limit?: number, offset?: number, search?: string, tipo?: string): Promise<Vehiculo[]> {
   const client = await pool.connect()
   try {
     // Consulta optimizada: solo campos necesarios para la lista
     const limitClause = limit ? `LIMIT ${limit}` : ''
     const offsetClause = offset ? `OFFSET ${offset}` : ''
+    
+    // Construir filtros de búsqueda
+    let whereClause = ''
+    const conditions = []
+    
+    if (search && search.trim()) {
+      conditions.push(`(
+        LOWER(v.referencia) LIKE LOWER($1) OR
+        LOWER(v.marca) LIKE LOWER($1) OR
+        LOWER(v.modelo) LIKE LOWER($1) OR
+        LOWER(v.matricula) LIKE LOWER($1) OR
+        LOWER(v.bastidor) LIKE LOWER($1)
+      )`)
+    }
+    
+    if (tipo && tipo.trim()) {
+      conditions.push(`v.tipo = $${conditions.length + 1}`)
+    }
+    
+    if (conditions.length > 0) {
+      whereClause = `WHERE ${conditions.join(' AND ')}`
+    }
+    
+    const queryParams = []
+    if (search && search.trim()) {
+      queryParams.push(`%${search}%`)
+    }
+    if (tipo && tipo.trim()) {
+      queryParams.push(tipo)
+    }
     
     const result = await client.query(`
       SELECT 
@@ -110,9 +140,10 @@ export async function getVehiculos(limit?: number, offset?: number): Promise<Veh
       FROM "Vehiculo" v
       LEFT JOIN "Inversor" i ON v."inversorId" = i.id
       LEFT JOIN "depositos" d ON v.id = d.vehiculo_id AND d.estado = 'ACTIVO'
+      ${whereClause}
       ORDER BY v."createdAt" DESC, v.id DESC
       ${limitClause} ${offsetClause}
-    `)
+    `, queryParams.length > 0 ? queryParams : undefined)
     
     return result.rows.map(row => ({
       id: row.id,
@@ -167,10 +198,40 @@ export async function getVehiculos(limit?: number, offset?: number): Promise<Veh
   }
 }
 
-export async function getVehiculosCount(): Promise<number> {
+export async function getVehiculosCount(search?: string, tipo?: string): Promise<number> {
   const client = await pool.connect()
   try {
-    const result = await client.query('SELECT COUNT(*) as count FROM "Vehiculo"')
+    // Construir filtros de búsqueda
+    let whereClause = ''
+    const conditions = []
+    
+    if (search && search.trim()) {
+      conditions.push(`(
+        LOWER(referencia) LIKE LOWER($1) OR
+        LOWER(marca) LIKE LOWER($1) OR
+        LOWER(modelo) LIKE LOWER($1) OR
+        LOWER(matricula) LIKE LOWER($1) OR
+        LOWER(bastidor) LIKE LOWER($1)
+      )`)
+    }
+    
+    if (tipo && tipo.trim()) {
+      conditions.push(`tipo = $${conditions.length + 1}`)
+    }
+    
+    if (conditions.length > 0) {
+      whereClause = `WHERE ${conditions.join(' AND ')}`
+    }
+    
+    const queryParams = []
+    if (search && search.trim()) {
+      queryParams.push(`%${search}%`)
+    }
+    if (tipo && tipo.trim()) {
+      queryParams.push(tipo)
+    }
+    
+    const result = await client.query(`SELECT COUNT(*) as count FROM "Vehiculo" ${whereClause}`, queryParams.length > 0 ? queryParams : undefined)
     return parseInt(result.rows[0].count)
   } catch (error) {
     console.error('Error obteniendo conteo de vehículos:', error)

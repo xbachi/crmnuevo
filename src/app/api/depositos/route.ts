@@ -9,8 +9,8 @@ export async function GET() {
         c.id as cliente_id, c.nombre, c.apellidos, c.email, c.telefono,
         v.id as vehiculo_id, v.referencia, v.marca, v.modelo, v.matricula, v.tipo
       FROM depositos d
-      JOIN clientes c ON d.cliente_id = c.id
-      JOIN vehiculos v ON d.vehiculo_id = v.id
+      JOIN "Cliente" c ON d.cliente_id = c.id
+      JOIN "Vehiculo" v ON d.vehiculo_id = v.id
       ORDER BY d.created_at DESC
     `)
 
@@ -54,25 +54,32 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { cliente_id, vehiculo_id, estado = 'BORRADOR', fecha_inicio, precio_venta, comision_porcentaje = 5.0, notas } = body
 
+    console.log('📥 Recibiendo datos de depósito:', { cliente_id, vehiculo_id, estado, fecha_inicio, precio_venta, comision_porcentaje, notas })
+
     // Validar que no exista un depósito activo para este vehículo
     const existingDeposito = await pool.query(
       'SELECT id FROM depositos WHERE vehiculo_id = $1 AND estado = $2',
       [vehiculo_id, 'ACTIVO']
     )
 
+    console.log('🔍 Depósitos existentes para vehículo', vehiculo_id, ':', existingDeposito.rows)
+
     if (existingDeposito.rows.length > 0) {
+      console.log('⚠️ Ya existe un depósito activo para este vehículo')
       return NextResponse.json({ error: 'Ya existe un depósito activo para este vehículo' }, { status: 400 })
     }
 
+    console.log('💾 Insertando nuevo depósito...')
     const result = await pool.query(`
       INSERT INTO depositos (cliente_id, vehiculo_id, estado, fecha_inicio, precio_venta, comision_porcentaje, notas)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `, [cliente_id, vehiculo_id, estado, fecha_inicio, precio_venta, comision_porcentaje, notas])
 
+    console.log('✅ Depósito creado exitosamente:', result.rows[0])
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error) {
-    console.error('Error creating deposito:', error)
+    console.error('❌ Error creating deposito:', error)
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
   }
 }

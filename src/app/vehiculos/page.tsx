@@ -63,7 +63,7 @@ export default function ListaVehiculos() {
   const [searchField, setSearchField] = useState<'todos' | 'referencia' | 'marca' | 'modelo' | 'matricula' | 'bastidor' | 'tipo'>('todos')
   const [statusFilter, setStatusFilter] = useState<'todos' | 'activos' | 'vendidos'>('activos')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
-  const [typeFilter, setTypeFilter] = useState<'todos' | 'Compra' | 'Coche R' | 'Deposito' | 'inversores'>('todos')
+  const [typeFilter, setTypeFilter] = useState<'todos' | 'Compra' | 'Coche R' | 'D' | 'inversores'>('todos')
   const [editingVehiculo, setEditingVehiculo] = useState<Vehiculo | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editFormData, setEditFormData] = useState({
@@ -687,9 +687,9 @@ export default function ListaVehiculos() {
                     R
                   </button>
                   <button
-                    onClick={() => setTypeFilter('Deposito')}
+                    onClick={() => setTypeFilter('D')}
                     className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-                      typeFilter === 'Deposito' ? 'bg-purple-50 text-purple-700 shadow-sm border border-purple-200' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
+                      typeFilter === 'D' ? 'bg-purple-50 text-purple-700 shadow-sm border border-purple-200' : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                     }`}
                   >
                     Dep.

@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/direct-database'
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const result = await pool.query(`
       SELECT 
         d.*,
         c.id as cliente_id, c.nombre, c.apellidos, c.email, c.telefono,
         v.id as vehiculo_id, v.referencia, v.marca, v.modelo, v.matricula, v.tipo
       FROM depositos d
-      JOIN clientes c ON d.cliente_id = c.id
-      JOIN vehiculos v ON d.vehiculo_id = v.id
+      JOIN "Cliente" c ON d.cliente_id = c.id
+      JOIN "Vehiculo" v ON d.vehiculo_id = v.id
       WHERE d.id = $1
-    `, [params.id])
+    `, [id])
 
     if (result.rows.length === 0) {
       return NextResponse.json({ error: 'Depósito no encontrado' }, { status: 404 })
@@ -54,8 +55,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const body = await request.json()
     const { estado, fecha_fin, precio_venta, comision_porcentaje, notas } = body
 
@@ -64,7 +66,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       SET estado = $1, fecha_fin = $2, precio_venta = $3, comision_porcentaje = $4, notas = $5, updated_at = CURRENT_TIMESTAMP
       WHERE id = $6
       RETURNING *
-    `, [estado, fecha_fin, precio_venta, comision_porcentaje, notas, params.id])
+    `, [estado, fecha_fin, precio_venta, comision_porcentaje, notas, id])
 
     if (result.rows.length === 0) {
       return NextResponse.json({ error: 'Depósito no encontrado' }, { status: 404 })
@@ -77,9 +79,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const result = await pool.query('DELETE FROM depositos WHERE id = $1 RETURNING *', [params.id])
+    const { id } = await params
+    const result = await pool.query('DELETE FROM depositos WHERE id = $1 RETURNING *', [id])
 
     if (result.rows.length === 0) {
       return NextResponse.json({ error: 'Depósito no encontrado' }, { status: 404 })
