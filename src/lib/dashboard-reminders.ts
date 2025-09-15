@@ -126,8 +126,10 @@ export async function getVehiculosCambioNombrePendiente(): Promise<DashboardRemi
     
     const deals = await response.json()
     
-    // Filtrar deals facturados
-    const dealsFacturados = deals.filter((d: any) => d.estado === 'facturado')
+    // Filtrar deals facturados que NO tienen cambio de nombre solicitado
+    const dealsFacturados = deals.filter((d: any) => 
+      d.estado === 'facturado' && d.cambioNombreSolicitado !== true
+    )
     
     // Obtener vehículos de estos deals
     const vehiculosFacturados = dealsFacturados.map((d: any) => ({

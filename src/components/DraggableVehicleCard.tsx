@@ -109,37 +109,28 @@ export default function DraggableVehicleCard({ vehiculo }: DraggableVehicleCardP
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3 flex-1 min-w-0">
-            {/* Logo del vehículo */}
+            {/* Logo del vehículo - últimos 2 números */}
             <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
               <span className="text-white font-bold text-xs">
-                {vehiculo.referencia.length > 3 
-                  ? vehiculo.referencia.substring(0, 3) 
+                {vehiculo.referencia.length >= 2 
+                  ? vehiculo.referencia.substring(vehiculo.referencia.length - 2) 
                   : vehiculo.referencia
                 }
               </span>
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1">
-                <h3 className="text-sm font-bold text-gray-900 truncate">
+                <h3 className="text-sm font-bold text-gray-900 min-w-0 flex-1">
                   {vehiculo.marca} {vehiculo.modelo}
                 </h3>
                 <span className={`px-2 py-0.5 text-xs font-medium rounded-lg border ${getTipoColor(vehiculo.tipo)} flex-shrink-0 ml-2`}>
                   {vehiculo.tipo === 'Compra' ? 'C' : vehiculo.tipo === 'Coche R' ? 'R' : 'D'}
                 </span>
               </div>
-              {/* Alerta de ITV vencida o matrícula */}
-              {vehiculo.itv !== null && vehiculo.itv !== undefined && vehiculo.itv !== '' && !isPositive(vehiculo.itv) ? (
-                <div className="inline-flex items-center space-x-1 px-1.5 py-0.5 bg-red-600 rounded-full">
-                  <svg className="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                  <span className="text-xs text-white font-semibold">ITV VENCIDA</span>
-                </div>
-              ) : (
-                <div className="text-xs text-gray-600 font-mono">
-                  {vehiculo.matricula}
-                </div>
-              )}
+              {/* Matrícula */}
+              <div className="text-xs text-gray-600 font-mono">
+                {vehiculo.matricula}
+              </div>
             </div>
           </div>
           <div className="ml-2 flex-shrink-0">
@@ -185,6 +176,19 @@ export default function DraggableVehicleCard({ vehiculo }: DraggableVehicleCardP
                 </span>
               </div>
             </div>
+
+            {/* Alerta de ITV vencida */}
+            {vehiculo.itv !== null && vehiculo.itv !== undefined && vehiculo.itv !== '' && !isPositive(vehiculo.itv) && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <div className="flex items-center space-x-2">
+                  <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-sm font-semibold text-red-800">ITV VENCIDA</span>
+                </div>
+                <p className="text-xs text-red-600 mt-1">Revisar estado de la ITV antes de continuar</p>
+              </div>
+            )}
 
             {/* Información adicional de Google Sheets */}
             {true && (

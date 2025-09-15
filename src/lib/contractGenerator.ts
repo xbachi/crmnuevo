@@ -1,5 +1,73 @@
 // Generador de contratos con jsPDF
 import jsPDF from 'jspdf'
+import { formatCurrency } from './utils'
+
+// Función para cargar el logo SVG y convertirlo a imagen
+async function loadLogoSVG(): Promise<string> {
+  try {
+    const response = await fetch('/logocontrato.svg')
+    if (!response.ok) {
+      throw new Error('No se pudo cargar el logo')
+    }
+    let svgText = await response.text()
+    
+    // Convertir solo el texto (elementos blancos) a negro, mantener el logo verde
+    svgText = svgText
+      .replace(/fill="#FEFEFE"/g, 'fill="#000000"') // Solo cambiar elementos blancos a negro
+      .replace(/fill="#FEFEFD"/g, 'fill="#000000"') // Solo cambiar elementos blancos a negro
+      .replace(/fill="white"/g, 'fill="#000000"') // Solo cambiar elementos blancos a negro
+      .replace(/fill="none"/g, 'fill="#000000"') // Solo cambiar elementos sin fill a negro
+    
+    // Crear un canvas para convertir SVG a imagen
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('No se pudo crear contexto de canvas')
+    
+    // Crear imagen desde SVG modificado
+    const img = new Image()
+    const svgBlob = new Blob([svgText], { type: 'image/svg+xml' })
+    const url = URL.createObjectURL(svgBlob)
+    
+    return new Promise((resolve, reject) => {
+      img.onload = () => {
+        // Configurar canvas con tamaño del logo
+        canvas.width = 200 // Ancho fijo
+        canvas.height = 80  // Alto fijo
+        
+        // Dibujar imagen en canvas
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+        
+        // Convertir a data URL
+        const dataURL = canvas.toDataURL('image/png')
+        URL.revokeObjectURL(url)
+        resolve(dataURL)
+      }
+      img.onerror = () => {
+        URL.revokeObjectURL(url)
+        reject(new Error('Error cargando imagen SVG'))
+      }
+      img.src = url
+    })
+  } catch (error) {
+    console.error('Error cargando logo:', error)
+    return ''
+  }
+}
+
+// Función para mapear formas de pago de reserva
+function getFormaPagoReserva(formaPago: string): string {
+  const formasPago: { [key: string]: string } = {
+    'contado': 'efectivo',
+    'financiado': 'transferencia',
+    'mixto': 'transferencia',
+    'tarjeta': 'tarjeta',
+    'transferencia': 'transferencia',
+    'efectivo': 'efectivo',
+    'bizum': 'bizum'
+  }
+  
+  return formasPago[formaPago?.toLowerCase()] || 'efectivo'
+}
 
 interface DealData {
   numero: string
@@ -54,7 +122,27 @@ function numeroALetras(numero: number): string {
   if (numero < 1000000) {
     const miles = Math.floor(numero / 1000)
     const resto = numero % 1000
-    let resultado = numeroALetras(miles) + ' mil'
+    
+    // Casos especiales para los miles
+    let milesTexto = ''
+    if (miles === 1) {
+      milesTexto = 'mil'
+    } else if (miles < 20) {
+      milesTexto = especiales[miles - 10] + ' mil'
+    } else if (miles < 30) {
+      const unidad = miles % 10
+      if (unidad === 1) {
+        milesTexto = 'veintiún mil'
+      } else if (unidad === 0) {
+        milesTexto = 'veinte mil'
+      } else {
+        milesTexto = 'veinti' + unidades[unidad] + ' mil'
+      }
+    } else {
+      milesTexto = numeroALetras(miles) + ' mil'
+    }
+    
+    let resultado = milesTexto
     if (resto > 0) {
       resultado += ' ' + numeroALetras(resto)
     }
@@ -122,14 +210,17 @@ function formatearFechaCompleta(fecha: Date | string | null | undefined): string
   }
   
   const fechaFormateada = fechaDate.toLocaleDateString('es-ES', opciones)
-  // Dividir correctamente la fecha formateada
-  const partes = fechaFormateada.split(' ')
+  // Dividir correctamente la fecha formateada y eliminar comas
+  const partes = fechaFormateada.split(' ').map(parte => parte.replace(/,/g, ''))
   const diaSemana = partes[0]
   const dia = partes[1]
   const mes = partes[3]
   const año = partes[5]
   
-  return `${diaSemana}, ${dia} de ${mes} de ${año}`
+  // Capitalizar la primera letra del mes
+  const mesCapitalizado = mes.charAt(0).toUpperCase() + mes.slice(1)
+  
+  return `${diaSemana} ${dia} de ${mesCapitalizado} de ${año}`
 }
 
 // Función para construir la dirección completa del cliente
@@ -150,7 +241,7 @@ function construirDireccionCompleta(cliente: DealData['cliente']): string {
   return partes.join(', ')
 }
 
-export function generarContratoReserva(deal: DealData): void {
+export async function generarContratoReserva(deal: DealData): Promise<void> {
   try {
     const doc = new jsPDF()
     const pageWidth = doc.internal.pageSize.width
@@ -159,34 +250,60 @@ export function generarContratoReserva(deal: DealData): void {
     
     // Configurar fuente
     doc.setFont('helvetica', 'normal')
-    doc.setFontSize(10)
+    doc.setFontSize(11)
     
     // Título del contrato (primero)
     doc.setFontSize(14)
     doc.setFont('helvetica', 'bold')
     doc.setTextColor(0, 0, 0) // Negro
     doc.text('CONTRATO DE RESERVA DE VEHÍCULO', pageWidth / 2, yPosition, { align: 'center' })
-    yPosition += 15
+    yPosition += 12
     
-    // Logo de Seven Cars (usando texto por ahora, se puede mejorar con imagen)
+    // Logo de Seven Cars
+    try {
+      const logoDataURL = await loadLogoSVG()
+      if (logoDataURL) {
+        // Ajustar tamaño del logo (ancho máximo 60mm, altura reducida)
+        const logoWidth = 60
+        const logoHeight = 20 // Altura fija más pequeña
+        
+        // Centrar el logo
+        const logoX = (pageWidth - logoWidth) / 2
+        
+        // Agregar imagen al PDF
+        doc.addImage(logoDataURL, 'PNG', logoX, yPosition, logoWidth, logoHeight)
+        
+        yPosition += logoHeight + 5
+      } else {
+        // Fallback al texto si no se puede cargar el logo
+        doc.setFontSize(12)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(0, 0, 0) // Negro
+        doc.text('SEVEN CARS MOTORS S.L.', pageWidth / 2, yPosition, { align: 'center' })
+        yPosition += 10
+      }
+    } catch (error) {
+      console.error('Error procesando logo:', error)
+      // Fallback al texto
     doc.setFontSize(12)
     doc.setFont('helvetica', 'bold')
-    doc.setTextColor(30, 64, 175) // Azul Seven Cars
+      doc.setTextColor(0, 0, 0) // Negro
     doc.text('SEVEN CARS MOTORS S.L.', pageWidth / 2, yPosition, { align: 'center' })
     yPosition += 10
+    }
     
     // Línea decorativa
-    doc.setDrawColor(30, 64, 175)
+    doc.setDrawColor(0, 0, 0)
     doc.setLineWidth(0.5)
     doc.line(margin, yPosition, pageWidth - margin, yPosition)
-    yPosition += 15
+    yPosition += 12
     
     // Fecha y lugar
-    doc.setFontSize(10)
+    doc.setFontSize(11)
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(0, 0, 0) // Negro
     const fechaContrato = deal.fechaReservaDesde || deal.fechaCreacion || new Date()
-    doc.text(`En Alaquàs a ${formatearFechaCompleta(fechaContrato)}`, margin, yPosition)
+    doc.text(`En Alaquàs, a ${formatearFechaCompleta(fechaContrato)}`, margin, yPosition)
     yPosition += 12
     
     // Sección "Reunidos"
@@ -212,7 +329,7 @@ export function generarContratoReserva(deal: DealData): void {
     
     const nombreCompleto = `${deal.cliente?.nombre || ''} ${deal.cliente?.apellidos || ''}`.trim()
     const direccionCompleta = construirDireccionCompleta(deal.cliente)
-    const textoComprador = `D/DÑA ${nombreCompleto || 'NOMBRE DE CLIENTE'} Mayor de edad, con DNI ${deal.cliente?.dni || 'DNI CLIENTE'} Con domicilio ${direccionCompleta} en calidad de compradores, y en adelante parte compradora. Con telefono ${deal.cliente?.telefono || 'TEL CLIENTE'} y email ${deal.cliente?.email || 'EMAIL CLIENTE'}`
+    const textoComprador = `D/DÑA ${nombreCompleto || 'NOMBRE DE CLIENTE'} Mayor de edad, con DNI ${deal.cliente?.dni || 'DNI CLIENTE'} con domicilio ${direccionCompleta} en calidad de compradores, y en adelante parte compradora. Con telefono ${deal.cliente?.telefono || 'TEL CLIENTE'} y email ${deal.cliente?.email || 'EMAIL CLIENTE'}`
     doc.text(doc.splitTextToSize(textoComprador, pageWidth - margin * 2), margin, yPosition)
     yPosition += 18
     
@@ -241,30 +358,34 @@ export function generarContratoReserva(deal: DealData): void {
     
     doc.text('2. El precio del vehículo indicado es :', margin, yPosition)
     yPosition += 6
-    doc.text(`${precio.toLocaleString('es-ES')}€ (${precioEnLetras} euros)`, margin + 10, yPosition)
+    doc.text(`${formatCurrency(precio)} (${precioEnLetras} euros)`, margin + 10, yPosition)
     yPosition += 10
     
     // Punto 3 - Monto de reserva
     const montoReserva = deal.importeSena || 0
     const montoReservaEnLetras = numeroALetras(Math.floor(montoReserva))
     
-    const textoPunto3 = `3. Que la parte vendedora recibe de la parte compradora ${montoReserva.toLocaleString('es-ES')}€ (${montoReservaEnLetras} euros) mediante ${deal.formaPagoSena || 'forma de pago'} siendo este documento su más eficaz carta de pago,`
-    doc.text(doc.splitTextToSize(textoPunto3, pageWidth - margin * 2), margin, yPosition)
-    yPosition += 15
+    const formaPagoReserva = getFormaPagoReserva(deal.formaPagoSena || 'efectivo')
+    const textoPunto3 = `3. Que la parte vendedora recibe de la parte compradora ${formatCurrency(montoReserva)} (${montoReservaEnLetras} euros) mediante ${formaPagoReserva} siendo este documento su más eficaz carta de pago,`
+    const lineasPunto3 = doc.splitTextToSize(textoPunto3, pageWidth - margin * 2)
+    doc.text(lineasPunto3, margin, yPosition)
+    yPosition += (lineasPunto3.length * 4.5) + 8 // Espacio basado en número de líneas + separación
     
     // Punto 4 - Gastos de transmisión
     const textoPunto4 = '4. Los gastos de transmisión del vehiculo serán por cuenta de la parte vendedora. Una vez realizada la correspondiente transferencia en Tráfico, el vendedor entregará materialmente al comprador la posesión del vehículo, haciéndose el comprador cargo de cuantas responsabilidades puedan contraerse por la propiedad del vehículo y su tenencia y uso a partir de dicho momento de la entrega.'
-    doc.text(doc.splitTextToSize(textoPunto4, pageWidth - margin * 2), margin, yPosition)
-    yPosition += 18
+    const lineasPunto4 = doc.splitTextToSize(textoPunto4, pageWidth - margin * 2)
+    doc.text(lineasPunto4, margin, yPosition)
+    yPosition += (lineasPunto4.length * 4.5) + 8 // Espacio basado en número de líneas + separación
     
     // Punto 5 - Libre de cargas
     const textoPunto5 = '5. Que el vehiculo se encuentra libre de cargas y gravámenes que pudieran impedir la formalización de la transferencia, por el adquiriente, en la Jefatura de Trafico.'
-    doc.text(doc.splitTextToSize(textoPunto5, pageWidth - margin * 2), margin, yPosition)
-    yPosition += 15
+    const lineasPunto5 = doc.splitTextToSize(textoPunto5, pageWidth - margin * 2)
+    doc.text(lineasPunto5, margin, yPosition)
+    yPosition += (lineasPunto5.length * 4.5) + 8 // Espacio basado en número de líneas + separación
     
     // Punto 6 - Plazo de pago
     doc.text('6. Se establece un plazo de 7 días para abonar el resto del importe indicado a la parte vendedora.', margin, yPosition)
-    yPosition += 15
+    yPosition += 10
     
     // Firma
     doc.text('Y en prueba de conformidad, firman', margin, yPosition)
@@ -392,7 +513,7 @@ function generarContratoHTML(deal: DealData): void {
         <div class="linea-logo"></div>
         
         <div class="titulo">CONTRATO DE RESERVA DE VEHÍCULO</div>
-        <div class="fecha">En Alaquàs a ${formatearFechaCompleta(fechaContrato)}</div>
+        <div class="fecha">En Alaquàs, a ${formatearFechaCompleta(fechaContrato)}</div>
         
         <div class="seccion">Reunidos:</div>
         
@@ -405,12 +526,12 @@ function generarContratoHTML(deal: DealData): void {
         
         <div class="punto">
             <strong>Y de otra parte:</strong><br><br>
-            D/DÑA ${nombreCompleto || 'NOMBRE DE CLIENTE'}<br>
-            Mayor de edad, con DNI ${deal.cliente?.dni || 'DNI CLIENTE'}<br>
-            Con domicilio ${construirDireccionCompleta(deal.cliente)}<br>
+            D/DÑA <strong>${nombreCompleto || 'NOMBRE DE CLIENTE'}</strong><br>
+            Mayor de edad, con DNI <strong>${deal.cliente?.dni || 'DNI CLIENTE'}</strong><br>
+            Con domicilio <strong>${construirDireccionCompleta(deal.cliente)}</strong><br>
             en calidad de compradores, y en adelante parte compradora.<br>
-            Con telefono ${deal.cliente?.telefono || 'TEL CLIENTE'}<br>
-            y email ${deal.cliente?.email || 'EMAIL CLIENTE'}
+            Con telefono <strong>${deal.cliente?.telefono || 'TEL CLIENTE'}</strong><br>
+            y email <strong>${deal.cliente?.email || 'EMAIL CLIENTE'}</strong>
         </div>
         
         <div class="seccion">EXPONEN</div>
@@ -418,24 +539,24 @@ function generarContratoHTML(deal: DealData): void {
         <div class="punto">
             <strong>1.</strong> La parte vendedora es propietaria del siguiente vehículo:<br>
             <div class="indentado">
-                MARCA ${deal.vehiculo?.marca || 'marca vehiculo'}<br>
-                MODELO ${deal.vehiculo?.modelo || 'modelo vehiculo'}<br>
-                MATRICULA ${deal.vehiculo?.matricula || 'matricula vehiculo'}
+                MARCA <strong>${deal.vehiculo?.marca || 'marca vehiculo'}</strong><br>
+                MODELO <strong>${deal.vehiculo?.modelo || 'modelo vehiculo'}</strong><br>
+                MATRICULA <strong>${deal.vehiculo?.matricula || 'matricula vehiculo'}</strong>
             </div>
         </div>
         
         <div class="punto">
             <strong>2.</strong> El precio del vehículo indicado es :<br>
             <div class="indentado">
-                ${precio.toLocaleString('es-ES')}€ (${precioEnLetras} euros)
+                <strong>${formatCurrency(precio)} (${precioEnLetras} euros)</strong>
             </div>
         </div>
         
         <div class="punto">
             <strong>3.</strong> Que la parte vendedora recibe de la parte compradora<br>
             <div class="indentado">
-                ${montoReserva.toLocaleString('es-ES')}€ (${montoReservaEnLetras} euros)<br>
-                mediante ${deal.formaPagoSena || 'forma de pago'} siendo este documento su más eficaz carta de pago,
+                <strong>${formatCurrency(montoReserva)} (${montoReservaEnLetras} euros)</strong><br>
+                mediante <strong>${getFormaPagoReserva(deal.formaPagoSena || 'efectivo')}</strong> siendo este documento su más eficaz carta de pago,
             </div>
         </div>
         
@@ -487,13 +608,349 @@ function generarContratoHTML(deal: DealData): void {
 }
 
 // Función para generar contrato de venta (placeholder)
-export function generarContratoVenta(deal: DealData): void {
-  // TODO: Implementar contrato de venta
-  console.log('Generando contrato de venta para:', deal.numero)
+export async function generarContratoVenta(deal: DealData): Promise<void> {
+  const doc = new jsPDF()
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
+  const margin = 15
+  let yPosition = 15
+
+  // Título del contrato
+  doc.setFontSize(16)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(0, 0, 0)
+  doc.text('CONTRATO DE VENTA DE VEHÍCULO', pageWidth / 2, yPosition, { align: 'center' })
+  yPosition += 12
+
+  // Logo de Seven Cars
+  try {
+    const logoDataURL = await loadLogoSVG()
+    if (logoDataURL) {
+      const logoWidth = 60
+      const logoHeight = 20
+      const logoX = (pageWidth - logoWidth) / 2
+      doc.addImage(logoDataURL, 'PNG', logoX, yPosition, logoWidth, logoHeight)
+      yPosition += logoHeight + 8
+    } else {
+      doc.setFontSize(12)
+      doc.setFont('helvetica', 'bold')
+      doc.text('SEVEN CARS MOTORS S.L.', pageWidth / 2, yPosition, { align: 'center' })
+      yPosition += 10
+    }
+  } catch (error) {
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    doc.text('SEVEN CARS MOTORS S.L.', pageWidth / 2, yPosition, { align: 'center' })
+    yPosition += 10
+  }
+
+  // Línea decorativa
+  doc.setDrawColor(0, 0, 0)
+  doc.setLineWidth(0.5)
+  doc.line(margin, yPosition, pageWidth - margin, yPosition)
+  yPosition += 10
+
+  // Fecha del contrato
+  const fechaContrato = new Date()
+  doc.setFontSize(11)
+  doc.setFont('helvetica', 'normal')
+  doc.text(`En Alaquàs, a ${formatearFechaCompleta(fechaContrato)}`, margin, yPosition)
+  yPosition += 12
+
+  // Datos del cliente y vehículo
+  const nombreCompleto = `${deal.cliente?.nombre || ''} ${deal.cliente?.apellidos || ''}`.trim()
+  const direccionCompleta = construirDireccionCompleta(deal.cliente)
+  const precio = deal.importeTotal || deal.vehiculo?.precioPublicacion || 0
+  const precioEnLetras = numeroALetras(Math.floor(precio))
+
+  // Parte vendedora
+  doc.setFontSize(10)
+  const textoVendedor = 'D. Sebastián Pelella mayor de edad, con NIE Z0147238C en representación de Seven Cars Motors, s.l.. con CIF B-75939868 y con domicilio Camí dels Mollons, 36 de Alaquàs, Valencia, en calidad de vendedores, y en adelante parte vendedora.'
+  const lineasVendedor = doc.splitTextToSize(textoVendedor, pageWidth - margin * 2)
+  doc.text(lineasVendedor, margin, yPosition)
+  yPosition += (lineasVendedor.length * 4.5) + 8
+
+  // Parte compradora
+  doc.text('Y de otra parte:', margin, yPosition)
+  yPosition += 6
+
+  // Datos del cliente
+  doc.text(`D/DÑA ${nombreCompleto || 'NOMBRE DE CLIENTE'}`, margin, yPosition)
+  yPosition += 4
+  doc.text(`Mayor de edad, con DNI ${deal.cliente?.dni || 'DNI CLIENTE'}`, margin, yPosition)
+  yPosition += 4
+  doc.text(`Con domicilio ${direccionCompleta}`, margin, yPosition)
+  yPosition += 4
+  doc.text('en calidad de compradores, y en adelante parte compradora.', margin, yPosition)
+  yPosition += 4
+  doc.text(`Con telefono ${deal.cliente?.telefono || 'TEL CLIENTE'}`, margin, yPosition)
+  yPosition += 4
+  doc.text(`y email ${deal.cliente?.email || 'EMAIL CLIENTE'}`, margin, yPosition)
+  yPosition += 10
+
+  // Acuerdo común
+  const textoAcuerdo = 'Ambos de común acuerdo y reconociéndose capacidad legal para ello, formalizan la compraventa, con arreglo a las siguientes condiciones:'
+  const lineasAcuerdo = doc.splitTextToSize(textoAcuerdo, pageWidth - margin * 2)
+  doc.text(lineasAcuerdo, margin, yPosition)
+  yPosition += (lineasAcuerdo.length * 4.5) + 8
+
+  // Punto 1 - Información del vehículo
+  const textoPunto1 = '1. El vendedor vende al comprador el siguiente vehículo después de comprobarlo y examinarlo a su entera conformidad, aceptando su estado, las características de uso y su fecha de matriculación:'
+  const lineasPunto1 = doc.splitTextToSize(textoPunto1, pageWidth - margin * 2)
+  doc.text(lineasPunto1, margin, yPosition)
+  yPosition += (lineasPunto1.length * 4.5) + 6
+
+  // Datos del vehículo en formato compacto
+  doc.text(`MARCA ${deal.vehiculo?.marca || 'marca vehiculo'}`, margin + 5, yPosition)
+  doc.text(`MODELO ${deal.vehiculo?.modelo || 'modelo vehiculo'}`, pageWidth / 2, yPosition)
+  yPosition += 4
+  doc.text(`MATRICULA ${deal.vehiculo?.matricula || 'matricula vehiculo'}`, margin + 5, yPosition)
+  doc.text(`BASTIDOR ${deal.vehiculo?.bastidor || 'bastidor vehiculo'}`, pageWidth / 2, yPosition)
+  yPosition += 8
+
+  // Precio y garantía
+  doc.text(`Por la cantidad de ${formatCurrency(precio)} (${precioEnLetras}) - Garantizado por 12 Meses`, margin, yPosition)
+  yPosition += 10
+
+  // Sección ENTREGA DE VEHÍCULO
+  doc.setFont('helvetica', 'bold')
+  doc.text('ENTREGA DE VEHÍCULO', margin, yPosition)
+  yPosition += 6
+
+  // Punto 2 - Entrega de vehículo
+  doc.setFont('helvetica', 'normal')
+  const textoPunto2 = '2. El vendedor entrega al comprador, las llaves del vehículo, el permiso de circulación, ficha técnica, el manual y recibe la documentación indicada en este acto'
+  const lineasPunto2 = doc.splitTextToSize(textoPunto2, pageWidth - margin * 2)
+  doc.text(lineasPunto2, margin, yPosition)
+  yPosition += (lineasPunto2.length * 4.5) + 8
+
+  // Punto 3 - Responsabilidad de reparaciones
+  const textoPunto3 = '3. El vendedor no se responsabilizara si el comprador reparase el vehículo por su cuenta, sin que el vendedor hubiera dado su autorización, determinando el taller y manera de llevar a cabo la reparación.'
+  const lineasPunto3 = doc.splitTextToSize(textoPunto3, pageWidth - margin * 2)
+  doc.text(lineasPunto3, margin, yPosition)
+  yPosition += (lineasPunto3.length * 4.5) + 10
+
+  // Segunda llave con checkboxes
+  doc.text('SEGUNDA LLAVE', margin, yPosition)
+  yPosition += 6
+  
+  // Checkbox Entregada
+  doc.rect(margin + 5, yPosition - 2, 4, 4)
+  doc.text('Entregada', margin + 15, yPosition)
+  
+  // Checkbox Pendiente
+  doc.rect(margin + 50, yPosition - 2, 4, 4)
+  doc.text('Pendiente', margin + 60, yPosition)
+  yPosition += 15
+
+  // Firma
+  doc.text('Y en prueba de conformidad, firman', margin, yPosition)
+  yPosition += 12
+
+  // Firmas
+  doc.text('La parte vendedora', margin, yPosition)
+  doc.text('La parte compradora', pageWidth / 2 + 10, yPosition)
+  yPosition += 20
+
+  // Líneas para firmas
+  doc.line(margin, yPosition, margin + 70, yPosition)
+  doc.line(pageWidth / 2 + 10, yPosition, pageWidth / 2 + 80, yPosition)
+
+  // Guardar el PDF
+  const nombreArchivo = `contrato-venta-${deal.numero || 'sin-numero'}.pdf`
+  doc.save(nombreArchivo)
 }
 
-// Función para generar factura (placeholder)
-export function generarFactura(deal: DealData): void {
-  // TODO: Implementar factura
-  console.log('Generando factura para:', deal.numero)
+// Función para generar factura
+// Función para generar factura profesional
+export async function generarFactura(deal: DealData, tipoFactura: 'IVA' | 'REBU' = 'IVA', numeroFacturaPersonalizado?: string): Promise<void> {
+  const doc = new jsPDF()
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
+  const margin = 15
+  let yPosition = 15
+
+  // Generar número de factura
+  const numeroFactura = numeroFacturaPersonalizado || `FAC-${new Date().getFullYear()}-${String(deal.id || Math.floor(Math.random() * 1000)).padStart(4, '0')}`
+  const fechaFactura = new Date()
+
+  // Logo de Seven Cars (centrado)
+  try {
+    const logoDataURL = await loadLogoSVG()
+    if (logoDataURL) {
+      const logoWidth = 50
+      const logoHeight = 15
+      const logoX = (pageWidth - logoWidth) / 2
+      doc.addImage(logoDataURL, 'PNG', logoX, yPosition, logoWidth, logoHeight)
+    }
+  } catch (error) {
+    // Fallback al texto
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    doc.text('SEVEN CARS MOTORS S.L.', pageWidth / 2, yPosition, { align: 'center' })
+  }
+  
+  // Mover yPosition después del logo
+  yPosition += 20
+
+  // Datos de la empresa (debajo del logo, centrados)
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'normal')
+  doc.text('Seven Cars Motors S.L.', pageWidth / 2, yPosition, { align: 'center' })
+  yPosition += 3
+  doc.text('CIF: B-75939868', pageWidth / 2, yPosition, { align: 'center' })
+  yPosition += 3
+  doc.text('Camí els Mollons, 36', pageWidth / 2, yPosition, { align: 'center' })
+  yPosition += 3
+  doc.text('46970 Alaquàs, Valencia', pageWidth / 2, yPosition, { align: 'center' })
+  yPosition += 10
+
+  // Número de factura (debajo del logo)
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'normal')
+  doc.text(`Nº Factura: ${numeroFactura}`, margin, yPosition)
+  yPosition += 5
+  
+  // Fecha (debajo del número de factura)
+  doc.text(`Fecha: ${fechaFactura.toLocaleDateString('es-ES')}`, margin, yPosition)
+  yPosition += 15
+
+  // Título de la factura (más abajo)
+  doc.setFontSize(16)
+  doc.setFont('helvetica', 'bold')
+  doc.text(tipoFactura === 'IVA' ? 'FACTURA' : 'FACTURA REBU', pageWidth / 2, yPosition, { align: 'center' })
+  yPosition += 15
+
+  // Línea separadora
+  doc.setDrawColor(0, 0, 0)
+  doc.setLineWidth(0.5)
+  doc.line(margin, yPosition, pageWidth - margin, yPosition)
+  yPosition += 10
+
+  // Datos del cliente
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'bold')
+  doc.text('FACTURAR A:', margin, yPosition)
+  yPosition += 6
+  
+  doc.setFont('helvetica', 'normal')
+  doc.text(`${deal.cliente?.nombre || 'No especificado'} ${deal.cliente?.apellidos || ''}`, margin, yPosition)
+  yPosition += 4
+  doc.text(`DNI: ${deal.cliente?.dni || 'No especificado'}`, margin, yPosition)
+  yPosition += 4
+  doc.text(`Teléfono: ${deal.cliente?.telefono || 'No especificado'}`, margin, yPosition)
+  yPosition += 4
+  doc.text(`Email: ${deal.cliente?.email || 'No especificado'}`, margin, yPosition)
+  yPosition += 10
+
+  // Tabla de conceptos
+  const totalConIva = deal.importeTotal || 0
+  
+  // Cálculo correcto del IVA: el total incluye IVA, calcular subtotal e IVA
+  let subtotal, iva, total
+  if (tipoFactura === 'IVA') {
+    // Si el total incluye IVA, calcular el subtotal dividiendo por 1.21
+    subtotal = totalConIva / 1.21
+    iva = totalConIva - subtotal
+    total = totalConIva
+  } else {
+    // REBU: sin IVA
+    subtotal = totalConIva
+    iva = 0
+    total = totalConIva
+  }
+
+  // Encabezados de tabla (sin cantidad)
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'bold')
+  doc.text('CONCEPTO', margin, yPosition)
+  doc.text('PRECIO', margin + 120, yPosition)
+  doc.text('TOTAL', margin + 160, yPosition)
+  yPosition += 5
+
+  // Línea de encabezados
+  doc.line(margin, yPosition, pageWidth - margin, yPosition)
+  yPosition += 5
+
+  // Concepto principal
+  doc.setFont('helvetica', 'normal')
+  const concepto = `Venta de vehículo: ${deal.vehiculo?.marca || 'No especificada'} ${deal.vehiculo?.modelo || 'No especificado'}`
+  const conceptoLineas = doc.splitTextToSize(concepto, 100)
+  doc.text(conceptoLineas, margin, yPosition)
+  
+  // Detalles adicionales del vehículo
+  doc.text(`Matrícula: ${deal.vehiculo?.matricula || 'No especificada'}`, margin, yPosition + 8)
+  doc.text(`Año: ${deal.vehiculo?.año || 'No especificado'}`, margin, yPosition + 12)
+  doc.text(`Kms: ${deal.vehiculo?.kms ? deal.vehiculo.kms.toLocaleString('es-ES') : 'No especificados'}`, margin, yPosition + 16)
+  doc.text(`Bastidor: ${deal.vehiculo?.bastidor || 'No especificado'}`, margin, yPosition + 20)
+  
+  // Datos de la tabla (sin cantidad) - ajustar posición para no superponerse con detalles
+  doc.text(formatCurrency(subtotal), margin + 120, yPosition + 20)
+  doc.text(formatCurrency(total), margin + 160, yPosition + 20)
+  yPosition += 30
+
+  // Línea de totales
+  doc.line(margin, yPosition, pageWidth - margin, yPosition)
+  yPosition += 5
+
+  // Totales
+  doc.setFont('helvetica', 'bold')
+  doc.text('SUBTOTAL:', margin + 120, yPosition)
+  doc.text(formatCurrency(subtotal), margin + 160, yPosition)
+  yPosition += 5
+
+  if (tipoFactura === 'IVA') {
+    doc.text('IVA (21%):', margin + 120, yPosition)
+    doc.text(formatCurrency(iva), margin + 160, yPosition)
+    yPosition += 5
+  }
+
+  // Línea de total final
+  doc.setLineWidth(1)
+  doc.line(margin + 120, yPosition, pageWidth - margin, yPosition)
+  yPosition += 5
+
+  doc.setFontSize(12)
+  doc.text('TOTAL:', margin + 120, yPosition)
+  doc.text(formatCurrency(total), margin + 160, yPosition)
+  yPosition += 15
+
+  // Información adicional
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'normal')
+  if (tipoFactura === 'REBU') {
+    doc.text('Régimen Especial Básico - Sin IVA', margin, yPosition)
+  } else {
+    doc.text('IVA incluido', margin, yPosition)
+  }
+  yPosition += 5
+  doc.text('Garantía: 12 meses', margin, yPosition)
+  yPosition += 5
+  doc.text('Forma de pago: ' + (deal.formaPagoSena || 'Efectivo'), margin, yPosition)
+
+  // Disclaimers legales
+  yPosition += 10
+  doc.setFontSize(7)
+  doc.setFont('helvetica', 'normal')
+  
+  // Cláusula de privacidad
+  doc.text('1) CLÁUSULA DE PRIVACIDAD', margin, yPosition)
+  yPosition += 4
+  doc.text('Responsable tratamiento: Datos indicados en factura | Los datos personales que nos facilitas los tratamos con el fin de prestarte el servicio solicitado y facturarlo. Los datos los trataremos mientras manteng Si consideras que no hemos satisfecho tu petición, puedes presentar una reclamación a la Agencia Española de Protección de Datos en https://www.aepd.es/', margin, yPosition, { maxWidth: pageWidth - 2 * margin })
+  yPosition += 8
+  
+  // Registro mercantil
+  doc.text('2) Registro Mercantil de Valencia 25/02/2025, en el FOLIO ELECTRÓNICO, inscripción 1 con hoja V-223873.', margin, yPosition, { maxWidth: pageWidth - 2 * margin })
+  yPosition += 10
+
+  // Pie de página
+  yPosition = pageHeight - 30
+  doc.setFontSize(8)
+  doc.text('Gracias por su confianza', pageWidth / 2, yPosition, { align: 'center' })
+  yPosition += 4
+  doc.text('Seven Cars Motors S.L. - CIF: B-75939868', pageWidth / 2, yPosition, { align: 'center' })
+
+  // Guardar el PDF
+  const nombreArchivo = `factura-${tipoFactura.toLowerCase()}-${numeroFactura}.pdf`
+  doc.save(nombreArchivo)
 }

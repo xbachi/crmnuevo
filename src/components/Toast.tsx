@@ -84,14 +84,14 @@ export default function Toast({ message, type, duration = 3000, onClose }: Toast
 
 // Hook para usar toasts
 export function useToast() {
-  const [toasts, setToasts] = useState<Array<{ id: number; message: string; type: 'success' | 'error' | 'info' }>>([])
+  const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: 'success' | 'error' | 'info' }>>([])
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
-    const id = Date.now()
+    const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     setToasts(prev => [...prev, { id, message, type }])
   }
 
-  const removeToast = (id: number) => {
+  const removeToast = (id: string) => {
     setToasts(prev => prev.filter(toast => toast.id !== id))
   }
 

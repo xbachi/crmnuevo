@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { Cliente, NotaCliente } from '@/lib/database'
 import { useSimpleToast } from '@/hooks/useSimpleToast'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
+import ClientReminders from '@/components/ClientReminders'
 
 export default function ClienteDetailPage() {
   const router = useRouter()
@@ -1324,6 +1325,12 @@ export default function ClienteDetailPage() {
                 </div>
               </div>
             </div>
+
+            {/* Recordatorios */}
+            <ClientReminders 
+              clienteId={cliente.id} 
+              clienteNombre={`${cliente.nombre} ${cliente.apellidos}`}
+            />
 
             {/* Etiquetas */}
             {cliente.etiquetas && (Array.isArray(cliente.etiquetas) ? cliente.etiquetas.length > 0 : true) && (

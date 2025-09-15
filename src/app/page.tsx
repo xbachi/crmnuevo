@@ -4,26 +4,22 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import RemindersList from '@/components/RemindersList'
 import DashboardReminders from '@/components/DashboardReminders'
+import ManualReminders from '@/components/ManualReminders'
+import VentasPorMes from '@/components/VentasPorMes'
 
 interface DashboardStats {
-  totalVehiculos: number
-  vehiculosEnStock: number
-  vehiculosVendidos: number
-  totalInversores: number
-  capitalInvertido: number
-  beneficioTotal: number
+  totalActivos: number
+  publicados: number
+  enProceso: number
   vehiculosItvVencida: number
 }
 
 
 export default function Home() {
   const [stats, setStats] = useState<DashboardStats>({
-    totalVehiculos: 0,
-    vehiculosEnStock: 0,
-    vehiculosVendidos: 0,
-    totalInversores: 0,
-    capitalInvertido: 0,
-    beneficioTotal: 0,
+    totalActivos: 0,
+    publicados: 0,
+    enProceso: 0,
     vehiculosItvVencida: 0
   })
   const [isLoading, setIsLoading] = useState(true)
@@ -34,23 +30,36 @@ export default function Home() {
 
   const fetchDashboardData = async () => {
     try {
-      // Simular carga de datos - en una implementación real, harías llamadas a la API
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      setStats({
-        totalVehiculos: 47,
-        vehiculosEnStock: 23,
-        vehiculosVendidos: 24,
-        totalInversores: 5,
-        capitalInvertido: 450000,
-        beneficioTotal: 85000,
-        vehiculosItvVencida: 3
-      })
-
+      // Cargar estadísticas reales de vehículos
+      const vehiculoStatsResponse = await fetch('/api/vehiculos/stats')
+      if (vehiculoStatsResponse.ok) {
+        const vehiculoStats = await vehiculoStatsResponse.json()
+        setStats({
+          totalActivos: vehiculoStats.totalActivos,
+          publicados: vehiculoStats.publicados,
+          enProceso: vehiculoStats.enProceso,
+          vehiculosItvVencida: 3 // Mantener por ahora, se puede implementar después
+        })
+      } else {
+        // Fallback a datos simulados si hay error
+        setStats({
+          totalActivos: 47,
+          publicados: 23,
+          enProceso: 24,
+          vehiculosItvVencida: 3
+        })
+      }
 
       setIsLoading(false)
     } catch (error) {
       console.error('Error loading dashboard data:', error)
+      // Fallback a datos simulados
+      setStats({
+        totalActivos: 47,
+        publicados: 23,
+        enProceso: 24,
+        vehiculosItvVencida: 3
+      })
       setIsLoading(false)
     }
   }
@@ -112,8 +121,7 @@ export default function Home() {
               
               {/* Recordatorios manuales (del sistema de recordatorios) */}
               <div className="mb-4">
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Recordatorios Manuales</h3>
-                <RemindersList maxItems={5} className="mb-4" />
+                <ManualReminders />
               </div>
               
             </div>
@@ -156,7 +164,7 @@ export default function Home() {
                   <div className="flex items-center space-x-3">
                     <span className="text-2xl">📊</span>
                     <div>
-                      <h3 className="font-medium">Kanban</h3>
+                      <h3 className="font-medium">Proceso</h3>
                       <p className="text-purple-100 text-sm">Flujo de trabajo</p>
                     </div>
                   </div>
@@ -178,8 +186,8 @@ export default function Home() {
                       <span className="text-white font-bold">📊</span>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Total</p>
-                      <p className="text-xl font-bold text-gray-900">{stats.totalVehiculos}</p>
+                      <p className="text-sm text-gray-600">Total Activos</p>
+                      <p className="text-xl font-bold text-gray-900">{stats.totalActivos}</p>
                     </div>
                   </div>
                 </div>
@@ -190,90 +198,28 @@ export default function Home() {
                       <span className="text-white font-bold">✅</span>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">En Stock</p>
-                      <p className="text-xl font-bold text-gray-900">{stats.vehiculosEnStock}</p>
+                      <p className="text-sm text-gray-600">Publicados</p>
+                      <p className="text-xl font-bold text-gray-900">{stats.publicados}</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
-                      <span className="text-white font-bold">💰</span>
+                    <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
+                      <span className="text-white font-bold">🔧</span>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Vendidos</p>
-                      <p className="text-xl font-bold text-gray-900">{stats.vehiculosVendidos}</p>
+                      <p className="text-sm text-gray-600">En Proceso</p>
+                      <p className="text-xl font-bold text-gray-900">{stats.enProceso}</p>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Resumen Financiero */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Resumen Financiero</h2>
-              
-              <div className="space-y-4">
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Capital Invertido</span>
-                    <span className="font-bold text-gray-900">€{stats.capitalInvertido.toLocaleString()}</span>
-                  </div>
-                </div>
-
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Beneficio Total</span>
-                    <span className="font-bold text-green-600">€{stats.beneficioTotal.toLocaleString()}</span>
-                  </div>
-                </div>
-
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Inversores Activos</span>
-                    <span className="font-bold text-gray-900">{stats.totalInversores}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Gráfico Simple */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Ventas por Mes</h2>
-              
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Enero</span>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-20 bg-gray-200 rounded-full h-2">
-                      <div className="bg-blue-500 h-2 rounded-full" style={{width: '75%'}}></div>
-                    </div>
-                    <span className="text-sm font-medium">6</span>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Febrero</span>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-20 bg-gray-200 rounded-full h-2">
-                      <div className="bg-green-500 h-2 rounded-full" style={{width: '60%'}}></div>
-                    </div>
-                    <span className="text-sm font-medium">5</span>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Marzo</span>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-20 bg-gray-200 rounded-full h-2">
-                      <div className="bg-purple-500 h-2 rounded-full" style={{width: '90%'}}></div>
-                    </div>
-                    <span className="text-sm font-medium">7</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            {/* Ventas por Mes */}
+            <VentasPorMes />
           </div>
         </div>
       </div>

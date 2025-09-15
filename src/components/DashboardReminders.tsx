@@ -104,6 +104,8 @@ export default function DashboardReminders() {
       {reminders.map((reminder) => (
         <div
           key={reminder.id}
+          data-reminder-type={reminder.type}
+          data-count={reminder.count}
           className={`p-3 rounded-lg border-l-4 ${
             reminder.priority === 'high' ? 'bg-red-50 border-red-500' :
             reminder.priority === 'medium' ? 'bg-yellow-50 border-yellow-500' :
@@ -143,6 +145,7 @@ export default function DashboardReminders() {
                       {reminder.items.slice(0, 5).map((item, index) => (
                         <div 
                           key={index} 
+                          data-deal-id={item.dealId}
                           className={`px-2 py-1 rounded-lg border text-xs ${
                             reminder.priority === 'high' ? 'bg-red-100 border-red-200' :
                             reminder.priority === 'medium' ? 'bg-yellow-100 border-yellow-200' :

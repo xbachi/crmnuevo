@@ -19,10 +19,27 @@ export function formatDateTime(dateString: string): string {
 }
 
 export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('es-ES', {
-    style: 'currency',
-    currency: 'EUR'
-  }).format(amount)
+  if (amount === 0) return '0€'
+  
+  // Redondear a 2 decimales
+  const roundedAmount = Math.round(amount * 100) / 100
+  
+  // Verificar si es un número entero después del redondeo
+  if (Number.isInteger(roundedAmount)) {
+    // Para números enteros: separador de miles con punto, sin decimales
+    return `${formatNumberWithThousands(roundedAmount)}€`
+  } else {
+    // Para números con decimales: separador de miles con punto, decimales con coma (máximo 2)
+    const parts = roundedAmount.toString().split('.')
+    const integerPart = formatNumberWithThousands(parseInt(parts[0]))
+    const decimalPart = parts[1] ? ',' + parts[1].padEnd(2, '0').substring(0, 2) : ''
+    return `${integerPart}${decimalPart}€`
+  }
+}
+
+// Función auxiliar para formatear números con separador de miles
+function formatNumberWithThousands(num: number): string {
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
 }
 
 export function formatPercentage(value: number): string {

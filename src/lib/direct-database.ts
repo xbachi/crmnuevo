@@ -1,12 +1,42 @@
 // Conexión directa a PostgreSQL sin Prisma para evitar problemas del pooler
 import { Pool } from 'pg'
 
+// Cargar variables de entorno manualmente
+const fs = require('fs');
+const path = require('path');
+
+// Función para cargar .env.local
+function loadEnvFile() {
+  try {
+    const envPath = path.join(process.cwd(), '.env.local');
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, 'utf8');
+      const lines = content.split('\n');
+      lines.forEach(line => {
+        const [key, value] = line.split('=');
+        if (key && value) {
+          process.env[key] = value.replace(/"/g, '');
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error cargando .env.local:', error);
+  }
+}
+
+// Cargar variables de entorno
+loadEnvFile();
+
+console.log('DATABASE_URL cargada:', process.env.DATABASE_URL ? 'Sí' : 'No');
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
     rejectUnauthorized: false
   }
 })
+
+export { pool }
 
 export interface Vehiculo {
   id: number
@@ -287,6 +317,11 @@ export async function getDeals() {
       pagosResto: row.pagosResto,
       observaciones: row.observaciones,
       responsableComercial: row.responsableComercial,
+      // Cambio de nombre
+      cambioNombreSolicitado: row.cambioNombreSolicitado ?? false,
+      documentacionRecibida: row.documentacionRecibida ?? false,
+      clienteAvisado: row.clienteAvisado ?? false,
+      documentacionRetirada: row.documentacionRetirada ?? false,
       logHistorial: row.logHistorial,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt
@@ -382,6 +417,11 @@ export async function getDealById(id: number): Promise<Deal | null> {
       pagosResto: row.pagosResto,
       observaciones: row.observaciones,
       responsableComercial: row.responsableComercial,
+      // Cambio de nombre
+      cambioNombreSolicitado: row.cambioNombreSolicitado ?? false,
+      documentacionRecibida: row.documentacionRecibida ?? false,
+      clienteAvisado: row.clienteAvisado ?? false,
+      documentacionRetirada: row.documentacionRetirada ?? false,
       logHistorial: row.logHistorial,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt
@@ -1178,6 +1218,240 @@ export async function cleanupOrphanVehicles() {
     }
   } catch (error) {
     console.error('Error limpiando vehículos huérfanos:', error)
+    throw error
+  } finally {
+    client.release()
+  }
+}
+
+// ===== FUNCIONES PARA RECORDATORIOS DE CLIENTES =====
+
+export interface ClienteReminder {
+  id: number
+  clienteId: number
+  titulo: string
+  descripcion: string
+  tipo: 'llamada' | 'visita' | 'email' | 'seguimiento' | 'otro'
+  prioridad: 'alta' | 'media' | 'baja'
+  fechaRecordatorio: string
+  completado: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export async function createClienteReminder(data: {
+  clienteId: number
+  titulo: string
+  descripcion: string
+  tipo: 'llamada' | 'visita' | 'email' | 'seguimiento' | 'otro'
+  prioridad: 'alta' | 'media' | 'baja'
+  fechaRecordatorio: string
+  dealId?: number
+}): Promise<ClienteReminder> {
+  const client = await pool.connect()
+  try {
+    const result = await client.query(`
+      INSERT INTO "ClienteReminder" (
+        "clienteId", titulo, descripcion, tipo, prioridad, "fechaRecordatorio", completado, "deal_id"
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *
+    `, [
+      data.clienteId,
+      data.titulo,
+      data.descripcion,
+      data.tipo,
+      data.prioridad,
+      data.fechaRecordatorio,
+      false,
+      data.dealId || null
+    ])
+    
+    return result.rows[0]
+  } catch (error) {
+    console.error('Error creating client reminder:', error)
+    throw error
+  } finally {
+    client.release()
+  }
+}
+
+export async function getClienteReminders(clienteId: number): Promise<ClienteReminder[]> {
+  const client = await pool.connect()
+  try {
+    const result = await client.query(`
+      SELECT * FROM "ClienteReminder"
+      WHERE "clienteId" = $1
+      ORDER BY "fechaRecordatorio" ASC, "createdAt" DESC
+    `, [clienteId])
+    
+    return result.rows
+  } catch (error) {
+    console.error('Error fetching client reminders:', error)
+    throw error
+  } finally {
+    client.release()
+  }
+}
+
+export async function updateClienteReminder(reminderId: number, data: { completado: boolean }): Promise<ClienteReminder | null> {
+  const client = await pool.connect()
+  try {
+    const result = await client.query(`
+      UPDATE "ClienteReminder"
+      SET completado = $1, "updatedAt" = NOW()
+      WHERE id = $2
+      RETURNING *
+    `, [data.completado, reminderId])
+    
+    return result.rows[0] || null
+  } catch (error) {
+    console.error('Error updating client reminder:', error)
+    throw error
+  } finally {
+    client.release()
+  }
+}
+
+export async function deleteClienteReminder(reminderId: number): Promise<boolean> {
+  const client = await pool.connect()
+  try {
+    const result = await client.query(`
+      DELETE FROM "ClienteReminder"
+      WHERE id = $1
+    `, [reminderId])
+    
+    return result.rowCount > 0
+  } catch (error) {
+    console.error('Error deleting client reminder:', error)
+    throw error
+  } finally {
+    client.release()
+  }
+}
+
+export async function getAllReminders(): Promise<(ClienteReminder & { clienteNombre: string })[]> {
+  const client = await pool.connect()
+  try {
+    const result = await client.query(`
+      SELECT 
+        cr.*,
+        c.nombre || ' ' || c.apellidos as "clienteNombre"
+      FROM "ClienteReminder" cr
+      JOIN "Cliente" c ON cr."clienteId" = c.id
+      WHERE cr.completado = false
+      ORDER BY cr."fechaRecordatorio" ASC, cr."createdAt" DESC
+    `)
+    
+    return result.rows
+  } catch (error) {
+    console.error('Error fetching all reminders:', error)
+    throw error
+  } finally {
+    client.release()
+  }
+}
+
+// ===== FUNCIONES PARA ESTADÍSTICAS DE VEHÍCULOS =====
+
+export interface VehiculoStats {
+  totalActivos: number
+  publicados: number
+  enProceso: number
+}
+
+export async function getVehiculoStats(): Promise<VehiculoStats> {
+  const client = await pool.connect()
+  try {
+    // Obtener estadísticas de vehículos
+    
+    // Total de vehículos activos (no vendidos)
+    const totalActivosResult = await client.query(`
+      SELECT COUNT(*) as count
+      FROM "Vehiculo"
+      WHERE estado != 'vendido'
+    `)
+    
+    // Vehículos publicados - buscamos tanto 'PUBLICADO' como 'publicado' y 'disponible'
+    const publicadosResult = await client.query(`
+      SELECT COUNT(*) as count
+      FROM "Vehiculo"
+      WHERE estado IN ('PUBLICADO', 'publicado', 'disponible')
+    `)
+    
+    
+    // Vehículos en proceso (todos los demás estados excepto vendido y publicados)
+    const enProcesoResult = await client.query(`
+      SELECT COUNT(*) as count
+      FROM "Vehiculo"
+      WHERE estado NOT IN ('vendido', 'PUBLICADO', 'publicado', 'disponible')
+    `)
+    
+    return {
+      totalActivos: parseInt(totalActivosResult.rows[0].count),
+      publicados: parseInt(publicadosResult.rows[0].count),
+      enProceso: parseInt(enProcesoResult.rows[0].count)
+    }
+  } catch (error) {
+    console.error('Error fetching vehiculo stats:', error)
+    throw error
+  } finally {
+    client.release()
+  }
+}
+
+// ===== FUNCIONES PARA VENTAS POR MES =====
+
+export interface VentasPorMes {
+  mes: string
+  año: number
+  cantidad: number
+}
+
+export async function getVentasPorMes(periodo: 'mes_actual' | 'mes_anterior' | 'ultimos_3_meses' | 'ultimos_6_meses' | 'año'): Promise<VentasPorMes[]> {
+  const client = await pool.connect()
+  try {
+    
+    let whereClause = ''
+    
+    switch (periodo) {
+      case 'mes_actual':
+        whereClause = `AND EXTRACT(YEAR FROM "updatedAt") = EXTRACT(YEAR FROM NOW()) 
+                       AND EXTRACT(MONTH FROM "updatedAt") = EXTRACT(MONTH FROM NOW())`
+        break
+      case 'mes_anterior':
+        whereClause = `AND EXTRACT(YEAR FROM "updatedAt") = EXTRACT(YEAR FROM NOW() - INTERVAL '1 month') 
+                       AND EXTRACT(MONTH FROM "updatedAt") = EXTRACT(MONTH FROM NOW() - INTERVAL '1 month')`
+        break
+      case 'ultimos_3_meses':
+        whereClause = `AND "updatedAt" >= NOW() - INTERVAL '3 months'`
+        break
+      case 'ultimos_6_meses':
+        whereClause = `AND "updatedAt" >= NOW() - INTERVAL '6 months'`
+        break
+      case 'año':
+        whereClause = `AND EXTRACT(YEAR FROM "updatedAt") = EXTRACT(YEAR FROM NOW())`
+        break
+    }
+    
+    const result = await client.query(`
+      SELECT 
+        TO_CHAR("updatedAt", 'YYYY-MM') as mes,
+        EXTRACT(YEAR FROM "updatedAt") as año,
+        COUNT(*) as cantidad
+      FROM "Vehiculo"
+      WHERE estado = 'vendido'
+      ${whereClause}
+      GROUP BY TO_CHAR("updatedAt", 'YYYY-MM'), EXTRACT(YEAR FROM "updatedAt")
+      ORDER BY año DESC, mes DESC
+    `)
+    
+    return result.rows.map(row => ({
+      mes: row.mes,
+      año: parseInt(row.año),
+      cantidad: parseInt(row.cantidad)
+    }))
+  } catch (error) {
+    console.error('Error fetching ventas por mes:', error)
     throw error
   } finally {
     client.release()

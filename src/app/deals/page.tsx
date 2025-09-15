@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/Toast'
+import { formatCurrency } from '@/lib/utils'
 import Link from 'next/link'
 
 interface Deal {

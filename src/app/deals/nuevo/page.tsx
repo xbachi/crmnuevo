@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/Toast'
+import { formatCurrency } from '@/lib/utils'
 import Link from 'next/link'
 
 interface Cliente {
@@ -408,7 +409,7 @@ export default function NuevoDealPage() {
                           </div>
                           {vehiculo.precioPublicacion && (
                             <div className="text-green-600 font-medium text-xs">
-                              €{vehiculo.precioPublicacion.toLocaleString()}
+                              {formatCurrency(vehiculo.precioPublicacion)}
                             </div>
                           )}
                         </button>
@@ -427,7 +428,7 @@ export default function NuevoDealPage() {
                       <p className="text-blue-600">Matrícula: {selectedVehiculo.matricula}</p>
                       {selectedVehiculo.precioPublicacion && (
                         <p className="text-blue-600">
-                          Precio: €{selectedVehiculo.precioPublicacion.toLocaleString()}
+                          Precio: {formatCurrency(selectedVehiculo.precioPublicacion)}
                         </p>
                       )}
                     </div>
