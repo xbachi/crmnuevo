@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
       const nombreCompleto = `${cliente.nombre} ${cliente.apellidos}`.toLowerCase()
       const telefono = cliente.telefono.toLowerCase()
       const email = cliente.email?.toLowerCase() || ''
-      const vehiculo = cliente.intereses.vehiculoPrincipal?.toLowerCase() || ''
+      const vehiculo = cliente.intereses?.vehiculoPrincipal?.toLowerCase() || ''
       
       return nombreCompleto.includes(queryLower) ||
              telefono.includes(queryLower) ||
