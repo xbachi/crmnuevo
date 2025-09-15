@@ -60,6 +60,12 @@ const DocumentacionIcon = () => (
   </svg>
 )
 
+const DepositosIcon = () => (
+  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+    <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h4a2 2 0 012 2v2a2 2 0 01-2 2H8a2 2 0 01-2-2v-2z" clipRule="evenodd" />
+  </svg>
+)
+
 export default function Navigation() {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const pathname = usePathname()
@@ -70,6 +76,7 @@ export default function Navigation() {
     { href: '/clientes', label: 'Clientes', icon: ClientesIcon },
     { href: '/inversores', label: 'Inversores', icon: InversoresIcon },
     { href: '/deals', label: 'Deals', icon: DealsIcon },
+    { href: '/depositos', label: 'Depósitos de venta', icon: DepositosIcon },
     { href: '/kanban', label: 'Procesos Venta', icon: KanbanIcon },
     { href: '/documentacion', label: 'Documentación', icon: DocumentacionIcon },
     { href: '/importar-csv', label: 'Importar CSV', icon: ImportIcon }

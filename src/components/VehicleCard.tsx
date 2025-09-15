@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 interface Vehiculo {
   id: number
@@ -40,6 +41,9 @@ interface Vehiculo {
   documentacion?: string
   itv?: string
   seguro?: string
+  // Depósito
+  enDeposito?: boolean
+  depositoId?: number
 }
 
 interface VehicleCardProps {
@@ -88,6 +92,8 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
         return 'bg-blue-100 text-blue-700 border-blue-200'
       case 'Deposito Venta':
         return 'bg-orange-100 text-orange-700 border-orange-200'
+      case 'D':
+        return 'bg-orange-100 text-orange-700 border-orange-200'
       default:
         return 'bg-gray-100 text-gray-700 border-gray-200'
     }
@@ -100,6 +106,8 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
       case 'Coche R':
         return 'Coche R'
       case 'Deposito Venta':
+        return 'Depósito'
+      case 'D':
         return 'Depósito'
       default:
         return tipo
@@ -121,6 +129,12 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
           </svg>
         )
       case 'Deposito Venta':
+        return (
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+          </svg>
+        )
+      case 'D':
         return (
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
@@ -263,6 +277,17 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
               >
                 {vehiculo.inversorNombre}
               </button>
+            )}
+            
+            {/* Badge En depósito */}
+            {vehiculo.enDeposito && vehiculo.depositoId && (
+              <Link
+                href={`/depositos/${vehiculo.depositoId}`}
+                className="text-xs text-orange-600 font-medium hover:text-orange-800 hover:underline transition-colors cursor-pointer"
+                title="Ver depósito"
+              >
+                En depósito
+              </Link>
             )}
           </div>
         </div>

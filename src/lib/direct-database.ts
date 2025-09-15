@@ -105,9 +105,11 @@ export async function getVehiculos(limit?: number, offset?: number): Promise<Veh
         v."gastosTasas", v."gastosMecanica", v."gastosPintura", v."gastosLimpieza",
         v."gastosOtros", v."precioPublicacion", v."precioVenta", v."beneficioNeto",
         v."notasInversor", v."fotoInversor", v.itv, v.seguro, v."segundaLlave",
-        v.carpeta, v.master, v."hojasA", v.documentacion, i.nombre as inversor_nombre 
+        v.carpeta, v.master, v."hojasA", v.documentacion, i.nombre as inversor_nombre,
+        d.id as deposito_id, d.estado as deposito_estado
       FROM "Vehiculo" v
       LEFT JOIN "Inversor" i ON v."inversorId" = i.id
+      LEFT JOIN depositos d ON v.id = d.vehiculo_id AND d.estado = 'ACTIVO'
       ORDER BY v."createdAt" DESC, v.id DESC
       ${limitClause} ${offsetClause}
     `)
@@ -153,7 +155,9 @@ export async function getVehiculos(limit?: number, offset?: number): Promise<Veh
       carpeta: row.carpeta,
       master: row.master,
       hojasA: row.hojasA,
-      documentacion: row.documentacion
+      documentacion: row.documentacion,
+      enDeposito: !!row.deposito_id,
+      depositoId: row.deposito_id
     }))
   } catch (error) {
     console.error('Error obteniendo vehículos:', error)
