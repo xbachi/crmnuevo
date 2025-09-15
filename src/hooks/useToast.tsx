@@ -21,7 +21,29 @@ export function useToast() {
   if (!context) {
     throw new Error('useToast must be used within a ToastProvider')
   }
-  return context
+  
+  const [toasts, setToasts] = useState<Toast[]>([])
+  
+  const showToast = (message: string, type: Toast['type'] = 'info', duration = 3000) => {
+    const id = Math.random().toString(36).substr(2, 9)
+    const newToast: Toast = { id, message, type, duration }
+    
+    setToasts(prev => [...prev, newToast])
+    
+    setTimeout(() => {
+      setToasts(prev => prev.filter(toast => toast.id !== id))
+    }, duration)
+  }
+
+  const removeToast = (id: string) => {
+    setToasts(prev => prev.filter(toast => toast.id !== id))
+  }
+
+  const ToastContainerComponent = () => (
+    <ToastContainer toasts={toasts} onRemove={removeToast} />
+  )
+
+  return { showToast, ToastContainer: ToastContainerComponent }
 }
 
 interface ToastProviderProps {
@@ -62,7 +84,7 @@ interface ToastContainerProps {
   onRemove: (id: string) => void
 }
 
-function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
+export function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
   if (toasts.length === 0) return null
 
   return (
