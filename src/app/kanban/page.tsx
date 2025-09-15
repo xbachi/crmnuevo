@@ -294,89 +294,93 @@ export default function KanbanPage() {
   }
 
   return (
-    <div className="h-full bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Header fijo */}
       <div className="bg-white border-b border-slate-200 px-6 py-4 flex-shrink-0">
-        <div className="flex flex-col space-y-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-xl font-bold text-slate-800">Tablero de Procesos</h1>
-              <p className="text-sm text-slate-600">Arrastra y suelta los vehículos entre las diferentes etapas</p>
-            </div>
-            <button
-              onClick={handleManualSync}
-              disabled={isLoading}
-              className="bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-            >
-              <span>🔄</span>
-              <span>Actualizar Datos</span>
-            </button>
-          </div>
-          
-          {/* Barra de búsqueda */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex-1">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Buscar vehículos en el tablero..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-4 py-2 pl-10 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white transition-all duration-300"
-                />
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </div>
-                {searchTerm && (
-                  <button
-                    onClick={() => setSearchTerm('')}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
-                  >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                )}
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-xl font-bold text-slate-800">Tablero de Procesos</h1>
+                <p className="text-sm text-slate-600">Arrastra y suelta los vehículos entre las diferentes etapas</p>
               </div>
+              <button
+                onClick={handleManualSync}
+                disabled={isLoading}
+                className="bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+              >
+                <span>🔄</span>
+                <span>Actualizar Datos</span>
+              </button>
             </div>
             
-            <select
-              value={searchField}
-              onChange={(e) => setSearchField(e.target.value as any)}
-              className="px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white transition-all duration-300 min-w-[150px]"
-            >
-              <option value="todos">Todos los campos</option>
-              <option value="referencia">Referencia</option>
-              <option value="marca">Marca</option>
-              <option value="modelo">Modelo</option>
-              <option value="matricula">Matrícula</option>
-              <option value="bastidor">Bastidor</option>
-              <option value="tipo">Tipo</option>
-            </select>
-            
-            <div className="flex items-center space-x-2 text-sm text-slate-600">
-              <span>Total: {vehiculos.length}</span>
-              <span>•</span>
-              <span>Mostrando: {filteredVehiculos.length}</span>
+            {/* Barra de búsqueda */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Buscar vehículos en el tablero..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full px-4 py-2 pl-10 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white transition-all duration-300"
+                  />
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg className="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              </div>
+              
+              <select
+                value={searchField}
+                onChange={(e) => setSearchField(e.target.value as any)}
+                className="px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white transition-all duration-300 min-w-[150px]"
+              >
+                <option value="todos">Todos los campos</option>
+                <option value="referencia">Referencia</option>
+                <option value="marca">Marca</option>
+                <option value="modelo">Modelo</option>
+                <option value="matricula">Matrícula</option>
+                <option value="bastidor">Bastidor</option>
+                <option value="tipo">Tipo</option>
+              </select>
+              
+              <div className="flex items-center space-x-2 text-sm text-slate-600">
+                <span>Total: {vehiculos.length}</span>
+                <span>•</span>
+                <span>Mostrando: {filteredVehiculos.length}</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Tablero Kanban - Ocupa el resto de la pantalla */}
+      {/* Tablero Kanban - Ancho completo */}
       <div className="flex-1 overflow-hidden p-4">
-        <KanbanBoard
-          vehiculos={filteredVehiculos}
-          onUpdateVehiculos={(update) => {
-            if (typeof update === 'function') {
-              setVehiculos(update)
-            } else {
-              setVehiculos(update)
-            }
-          }}
-        />
+        <div className="w-full h-full">
+          <KanbanBoard
+            vehiculos={filteredVehiculos}
+            onUpdateVehiculos={(update) => {
+              if (typeof update === 'function') {
+                setVehiculos(update)
+              } else {
+                setVehiculos(update)
+              }
+            }}
+          />
+        </div>
       </div>
 
       {/* Modal de Edición */}

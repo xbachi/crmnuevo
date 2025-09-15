@@ -120,10 +120,7 @@ export function InvestorVehicleCard({ vehiculo, inversor, onView, onEdit, onEdit
           <div className="flex items-start space-x-4">
             <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl flex items-center justify-center shadow-sm">
               <span className="text-white font-bold text-sm">
-                {vehiculo.referencia.length > 4 
-                  ? vehiculo.referencia.substring(0, 4) 
-                  : vehiculo.referencia
-                }
+                #{vehiculo.referencia.slice(-2)}
               </span>
             </div>
             <div className="flex-1">
@@ -203,31 +200,38 @@ export function InvestorVehicleCard({ vehiculo, inversor, onView, onEdit, onEdit
       <div className="p-6">
         {/* Información básica del vehículo */}
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 mb-4 border border-blue-200">
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div className="flex items-center space-x-2">
-              <span className="text-gray-600 font-medium">Matrícula:</span>
-              <span className="font-semibold text-gray-900">{vehiculo.matricula}</span>
+          <div className="space-y-3 text-sm">
+            {/* Primera fila: Matrícula y Color */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center space-x-2">
+                <span className="text-gray-600 font-medium">Matrícula:</span>
+                <span className="font-semibold text-gray-900">{vehiculo.matricula}</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-gray-600 font-medium">Color:</span>
+                <span className="font-semibold text-gray-900">{vehiculo.color || 'No especificado'}</span>
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-gray-600 font-medium">Bastidor:</span>
-              <span className="font-semibold text-gray-900 text-xs">{vehiculo.bastidor}</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-gray-600 font-medium">KMs:</span>
-              <span className="font-semibold text-gray-900">{vehiculo.kms?.toLocaleString()}</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-gray-600 font-medium">Color:</span>
-              <span className="font-semibold text-gray-900">{vehiculo.color || 'No especificado'}</span>
-            </div>
-            {vehiculo.fechaMatriculacion && (
-              <div className="flex items-center space-x-2 col-span-2">
+            
+            {/* Segunda fila: Fecha de matriculación y KMs */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center space-x-2">
                 <span className="text-gray-600 font-medium">Fecha Matriculación:</span>
                 <span className="font-semibold text-gray-900">
-                  {new Date(vehiculo.fechaMatriculacion).toLocaleDateString('es-ES')}
+                  {vehiculo.fechaMatriculacion ? new Date(vehiculo.fechaMatriculacion).toLocaleDateString('es-ES') : 'No especificada'}
                 </span>
               </div>
-            )}
+              <div className="flex items-center space-x-2">
+                <span className="text-gray-600 font-medium">KMs:</span>
+                <span className="font-semibold text-gray-900">{vehiculo.kms?.toLocaleString()}</span>
+              </div>
+            </div>
+            
+            {/* Tercera fila: Bastidor (ancho completo) */}
+            <div className="flex items-center space-x-2">
+              <span className="text-gray-600 font-medium">Bastidor:</span>
+              <span className="font-semibold text-gray-900 text-xs break-all flex-1">{vehiculo.bastidor}</span>
+            </div>
           </div>
         </div>
 
@@ -357,34 +361,21 @@ export function InvestorVehicleCard({ vehiculo, inversor, onView, onEdit, onEdit
               className="cursor-pointer group relative"
               onClick={handlePhotoClick}
             >
-              {!imageError ? (
-                <img 
-                  src={localPhotoUrl || vehiculo.fotoInversor} 
-                  alt={`${vehiculo.marca} ${vehiculo.modelo}`}
-                  className="w-full h-32 object-cover rounded-lg shadow-sm group-hover:shadow-md transition-shadow"
-                  onError={(e) => {
-                    console.error('Error al cargar imagen:', e)
-                    setImageError(true)
-                  }}
-                  onLoad={() => {
-                    console.log('Imagen cargada correctamente')
-                    setImageError(false)
-                  }}
-                />
-              ) : (
-                <div className="w-full h-32 bg-gray-200 rounded-lg flex items-center justify-center">
-                  <div className="text-center text-gray-500">
-                    <svg className="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <p className="text-sm">Error al cargar imagen</p>
-                  </div>
-                </div>
-              )}
-              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-lg flex items-center justify-center transition-all">
-                <svg className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                </svg>
+              <img 
+                src={localPhotoUrl || vehiculo.fotoInversor} 
+                alt={`${vehiculo.marca} ${vehiculo.modelo}`}
+                className="w-full h-32 object-cover rounded-lg shadow-sm group-hover:shadow-md transition-shadow border border-gray-200"
+                onError={(e) => {
+                  console.error('Error al cargar imagen:', e)
+                  setImageError(true)
+                }}
+                onLoad={() => {
+                  console.log('Imagen cargada correctamente')
+                  setImageError(false)
+                }}
+              />
+              <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                Ver grande
               </div>
             </div>
           ) : (

@@ -110,7 +110,7 @@ export default function DraggableVehicleCard({ vehiculo }: DraggableVehicleCardP
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3 flex-1 min-w-0">
             {/* Logo del vehículo - últimos 2 números */}
-            <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center flex-shrink-0">
               <span className="text-white font-bold text-xs">
                 {vehiculo.referencia.length >= 2 
                   ? vehiculo.referencia.substring(vehiculo.referencia.length - 2) 

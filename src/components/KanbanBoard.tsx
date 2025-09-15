@@ -10,9 +10,11 @@ import {
   useSensor,
   useSensors,
   DragOverlay,
+  useDroppable,
 } from '@dnd-kit/core'
-import { arrayMove } from '@dnd-kit/sortable'
+import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import KanbanColumn from './KanbanColumn'
+import DraggableVehicleCard from './DraggableVehicleCard'
 import { useToast } from './Toast'
 import { useConfirmModal } from './ConfirmModal'
 
@@ -269,16 +271,56 @@ export default function KanbanBoard({ vehiculos, onUpdateVehiculos }: KanbanBoar
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-3 h-full overflow-y-auto">
-          {ESTADOS.map((estado) => (
-            <KanbanColumn
-              key={estado.id}
-              id={estado.id}
-              title={estado.title}
-              vehiculos={vehiculosPorEstado[estado.id] || []}
-              color={estado.color}
-            />
-          ))}
+        <div className="flex flex-col gap-4 h-full">
+          {/* Columnas principales arriba */}
+          <div className="grid grid-cols-7 gap-3 flex-1">
+            {ESTADOS.filter(estado => estado.id !== 'PUBLICADO').map((estado) => (
+              <KanbanColumn
+                key={estado.id}
+                id={estado.id}
+                title={estado.title}
+                vehiculos={vehiculosPorEstado[estado.id] || []}
+                color={estado.color}
+              />
+            ))}
+          </div>
+          
+          {/* Columna Publicado abajo y más ancha con distribución horizontal */}
+          <div className="w-full flex justify-center mt-12">
+            <div className="flex flex-col h-full w-4/5">
+              {/* Header de la columna Publicado */}
+              <div className="bg-green-600 px-3 py-2 rounded-t-md flex items-center justify-center flex-shrink-0">
+                <h3 className="text-sm font-semibold text-white">Publicado</h3>
+                <div className="text-xs text-white/80 bg-white/20 px-2 py-1 rounded-full flex-shrink-0 ml-2">
+                  {(vehiculosPorEstado['PUBLICADO'] || []).length}
+                </div>
+              </div>
+
+              {/* Área de drop con distribución horizontal */}
+              <div
+                ref={useDroppable({ id: 'PUBLICADO' }).setNodeRef}
+                className="flex-1 bg-slate-100 p-2 rounded-b-md min-h-[200px] max-h-[400px] overflow-y-auto"
+              >
+                <SortableContext items={(vehiculosPorEstado['PUBLICADO'] || []).map(v => v.id)} strategy={verticalListSortingStrategy}>
+                  {(vehiculosPorEstado['PUBLICADO'] || []).length === 0 ? (
+                    <div className="text-center py-6 text-slate-500">
+                      <div className="text-2xl mb-1">📋</div>
+                      <p className="text-xs">Sin vehículos</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {(vehiculosPorEstado['PUBLICADO'] || []).map((vehiculo) => (
+                        <DraggableVehicleCard
+                          key={vehiculo.id}
+                          vehiculo={vehiculo}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </SortableContext>
+              </div>
+            </div>
+          </div>
         </div>
 
         <DragOverlay>
