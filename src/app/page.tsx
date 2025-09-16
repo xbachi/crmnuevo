@@ -6,6 +6,7 @@ import RemindersList from '@/components/RemindersList'
 import DashboardReminders from '@/components/DashboardReminders'
 import ManualReminders from '@/components/ManualReminders'
 import VentasPorMes from '@/components/VentasPorMes'
+import InteractiveMetricsChart from '@/components/InteractiveMetricsChart'
 
 interface DashboardStats {
   totalActivos: number
@@ -267,58 +268,16 @@ export default function Home() {
                 )}
               </div>
               
-              {/* Mini Gráfico de Métricas */}
+              {/* Gráfico Interactivo de Métricas */}
               <div className="mt-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Métricas del Mes</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-blue-600 font-medium">Vehículos Vendidos</p>
-                        <p className="text-2xl font-bold text-blue-900">{stats.totalActivos - stats.enProceso - stats.publicados}</p>
-                      </div>
-                      <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                        <span className="text-white text-sm">🚗</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-green-600 font-medium">En Stock</p>
-                        <p className="text-2xl font-bold text-green-900">{stats.totalActivos}</p>
-                      </div>
-                      <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
-                        <span className="text-white text-sm">📦</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-purple-600 font-medium">Depósitos</p>
-                        <p className="text-2xl font-bold text-purple-900">{depositoStats.totalDepositos}</p>
-                      </div>
-                      <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
-                        <span className="text-white text-sm">📋</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-gradient-to-r from-orange-50 to-orange-100 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-orange-600 font-medium">En Proceso</p>
-                        <p className="text-2xl font-bold text-orange-900">{stats.enProceso + depositoStats.enProceso}</p>
-                      </div>
-                      <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
-                        <span className="text-white text-sm">⚙️</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <InteractiveMetricsChart 
+                  data={{
+                    vehiculosVendidos: stats.totalActivos - stats.enProceso - stats.publicados,
+                    enStock: stats.totalActivos,
+                    depositos: depositoStats.totalDepositos,
+                    enProceso: stats.enProceso + depositoStats.enProceso
+                  }}
+                />
               </div>
               
             </div>
