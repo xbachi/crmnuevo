@@ -24,6 +24,10 @@ export async function GET() {
       precio_venta: row.precio_venta,
       comision_porcentaje: row.comision_porcentaje,
       notas: row.notas,
+      monto_recibir: row.monto_recibir,
+      dias_gestion: row.dias_gestion,
+      multa_retiro_anticipado: row.multa_retiro_anticipado,
+      numero_cuenta: row.numero_cuenta,
       created_at: row.created_at,
       cliente: {
         id: row.cliente_id,
@@ -52,9 +56,33 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { cliente_id, vehiculo_id, estado = 'BORRADOR', fecha_inicio, precio_venta, comision_porcentaje = 5.0, notas } = body
+      const { 
+        cliente_id, 
+        vehiculo_id, 
+        estado = 'BORRADOR', 
+        fecha_inicio, 
+        precio_venta, 
+        comision_porcentaje = 5.0, 
+        notas,
+        monto_recibir,
+        dias_gestion,
+        multa_retiro_anticipado,
+        numero_cuenta
+      } = body
 
-    console.log('📥 Recibiendo datos de depósito:', { cliente_id, vehiculo_id, estado, fecha_inicio, precio_venta, comision_porcentaje, notas })
+    console.log('📥 Recibiendo datos de depósito:', { 
+      cliente_id, 
+      vehiculo_id, 
+      estado, 
+      fecha_inicio, 
+      precio_venta, 
+      comision_porcentaje, 
+      notas,
+      monto_recibir,
+      dias_gestion,
+      multa_retiro_anticipado,
+      numero_cuenta
+    })
 
     // Validar que no exista un depósito activo para este vehículo
     const existingDeposito = await pool.query(
@@ -69,12 +97,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Ya existe un depósito activo para este vehículo' }, { status: 400 })
     }
 
+    // Calcular fecha de fin si se proporcionan días de gestión
+    let fecha_fin = null
+    if (dias_gestion) {
+      const fechaInicio = new Date(fecha_inicio)
+      fechaInicio.setDate(fechaInicio.getDate() + parseInt(dias_gestion))
+      fecha_fin = fechaInicio.toISOString().split('T')[0]
+    }
+
     console.log('💾 Insertando nuevo depósito...')
     const result = await pool.query(`
-      INSERT INTO depositos (cliente_id, vehiculo_id, estado, fecha_inicio, precio_venta, comision_porcentaje, notas)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO depositos (cliente_id, vehiculo_id, estado, fecha_inicio, fecha_fin, precio_venta, comision_porcentaje, notas, monto_recibir, dias_gestion, multa_retiro_anticipado, numero_cuenta)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       RETURNING *
-    `, [cliente_id, vehiculo_id, estado, fecha_inicio, precio_venta, comision_porcentaje, notas])
+    `, [cliente_id, vehiculo_id, estado, fecha_inicio, fecha_fin, precio_venta, comision_porcentaje, notas, monto_recibir, dias_gestion, multa_retiro_anticipado, numero_cuenta])
 
     console.log('✅ Depósito creado exitosamente:', result.rows[0])
     return NextResponse.json(result.rows[0], { status: 201 })

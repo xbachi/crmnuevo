@@ -186,6 +186,26 @@ export default function VehicleForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validación específica para depósitos
+    if (fixedTipo === 'Deposito Venta' || formData.tipo === 'D') {
+      const camposObligatorios = [
+        { campo: 'marca', valor: formData.marca, nombre: 'Marca' },
+        { campo: 'modelo', valor: formData.modelo, nombre: 'Modelo' },
+        { campo: 'bastidor', valor: formData.bastidor, nombre: 'Nº de Bastidor' },
+        { campo: 'matricula', valor: formData.matricula, nombre: 'Matrícula' },
+        { campo: 'fechaMatriculacion', valor: formData.fechaMatriculacion, nombre: 'Fecha de 1ª Matriculación' },
+        { campo: 'kms', valor: formData.kms, nombre: 'Kilometraje' }
+      ]
+      
+      const camposFaltantes = camposObligatorios.filter(campo => !campo.valor || campo.valor.trim() === '')
+      
+      if (camposFaltantes.length > 0) {
+        alert(`Los siguientes campos son obligatorios para depósitos:\n${camposFaltantes.map(c => `• ${c.nombre}`).join('\n')}`)
+        return
+      }
+    }
+    
     await onSubmit(formData)
   }
 

@@ -98,35 +98,41 @@ interface DealData {
 }
 
 // Función para convertir números a letras
+
 function numeroALetras(numero: number): string {
+  // Redondear a entero para evitar problemas con decimales
+  const numeroEntero = Math.floor(numero)
+  
   const unidades = ['', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve']
   const decenas = ['', '', 'veinte', 'treinta', 'cuarenta', 'cincuenta', 'sesenta', 'setenta', 'ochenta', 'noventa']
   const especiales = ['diez', 'once', 'doce', 'trece', 'catorce', 'quince', 'dieciséis', 'diecisiete', 'dieciocho', 'diecinueve']
   const centenas = ['', 'ciento', 'doscientos', 'trescientos', 'cuatrocientos', 'quinientos', 'seiscientos', 'setecientos', 'ochocientos', 'novecientos']
   
-  if (numero === 0) return 'cero'
-  if (numero < 10) return unidades[numero]
-  if (numero < 20) return especiales[numero - 10]
-  if (numero < 100) {
-    const decena = Math.floor(numero / 10)
-    const unidad = numero % 10
+  if (numeroEntero === 0) return 'cero'
+  if (numeroEntero < 10) return unidades[numeroEntero]
+  if (numeroEntero < 20) return especiales[numeroEntero - 10]
+  if (numeroEntero < 100) {
+    const decena = Math.floor(numeroEntero / 10)
+    const unidad = numeroEntero % 10
     if (unidad === 0) return decenas[decena]
     return decenas[decena] + ' y ' + unidades[unidad]
   }
-  if (numero < 1000) {
-    const centena = Math.floor(numero / 100)
-    const resto = numero % 100
+  if (numeroEntero < 1000) {
+    const centena = Math.floor(numeroEntero / 100)
+    const resto = numeroEntero % 100
     if (resto === 0) return centenas[centena]
     return centenas[centena] + ' ' + numeroALetras(resto)
   }
-  if (numero < 1000000) {
-    const miles = Math.floor(numero / 1000)
-    const resto = numero % 1000
+  if (numeroEntero < 1000000) {
+    const miles = Math.floor(numeroEntero / 1000)
+    const resto = numeroEntero % 1000
     
     // Casos especiales para los miles
     let milesTexto = ''
     if (miles === 1) {
       milesTexto = 'mil'
+    } else if (miles < 10) {
+      milesTexto = unidades[miles] + ' mil'
     } else if (miles < 20) {
       milesTexto = especiales[miles - 10] + ' mil'
     } else if (miles < 30) {
@@ -137,6 +143,22 @@ function numeroALetras(numero: number): string {
         milesTexto = 'veinte mil'
       } else {
         milesTexto = 'veinti' + unidades[unidad] + ' mil'
+      }
+    } else if (miles < 100) {
+      const decena = Math.floor(miles / 10)
+      const unidad = miles % 10
+      if (unidad === 0) {
+        milesTexto = decenas[decena] + ' mil'
+      } else {
+        milesTexto = decenas[decena] + ' y ' + unidades[unidad] + ' mil'
+      }
+    } else if (miles < 1000) {
+      const centena = Math.floor(miles / 100)
+      const restoMiles = miles % 100
+      if (restoMiles === 0) {
+        milesTexto = centenas[centena] + ' mil'
+      } else {
+        milesTexto = centenas[centena] + ' ' + numeroALetras(restoMiles) + ' mil'
       }
     } else {
       milesTexto = numeroALetras(miles) + ' mil'
@@ -953,4 +975,197 @@ export async function generarFactura(deal: DealData, tipoFactura: 'IVA' | 'REBU'
   // Guardar el PDF
   const nombreArchivo = `factura-${tipoFactura.toLowerCase()}-${numeroFactura}.pdf`
   doc.save(nombreArchivo)
+}
+
+// Interface para datos del depósito
+interface DepositoData {
+  id: number
+  cliente: {
+    nombre: string
+    apellidos: string
+    dni?: string
+    direccion?: string
+    ciudad?: string
+    provincia?: string
+    codPostal?: string
+  }
+  vehiculo: {
+    marca: string
+    modelo: string
+    bastidor: string
+    matricula: string
+    fechaMatriculacion?: string
+    kms?: number
+  }
+  deposito: {
+    monto_recibir?: number
+    dias_gestion?: number
+    multa_retiro_anticipado?: number
+    numero_cuenta?: string
+  }
+}
+
+// Función para generar contrato de depósito
+export async function generarContratoDeposito(deposito: DepositoData): Promise<void> {
+  try {
+    const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.width
+    const margin = 10
+    const maxWidth = pageWidth - (margin * 2) // Ancho disponible respetando márgenes izquierdo y derecho
+    let yPosition = margin
+    
+    // Configurar fuente
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(10)
+    
+    // Logo de Seven Cars (primero)
+    try {
+      const logoDataURL = await loadLogoSVG()
+      if (logoDataURL) {
+        // Ajustar tamaño del logo (ancho máximo 60mm, altura reducida)
+        const logoWidth = 60
+        const logoHeight = 20 // Altura fija más pequeña
+        
+        // Centrar el logo
+        const logoX = (pageWidth - logoWidth) / 2
+        
+        // Agregar imagen al PDF
+        doc.addImage(logoDataURL, 'PNG', logoX, yPosition, logoWidth, logoHeight)
+        
+        yPosition += logoHeight + 10
+      } else {
+        // Fallback al texto si no se puede cargar el logo
+        doc.setFontSize(12)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(0, 0, 0) // Negro
+        doc.text('SEVEN CARS MOTORS S.L.', pageWidth / 2, yPosition, { align: 'center' })
+        yPosition += 15
+      }
+    } catch (error) {
+      console.error('Error procesando logo:', error)
+      // Fallback al texto
+      doc.setFontSize(12)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(0, 0, 0) // Negro
+      doc.text('SEVEN CARS MOTORS S.L.', pageWidth / 2, yPosition, { align: 'center' })
+      yPosition += 15
+    }
+    
+    // Fecha y lugar (después del logo)
+    const fecha = formatearFechaCompleta(new Date())
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.text(`En Alaquàs, a ${fecha}`, margin, yPosition)
+    yPosition += 10
+    
+    // REUNIDOS
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.text('REUNIDOS', margin, yPosition)
+    yPosition += 6
+    
+    // DE UNA PARTE
+    doc.setFont('helvetica', 'bold')
+    doc.text('DE UNA PARTE:', margin, yPosition)
+    yPosition += 5
+    doc.setFont('helvetica', 'normal')
+    doc.text('D. Sebastian Pelella, mayor de edad, con NIE Z0147238C, en representación de Sevencars Motors SL', margin, yPosition)
+    yPosition += 5
+    doc.text('con CIF B75939868 y domicilio en Cami dels Mollons Nº 36 Bajo de Alaquas, Valencia,', margin, yPosition)
+    yPosition += 5
+    doc.text('en calidad de depositario', margin, yPosition)
+    yPosition += 8
+    
+    // Y DE OTRA PARTE
+    doc.setFont('helvetica', 'bold')
+    doc.text('Y DE OTRA PARTE:', margin, yPosition)
+    yPosition += 5
+    doc.setFont('helvetica', 'normal')
+    const nombreCompleto = `${deposito.cliente.nombre} ${deposito.cliente.apellidos}`
+    const direccionCompleta = `${deposito.cliente.direccion || ''}, ${deposito.cliente.ciudad || ''}, ${deposito.cliente.provincia || ''}`.trim().replace(/^,\s*|,\s*$/g, '')
+    doc.text(`Y de otra parte, D.${nombreCompleto}, mayor de edad, con DNI ${deposito.cliente.dni || 'No especificado'},`, margin, yPosition)
+    yPosition += 5
+    doc.text(`con domicilio en ${direccionCompleta || 'No especificado'}, en calidad de depositante.`, margin, yPosition)
+    yPosition += 10
+    
+    doc.text('Ambas partes tienen y se reconocen la capacidad legal necesaria para otorgar el presente', margin, yPosition)
+    yPosition += 5
+    doc.text('documento privado GESTION DE VENTA del vehículo automóvil que se especifica, en las siguientes', margin, yPosition)
+    yPosition += 12
+    
+    // CLAUSULAS
+    doc.setFont('helvetica', 'bold')
+    doc.text('CLAUSULAS', margin, yPosition)
+    yPosition += 8
+    
+    // Clausula 1
+    doc.setFont('helvetica', 'normal')
+    doc.text('1. Que las características básicas del vehículo usado objeto de este documento son las siguientes:', margin, yPosition)
+    yPosition += 6
+    
+    // Dos columnas para los datos del vehículo
+    const col1X = margin + 8
+    const col2X = margin + 90
+    const lineHeight = 5
+    
+    // Columna izquierda
+    doc.text(`Marca y Modelo: ${deposito.vehiculo.marca} ${deposito.vehiculo.modelo}`, col1X, yPosition)
+    doc.text(`Nº Bastidor: ${deposito.vehiculo.bastidor}`, col1X, yPosition + lineHeight)
+    doc.text(`Matrícula: ${deposito.vehiculo.matricula}`, col1X, yPosition + lineHeight * 2)
+    
+    // Columna derecha
+    doc.text(`Fecha 1ª Matriculación: ${deposito.vehiculo.fechaMatriculacion ? new Date(deposito.vehiculo.fechaMatriculacion).toLocaleDateString('es-ES') : 'No especificada'}`, col2X, yPosition)
+    doc.text(`Kilometraje: ${deposito.vehiculo.kms ? deposito.vehiculo.kms.toLocaleString('es-ES') : 'No especificado'} km`, col2X, yPosition + lineHeight)
+    
+    yPosition += lineHeight * 3 + 6
+    
+    // Clausula 2
+    const clausula2 = '2. El depositante es el actual y único titular del vehiculo, y declara que no pesa sobre el vehículo ninguna carga o gravamen ni impuesto, deuda o sanción pendientes de abono en la fecha de la firma de este contrato, comprometiéndose en caso contrario a regularizar tal situación a su exclusivo cargo. En caso de que no se pudiese tramitar el cambio de nombre se resolvería el contrato y devolverían las cantidades abonadas.'
+    const lines2 = doc.splitTextToSize(clausula2, maxWidth)
+    doc.text(lines2, margin, yPosition)
+    yPosition += lines2.length * 5 + 5
+    
+    // Clausula 3
+    const multa = deposito.deposito.multa_retiro_anticipado || 0
+    const clausula3 = `3. El depositante autoriza al depositario a poder publicar el vehículo en cuantos medios así considere para poder realizar la venta del mismo, siendo los gastos a cargo del depositario. Durante el plazo de ${deposito.deposito.dias_gestion || 'No especificado'} días el vehículo solo podrá venderse por parte del depositario, sino deberá abonar la cantidad de ${formatCurrency(multa)} (${numeroALetras(multa)} euros) en concepto de gastos por tramitación, así como durante el periodo de plazo fijado no podrá ser retirado de las instalaciones de SevenCars.`
+    const lines3 = doc.splitTextToSize(clausula3, maxWidth)
+    doc.text(lines3, margin, yPosition)
+    yPosition += lines3.length * 5 + 5
+    
+    // Clausula 4
+    const clausula4 = '4. El vendedor declara que no existen vicios ocultos o que tengan su origen en dolo o mala fe.'
+    const lines4 = doc.splitTextToSize(clausula4, maxWidth)
+    doc.text(lines4, margin, yPosition)
+    yPosition += lines4.length * 5 + 5
+    
+    // Clausula 5
+    const monto = deposito.deposito.monto_recibir || 0
+    const clausula5 = `5. El precio de la compraventa que recibirá el depositante es de ${formatCurrency(monto)} (${numeroALetras(monto)} euros) impuestos incluidos. Mediante transferencia inmediata el día de la venta al numero de cuenta proporcionado: ${deposito.deposito.numero_cuenta || 'No especificado'}.`
+    const lines5 = doc.splitTextToSize(clausula5, maxWidth)
+    doc.text(lines5, margin, yPosition)
+    yPosition += lines5.length * 5 + 5
+    
+    // Clausula 6
+    const clausula6 = '6. Para cualquier litigio que surja entre las partes de la interpretación o cumplimiento del presente contrato, éstas, con expresa renuncia al fuero que pudiera corresponderles, se someterán a los Juzgados y Tribunales de Valencia.'
+    const lines6 = doc.splitTextToSize(clausula6, maxWidth)
+    doc.text(lines6, margin, yPosition)
+    yPosition += lines6.length * 5 + 5
+    
+    // Firma
+    const firma = 'Y para que así conste, firman el presente contrato de compraventa, por duplicado, en la fecha y lugar arriba indicados.'
+    const linesFirma = doc.splitTextToSize(firma, maxWidth)
+    doc.text(linesFirma, margin, yPosition)
+    yPosition += linesFirma.length * 5 + 5
+    
+    doc.text('Firma del depositario.', margin, yPosition)
+    doc.text('Firma del depositante.', pageWidth - 80, yPosition)
+    
+    // Guardar el PDF
+    const nombreArchivo = `contrato-deposito-${deposito.id}.pdf`
+    doc.save(nombreArchivo)
+    
+  } catch (error) {
+    console.error('Error generando contrato de depósito:', error)
+    throw error
+  }
 }
