@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { formatVehicleReference } from '@/lib/utils'
 
 interface Vehiculo {
   id: number
@@ -237,7 +238,7 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
           <div className="flex items-start space-x-4">
             <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl flex items-center justify-center shadow-sm">
               <span className="text-white font-bold text-sm">
-                {vehiculo.referencia}
+                {formatVehicleReference(vehiculo.referencia, vehiculo.tipo)}
               </span>
             </div>
             <div className="flex-1">

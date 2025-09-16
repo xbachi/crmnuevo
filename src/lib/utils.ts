@@ -20,10 +20,10 @@ export function formatDateTime(dateString: string): string {
 
 export function formatCurrency(amount: number): string {
   if (amount === 0) return '0€'
-  
+
   // Redondear a 2 decimales
   const roundedAmount = Math.round(amount * 100) / 100
-  
+
   // Verificar si es un número entero después del redondeo
   if (Number.isInteger(roundedAmount)) {
     // Para números enteros: separador de miles con punto, sin decimales
@@ -34,6 +34,59 @@ export function formatCurrency(amount: number): string {
     const integerPart = formatNumberWithThousands(parseInt(parts[0]))
     const decimalPart = parts[1] ? ',' + parts[1].padEnd(2, '0').substring(0, 2) : ''
     return `${integerPart}${decimalPart}€`
+  }
+}
+
+export function formatVehicleReference(referencia: string, tipo: string): string {
+  if (!referencia) return ''
+  
+  // Limpiar la referencia de espacios y caracteres especiales
+  const cleanRef = referencia.trim().replace(/[^a-zA-Z0-9-]/g, '')
+  
+  switch (tipo?.toUpperCase()) {
+    case 'I': // Inversores
+      // Si ya tiene I- al inicio, mantenerlo
+      if (cleanRef.startsWith('I-')) {
+        return cleanRef
+      }
+      // Si tiene I sin guión, agregar guión
+      if (cleanRef.startsWith('I')) {
+        return `I-${cleanRef.substring(1)}`
+      }
+      // Si es solo número, agregar I-
+      return `I-${cleanRef}`
+      
+    case 'D': // Depósitos
+      // Si ya tiene D- al inicio, mantenerlo
+      if (cleanRef.startsWith('D-')) {
+        return cleanRef
+      }
+      // Si tiene D sin guión, agregar guión
+      if (cleanRef.startsWith('D')) {
+        return `D-${cleanRef.substring(1)}`
+      }
+      // Si es solo número, agregar D-
+      return `D-${cleanRef}`
+      
+    case 'R': // Renting
+      // Si ya tiene R- al inicio, mantenerlo
+      if (cleanRef.startsWith('R-')) {
+        return cleanRef
+      }
+      // Si tiene R sin guión, agregar guión
+      if (cleanRef.startsWith('R')) {
+        return `R-${cleanRef.substring(1)}`
+      }
+      // Si es solo número, agregar R-
+      return `R-${cleanRef}`
+      
+    default: // Compras (tipo C o cualquier otro)
+      // Si ya tiene # al inicio, mantenerlo
+      if (cleanRef.startsWith('#')) {
+        return cleanRef
+      }
+      // Si es solo número, agregar #
+      return `#${cleanRef}`
   }
 }
 

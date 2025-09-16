@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { Vehiculo } from '@/lib/database'
-import { formatDate } from '@/lib/utils'
+import { formatDate, formatVehicleReference } from '@/lib/utils'
 
 interface InvestorVehicleCardProps {
   vehiculo: Vehiculo
@@ -120,7 +120,7 @@ export function InvestorVehicleCard({ vehiculo, inversor, onView, onEdit, onEdit
           <div className="flex items-start space-x-4">
             <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl flex items-center justify-center shadow-sm">
               <span className="text-white font-bold text-sm">
-                #{vehiculo.referencia.slice(-2)}
+                {formatVehicleReference(vehiculo.referencia, vehiculo.tipo).slice(-2)}
               </span>
             </div>
             <div className="flex-1">

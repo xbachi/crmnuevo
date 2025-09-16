@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { formatVehicleReference } from '@/lib/utils'
 
 interface Vehiculo {
   id: number
@@ -112,9 +113,9 @@ export default function DraggableVehicleCard({ vehiculo }: DraggableVehicleCardP
             {/* Logo del vehículo - últimos 2 números */}
             <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center flex-shrink-0">
               <span className="text-white font-bold text-xs">
-                {vehiculo.referencia.length >= 2 
-                  ? vehiculo.referencia.substring(vehiculo.referencia.length - 2) 
-                  : vehiculo.referencia
+                {formatVehicleReference(vehiculo.referencia, vehiculo.tipo).length >= 2 
+                  ? formatVehicleReference(vehiculo.referencia, vehiculo.tipo).substring(formatVehicleReference(vehiculo.referencia, vehiculo.tipo).length - 2) 
+                  : formatVehicleReference(vehiculo.referencia, vehiculo.tipo)
                 }
               </span>
             </div>

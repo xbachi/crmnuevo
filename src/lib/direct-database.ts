@@ -1427,28 +1427,28 @@ export interface VehiculoStats {
 export async function getVehiculoStats(): Promise<VehiculoStats> {
   const client = await pool.connect()
   try {
-    // Obtener estadísticas de vehículos
+    // Obtener estadísticas de vehículos (excluyendo tipo D - depósitos)
     
-    // Total de vehículos activos (no vendidos)
+    // Total de vehículos activos (no vendidos y no tipo D)
     const totalActivosResult = await client.query(`
       SELECT COUNT(*) as count
       FROM "Vehiculo"
-      WHERE estado != 'vendido'
+      WHERE estado != 'vendido' AND tipo != 'D'
     `)
     
-    // Vehículos publicados - buscamos tanto 'PUBLICADO' como 'publicado' y 'disponible'
+    // Vehículos publicados - buscamos tanto 'PUBLICADO' como 'publicado' y 'disponible' (excluyendo tipo D)
     const publicadosResult = await client.query(`
       SELECT COUNT(*) as count
       FROM "Vehiculo"
-      WHERE estado IN ('PUBLICADO', 'publicado', 'disponible')
+      WHERE estado IN ('PUBLICADO', 'publicado', 'disponible') AND tipo != 'D'
     `)
     
     
-    // Vehículos en proceso (todos los demás estados excepto vendido y publicados)
+    // Vehículos en proceso (todos los demás estados excepto vendido y publicados, excluyendo tipo D)
     const enProcesoResult = await client.query(`
       SELECT COUNT(*) as count
       FROM "Vehiculo"
-      WHERE estado NOT IN ('vendido', 'PUBLICADO', 'publicado', 'disponible')
+      WHERE estado NOT IN ('vendido', 'PUBLICADO', 'publicado', 'disponible') AND tipo != 'D'
     `)
     
     return {
@@ -1458,6 +1458,97 @@ export async function getVehiculoStats(): Promise<VehiculoStats> {
     }
   } catch (error) {
     console.error('Error fetching vehiculo stats:', error)
+    throw error
+  } finally {
+    client.release()
+  }
+}
+
+export interface DepositoStats {
+  totalDepositos: number
+  enProceso: number
+  publicados: number
+}
+
+export async function getDepositoStats(): Promise<DepositoStats> {
+  const client = await pool.connect()
+  try {
+    // Obtener estadísticas de vehículos tipo D (depósitos)
+    
+    // Total de vehículos en depósito
+    const totalDepositosResult = await client.query(`
+      SELECT COUNT(*) as count
+      FROM "Vehiculo"
+      WHERE tipo = 'D'
+    `)
+    
+    // Vehículos en depósito en proceso (no publicados)
+    const enProcesoResult = await client.query(`
+      SELECT COUNT(*) as count
+      FROM "Vehiculo"
+      WHERE tipo = 'D' AND estado NOT IN ('PUBLICADO', 'publicado', 'disponible')
+    `)
+    
+    // Vehículos en depósito publicados
+    const publicadosResult = await client.query(`
+      SELECT COUNT(*) as count
+      FROM "Vehiculo"
+      WHERE tipo = 'D' AND estado IN ('PUBLICADO', 'publicado', 'disponible')
+    `)
+    
+    return {
+      totalDepositos: parseInt(totalDepositosResult.rows[0].count),
+      enProceso: parseInt(enProcesoResult.rows[0].count),
+      publicados: parseInt(publicadosResult.rows[0].count)
+    }
+  } catch (error) {
+    console.error('Error fetching deposito stats:', error)
+    throw error
+  } finally {
+    client.release()
+  }
+}
+
+export interface UltimaOperacion {
+  id: string
+  referencia: string
+  cliente: string
+  vehiculo: string
+  estado: string
+  fecha: string
+  precio: number
+}
+
+export async function getUltimasOperaciones(limit: number = 5): Promise<UltimaOperacion[]> {
+  const client = await pool.connect()
+  try {
+    const result = await client.query(`
+      SELECT 
+        d.id,
+        d.numero as referencia,
+        COALESCE(c.nombre || ' ' || c.apellidos, 'Cliente no encontrado') as cliente,
+        COALESCE(v.marca || ' ' || v.modelo, 'Vehículo no encontrado') as vehiculo,
+        COALESCE(d.estado, 'Sin estado') as estado,
+        d."createdAt" as fecha,
+        COALESCE(d."importeTotal", 0) as precio
+      FROM "Deal" d
+      LEFT JOIN "Cliente" c ON d."clienteId" = c.id
+      LEFT JOIN "Vehiculo" v ON d."vehiculoId" = v.id
+      ORDER BY d."createdAt" DESC
+      LIMIT $1
+    `, [limit])
+    
+    return result.rows.map(row => ({
+      id: row.id.toString(),
+      referencia: row.referencia || 'Sin referencia',
+      cliente: row.cliente,
+      vehiculo: row.vehiculo,
+      estado: row.estado,
+      fecha: row.fecha,
+      precio: parseFloat(row.precio) || 0
+    }))
+  } catch (error) {
+    console.error('Error fetching ultimas operaciones:', error)
     throw error
   } finally {
     client.release()

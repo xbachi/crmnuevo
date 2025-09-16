@@ -5,6 +5,7 @@ import { useToast } from '@/components/Toast'
 import { useConfirmModal } from '@/components/ConfirmModal'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import VehicleCard from '@/components/VehicleCard'
+import { formatVehicleReference } from '@/lib/utils'
 
 interface Vehiculo {
   id: number
@@ -851,7 +852,7 @@ export default function ListaVehiculos() {
                               : 'bg-gradient-to-r from-blue-500 to-cyan-600'
                           }`}>
                             <span className="text-white font-bold text-xs">
-                              {vehiculo.referencia}
+                              {formatVehicleReference(vehiculo.referencia, vehiculo.tipo)}
                             </span>
                           </div>
                         </div>
