@@ -23,6 +23,9 @@ export function InvestorVehicleCard({ vehiculo, inversor, onView, onEdit, onEdit
   const [localPhotoUrl, setLocalPhotoUrl] = useState<string | null>(null)
   const [imageError, setImageError] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  // Determinar si es un vehículo de depósito
+  const esDeposito = vehiculo.tipo === 'D'
 
   // Helper function para normalizar valores booleanos
   const isPositive = (value: string | boolean | null | undefined): boolean => {
@@ -113,9 +116,17 @@ export function InvestorVehicleCard({ vehiculo, inversor, onView, onEdit, onEdit
   const tieneDatosFinancieros = vehiculo.precioCompra || (esVendido && (vehiculo.precioVenta || vehiculo.beneficioNeto))
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden">
+    <div className={`rounded-xl border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden ${
+      esDeposito 
+        ? 'bg-gradient-to-br from-cyan-100 to-blue-100 border-cyan-300' 
+        : 'bg-white border-gray-200'
+    }`}>
       {/* Header con estado destacado */}
-      <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
+      <div className={`px-6 py-4 border-b ${
+        esDeposito 
+          ? 'bg-gradient-to-r from-cyan-200 to-blue-200 border-cyan-300' 
+          : 'bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200'
+      }`}>
         <div className="flex justify-between items-start">
           <div className="flex items-start space-x-4">
             <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl flex items-center justify-center shadow-sm">

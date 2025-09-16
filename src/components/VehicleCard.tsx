@@ -226,17 +226,32 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
 
   const vehiculoVendido = isVendido(vehiculo.estado)
 
+  // Determinar si es un vehículo de depósito
+  const esDeposito = vehiculo.tipo === 'D'
+  
   return (
-    <div className={`bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group ${
+    <div className={`rounded-xl border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group ${
+      esDeposito 
+        ? 'bg-gradient-to-br from-cyan-100 to-blue-100 border-cyan-300' 
+        : 'bg-white border-gray-200'
+    } ${
       vehiculoVendido ? 'opacity-60 grayscale' : ''
     }`}>
       
       {/* Header con gradiente */}
-      <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
+      <div className={`px-6 py-4 border-b ${
+        esDeposito 
+          ? 'bg-gradient-to-r from-cyan-200 to-blue-200 border-cyan-300' 
+          : 'bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200'
+      }`}>
         <div className="flex items-start justify-between">
           {/* Logo del vehículo */}
           <div className="flex items-start space-x-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl flex items-center justify-center shadow-sm">
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-sm ${
+              esDeposito 
+                ? 'bg-gradient-to-br from-cyan-500 to-blue-600' 
+                : 'bg-gradient-to-br from-purple-500 to-blue-600'
+            }`}>
               <span className="text-white font-bold text-sm">
                 {formatVehicleReference(vehiculo.referencia, vehiculo.tipo)}
               </span>

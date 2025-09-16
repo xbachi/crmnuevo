@@ -35,6 +35,9 @@ interface DraggableVehicleCardProps {
 
 export default function DraggableVehicleCard({ vehiculo }: DraggableVehicleCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
+  
+  // Determinar si es un vehículo de depósito
+  const esDeposito = vehiculo.tipo === 'D'
 
   // Helper function para normalizar valores booleanos
   const isPositive = (value: string | boolean | null | undefined): boolean => {
@@ -99,19 +102,31 @@ export default function DraggableVehicleCard({ vehiculo }: DraggableVehicleCardP
       style={style}
       {...attributes}
       {...listeners}
-      className={`bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all ${
+      className={`rounded-xl border shadow-sm hover:shadow-md transition-all ${
+        esDeposito 
+          ? 'bg-gradient-to-br from-cyan-100 to-blue-100 border-cyan-300' 
+          : 'bg-white border-gray-200'
+      } ${
         isDragging ? 'opacity-50 shadow-lg' : ''
       }`}
     >
       {/* Header del acordeón - Siempre visible */}
       <div 
-        className="p-3 cursor-pointer hover:bg-gray-50 transition-colors"
+        className={`p-3 cursor-pointer transition-colors ${
+          esDeposito 
+            ? 'hover:bg-cyan-200' 
+            : 'hover:bg-gray-50'
+        }`}
         onClick={handleCardClick}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3 flex-1 min-w-0">
             {/* Logo del vehículo - últimos 2 números */}
-            <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center flex-shrink-0">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+              esDeposito 
+                ? 'bg-gradient-to-br from-cyan-500 to-blue-600' 
+                : 'bg-gradient-to-br from-green-500 to-green-600'
+            }`}>
               <span className="text-white font-bold text-xs">
                 {formatVehicleReference(vehiculo.referencia, vehiculo.tipo).length >= 2 
                   ? formatVehicleReference(vehiculo.referencia, vehiculo.tipo).substring(formatVehicleReference(vehiculo.referencia, vehiculo.tipo).length - 2) 
