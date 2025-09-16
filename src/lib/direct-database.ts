@@ -1473,26 +1473,27 @@ export interface DepositoStats {
 export async function getDepositoStats(): Promise<DepositoStats> {
   const client = await pool.connect()
   try {
-    // Obtener estadísticas de la tabla Deposito (depósitos de venta)
+    // Obtener estadísticas de vehículos tipo D (depósitos)
     
-    // Total de depósitos
+    // Total de vehículos en depósito
     const totalDepositosResult = await client.query(`
       SELECT COUNT(*) as count
-      FROM depositos
+      FROM "Vehiculo"
+      WHERE tipo = 'D'
     `)
     
-    // Depósitos en proceso (borrador y activo)
+    // Vehículos en depósito en proceso (no publicados)
     const enProcesoResult = await client.query(`
       SELECT COUNT(*) as count
-      FROM depositos
-      WHERE estado IN ('BORRADOR', 'ACTIVO')
+      FROM "Vehiculo"
+      WHERE tipo = 'D' AND estado NOT IN ('PUBLICADO', 'publicado', 'disponible')
     `)
     
-    // Depósitos finalizados (vendido y finalizado)
+    // Vehículos en depósito publicados
     const publicadosResult = await client.query(`
       SELECT COUNT(*) as count
-      FROM depositos
-      WHERE estado IN ('VENDIDO', 'FINALIZADO')
+      FROM "Vehiculo"
+      WHERE tipo = 'D' AND estado IN ('PUBLICADO', 'publicado', 'disponible')
     `)
     
     return {
