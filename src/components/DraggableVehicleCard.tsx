@@ -36,8 +36,9 @@ interface DraggableVehicleCardProps {
 export default function DraggableVehicleCard({ vehiculo }: DraggableVehicleCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   
-  // Determinar si es un vehículo de depósito
+  // Determinar si es un vehículo de depósito o inversor
   const esDeposito = vehiculo.tipo === 'D'
+  const esInversor = vehiculo.tipo === 'I'
 
   // Helper function para normalizar valores booleanos
   const isPositive = (value: string | boolean | null | undefined): boolean => {
@@ -105,6 +106,8 @@ export default function DraggableVehicleCard({ vehiculo }: DraggableVehicleCardP
       className={`rounded-xl border shadow-sm hover:shadow-md transition-all ${
         esDeposito 
           ? 'bg-gradient-to-br from-cyan-100 to-blue-100 border-cyan-300' 
+          : esInversor
+          ? 'bg-gradient-to-br from-orange-100 to-amber-100 border-orange-300'
           : 'bg-white border-gray-200'
       } ${
         isDragging ? 'opacity-50 shadow-lg' : ''
@@ -115,6 +118,8 @@ export default function DraggableVehicleCard({ vehiculo }: DraggableVehicleCardP
         className={`p-3 cursor-pointer transition-colors ${
           esDeposito 
             ? 'hover:bg-cyan-200' 
+            : esInversor
+            ? 'hover:bg-orange-200'
             : 'hover:bg-gray-50'
         }`}
         onClick={handleCardClick}
@@ -125,6 +130,8 @@ export default function DraggableVehicleCard({ vehiculo }: DraggableVehicleCardP
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
               esDeposito 
                 ? 'bg-gradient-to-br from-cyan-500 to-blue-600' 
+                : esInversor
+                ? 'bg-gradient-to-br from-orange-500 to-amber-600'
                 : 'bg-gradient-to-br from-green-500 to-green-600'
             }`}>
               <span className="text-white font-bold text-xs">

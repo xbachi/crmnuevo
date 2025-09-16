@@ -38,6 +38,17 @@ export async function POST(request: NextRequest) {
 
     console.log('🔍 Campos extraídos:', { referencia, marca, modelo, matricula, bastidor, kms, tipo })
 
+    // Mapear tipo a letra correspondiente
+    const tipoMapping: { [key: string]: string } = {
+      'Compra': 'C',
+      'Coche R': 'R', 
+      'Deposito Venta': 'D',
+      'Inversor': 'I'
+    }
+    
+    const tipoLetra = tipoMapping[tipo] || tipo
+    console.log('🔄 Tipo mapeado:', { original: tipo, mapeado: tipoLetra })
+
     // Validar datos requeridos
     if (!referencia || !marca || !modelo || !matricula || !bastidor || !kms || !tipo) {
       console.log('❌ Faltan campos requeridos')
@@ -65,7 +76,7 @@ export async function POST(request: NextRequest) {
       matricula,
       bastidor,
       kms: parseInt(kms),
-      tipo,
+      tipo: tipoLetra,
       color: color || undefined,
       fechaMatriculacion: fechaMatriculacion || undefined,
       esCocheInversor: esCocheInversor || false,
@@ -87,14 +98,14 @@ export async function POST(request: NextRequest) {
     console.log('✅ Vehículo guardado:', vehiculo)
 
     // Crear nombre de carpeta en camelCase
-    const folderName = generateFolderName(referencia, marca, modelo, matricula, tipo)
+    const folderName = generateFolderName(referencia, marca, modelo, matricula, tipoLetra)
 
     // Operaciones asíncronas que no bloquean la respuesta
     Promise.all([
       // Crear carpetas en background
       (async () => {
         try {
-          const folderPaths = getFolderPathsByTipo(tipo, folderName)
+          const folderPaths = getFolderPathsByTipo(tipoLetra, folderName)
           for (const folderPath of folderPaths) {
             await fs.mkdir(folderPath, { recursive: true })
             console.log(`Carpeta creada: ${folderPath}`)

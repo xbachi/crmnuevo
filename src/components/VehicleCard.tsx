@@ -226,13 +226,16 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
 
   const vehiculoVendido = isVendido(vehiculo.estado)
 
-  // Determinar si es un vehículo de depósito
+  // Determinar si es un vehículo de depósito o inversor
   const esDeposito = vehiculo.tipo === 'D'
+  const esInversor = vehiculo.tipo === 'I'
   
   return (
     <div className={`rounded-xl border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group ${
       esDeposito 
         ? 'bg-gradient-to-br from-cyan-100 to-blue-100 border-cyan-300' 
+        : esInversor
+        ? 'bg-gradient-to-br from-orange-100 to-amber-100 border-orange-300'
         : 'bg-white border-gray-200'
     } ${
       vehiculoVendido ? 'opacity-60 grayscale' : ''
@@ -242,6 +245,8 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
       <div className={`px-6 py-4 border-b ${
         esDeposito 
           ? 'bg-gradient-to-r from-cyan-200 to-blue-200 border-cyan-300' 
+          : esInversor
+          ? 'bg-gradient-to-r from-orange-200 to-amber-200 border-orange-300'
           : 'bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200'
       }`}>
         <div className="flex items-start justify-between">
@@ -250,6 +255,8 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
             <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-sm ${
               esDeposito 
                 ? 'bg-gradient-to-br from-cyan-500 to-blue-600' 
+                : esInversor
+                ? 'bg-gradient-to-br from-orange-500 to-amber-600'
                 : 'bg-gradient-to-br from-purple-500 to-blue-600'
             }`}>
               <span className="text-white font-bold text-sm">
