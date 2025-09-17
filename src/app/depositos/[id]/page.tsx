@@ -101,13 +101,29 @@ export default function DepositoDetail() {
 
   const fetchNotas = async () => {
     try {
+      console.log(`🔍 Cargando notas para depósito ${params.id}`)
       const response = await fetch(`/api/depositos/${params.id}/notas`)
+      console.log(`📊 Response status:`, response.status)
+      
       if (response.ok) {
         const notas = await response.json()
+        console.log(`✅ Notas cargadas:`, notas)
         setNotasDeposito(notas)
+      } else {
+        const errorData = await response.json()
+        console.error(`❌ Error response:`, errorData)
+        
+        // Si el error es por tabla que no existe, mostrar mensaje informativo pero no error
+        if (errorData.code === '42P01') {
+          console.log(`💡 Tabla NotaDeposito no existe, usando sistema básico de notas`)
+          showToast('Sistema de notas actualizándose, por favor ejecuta el script de BD', 'warning')
+        } else {
+          showToast(`Error cargando notas: ${errorData.details || errorData.error}`, 'error')
+        }
       }
     } catch (error) {
-      console.error('Error cargando notas:', error)
+      console.error('❌ Error cargando notas:', error)
+      showToast('Error de conexión al cargar notas', 'error')
     }
   }
 
@@ -116,6 +132,9 @@ export default function DepositoDetail() {
     
     try {
       setIsUpdating(true)
+      console.log(`📝 Agregando nota para depósito ${deposito.id}`)
+      console.log(`📊 Contenido:`, nuevaNota.trim())
+      
       const response = await fetch(`/api/depositos/${deposito.id}/notas`, {
         method: 'POST',
         headers: {
@@ -129,16 +148,22 @@ export default function DepositoDetail() {
         })
       })
       
+      console.log(`📊 Response status:`, response.status)
+      
       if (response.ok) {
+        const notaCreada = await response.json()
+        console.log(`✅ Nota creada:`, notaCreada)
         setNuevaNota('')
         fetchNotas() // Recargar todas las notas
         showToast('Nota agregada exitosamente', 'success')
       } else {
-        showToast('Error al agregar la nota', 'error')
+        const errorData = await response.json()
+        console.error(`❌ Error response:`, errorData)
+        showToast(`Error al agregar la nota: ${errorData.details || errorData.error}`, 'error')
       }
     } catch (error) {
-      console.error('Error agregando nota:', error)
-      showToast('Error al agregar la nota', 'error')
+      console.error('❌ Error agregando nota:', error)
+      showToast('Error de conexión al agregar la nota', 'error')
     } finally {
       setIsUpdating(false)
     }
@@ -411,7 +436,7 @@ export default function DepositoDetail() {
                   deposito.contrato_compra
                     ? 'bg-green-100 text-green-700 cursor-not-allowed'
                     : deposito.estado === 'VENDIDO'
-                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                    ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
                     : 'bg-gray-100 text-gray-500 cursor-not-allowed'
                 }`}
               >
@@ -655,7 +680,7 @@ export default function DepositoDetail() {
                   {deposito.contrato_deposito ? (
                     <button
                       onClick={handleGenerarContrato}
-                      className="px-3 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700"
+                      className="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-lg hover:bg-blue-200"
                     >
                       Descargar
                     </button>
@@ -691,14 +716,14 @@ export default function DepositoDetail() {
                   {deposito.contrato_compra ? (
                     <button
                       onClick={() => {/* TODO: Implementar descarga contrato compra */}}
-                      className="px-3 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700"
+                      className="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-lg hover:bg-blue-200"
                     >
                       Descargar
                     </button>
                   ) : deposito.estado === 'VENDIDO' ? (
                     <button
                       onClick={() => {/* TODO: Implementar generación contrato compra */}}
-                      className="px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700"
+                      className="px-3 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-lg hover:bg-yellow-200"
                     >
                       Generar
                     </button>
