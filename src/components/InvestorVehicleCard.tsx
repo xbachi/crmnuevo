@@ -117,13 +117,7 @@ export function InvestorVehicleCard({ vehiculo, inversor, onView, onEdit, onEdit
   const tieneDatosFinancieros = vehiculo.precioCompra || (esVendido && (vehiculo.precioVenta || vehiculo.beneficioNeto))
 
   return (
-    <div className={`rounded-xl border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden ${
-      esDeposito 
-        ? 'bg-gradient-to-br from-cyan-100 to-blue-100 border-cyan-300' 
-        : esInversor
-        ? 'bg-gradient-to-br from-orange-100 to-amber-100 border-orange-300'
-        : 'bg-white border-gray-200'
-    }`}>
+    <div className={`rounded-xl border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden bg-white border-gray-200`}>
       {/* Header con estado destacado */}
       <div className={`px-6 py-4 border-b ${
         esDeposito 

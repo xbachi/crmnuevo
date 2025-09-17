@@ -231,13 +231,7 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
   const esInversor = vehiculo.tipo === 'I' || vehiculo.tipo === 'Inversor'
   
   return (
-    <div className={`rounded-xl border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group ${
-      esDeposito 
-        ? 'bg-gradient-to-br from-cyan-100 to-blue-100 border-cyan-300' 
-        : esInversor
-        ? 'bg-gradient-to-br from-orange-100 to-amber-100 border-orange-300'
-        : 'bg-white border-gray-200'
-    } ${
+    <div className={`rounded-xl border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group bg-white border-gray-200 ${
       vehiculoVendido ? 'opacity-60 grayscale' : ''
     }`}>
       

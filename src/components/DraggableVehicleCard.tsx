@@ -122,13 +122,7 @@ export default function DraggableVehicleCard({ vehiculo }: DraggableVehicleCardP
       style={style}
       {...attributes}
       {...listeners}
-      className={`rounded-xl border shadow-sm hover:shadow-md transition-all ${
-        esDeposito 
-          ? 'bg-gradient-to-br from-cyan-100 to-blue-100 border-cyan-300' 
-          : esInversor
-          ? 'bg-gradient-to-br from-orange-100 to-amber-100 border-orange-300'
-          : 'bg-white border-gray-200'
-      } ${
+      className={`rounded-xl border shadow-sm hover:shadow-md transition-all bg-white border-gray-200 ${
         isDragging ? 'opacity-50 shadow-lg' : ''
       }`}
     >
