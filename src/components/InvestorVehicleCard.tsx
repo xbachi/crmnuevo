@@ -25,8 +25,8 @@ export function InvestorVehicleCard({ vehiculo, inversor, onView, onEdit, onEdit
   const fileInputRef = useRef<HTMLInputElement>(null)
   
   // Determinar si es un vehículo de depósito o inversor
-  const esDeposito = vehiculo.tipo === 'D'
-  const esInversor = vehiculo.tipo === 'I'
+  const esDeposito = vehiculo.tipo === 'D' || vehiculo.tipo === 'Deposito Venta'
+  const esInversor = vehiculo.tipo === 'I' || vehiculo.tipo === 'Inversor'
 
   // Helper function para normalizar valores booleanos
   const isPositive = (value: string | boolean | null | undefined): boolean => {

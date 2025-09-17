@@ -227,8 +227,8 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
   const vehiculoVendido = isVendido(vehiculo.estado)
 
   // Determinar si es un vehículo de depósito o inversor
-  const esDeposito = vehiculo.tipo === 'D'
-  const esInversor = vehiculo.tipo === 'I'
+  const esDeposito = vehiculo.tipo === 'D' || vehiculo.tipo === 'Deposito Venta'
+  const esInversor = vehiculo.tipo === 'I' || vehiculo.tipo === 'Inversor'
   
   return (
     <div className={`rounded-xl border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group ${
