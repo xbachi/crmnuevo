@@ -101,9 +101,13 @@ export default function ListaVehiculos() {
   const getTipoText = (tipo: string) => {
     const tipos = {
       'Compra': 'Compra',
+      'C': 'Compra',
       'Coche R': 'Coche R',
+      'R': 'Coche R',
       'Deposito Venta': 'Deposito Venta',
-      'Inversor': 'Inversor'
+      'D': 'Deposito Venta',
+      'Inversor': 'Inversor',
+      'I': 'Inversor'
     }
     return tipos[tipo as keyof typeof tipos] || tipo
   }
@@ -111,12 +115,16 @@ export default function ListaVehiculos() {
   const getTipoColor = (tipo: string) => {
     switch (tipo) {
       case 'Compra':
+      case 'C':
         return 'bg-blue-100 text-blue-800'
       case 'Coche R':
+      case 'R':
         return 'bg-orange-100 text-orange-800'
       case 'Deposito Venta':
-        return 'bg-green-100 text-green-800'
+      case 'D':
+        return 'bg-cyan-100 text-cyan-800'
       case 'Inversor':
+      case 'I':
         return 'bg-purple-100 text-purple-800'
       default:
         return 'bg-gray-100 text-gray-800'
