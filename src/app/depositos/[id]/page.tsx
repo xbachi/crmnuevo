@@ -73,6 +73,15 @@ export default function DepositoDetail() {
   const [isUpdating, setIsUpdating] = useState(false)
   const [nuevaNota, setNuevaNota] = useState('')
   const [notasDeposito, setNotasDeposito] = useState<NotaDeposito[]>([])
+  const [editingNotaId, setEditingNotaId] = useState<number | null>(null)
+  const [editingContent, setEditingContent] = useState('')
+  const [isEditingDeposito, setIsEditingDeposito] = useState(false)
+  const [depositoEditData, setDepositoEditData] = useState({
+    monto_recibir: 0,
+    dias_gestion: 0,
+    multa_retiro_anticipado: 0,
+    numero_cuenta: ''
+  })
   const [isGeneratingContrato, setIsGeneratingContrato] = useState(false)
 
   useEffect(() => {
@@ -87,8 +96,25 @@ export default function DepositoDetail() {
       const response = await fetch(`/api/depositos/${params.id}`)
       if (response.ok) {
         const data = await response.json()
+        console.log(`✅ Depósito cargado:`, data)
         setDeposito(data)
+        
+        // Inicializar datos de edición
+        setDepositoEditData({
+          monto_recibir: data.monto_recibir || 0,
+          dias_gestion: data.dias_gestion || 0,
+          multa_retiro_anticipado: data.multa_retiro_anticipado || 0,
+          numero_cuenta: data.numero_cuenta || ''
+        })
+        console.log(`📝 Datos de edición inicializados:`, {
+          monto_recibir: data.monto_recibir,
+          dias_gestion: data.dias_gestion,
+          multa_retiro_anticipado: data.multa_retiro_anticipado,
+          numero_cuenta: data.numero_cuenta
+        })
       } else {
+        const errorText = await response.text()
+        console.error(`❌ Error cargando depósito:`, errorText)
         showToast('Error al cargar el depósito', 'error')
       }
     } catch (error) {
@@ -164,6 +190,162 @@ export default function DepositoDetail() {
     } catch (error) {
       console.error('❌ Error agregando nota:', error)
       showToast('Error de conexión al agregar la nota', 'error')
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  const handleEditarNota = async (notaId: number) => {
+    if (!deposito || !editingContent.trim()) return
+    
+    try {
+      console.log(`✏️ Editando nota ${notaId}`)
+      setIsUpdating(true)
+      
+      const response = await fetch(`/api/depositos/${deposito.id}/notas`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          notaId: notaId,
+          contenido: editingContent.trim(),
+          tipo: 'general',
+          titulo: 'Nota general',
+          usuario: 'Usuario'
+        })
+      })
+      
+      console.log(`📊 Response status:`, response.status)
+      
+      if (response.ok) {
+        const notaEditada = await response.json()
+        console.log(`✅ Nota editada:`, notaEditada)
+        setEditingNotaId(null)
+        setEditingContent('')
+        fetchNotas() // Recargar todas las notas
+        showToast('Nota editada exitosamente', 'success')
+      } else {
+        const errorData = await response.json()
+        console.error(`❌ Error response:`, errorData)
+        showToast(`Error al editar la nota: ${errorData.details || errorData.error}`, 'error')
+      }
+    } catch (error) {
+      console.error('❌ Error editando nota:', error)
+      showToast('Error de conexión al editar la nota', 'error')
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  const handleEliminarNota = async (notaId: number) => {
+    if (!deposito || !confirm('¿Estás seguro de que deseas eliminar esta nota?')) return
+    
+    try {
+      console.log(`🗑️ Eliminando nota ${notaId}`)
+      setIsUpdating(true)
+      
+      const response = await fetch(`/api/depositos/${deposito.id}/notas?notaId=${notaId}`, {
+        method: 'DELETE'
+      })
+      
+      console.log(`📊 Response status:`, response.status)
+      
+      if (response.ok) {
+        const result = await response.json()
+        console.log(`✅ Nota eliminada:`, result)
+        fetchNotas() // Recargar todas las notas
+        showToast('Nota eliminada exitosamente', 'success')
+      } else {
+        const errorData = await response.json()
+        console.error(`❌ Error response:`, errorData)
+        showToast(`Error al eliminar la nota: ${errorData.details || errorData.error}`, 'error')
+      }
+    } catch (error) {
+      console.error('❌ Error eliminando nota:', error)
+      showToast('Error de conexión al eliminar la nota', 'error')
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  const startEditing = (nota: NotaDeposito) => {
+    setEditingNotaId(nota.id)
+    setEditingContent(nota.contenido)
+  }
+
+  const cancelEditing = () => {
+    setEditingNotaId(null)
+    setEditingContent('')
+  }
+
+  const handleEditDeposito = () => {
+    console.log(`📝 Iniciando edición de depósito`)
+    setIsEditingDeposito(true)
+  }
+
+  const handleCancelEditDeposito = () => {
+    console.log(`🚫 Cancelando edición de depósito`)
+    setIsEditingDeposito(false)
+    
+    // Restaurar datos originales
+    if (deposito) {
+      setDepositoEditData({
+        monto_recibir: deposito.monto_recibir || 0,
+        dias_gestion: deposito.dias_gestion || 0,
+        multa_retiro_anticipado: deposito.multa_retiro_anticipado || 0,
+        numero_cuenta: deposito.numero_cuenta || ''
+      })
+    }
+  }
+
+  const handleSaveDepositoEdit = async () => {
+    if (!deposito) {
+      console.error(`❌ No hay datos del depósito para editar`)
+      showToast('No hay datos del depósito disponibles', 'error')
+      return
+    }
+
+    try {
+      console.log(`💾 Guardando edición de depósito ${deposito.id}`)
+      console.log(`📊 Datos a guardar:`, depositoEditData)
+      
+      setIsUpdating(true)
+      
+      const response = await fetch(`/api/depositos/${deposito.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          estado: deposito.estado,
+          fecha_fin: deposito.fecha_fin,
+          monto_recibir: depositoEditData.monto_recibir,
+          dias_gestion: depositoEditData.dias_gestion,
+          multa_retiro_anticipado: depositoEditData.multa_retiro_anticipado,
+          numero_cuenta: depositoEditData.numero_cuenta,
+          notas: deposito.notas,
+          contrato_deposito: deposito.contrato_deposito,
+          contrato_compra: deposito.contrato_compra
+        })
+      })
+      
+      console.log(`📊 Response status:`, response.status)
+      
+      if (response.ok) {
+        const updatedDeposito = await response.json()
+        console.log(`✅ Depósito actualizado:`, updatedDeposito)
+        setDeposito(updatedDeposito)
+        setIsEditingDeposito(false)
+        showToast('Información del depósito actualizada exitosamente', 'success')
+      } else {
+        const errorData = await response.json()
+        console.error(`❌ Error response:`, errorData)
+        showToast(`Error al actualizar el depósito: ${errorData.error || 'Error desconocido'}`, 'error')
+      }
+    } catch (error) {
+      console.error('❌ Error actualizando depósito:', error)
+      showToast('Error de conexión al actualizar el depósito', 'error')
     } finally {
       setIsUpdating(false)
     }
@@ -475,11 +657,33 @@ export default function DepositoDetail() {
                     <p className="text-sm text-gray-600">Información del depósito</p>
                   </div>
                 </div>
-                <button className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-200 rounded-lg transition-colors">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                </button>
+                {!isEditingDeposito ? (
+                  <button 
+                    onClick={handleEditDeposito}
+                    className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-200 rounded-lg transition-colors"
+                    title="Editar información del depósito"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                ) : (
+                  <div className="flex space-x-2">
+                    <button 
+                      onClick={handleSaveDepositoEdit}
+                      disabled={isUpdating}
+                      className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {isUpdating ? 'Guardando...' : 'Guardar'}
+                    </button>
+                    <button 
+                      onClick={handleCancelEditDeposito}
+                      className="px-3 py-1 bg-gray-300 text-gray-700 text-sm rounded hover:bg-gray-400"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -496,22 +700,71 @@ export default function DepositoDetail() {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-600">Monto al Comprador</label>
-                  <p className="text-gray-900 text-sm font-semibold">{formatCurrency(deposito.monto_recibir || 0)}</p>
+                  {isEditingDeposito ? (
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={depositoEditData.monto_recibir}
+                      onChange={(e) => setDepositoEditData(prev => ({
+                        ...prev,
+                        monto_recibir: parseFloat(e.target.value) || 0
+                      }))}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  ) : (
+                    <p className="text-gray-900 text-sm font-semibold">{formatCurrency(deposito.monto_recibir || 0)}</p>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-600">Días de Gestión</label>
-                  <p className="text-gray-900 text-sm">{deposito.dias_gestion || 0} días</p>
+                  {isEditingDeposito ? (
+                    <input
+                      type="number"
+                      value={depositoEditData.dias_gestion}
+                      onChange={(e) => setDepositoEditData(prev => ({
+                        ...prev,
+                        dias_gestion: parseInt(e.target.value) || 0
+                      }))}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  ) : (
+                    <p className="text-gray-900 text-sm">{deposito.dias_gestion || 0} días</p>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-600">Multa Retiro Anticipado</label>
-                  <p className="text-gray-900 text-sm">{formatCurrency(deposito.multa_retiro_anticipado || 0)}</p>
+                  {isEditingDeposito ? (
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={depositoEditData.multa_retiro_anticipado}
+                      onChange={(e) => setDepositoEditData(prev => ({
+                        ...prev,
+                        multa_retiro_anticipado: parseFloat(e.target.value) || 0
+                      }))}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  ) : (
+                    <p className="text-gray-900 text-sm">{formatCurrency(deposito.multa_retiro_anticipado || 0)}</p>
+                  )}
                 </div>
-                {deposito.numero_cuenta && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Número de Cuenta</label>
-                    <p className="text-gray-900 font-mono text-sm">{deposito.numero_cuenta}</p>
-                  </div>
-                )}
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Número de Cuenta</label>
+                  {isEditingDeposito ? (
+                    <input
+                      type="text"
+                      value={depositoEditData.numero_cuenta}
+                      onChange={(e) => setDepositoEditData(prev => ({
+                        ...prev,
+                        numero_cuenta: e.target.value
+                      }))}
+                      placeholder="Número de cuenta bancaria"
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                    />
+                  ) : (
+                    <p className="text-gray-900 font-mono text-sm">{deposito.numero_cuenta || 'No especificado'}</p>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -611,19 +864,74 @@ export default function DepositoDetail() {
                     <div key={nota.id} className="p-3 bg-gray-50 rounded-lg border-l-4 border-blue-500">
                       <div className="flex justify-between items-start mb-2">
                         <span className="text-xs font-medium text-blue-600">{nota.tipo.toUpperCase()}</span>
-                        <span className="text-xs text-gray-500">
-                          {new Date(nota.fecha).toLocaleDateString('es-ES', {
-                            day: '2-digit',
-                            month: '2-digit', 
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </span>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs text-gray-500">
+                            {new Date(nota.fecha).toLocaleDateString('es-ES', {
+                              day: '2-digit',
+                              month: '2-digit', 
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                          <div className="flex space-x-1">
+                            <button
+                              onClick={() => startEditing(nota)}
+                              disabled={editingNotaId === nota.id}
+                              className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded"
+                              title="Editar nota"
+                            >
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => handleEliminarNota(nota.id)}
+                              disabled={isUpdating}
+                              className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded"
+                              title="Eliminar nota"
+                            >
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{nota.contenido}</p>
+                      
+                      {editingNotaId === nota.id ? (
+                        <div className="space-y-2">
+                          <textarea
+                            value={editingContent}
+                            onChange={(e) => setEditingContent(e.target.value)}
+                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            rows={3}
+                          />
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => handleEditarNota(nota.id)}
+                              disabled={isUpdating || !editingContent.trim()}
+                              className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:opacity-50"
+                            >
+                              {isUpdating ? 'Guardando...' : 'Guardar'}
+                            </button>
+                            <button
+                              onClick={cancelEditing}
+                              className="px-3 py-1 bg-gray-300 text-gray-700 text-xs rounded hover:bg-gray-400"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-700 whitespace-pre-wrap">{nota.contenido}</p>
+                      )}
+                      
                       <div className="mt-2 text-xs text-gray-500">
                         Por: {nota.usuario}
+                        {nota.updatedAt !== nota.createdAt && (
+                          <span className="ml-2 italic">(editado)</span>
+                        )}
                       </div>
                     </div>
                   ))
@@ -720,15 +1028,8 @@ export default function DepositoDetail() {
                     >
                       Descargar
                     </button>
-                  ) : deposito.estado === 'VENDIDO' ? (
-                    <button
-                      onClick={() => {/* TODO: Implementar generación contrato compra */}}
-                      className="px-3 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-lg hover:bg-yellow-200"
-                    >
-                      Generar
-                    </button>
                   ) : (
-                    <span className="text-xs text-gray-400">Solo disponible cuando vendido</span>
+                    <span className="text-xs text-gray-400">No generado</span>
                   )}
                 </div>
               </div>

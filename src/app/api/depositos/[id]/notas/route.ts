@@ -94,3 +94,101 @@ export async function POST(
     }, { status: 500 })
   }
 }
+
+// PUT - Editar nota específica
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const depositoId = parseInt(id)
+    const data = await request.json()
+    
+    console.log(`✏️ PUT editar nota para depósito ${depositoId}`)
+    console.log(`📊 Datos recibidos:`, data)
+    
+    const { notaId, contenido, tipo, titulo, prioridad } = data
+    
+    if (!notaId || !contenido || contenido.trim().length === 0) {
+      console.log(`❌ Datos incompletos`)
+      return NextResponse.json({ error: 'ID de nota y contenido son requeridos' }, { status: 400 })
+    }
+    
+    console.log(`📊 Ejecutando UPDATE en NotaDeposito...`)
+    const result = await pool.query(`
+      UPDATE "NotaDeposito" 
+      SET contenido = $1, tipo = $2, titulo = $3, prioridad = $4, "updatedAt" = NOW()
+      WHERE id = $5 AND "depositoId" = $6
+      RETURNING *
+    `, [
+      contenido.trim(),
+      tipo || 'general',
+      titulo || 'Nota general',
+      prioridad || 'normal',
+      notaId,
+      depositoId
+    ])
+    
+    if (result.rows.length === 0) {
+      console.log(`❌ Nota no encontrada`)
+      return NextResponse.json({ error: 'Nota no encontrada' }, { status: 404 })
+    }
+    
+    console.log(`✅ Nota editada exitosamente:`, result.rows[0])
+    return NextResponse.json(result.rows[0])
+  } catch (error) {
+    console.error('❌ Error editando nota del depósito:', error)
+    console.error('❌ Error stack:', error.stack)
+    console.error('❌ Error code:', error.code)
+    return NextResponse.json({ 
+      error: 'Error interno del servidor',
+      details: error.message,
+      code: error.code
+    }, { status: 500 })
+  }
+}
+
+// DELETE - Eliminar nota específica  
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const depositoId = parseInt(id)
+    const url = new URL(request.url)
+    const notaId = url.searchParams.get('notaId')
+    
+    console.log(`🗑️ DELETE nota ${notaId} para depósito ${depositoId}`)
+    
+    if (!notaId) {
+      console.log(`❌ notaId no proporcionado`)
+      return NextResponse.json({ error: 'ID de nota es requerido' }, { status: 400 })
+    }
+    
+    console.log(`📊 Ejecutando DELETE en NotaDeposito...`)
+    const result = await pool.query(`
+      DELETE FROM "NotaDeposito" 
+      WHERE id = $1 AND "depositoId" = $2
+      RETURNING *
+    `, [notaId, depositoId])
+    
+    if (result.rows.length === 0) {
+      console.log(`❌ Nota no encontrada`)
+      return NextResponse.json({ error: 'Nota no encontrada' }, { status: 404 })
+    }
+    
+    console.log(`✅ Nota eliminada exitosamente:`, result.rows[0])
+    return NextResponse.json({ success: true, deletedNota: result.rows[0] })
+  } catch (error) {
+    console.error('❌ Error eliminando nota del depósito:', error)
+    console.error('❌ Error stack:', error.stack)
+    console.error('❌ Error code:', error.code)
+    return NextResponse.json({ 
+      error: 'Error interno del servidor',
+      details: error.message,
+      code: error.code
+    }, { status: 500 })
+  }
+}

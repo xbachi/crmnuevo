@@ -74,6 +74,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params
     const body = await request.json()
     
+    console.log(`📝 PUT depósito ${id}`)
+    console.log(`📊 Body completo recibido:`, JSON.stringify(body, null, 2))
+    
     const { 
       estado, 
       fecha_fin, 
@@ -87,6 +90,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       contrato_deposito,
       contrato_compra
     } = body
+    
+    console.log(`📝 Campos extraídos:`, {
+      estado, fecha_fin, precio_venta, comision_porcentaje, notas,
+      monto_recibir, dias_gestion, multa_retiro_anticipado, numero_cuenta,
+      contrato_deposito, contrato_compra
+    })
 
     // Calcular nueva fecha de fin si se actualizan los días de gestión
     let nueva_fecha_fin = fecha_fin
@@ -102,6 +111,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     // Si solo se está actualizando el estado, hacer una actualización simple
     if (Object.keys(body).length === 1 && body.estado) {
+      console.log(`🔄 Actualización simple de estado a: ${estado}`)
+      
       const result = await pool.query(`
         UPDATE depositos 
         SET estado = $1, updated_at = CURRENT_TIMESTAMP
@@ -109,14 +120,23 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         RETURNING *
       `, [estado, id])
       
+      console.log(`✅ Query simple ejecutado, filas afectadas: ${result.rows.length}`)
+      
       if (result.rows.length === 0) {
+        console.log(`❌ Depósito ${id} no encontrado`)
         return NextResponse.json({ error: 'Depósito no encontrado' }, { status: 404 })
       }
 
+      console.log(`✅ Estado actualizado exitosamente:`, result.rows[0])
       return NextResponse.json(result.rows[0])
     }
 
     // Actualización completa
+    console.log(`🔄 Ejecutando actualización completa con valores:`, [
+      estado, nueva_fecha_fin, monto_recibir, dias_gestion, 
+      multa_retiro_anticipado, numero_cuenta, notas, contrato_deposito, contrato_compra, id
+    ])
+    
     const result = await pool.query(`
       UPDATE depositos 
       SET estado = $1, fecha_fin = $2, monto_recibir = $3, dias_gestion = $4, 
@@ -126,14 +146,24 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       RETURNING *
     `, [estado, nueva_fecha_fin, monto_recibir, dias_gestion, multa_retiro_anticipado, numero_cuenta, notas, contrato_deposito, contrato_compra, id])
 
+    console.log(`✅ Query completo ejecutado, filas afectadas: ${result.rows.length}`)
+
     if (result.rows.length === 0) {
+      console.log(`❌ Depósito ${id} no encontrado en actualización completa`)
       return NextResponse.json({ error: 'Depósito no encontrado' }, { status: 404 })
     }
 
+    console.log(`✅ Depósito actualizado exitosamente:`, result.rows[0])
     return NextResponse.json(result.rows[0])
   } catch (error) {
-    console.error('Error updating deposito:', error)
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
+    console.error('❌ Error updating deposito:', error)
+    console.error('❌ Error stack:', error.stack)
+    console.error('❌ Error code:', error.code)
+    return NextResponse.json({ 
+      error: 'Error interno del servidor',
+      details: error.message,
+      code: error.code
+    }, { status: 500 })
   }
 }
 
