@@ -110,6 +110,8 @@ export default function DepositoDetail() {
       if (response.ok) {
         const updatedDeposito = await response.json()
         setDeposito(updatedDeposito)
+        // Actualizar también el estado local de notas desde la respuesta
+        setNotas(updatedDeposito.notas || '')
         showToast('Notas guardadas exitosamente', 'success')
       } else {
         showToast('Error al guardar las notas', 'error')
@@ -556,6 +558,15 @@ export default function DepositoDetail() {
             {/* Notas */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Notas</h3>
+              
+              {/* Mostrar notas guardadas */}
+              {deposito.notas && (
+                <div className="mb-4 p-3 bg-gray-50 rounded-lg border">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Notas guardadas:</h4>
+                  <p className="text-sm text-gray-600 whitespace-pre-wrap">{deposito.notas}</p>
+                </div>
+              )}
+              
               <div className="space-y-4">
                 <textarea
                   value={notas}
