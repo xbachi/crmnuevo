@@ -597,7 +597,7 @@ export default function DepositoDetail() {
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span>Contrato de Depósito Generado</span>
+                    <span>Contrato Generado</span>
                   </div>
                 ) : isGeneratingContrato ? (
                   <div className="flex items-center space-x-2">
@@ -1002,22 +1002,16 @@ export default function DepositoDetail() {
                 <div className={`flex items-center justify-between p-3 rounded-lg border ${
                   deposito.contrato_compra 
                     ? 'bg-green-50 border-green-200' 
-                    : deposito.estado === 'VENDIDO'
-                    ? 'bg-blue-50 border-blue-200'
                     : 'bg-gray-50 border-gray-200'
                 }`}>
                   <div className="flex items-center space-x-3">
                     <svg className={`w-5 h-5 ${
-                      deposito.contrato_compra ? 'text-green-600' 
-                      : deposito.estado === 'VENDIDO' ? 'text-blue-600' 
-                      : 'text-gray-400'
+                      deposito.contrato_compra ? 'text-green-600' : 'text-gray-400'
                     }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                     <span className={`text-sm font-medium ${
-                      deposito.contrato_compra ? 'text-green-800' 
-                      : deposito.estado === 'VENDIDO' ? 'text-blue-800'
-                      : 'text-gray-500'
+                      deposito.contrato_compra ? 'text-green-800' : 'text-gray-500'
                     }`}>
                       Contrato de Compra
                     </span>
