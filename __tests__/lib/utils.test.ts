@@ -1,0 +1,112 @@
+import {
+  formatCurrency,
+  formatDate,
+  formatDateTime,
+  formatVehicleReference,
+  formatPercentage,
+} from '@/lib/utils'
+
+describe('formatCurrency', () => {
+  test('formats basic currency amounts', () => {
+    expect(formatCurrency(1000)).toBe('1.000€')
+    expect(formatCurrency(15000)).toBe('15.000€')
+    expect(formatCurrency(1234567)).toBe('1.234.567€')
+  })
+
+  test('handles decimal amounts', () => {
+    expect(formatCurrency(1000.50)).toBe('1.000,50€')
+    expect(formatCurrency(15000.99)).toBe('15.000,99€')
+  })
+
+  test('handles zero and negative amounts', () => {
+    expect(formatCurrency(0)).toBe('0€')
+    expect(formatCurrency(-1000)).toBe('-1.000€')
+  })
+
+  test('handles null and undefined', () => {
+    expect(formatCurrency(null)).toBe('0€')
+    expect(formatCurrency(undefined)).toBe('0€')
+  })
+})
+
+describe('formatDate', () => {
+  test('formats date strings correctly', () => {
+    const date = '2025-01-17'
+    const result = formatDate(date)
+    expect(result).toMatch(/\d{1,2} de \w+ de \d{4}/)
+  })
+
+  test('handles invalid dates gracefully', () => {
+    const result = formatDate('invalid-date')
+    expect(result).toContain('Invalid Date')
+  })
+})
+
+describe('formatDateTime', () => {
+  test('formats datetime strings correctly', () => {
+    const date = '2025-01-17T15:30:00Z'
+    const result = formatDateTime(date)
+    expect(result).toMatch(/\d{1,2} de \w+ de \d{4}, \d{1,2}:\d{2}/)
+  })
+
+  test('handles invalid dates gracefully', () => {
+    const result = formatDateTime('invalid-date')
+    expect(result).toContain('Invalid Date')
+  })
+})
+
+describe('formatVehicleReference', () => {
+  test('formats purchase vehicle references', () => {
+    expect(formatVehicleReference('1010', 'C')).toBe('#1010')
+    expect(formatVehicleReference('1010', 'Compra')).toBe('#1010')
+    expect(formatVehicleReference('#1010', 'C')).toBe('#1010')
+  })
+
+  test('formats investor vehicle references', () => {
+    expect(formatVehicleReference('9', 'I')).toBe('I-9')
+    expect(formatVehicleReference('9', 'Inversor')).toBe('I-9')
+    expect(formatVehicleReference('I9', 'I')).toBe('I-9')
+    expect(formatVehicleReference('I-9', 'I')).toBe('I-9')
+  })
+
+  test('formats deposit vehicle references', () => {
+    expect(formatVehicleReference('5', 'D')).toBe('D-5')
+    expect(formatVehicleReference('5', 'Deposito')).toBe('D-5')
+    expect(formatVehicleReference('5', 'Deposito Venta')).toBe('D-5')
+    expect(formatVehicleReference('D5', 'D')).toBe('D-5')
+    expect(formatVehicleReference('D-5', 'D')).toBe('D-5')
+  })
+
+  test('formats rental vehicle references', () => {
+    expect(formatVehicleReference('3', 'R')).toBe('R-3')
+    expect(formatVehicleReference('3', 'Coche R')).toBe('R-3')
+    expect(formatVehicleReference('R3', 'R')).toBe('R-3')
+    expect(formatVehicleReference('R-3', 'R')).toBe('R-3')
+  })
+
+  test('handles unknown types', () => {
+    expect(formatVehicleReference('123', 'UNKNOWN')).toBe('123')
+    expect(formatVehicleReference('123', null)).toBe('123')
+    expect(formatVehicleReference('123', undefined)).toBe('123')
+  })
+
+  test('handles empty references', () => {
+    expect(formatVehicleReference('', 'C')).toBe('')
+    expect(formatVehicleReference(null, 'C')).toBe('')
+    expect(formatVehicleReference(undefined, 'C')).toBe('')
+  })
+})
+
+describe('formatPercentage', () => {
+  test('formats percentages correctly', () => {
+    expect(formatPercentage(10)).toBe('10.0%')
+    expect(formatPercentage(50.5)).toBe('50.5%')
+    expect(formatPercentage(0)).toBe('0.0%')
+    expect(formatPercentage(100)).toBe('100.0%')
+  })
+
+  test('handles decimal precision', () => {
+    expect(formatPercentage(10.123)).toBe('10.1%')
+    expect(formatPercentage(50.567)).toBe('50.6%')
+  })
+})

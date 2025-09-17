@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Run lint-staged for code formatting and linting
+npx lint-staged
+
+# Run quick smoke tests before commit
+echo "🧪 Running smoke tests..."
+npm run test:smoke
+
+echo "✅ Pre-commit checks passed!"
