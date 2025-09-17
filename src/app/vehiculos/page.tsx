@@ -850,8 +850,28 @@ export default function ListaVehiculos() {
                     }
                     const vehiculoVendido = isVendido(vehiculo.estado)
                     
+                    // Determinar el color de fondo según el tipo
+                    const getRowBackgroundColor = (tipo: string) => {
+                      switch (tipo) {
+                        case 'Compra':
+                        case 'C':
+                          return 'bg-white hover:bg-slate-50/80'
+                        case 'Inversor':
+                        case 'I':
+                          return 'bg-gradient-to-r from-orange-50 to-amber-50 hover:from-orange-100 hover:to-amber-100'
+                        case 'Deposito Venta':
+                        case 'D':
+                          return 'bg-gradient-to-r from-cyan-50 to-blue-50 hover:from-cyan-100 hover:to-blue-100'
+                        case 'Coche R':
+                        case 'R':
+                          return 'bg-gradient-to-r from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100'
+                        default:
+                          return 'bg-white hover:bg-slate-50/80'
+                      }
+                    }
+                    
                     return (
-                    <tr key={`${vehiculo.id}-${vehiculo.updatedAt}-${index}`} className={`hover:bg-slate-50/80 transition-colors duration-200 ${vehiculoVendido ? 'opacity-60 grayscale' : ''}`}>
+                    <tr key={`${vehiculo.id}-${vehiculo.updatedAt}-${index}`} className={`${getRowBackgroundColor(vehiculo.tipo)} transition-colors duration-200 ${vehiculoVendido ? 'opacity-60 grayscale' : ''}`}>
                       <td className="px-3 py-4">
                         <div className="flex items-center">
                           <div className={`w-12 h-10 rounded-lg flex items-center justify-center mr-2 ${
