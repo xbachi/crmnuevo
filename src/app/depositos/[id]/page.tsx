@@ -49,6 +49,20 @@ interface Deposito {
   }
 }
 
+interface NotaDeposito {
+  id: number
+  depositoId: number
+  tipo: string
+  titulo: string
+  contenido: string
+  prioridad: string
+  completada: boolean
+  fecha: string
+  usuario: string
+  createdAt: string
+  updatedAt: string
+}
+
 export default function DepositoDetail() {
   const params = useParams()
   const router = useRouter()
@@ -57,12 +71,14 @@ export default function DepositoDetail() {
   const [deposito, setDeposito] = useState<Deposito | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isUpdating, setIsUpdating] = useState(false)
-  const [notas, setNotas] = useState('')
+  const [nuevaNota, setNuevaNota] = useState('')
+  const [notasDeposito, setNotasDeposito] = useState<NotaDeposito[]>([])
   const [isGeneratingContrato, setIsGeneratingContrato] = useState(false)
 
   useEffect(() => {
     if (params.id) {
       fetchDeposito()
+      fetchNotas()
     }
   }, [params.id])
 
@@ -72,7 +88,6 @@ export default function DepositoDetail() {
       if (response.ok) {
         const data = await response.json()
         setDeposito(data)
-        setNotas(data.notas || '')
       } else {
         showToast('Error al cargar el depósito', 'error')
       }
@@ -84,41 +99,46 @@ export default function DepositoDetail() {
     }
   }
 
-  const handleUpdateNotas = async () => {
-    if (!deposito) return
+  const fetchNotas = async () => {
+    try {
+      const response = await fetch(`/api/depositos/${params.id}/notas`)
+      if (response.ok) {
+        const notas = await response.json()
+        setNotasDeposito(notas)
+      }
+    } catch (error) {
+      console.error('Error cargando notas:', error)
+    }
+  }
+
+  const handleAgregarNota = async () => {
+    if (!deposito || !nuevaNota.trim()) return
     
     try {
       setIsUpdating(true)
-      const response = await fetch(`/api/depositos/${deposito.id}`, {
-        method: 'PUT',
+      const response = await fetch(`/api/depositos/${deposito.id}/notas`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          estado: deposito.estado,
-          fecha_fin: deposito.fecha_fin,
-          monto_recibir: deposito.monto_recibir,
-          dias_gestion: deposito.dias_gestion,
-          multa_retiro_anticipado: deposito.multa_retiro_anticipado,
-          numero_cuenta: deposito.numero_cuenta,
-          notas: notas,
-          contrato_deposito: deposito.contrato_deposito,
-          contrato_compra: deposito.contrato_compra
+        body: JSON.stringify({
+          contenido: nuevaNota.trim(),
+          tipo: 'general',
+          titulo: 'Nota general',
+          usuario: 'Usuario' // TODO: Obtener usuario actual del sistema de auth
         })
       })
       
       if (response.ok) {
-        const updatedDeposito = await response.json()
-        setDeposito(updatedDeposito)
-        // Actualizar también el estado local de notas desde la respuesta
-        setNotas(updatedDeposito.notas || '')
-        showToast('Notas guardadas exitosamente', 'success')
+        setNuevaNota('')
+        fetchNotas() // Recargar todas las notas
+        showToast('Nota agregada exitosamente', 'success')
       } else {
-        showToast('Error al guardar las notas', 'error')
+        showToast('Error al agregar la nota', 'error')
       }
     } catch (error) {
-      console.error('Error updating notas:', error)
-      showToast('Error al guardar las notas', 'error')
+      console.error('Error agregando nota:', error)
+      showToast('Error al agregar la nota', 'error')
     } finally {
       setIsUpdating(false)
     }
@@ -369,7 +389,7 @@ export default function DepositoDetail() {
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span>Contrato Generado</span>
+                    <span>Contrato de Depósito Generado</span>
                   </div>
                 ) : isGeneratingContrato ? (
                   <div className="flex items-center space-x-2">
@@ -557,30 +577,52 @@ export default function DepositoDetail() {
 
             {/* Notas */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Notas</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Notas del Depósito</h3>
               
-              {/* Mostrar notas guardadas */}
-              {deposito.notas && (
-                <div className="mb-4 p-3 bg-gray-50 rounded-lg border">
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Notas guardadas:</h4>
-                  <p className="text-sm text-gray-600 whitespace-pre-wrap">{deposito.notas}</p>
-                </div>
-              )}
+              {/* Historial de notas */}
+              <div className="space-y-3 mb-6 max-h-64 overflow-y-auto">
+                {notasDeposito.length > 0 ? (
+                  notasDeposito.map((nota) => (
+                    <div key={nota.id} className="p-3 bg-gray-50 rounded-lg border-l-4 border-blue-500">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-xs font-medium text-blue-600">{nota.tipo.toUpperCase()}</span>
+                        <span className="text-xs text-gray-500">
+                          {new Date(nota.fecha).toLocaleDateString('es-ES', {
+                            day: '2-digit',
+                            month: '2-digit', 
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{nota.contenido}</p>
+                      <div className="mt-2 text-xs text-gray-500">
+                        Por: {nota.usuario}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-500 italic">No hay notas registradas para este depósito.</p>
+                )}
+              </div>
               
-              <div className="space-y-4">
+              {/* Agregar nueva nota */}
+              <div className="space-y-4 border-t pt-4">
+                <h4 className="text-sm font-medium text-gray-700">Agregar nueva nota:</h4>
                 <textarea
-                  value={notas}
-                  onChange={(e) => setNotas(e.target.value)}
-                  placeholder="Agregar notas sobre el depósito..."
+                  value={nuevaNota}
+                  onChange={(e) => setNuevaNota(e.target.value)}
+                  placeholder="Escribir nota sobre el depósito..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  rows={4}
+                  rows={3}
                 />
                 <button
-                  onClick={handleUpdateNotas}
-                  disabled={isUpdating}
+                  onClick={handleAgregarNota}
+                  disabled={isUpdating || !nuevaNota.trim()}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {isUpdating ? 'Guardando...' : 'Guardar Notas'}
+                  {isUpdating ? 'Agregando...' : 'Agregar Nota'}
                 </button>
               </div>
             </div>
@@ -607,7 +649,7 @@ export default function DepositoDetail() {
                     <span className={`text-sm font-medium ${
                       deposito.contrato_deposito ? 'text-green-800' : 'text-gray-500'
                     }`}>
-                      {deposito.contrato_deposito ? 'Contrato Generado' : 'Contrato de Depósito'}
+                      {deposito.contrato_deposito ? 'Contrato de Depósito Generado' : 'Contrato de Depósito'}
                     </span>
                   </div>
                   {deposito.contrato_deposito ? (
@@ -619,6 +661,49 @@ export default function DepositoDetail() {
                     </button>
                   ) : (
                     <span className="text-xs text-gray-400">No generado</span>
+                  )}
+                </div>
+                
+                {/* Contrato de Compra */}
+                <div className={`flex items-center justify-between p-3 rounded-lg border ${
+                  deposito.contrato_compra 
+                    ? 'bg-green-50 border-green-200' 
+                    : deposito.estado === 'VENDIDO'
+                    ? 'bg-blue-50 border-blue-200'
+                    : 'bg-gray-50 border-gray-200'
+                }`}>
+                  <div className="flex items-center space-x-3">
+                    <svg className={`w-5 h-5 ${
+                      deposito.contrato_compra ? 'text-green-600' 
+                      : deposito.estado === 'VENDIDO' ? 'text-blue-600' 
+                      : 'text-gray-400'
+                    }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span className={`text-sm font-medium ${
+                      deposito.contrato_compra ? 'text-green-800' 
+                      : deposito.estado === 'VENDIDO' ? 'text-blue-800'
+                      : 'text-gray-500'
+                    }`}>
+                      {deposito.contrato_compra ? 'Contrato de Compra Generado' : 'Contrato de Compra'}
+                    </span>
+                  </div>
+                  {deposito.contrato_compra ? (
+                    <button
+                      onClick={() => {/* TODO: Implementar descarga contrato compra */}}
+                      className="px-3 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700"
+                    >
+                      Descargar
+                    </button>
+                  ) : deposito.estado === 'VENDIDO' ? (
+                    <button
+                      onClick={() => {/* TODO: Implementar generación contrato compra */}}
+                      className="px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700"
+                    >
+                      Generar
+                    </button>
+                  ) : (
+                    <span className="text-xs text-gray-400">Solo disponible cuando vendido</span>
                   )}
                 </div>
               </div>
