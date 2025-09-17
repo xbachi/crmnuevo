@@ -57,6 +57,7 @@ export default function DepositoDetail() {
   const [isUpdating, setIsUpdating] = useState(false)
   const [notas, setNotas] = useState('')
   const [contratoGenerado, setContratoGenerado] = useState(false)
+  const [isGeneratingContrato, setIsGeneratingContrato] = useState(false)
 
   useEffect(() => {
     if (params.id) {
@@ -98,7 +99,6 @@ export default function DepositoDetail() {
       if (response.ok) {
         const updatedDeposito = await response.json()
         setDeposito(updatedDeposito)
-        setEditMode(false)
         showToast('Depósito actualizado exitosamente', 'success')
       } else {
         showToast('Error al actualizar el depósito', 'error')
@@ -117,6 +117,7 @@ export default function DepositoDetail() {
     }
     
     try {
+      setIsGeneratingContrato(true)
       // Preparar datos para el contrato
       const contratoData = {
         id: deposito.id,
@@ -177,6 +178,8 @@ export default function DepositoDetail() {
     } catch (error) {
       console.error('Error generando contrato:', error)
       showToast('Error al generar el contrato', 'error')
+    } finally {
+      setIsGeneratingContrato(false)
     }
   }
 
@@ -332,39 +335,50 @@ export default function DepositoDetail() {
           )}
 
           {/* Botones de documentos */}
-          <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-6 mb-6">
+          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl shadow-lg border border-purple-200 p-6 mb-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Documentos</h3>
             <div className="flex space-x-3">
-              {contratoGenerado ? (
-                <button
-                  disabled
-                  className="flex items-center space-x-2 px-4 py-2 bg-green-100 text-green-800 rounded-lg text-sm font-medium cursor-not-allowed"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>Contrato Generado</span>
-                </button>
-              ) : (
-                <button
-                  onClick={handleGenerarContrato}
-                  className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <span>Generar Contrato de Depósito</span>
-                </button>
-              )}
               <button
-                disabled={deposito.estado !== 'VENDIDO'}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  deposito.estado === 'VENDIDO'
-                    ? 'bg-green-600 hover:bg-green-700 text-white cursor-pointer'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                onClick={handleGenerarContrato}
+                disabled={isGeneratingContrato || contratoGenerado}
+                className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-colors ${
+                  contratoGenerado
+                    ? 'bg-green-100 text-green-700 cursor-not-allowed'
+                    : isGeneratingContrato
+                    ? 'bg-yellow-100 text-yellow-700 cursor-not-allowed'
+                    : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
                 }`}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {contratoGenerado ? (
+                  <div className="flex items-center space-x-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Contrato Generado</span>
+                  </div>
+                ) : isGeneratingContrato ? (
+                  <div className="flex items-center space-x-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div>
+                    <span>Generando...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>Generar Contrato de Depósito</span>
+                  </div>
+                )}
+              </button>
+              <button
+                disabled={deposito.estado !== 'VENDIDO'}
+                className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-colors ${
+                  deposito.estado === 'VENDIDO'
+                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                    : 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
                 <span>Generar Contrato de Compra</span>
@@ -605,7 +619,7 @@ export default function DepositoDetail() {
                       <span className="text-sm font-medium text-gray-700">Marcar como vendido</span>
                       <button
                         onClick={handleMarcarVendido}
-                        className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                        className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 hover:bg-gray-300"
                       >
                         <span
                           className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
@@ -615,6 +629,20 @@ export default function DepositoDetail() {
                       </button>
                     </div>
                     <p className="text-xs text-gray-500 mt-1">Activa para marcar el depósito como vendido</p>
+                  </div>
+                )}
+                
+                {/* Mostrar estado vendido si ya está vendido */}
+                {deposito.estado === 'VENDIDO' && (
+                  <div className="pt-4 border-t border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">Estado: Vendido</span>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className="text-xs text-green-600 font-medium">VENDIDO</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Este depósito ha sido marcado como vendido</p>
                   </div>
                 )}
               </div>

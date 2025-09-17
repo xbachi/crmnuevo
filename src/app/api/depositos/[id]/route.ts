@@ -97,10 +97,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const result = await pool.query(`
       UPDATE depositos 
       SET estado = $1, fecha_fin = $2, monto_recibir = $3, dias_gestion = $4, 
-          multa_retiro_anticipado = $5, numero_cuenta = $6, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $7
+          multa_retiro_anticipado = $5, numero_cuenta = $6, notas = $7, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $8
       RETURNING *
-    `, [estado, nueva_fecha_fin, monto_recibir, dias_gestion, multa_retiro_anticipado, numero_cuenta, id])
+    `, [estado, nueva_fecha_fin, monto_recibir, dias_gestion, multa_retiro_anticipado, numero_cuenta, notas, id])
 
     if (result.rows.length === 0) {
       return NextResponse.json({ error: 'Depósito no encontrado' }, { status: 404 })
