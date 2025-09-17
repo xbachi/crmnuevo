@@ -4,6 +4,8 @@ import { pool } from '@/lib/direct-database'
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
+    console.log(`🔍 GET deposito ${id}`)
+    
     const result = await pool.query(`
       SELECT
         d.*,
@@ -14,6 +16,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       JOIN "Vehiculo" v ON d.vehiculo_id = v.id
       WHERE d.id = $1
     `, [id])
+    
+    console.log(`📊 Resultado query deposito:`, result.rows[0])
 
     if (result.rows.length === 0) {
       return NextResponse.json({ error: 'Depósito no encontrado' }, { status: 404 })
@@ -34,8 +38,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       dias_gestion: row.dias_gestion,
       multa_retiro_anticipado: row.multa_retiro_anticipado,
       numero_cuenta: row.numero_cuenta,
-      contrato_deposito: row.contrato_deposito,
-      contrato_compra: row.contrato_compra,
+      contrato_deposito: row.contrato_deposito || null,
+      contrato_compra: row.contrato_compra || null,
       created_at: row.created_at,
       cliente: {
         id: row.cliente_id,
@@ -72,19 +76,21 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const { id } = await params
     const body = await request.json()
-      const { 
-        estado, 
-        fecha_fin, 
-        precio_venta, 
-        comision_porcentaje, 
-        notas,
-        monto_recibir,
-        dias_gestion,
-        multa_retiro_anticipado,
-        numero_cuenta,
-        contrato_deposito,
-        contrato_compra
-      } = body
+    console.log(`📝 PUT deposito ${id}:`, body)
+    
+    const { 
+      estado, 
+      fecha_fin, 
+      precio_venta, 
+      comision_porcentaje, 
+      notas,
+      monto_recibir,
+      dias_gestion,
+      multa_retiro_anticipado,
+      numero_cuenta,
+      contrato_deposito,
+      contrato_compra
+    } = body
 
     // Calcular nueva fecha de fin si se actualizan los días de gestión
     let nueva_fecha_fin = fecha_fin
@@ -100,12 +106,16 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     // Si solo se está actualizando el estado, hacer una actualización simple
     if (Object.keys(body).length === 1 && body.estado) {
+      console.log(`🔄 Actualización simple de estado a: ${estado}`)
+      
       const result = await pool.query(`
         UPDATE depositos 
         SET estado = $1, updated_at = CURRENT_TIMESTAMP
         WHERE id = $2
         RETURNING *
       `, [estado, id])
+      
+      console.log(`✅ Estado actualizado:`, result.rows[0])
       
       if (result.rows.length === 0) {
         return NextResponse.json({ error: 'Depósito no encontrado' }, { status: 404 })
@@ -114,15 +124,23 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json(result.rows[0])
     }
 
-    // Actualización completa
+    // Actualización completa - construir query dinámicamente para campos existentes
+    console.log(`🔄 Actualización completa con campos:`, {
+      estado, nueva_fecha_fin, monto_recibir, dias_gestion, 
+      multa_retiro_anticipado, numero_cuenta, notas, contrato_deposito, contrato_compra
+    })
+    
+    // Query más simple primero para debug
     const result = await pool.query(`
       UPDATE depositos 
-      SET estado = $1, fecha_fin = $2, monto_recibir = $3, dias_gestion = $4, 
-          multa_retiro_anticipado = $5, numero_cuenta = $6, notas = $7, 
-          contrato_deposito = $8, contrato_compra = $9, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $10
+      SET estado = $1, 
+          notas = $2,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $3
       RETURNING *
-    `, [estado, nueva_fecha_fin, monto_recibir, dias_gestion, multa_retiro_anticipado, numero_cuenta, notas, contrato_deposito, contrato_compra, id])
+    `, [estado, notas || null, id])
+    
+    console.log(`✅ Actualización completa resultado:`, result.rows[0])
 
     if (result.rows.length === 0) {
       return NextResponse.json({ error: 'Depósito no encontrado' }, { status: 404 })
