@@ -20,6 +20,8 @@ interface Deposito {
   dias_gestion?: number
   multa_retiro_anticipado?: number
   numero_cuenta?: string
+  contrato_generado?: boolean
+  contrato_compra_generado?: boolean
   created_at: string
   updated_at: string
   cliente: {
@@ -56,7 +58,6 @@ export default function DepositoDetail() {
   const [isLoading, setIsLoading] = useState(true)
   const [isUpdating, setIsUpdating] = useState(false)
   const [notas, setNotas] = useState('')
-  const [contratoGenerado, setContratoGenerado] = useState(false)
   const [isGeneratingContrato, setIsGeneratingContrato] = useState(false)
 
   useEffect(() => {
@@ -100,7 +101,9 @@ export default function DepositoDetail() {
           dias_gestion: deposito.dias_gestion,
           multa_retiro_anticipado: deposito.multa_retiro_anticipado,
           numero_cuenta: deposito.numero_cuenta,
-          notas: notas
+          notas: notas,
+          contrato_generado: deposito.contrato_generado || false,
+          contrato_compra_generado: deposito.contrato_compra_generado || false
         })
       })
       
@@ -158,31 +161,34 @@ export default function DepositoDetail() {
       // Generar el contrato en PDF
       await generarContratoDeposito(contratoData)
       
-      // Si el depósito está en borrador, cambiarlo a activo
-      if (deposito.estado === 'BORRADOR') {
-        const updateResponse = await fetch(`/api/depositos/${deposito.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            estado: 'ACTIVO'
-          })
+      // Actualizar el depósito para marcar el contrato como generado
+      const updateResponse = await fetch(`/api/depositos/${deposito.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          estado: deposito.estado === 'BORRADOR' ? 'ACTIVO' : deposito.estado,
+          fecha_fin: deposito.fecha_fin,
+          monto_recibir: deposito.monto_recibir,
+          dias_gestion: deposito.dias_gestion,
+          multa_retiro_anticipado: deposito.multa_retiro_anticipado,
+          numero_cuenta: deposito.numero_cuenta,
+          notas: deposito.notas,
+          contrato_generado: true,
+          contrato_compra_generado: deposito.contrato_compra_generado || false
         })
-        
-           if (updateResponse.ok) {
-             // Actualizar el estado local
-             setDeposito(prev => prev ? { ...prev, estado: 'ACTIVO' } : null)
-             setContratoGenerado(true)
-             showToast('Contrato generado y depósito activado exitosamente', 'success')
-           } else {
-             setContratoGenerado(true)
-             showToast('Contrato generado, pero error al activar el depósito', 'warning')
-           }
-         } else {
-           setContratoGenerado(true)
-           showToast('Contrato generado exitosamente', 'success')
-         }
+      })
+      
+      if (updateResponse.ok) {
+        const updatedDeposito = await updateResponse.json()
+        setDeposito(updatedDeposito)
+        showToast('Contrato generado exitosamente', 'success')
+      } else {
+        const errorData = await updateResponse.json()
+        console.error('Error updating deposito:', errorData)
+        showToast('Contrato generado, pero error al actualizar el depósito', 'warning')
+      }
       
     } catch (error) {
       console.error('Error generando contrato:', error)
@@ -212,7 +218,9 @@ export default function DepositoDetail() {
           dias_gestion: deposito.dias_gestion,
           multa_retiro_anticipado: deposito.multa_retiro_anticipado,
           numero_cuenta: deposito.numero_cuenta,
-          notas: deposito.notas
+          notas: deposito.notas,
+          contrato_generado: deposito.contrato_generado || false,
+          contrato_compra_generado: deposito.contrato_compra_generado || false
         })
       })
       
@@ -360,16 +368,16 @@ export default function DepositoDetail() {
             <div className="flex space-x-3">
               <button
                 onClick={handleGenerarContrato}
-                disabled={isGeneratingContrato || contratoGenerado}
+                disabled={isGeneratingContrato || deposito.contrato_generado}
                 className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-colors ${
-                  contratoGenerado
+                  deposito.contrato_generado
                     ? 'bg-green-100 text-green-700 cursor-not-allowed'
                     : isGeneratingContrato
                     ? 'bg-yellow-100 text-yellow-700 cursor-not-allowed'
                     : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
                 }`}
               >
-                {contratoGenerado ? (
+                {deposito.contrato_generado ? (
                   <div className="flex items-center space-x-2">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -391,9 +399,11 @@ export default function DepositoDetail() {
                 )}
               </button>
               <button
-                disabled={deposito.estado !== 'VENDIDO'}
+                disabled={deposito.estado !== 'VENDIDO' || deposito.contrato_compra_generado}
                 className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-colors ${
-                  deposito.estado === 'VENDIDO'
+                  deposito.contrato_compra_generado
+                    ? 'bg-green-100 text-green-700 cursor-not-allowed'
+                    : deposito.estado === 'VENDIDO'
                     ? 'bg-green-100 text-green-700 hover:bg-green-200'
                     : 'bg-gray-100 text-gray-500 cursor-not-allowed'
                 }`}
@@ -581,23 +591,23 @@ export default function DepositoDetail() {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Documentación</h3>
               <div className="space-y-3">
                 <div className={`flex items-center justify-between p-3 rounded-lg border ${
-                  contratoGenerado 
+                  deposito.contrato_generado 
                     ? 'bg-green-50 border-green-200' 
                     : 'bg-gray-50 border-gray-200'
                 }`}>
                   <div className="flex items-center space-x-3">
                     <svg className={`w-5 h-5 ${
-                      contratoGenerado ? 'text-green-600' : 'text-gray-400'
+                      deposito.contrato_generado ? 'text-green-600' : 'text-gray-400'
                     }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                     <span className={`text-sm font-medium ${
-                      contratoGenerado ? 'text-green-800' : 'text-gray-500'
+                      deposito.contrato_generado ? 'text-green-800' : 'text-gray-500'
                     }`}>
-                      {contratoGenerado ? 'Contrato Generado' : 'Contrato de Depósito'}
+                      {deposito.contrato_generado ? 'Contrato Generado' : 'Contrato de Depósito'}
                     </span>
                   </div>
-                  {contratoGenerado ? (
+                  {deposito.contrato_generado ? (
                     <button
                       onClick={handleGenerarContrato}
                       className="px-3 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700"
