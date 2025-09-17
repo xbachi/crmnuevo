@@ -77,6 +77,25 @@ export default function DraggableVehicleCard({ vehiculo }: DraggableVehicleCardP
     }
   }
 
+  const getTipoLetra = (tipo: string) => {
+    switch (tipo) {
+      case 'Compra':
+      case 'C':
+        return 'C'
+      case 'Coche R':
+      case 'R':
+        return 'R'
+      case 'Deposito Venta':
+      case 'D':
+        return 'D'
+      case 'Inversor':
+      case 'I':
+        return 'I'
+      default:
+        return 'C'
+    }
+  }
+
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A'
     return new Date(dateString).toLocaleDateString('es-ES', {
@@ -147,7 +166,7 @@ export default function DraggableVehicleCard({ vehiculo }: DraggableVehicleCardP
                   {vehiculo.marca} {vehiculo.modelo}
                 </h3>
                 <span className={`px-2 py-0.5 text-xs font-medium rounded-lg border ${getTipoColor(vehiculo.tipo)} flex-shrink-0 ml-2`}>
-                  {formatVehicleReference(vehiculo.referencia, vehiculo.tipo).charAt(0)}
+                  {getTipoLetra(vehiculo.tipo)}
                 </span>
               </div>
               {/* Matrícula */}
