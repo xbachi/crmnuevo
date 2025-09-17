@@ -43,7 +43,21 @@ export function formatVehicleReference(referencia: string, tipo: string): string
   // Limpiar la referencia de espacios y caracteres especiales
   const cleanRef = referencia.trim().replace(/[^a-zA-Z0-9-]/g, '')
   
-  switch (tipo?.toUpperCase()) {
+  // Normalizar el tipo para manejar tanto letras como texto completo
+  const normalizedTipo = tipo?.toUpperCase()
+  
+  // Determinar el tipo real basado en el tipo normalizado
+  let tipoReal = 'C' // Por defecto compra
+  
+  if (normalizedTipo === 'I' || normalizedTipo === 'INVERSOR') {
+    tipoReal = 'I'
+  } else if (normalizedTipo === 'D' || normalizedTipo === 'DEPOSITO VENTA' || normalizedTipo === 'DEPOSITO') {
+    tipoReal = 'D'
+  } else if (normalizedTipo === 'R' || normalizedTipo === 'COCHE R' || normalizedTipo === 'RENTING') {
+    tipoReal = 'R'
+  }
+  
+  switch (tipoReal) {
     case 'I': // Inversores
       // Si ya tiene I- al inicio, mantenerlo
       if (cleanRef.startsWith('I-')) {
