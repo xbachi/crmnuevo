@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useToast } from '@/hooks/useToast'
+import { useConfirmModal } from '@/components/ConfirmModal'
 import { generarContratoDeposito } from '@/lib/contractGenerator'
 
 interface Deposito {
@@ -67,6 +68,7 @@ export default function DepositoDetail() {
   const params = useParams()
   const router = useRouter()
   const { showToast, ToastContainer } = useToast()
+  const { showConfirm, ConfirmModalComponent } = useConfirmModal()
   
   const [deposito, setDeposito] = useState<Deposito | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -239,34 +241,41 @@ export default function DepositoDetail() {
   }
 
   const handleEliminarNota = async (notaId: number) => {
-    if (!deposito || !confirm('¿Estás seguro de que deseas eliminar esta nota?')) return
+    if (!deposito) return
     
-    try {
-      console.log(`🗑️ Eliminando nota ${notaId}`)
-      setIsUpdating(true)
-      
-      const response = await fetch(`/api/depositos/${deposito.id}/notas?notaId=${notaId}`, {
-        method: 'DELETE'
-      })
-      
-      console.log(`📊 Response status:`, response.status)
-      
-      if (response.ok) {
-        const result = await response.json()
-        console.log(`✅ Nota eliminada:`, result)
-        fetchNotas() // Recargar todas las notas
-        showToast('Nota eliminada exitosamente', 'success')
-      } else {
-        const errorData = await response.json()
-        console.error(`❌ Error response:`, errorData)
-        showToast(`Error al eliminar la nota: ${errorData.details || errorData.error}`, 'error')
-      }
-    } catch (error) {
-      console.error('❌ Error eliminando nota:', error)
-      showToast('Error de conexión al eliminar la nota', 'error')
-    } finally {
-      setIsUpdating(false)
-    }
+    showConfirm(
+      'Eliminar Nota', 
+      '¿Estás seguro de que deseas eliminar esta nota? Esta acción no se puede deshacer.',
+      async () => {
+        try {
+          console.log(`🗑️ Eliminando nota ${notaId}`)
+          setIsUpdating(true)
+          
+          const response = await fetch(`/api/depositos/${deposito.id}/notas?notaId=${notaId}`, {
+            method: 'DELETE'
+          })
+          
+          console.log(`📊 Response status:`, response.status)
+          
+          if (response.ok) {
+            const result = await response.json()
+            console.log(`✅ Nota eliminada:`, result)
+            fetchNotas() // Recargar todas las notas
+            showToast('Nota eliminada exitosamente', 'success')
+          } else {
+            const errorData = await response.json()
+            console.error(`❌ Error response:`, errorData)
+            showToast(`Error al eliminar la nota: ${errorData.details || errorData.error}`, 'error')
+          }
+        } catch (error) {
+          console.error('❌ Error eliminando nota:', error)
+          showToast('Error de conexión al eliminar la nota', 'error')
+        } finally {
+          setIsUpdating(false)
+        }
+      },
+      'danger'
+    )
   }
 
   const startEditing = (nota: NotaDeposito) => {
@@ -982,7 +991,7 @@ export default function DepositoDetail() {
                     <span className={`text-sm font-medium ${
                       deposito.contrato_deposito ? 'text-green-800' : 'text-gray-500'
                     }`}>
-                      {deposito.contrato_deposito ? 'Contrato de Depósito Generado' : 'Contrato de Depósito'}
+                      Contrato de Depósito
                     </span>
                   </div>
                   {deposito.contrato_deposito ? (
@@ -1018,7 +1027,7 @@ export default function DepositoDetail() {
                       : deposito.estado === 'VENDIDO' ? 'text-blue-800'
                       : 'text-gray-500'
                     }`}>
-                      {deposito.contrato_compra ? 'Contrato de Compra Generado' : 'Contrato de Compra'}
+                      Contrato de Compra
                     </span>
                   </div>
                   {deposito.contrato_compra ? (
@@ -1128,6 +1137,7 @@ export default function DepositoDetail() {
       </div>
 
       <ToastContainer />
+      <ConfirmModalComponent />
     </div>
   )
 }
