@@ -850,7 +850,7 @@ export default function ListaVehiculos() {
                     }
                     const vehiculoVendido = isVendido(vehiculo.estado)
                     
-                    // Determinar el color de fondo según el tipo
+                    // Determinar el color de fondo según el tipo (más oscuros como las cabeceras de tarjetas)
                     const getRowBackgroundColor = (tipo: string) => {
                       switch (tipo) {
                         case 'Compra':
@@ -858,13 +858,13 @@ export default function ListaVehiculos() {
                           return 'bg-white hover:bg-slate-50/80'
                         case 'Inversor':
                         case 'I':
-                          return 'bg-gradient-to-r from-orange-50 to-amber-50 hover:from-orange-100 hover:to-amber-100'
+                          return 'bg-gradient-to-r from-orange-200 to-amber-200 hover:from-orange-300 hover:to-amber-300'
                         case 'Deposito Venta':
                         case 'D':
-                          return 'bg-gradient-to-r from-cyan-50 to-blue-50 hover:from-cyan-100 hover:to-blue-100'
+                          return 'bg-gradient-to-r from-cyan-200 to-blue-200 hover:from-cyan-300 hover:to-blue-300'
                         case 'Coche R':
                         case 'R':
-                          return 'bg-gradient-to-r from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100'
+                          return 'bg-gradient-to-r from-green-200 to-emerald-200 hover:from-green-300 hover:to-emerald-300'
                         default:
                           return 'bg-white hover:bg-slate-50/80'
                       }
