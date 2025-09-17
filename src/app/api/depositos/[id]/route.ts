@@ -98,6 +98,23 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       }
     }
 
+    // Si solo se está actualizando el estado, hacer una actualización simple
+    if (Object.keys(body).length === 1 && body.estado) {
+      const result = await pool.query(`
+        UPDATE depositos 
+        SET estado = $1, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $2
+        RETURNING *
+      `, [estado, id])
+      
+      if (result.rows.length === 0) {
+        return NextResponse.json({ error: 'Depósito no encontrado' }, { status: 404 })
+      }
+
+      return NextResponse.json(result.rows[0])
+    }
+
+    // Actualización completa
     const result = await pool.query(`
       UPDATE depositos 
       SET estado = $1, fecha_fin = $2, monto_recibir = $3, dias_gestion = $4, 

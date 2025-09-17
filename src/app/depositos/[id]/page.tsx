@@ -215,31 +215,25 @@ export default function DepositoDetail() {
     
     try {
       setIsUpdating(true)
+      
+      // Simplemente cambiar el estado a VENDIDO
       const response = await fetch(`/api/depositos/${deposito.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          estado: 'VENDIDO',
-          fecha_fin: deposito.fecha_fin,
-          monto_recibir: deposito.monto_recibir,
-          dias_gestion: deposito.dias_gestion,
-          multa_retiro_anticipado: deposito.multa_retiro_anticipado,
-          numero_cuenta: deposito.numero_cuenta,
-          notas: deposito.notas,
-          contrato_deposito: deposito.contrato_deposito,
-          contrato_compra: deposito.contrato_compra
+          estado: 'VENDIDO'
         })
       })
       
       if (response.ok) {
-        const updatedDeposito = await response.json()
-        setDeposito(updatedDeposito)
+        // Actualizar solo el estado localmente
+        setDeposito(prev => prev ? { ...prev, estado: 'VENDIDO' } : null)
         showToast('Depósito marcado como vendido exitosamente', 'success')
       } else {
-        const errorData = await response.json()
-        console.error('Error response:', errorData)
+        const errorText = await response.text()
+        console.error('Error response:', errorText)
         showToast('Error al marcar como vendido', 'error')
       }
     } catch (error) {
@@ -352,24 +346,6 @@ export default function DepositoDetail() {
             </div>
           </div>
 
-          {/* Mensaje de días restantes */}
-          {deposito.estado === 'ACTIVO' && (
-            <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-xl p-4 mb-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
-                  <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-yellow-800">Días Restantes</h3>
-                  <p className="text-yellow-700">
-                    {calculateDaysRemaining()} días restantes de gestión (máximo 90 días)
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Botones de documentos */}
           <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl shadow-lg border border-purple-200 p-6 mb-6">
@@ -440,8 +416,15 @@ export default function DepositoDetail() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-800">Depósito de Venta</h3>
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-3">
+                      <h3 className="text-lg font-semibold text-gray-800">Depósito de Venta</h3>
+                      {deposito.estado === 'ACTIVO' && (
+                        <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium">
+                          {calculateDaysRemaining()} días restantes
+                        </span>
+                      )}
+                    </div>
                     <p className="text-sm text-gray-600">Información del depósito</p>
                   </div>
                 </div>
