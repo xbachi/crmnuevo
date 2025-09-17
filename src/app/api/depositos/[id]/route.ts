@@ -34,8 +34,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       dias_gestion: row.dias_gestion,
       multa_retiro_anticipado: row.multa_retiro_anticipado,
       numero_cuenta: row.numero_cuenta,
-      contrato_generado: row.contrato_generado || false,
-      contrato_compra_generado: row.contrato_compra_generado || false,
+      contrato_deposito: row.contrato_deposito,
+      contrato_compra: row.contrato_compra,
       created_at: row.created_at,
       cliente: {
         id: row.cliente_id,
@@ -82,8 +82,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         dias_gestion,
         multa_retiro_anticipado,
         numero_cuenta,
-        contrato_generado,
-        contrato_compra_generado
+        contrato_deposito,
+        contrato_compra
       } = body
 
     // Calcular nueva fecha de fin si se actualizan los días de gestión
@@ -102,10 +102,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       UPDATE depositos 
       SET estado = $1, fecha_fin = $2, monto_recibir = $3, dias_gestion = $4, 
           multa_retiro_anticipado = $5, numero_cuenta = $6, notas = $7, 
-          contrato_generado = $8, contrato_compra_generado = $9, updated_at = CURRENT_TIMESTAMP
+          contrato_deposito = $8, contrato_compra = $9, updated_at = CURRENT_TIMESTAMP
       WHERE id = $10
       RETURNING *
-    `, [estado, nueva_fecha_fin, monto_recibir, dias_gestion, multa_retiro_anticipado, numero_cuenta, notas, contrato_generado, contrato_compra_generado, id])
+    `, [estado, nueva_fecha_fin, monto_recibir, dias_gestion, multa_retiro_anticipado, numero_cuenta, notas, contrato_deposito, contrato_compra, id])
 
     if (result.rows.length === 0) {
       return NextResponse.json({ error: 'Depósito no encontrado' }, { status: 404 })
