@@ -584,7 +584,61 @@ export default function DepositoDetail() {
           {/* Main Content */}
           <div className="w-[70%] space-y-4">
             
-            {/* Bloque 1: Información del Depósito (Blanco) */}
+            {/* Documentos */}
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Documentos</h3>
+              <div className="flex space-x-3">
+                <button
+                  onClick={handleGenerarContrato}
+                  disabled={isGeneratingContrato || deposito.contrato_deposito}
+                  className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-colors ${
+                    deposito.contrato_deposito
+                      ? 'bg-green-100 text-green-700 cursor-not-allowed'
+                      : isGeneratingContrato
+                      ? 'bg-yellow-100 text-yellow-700 cursor-not-allowed'
+                      : 'bg-green-600 text-white hover:bg-green-700'
+                  }`}
+                >
+                  {deposito.contrato_deposito ? (
+                    <div className="flex items-center space-x-2">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>Contrato Generado</span>
+                    </div>
+                  ) : isGeneratingContrato ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div>
+                      <span>Generando...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-2">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <span>Generar Contrato de Depósito</span>
+                    </div>
+                  )}
+                </button>
+                <button
+                  disabled={deposito.estado !== 'VENDIDO' || deposito.contrato_compra}
+                  className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-colors ${
+                    deposito.contrato_compra
+                      ? 'bg-green-100 text-green-700 cursor-not-allowed'
+                      : deposito.estado === 'VENDIDO'
+                      ? 'bg-green-600 text-white hover:bg-green-700'
+                      : 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span>Generar Contrato de Compra</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Bloque 1: Información del Depósito (Blanco) */}
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center space-x-3">
@@ -715,60 +769,6 @@ export default function DepositoDetail() {
                 </div>
               </div>
             </div>
-
-            {/* Documentos */}
-            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Documentos</h3>
-              <div className="flex space-x-3">
-                <button
-                  onClick={handleGenerarContrato}
-                  disabled={isGeneratingContrato || deposito.contrato_deposito}
-                  className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-colors ${
-                    deposito.contrato_deposito
-                      ? 'bg-green-100 text-green-700 cursor-not-allowed'
-                      : isGeneratingContrato
-                      ? 'bg-yellow-100 text-yellow-700 cursor-not-allowed'
-                      : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                  }`}
-                >
-                  {deposito.contrato_deposito ? (
-                    <div className="flex items-center space-x-2">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span>Contrato Generado</span>
-                    </div>
-                  ) : isGeneratingContrato ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div>
-                      <span>Generando...</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center space-x-2">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      <span>Generar Contrato de Depósito</span>
-                    </div>
-                  )}
-                </button>
-                <button
-                  disabled={deposito.estado !== 'VENDIDO' || deposito.contrato_compra}
-                  className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-colors ${
-                    deposito.contrato_compra
-                      ? 'bg-green-100 text-green-700 cursor-not-allowed'
-                      : deposito.estado === 'VENDIDO'
-                      ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                      : 'bg-gray-100 text-gray-500 cursor-not-allowed'
-                  }`}
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <span>Generar Contrato de Compra</span>
-              </button>
-            </div>
-          </div>
 
           {/* Cliente y Vehículo lado a lado */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
