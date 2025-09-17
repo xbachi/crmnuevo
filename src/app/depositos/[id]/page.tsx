@@ -93,18 +93,27 @@ export default function DepositoDetail() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ notas })
+        body: JSON.stringify({ 
+          estado: deposito.estado,
+          fecha_fin: deposito.fecha_fin,
+          monto_recibir: deposito.monto_recibir,
+          dias_gestion: deposito.dias_gestion,
+          multa_retiro_anticipado: deposito.multa_retiro_anticipado,
+          numero_cuenta: deposito.numero_cuenta,
+          notas: notas
+        })
       })
       
       if (response.ok) {
         const updatedDeposito = await response.json()
         setDeposito(updatedDeposito)
-        showToast('Depósito actualizado exitosamente', 'success')
+        showToast('Notas guardadas exitosamente', 'success')
       } else {
-        showToast('Error al actualizar el depósito', 'error')
+        showToast('Error al guardar las notas', 'error')
       }
     } catch (error) {
-      showToast('Error al actualizar el depósito', 'error')
+      console.error('Error updating notas:', error)
+      showToast('Error al guardar las notas', 'error')
     } finally {
       setIsUpdating(false)
     }
@@ -190,26 +199,37 @@ export default function DepositoDetail() {
     }
     
     try {
+      setIsUpdating(true)
       const response = await fetch(`/api/depositos/${deposito.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          estado: 'VENDIDO'
+          estado: 'VENDIDO',
+          fecha_fin: deposito.fecha_fin,
+          monto_recibir: deposito.monto_recibir,
+          dias_gestion: deposito.dias_gestion,
+          multa_retiro_anticipado: deposito.multa_retiro_anticipado,
+          numero_cuenta: deposito.numero_cuenta,
+          notas: deposito.notas
         })
       })
       
       if (response.ok) {
-        // Actualizar el estado local
-        setDeposito(prev => prev ? { ...prev, estado: 'VENDIDO' } : null)
+        const updatedDeposito = await response.json()
+        setDeposito(updatedDeposito)
         showToast('Depósito marcado como vendido exitosamente', 'success')
       } else {
+        const errorData = await response.json()
+        console.error('Error response:', errorData)
         showToast('Error al marcar como vendido', 'error')
       }
     } catch (error) {
       console.error('Error marcando como vendido:', error)
       showToast('Error al marcar como vendido', 'error')
+    } finally {
+      setIsUpdating(false)
     }
   }
 
@@ -392,8 +412,8 @@ export default function DepositoDetail() {
           {/* Main Content */}
           <div className="w-[70%] space-y-4">
             
-            {/* Bloque 1: Información del Depósito (Azul) */}
-            <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl shadow-lg border border-blue-200 p-4">
+            {/* Bloque 1: Información del Depósito (Blanco) */}
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
@@ -402,8 +422,8 @@ export default function DepositoDetail() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-blue-800">Depósito de Venta</h3>
-                    <p className="text-sm text-blue-600">Información del depósito</p>
+                    <h3 className="text-lg font-semibold text-gray-800">Depósito de Venta</h3>
+                    <p className="text-sm text-gray-600">Información del depósito</p>
                   </div>
                 </div>
                 <button className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-200 rounded-lg transition-colors">
@@ -414,33 +434,33 @@ export default function DepositoDetail() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-blue-600">Estado</label>
-                  <p className="text-blue-900 font-medium text-sm">{deposito.estado}</p>
+                  <label className="text-sm font-medium text-gray-600">Estado</label>
+                  <p className="text-gray-900 font-medium text-sm">{deposito.estado}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-blue-600">Fecha de Inicio</label>
-                  <p className="text-blue-900 text-sm">{formatDate(deposito.fecha_inicio)}</p>
+                  <label className="text-sm font-medium text-gray-600">Fecha de Inicio</label>
+                  <p className="text-gray-900 text-sm">{formatDate(deposito.fecha_inicio)}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-blue-600">Días Restantes</label>
-                  <p className="text-blue-900 text-sm">{calculateDaysRemaining()} días</p>
+                  <label className="text-sm font-medium text-gray-600">Días Restantes</label>
+                  <p className="text-gray-900 text-sm">{calculateDaysRemaining()} días</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-blue-600">Monto al Comprador</label>
-                  <p className="text-blue-900 text-sm font-semibold">{formatCurrency(deposito.monto_recibir || 0)}</p>
+                  <label className="text-sm font-medium text-gray-600">Monto al Comprador</label>
+                  <p className="text-gray-900 text-sm font-semibold">{formatCurrency(deposito.monto_recibir || 0)}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-blue-600">Días de Gestión</label>
-                  <p className="text-blue-900 text-sm">{deposito.dias_gestion || 0} días</p>
+                  <label className="text-sm font-medium text-gray-600">Días de Gestión</label>
+                  <p className="text-gray-900 text-sm">{deposito.dias_gestion || 0} días</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-blue-600">Multa Retiro Anticipado</label>
-                  <p className="text-blue-900 text-sm">{formatCurrency(deposito.multa_retiro_anticipado || 0)}</p>
+                  <label className="text-sm font-medium text-gray-600">Multa Retiro Anticipado</label>
+                  <p className="text-gray-900 text-sm">{formatCurrency(deposito.multa_retiro_anticipado || 0)}</p>
                 </div>
                 {deposito.numero_cuenta && (
                   <div>
-                    <label className="text-sm font-medium text-blue-600">Número de Cuenta</label>
-                    <p className="text-blue-900 font-mono text-sm">{deposito.numero_cuenta}</p>
+                    <label className="text-sm font-medium text-gray-600">Número de Cuenta</label>
+                    <p className="text-gray-900 font-mono text-sm">{deposito.numero_cuenta}</p>
                   </div>
                 )}
               </div>
