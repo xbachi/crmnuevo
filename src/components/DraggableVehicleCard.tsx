@@ -147,7 +147,7 @@ export default function DraggableVehicleCard({ vehiculo }: DraggableVehicleCardP
                   {vehiculo.marca} {vehiculo.modelo}
                 </h3>
                 <span className={`px-2 py-0.5 text-xs font-medium rounded-lg border ${getTipoColor(vehiculo.tipo)} flex-shrink-0 ml-2`}>
-                  {vehiculo.tipo === 'Compra' ? 'C' : vehiculo.tipo === 'Coche R' ? 'R' : 'D'}
+                  {formatVehicleReference(vehiculo.referencia, vehiculo.tipo).charAt(0)}
                 </span>
               </div>
               {/* Matrícula */}
