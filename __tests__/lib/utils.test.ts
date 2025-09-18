@@ -3,6 +3,7 @@ import {
   formatDate,
   formatDateTime,
   formatVehicleReference,
+  formatVehicleReferenceShort,
   formatPercentage,
 } from '@/lib/utils'
 
@@ -91,10 +92,39 @@ describe('formatVehicleReference', () => {
     expect(formatVehicleReference('123', undefined)).toBe('#123')
   })
 
+  test('prevents duplicate prefixes correctly', () => {
+    // Evitar duplicar prefijos
+    expect(formatVehicleReference('I9', 'I')).toBe('I-9')
+    expect(formatVehicleReference('i9', 'I')).toBe('I-9')
+    expect(formatVehicleReference('I-9', 'I')).toBe('I-9')
+    expect(formatVehicleReference('#1010', 'C')).toBe('#1010')
+    expect(formatVehicleReference('D-5', 'D')).toBe('D-5')
+    expect(formatVehicleReference('R3', 'R')).toBe('R-3')
+  })
+
   test('handles empty references', () => {
     expect(formatVehicleReference('', 'C')).toBe('')
     expect(formatVehicleReference(null, 'C')).toBe('')
     expect(formatVehicleReference(undefined, 'C')).toBe('')
+  })
+})
+
+describe('formatVehicleReferenceShort', () => {
+  test('formats short references for dashboard correctly', () => {
+    // Compras: # + últimos 2 dígitos
+    expect(formatVehicleReferenceShort('1010', 'C')).toBe('#10')
+    expect(formatVehicleReferenceShort('12345', 'C')).toBe('#45')
+    expect(formatVehicleReferenceShort('9', 'C')).toBe('#9')
+    
+    // Inversores: I- + último dígito
+    expect(formatVehicleReferenceShort('9', 'I')).toBe('I-9')
+    expect(formatVehicleReferenceShort('123', 'I')).toBe('I-3')
+    
+    // Depósitos: D- + último dígito
+    expect(formatVehicleReferenceShort('456', 'D')).toBe('D-6')
+    
+    // Renting: R- + último dígito
+    expect(formatVehicleReferenceShort('789', 'R')).toBe('R-9')
   })
 })
 

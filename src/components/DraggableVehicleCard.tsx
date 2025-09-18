@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { formatVehicleReference } from '@/lib/utils'
+import { formatVehicleReference, formatVehicleReferenceShort } from '@/lib/utils'
 
 interface Vehiculo {
   id: number
@@ -148,10 +148,7 @@ export default function DraggableVehicleCard({ vehiculo }: DraggableVehicleCardP
                 : 'bg-gradient-to-br from-green-500 to-green-600'
             }`}>
               <span className="text-white font-bold text-xs">
-                {formatVehicleReference(vehiculo.referencia, vehiculo.tipo).length >= 2 
-                  ? formatVehicleReference(vehiculo.referencia, vehiculo.tipo).substring(formatVehicleReference(vehiculo.referencia, vehiculo.tipo).length - 2) 
-                  : formatVehicleReference(vehiculo.referencia, vehiculo.tipo)
-                }
+                {formatVehicleReferenceShort(vehiculo.referencia, vehiculo.tipo)}
               </span>
             </div>
             <div className="flex-1 min-w-0">
@@ -193,10 +190,7 @@ export default function DraggableVehicleCard({ vehiculo }: DraggableVehicleCardP
               <div className="flex justify-between items-center">
                 <span className="text-xs text-gray-600">Bastidor</span>
                 <span className="text-xs font-semibold text-gray-900 font-mono">
-                  {vehiculo.bastidor.length > 12 
-                    ? `${vehiculo.bastidor.substring(0, 12)}...` 
-                    : vehiculo.bastidor
-                  }
+                  {vehiculo.bastidor}
                 </span>
               </div>
               <div className="flex justify-between items-center">

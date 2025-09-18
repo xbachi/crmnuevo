@@ -946,10 +946,7 @@ export default function ListaVehiculos() {
                             ? 'text-gray-500 bg-gray-200' 
                             : 'text-slate-600 bg-slate-50'
                         }`}>
-                          {vehiculo.bastidor.length > 12 
-                            ? `${vehiculo.bastidor.substring(0, 12)}...` 
-                            : vehiculo.bastidor
-                          }
+                          {vehiculo.bastidor}
                         </span>
                       </td>
                       <td className="px-3 py-4">

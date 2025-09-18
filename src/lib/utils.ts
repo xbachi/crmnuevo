@@ -40,8 +40,8 @@ export function formatCurrency(amount: number): string {
 export function formatVehicleReference(referencia: string, tipo: string): string {
   if (!referencia) return ''
   
-  // Limpiar la referencia de espacios y caracteres especiales
-  const cleanRef = referencia.trim().replace(/[^a-zA-Z0-9-]/g, '')
+  // Limpiar la referencia de espacios y caracteres especiales, mantener solo alfanuméricos y guiones
+  const cleanRef = referencia.trim().replace(/[^a-zA-Z0-9-]/g, '').toUpperCase()
   
   // Normalizar el tipo para manejar tanto letras como texto completo
   const normalizedTipo = tipo?.toUpperCase()
@@ -58,50 +58,82 @@ export function formatVehicleReference(referencia: string, tipo: string): string
   }
   
   switch (tipoReal) {
-    case 'I': // Inversores
+    case 'I': // Inversores: I-XXXX
       // Si ya tiene I- al inicio, mantenerlo
       if (cleanRef.startsWith('I-')) {
         return cleanRef
       }
-      // Si tiene I sin guión, agregar guión
+      // Si tiene I sin guión, extraer el número y agregar guión
       if (cleanRef.startsWith('I')) {
-        return `I-${cleanRef.substring(1)}`
+        const numero = cleanRef.substring(1)
+        return numero ? `I-${numero}` : 'I-'
       }
       // Si es solo número, agregar I-
       return `I-${cleanRef}`
       
-    case 'D': // Depósitos
+    case 'D': // Depósitos: D-XXXX
       // Si ya tiene D- al inicio, mantenerlo
       if (cleanRef.startsWith('D-')) {
         return cleanRef
       }
-      // Si tiene D sin guión, agregar guión
+      // Si tiene D sin guión, extraer el número y agregar guión
       if (cleanRef.startsWith('D')) {
-        return `D-${cleanRef.substring(1)}`
+        const numero = cleanRef.substring(1)
+        return numero ? `D-${numero}` : 'D-'
       }
       // Si es solo número, agregar D-
       return `D-${cleanRef}`
       
-    case 'R': // Renting
+    case 'R': // Renting: R-XXXX
       // Si ya tiene R- al inicio, mantenerlo
       if (cleanRef.startsWith('R-')) {
         return cleanRef
       }
-      // Si tiene R sin guión, agregar guión
+      // Si tiene R sin guión, extraer el número y agregar guión
       if (cleanRef.startsWith('R')) {
-        return `R-${cleanRef.substring(1)}`
+        const numero = cleanRef.substring(1)
+        return numero ? `R-${numero}` : 'R-'
       }
       // Si es solo número, agregar R-
       return `R-${cleanRef}`
       
-    default: // Compras (tipo C o cualquier otro)
-      // Si ya tiene # al inicio, mantenerlo
+    default: // Compras: #XXXX
+      // Si ya tiene # al inicio, mantenerlo sin duplicar
       if (cleanRef.startsWith('#')) {
         return cleanRef
       }
-      // Si es solo número, agregar #
+      // Si es solo número, agregar un solo #
       return `#${cleanRef}`
   }
+}
+
+// Función para referencias cortas en dashboard y espacios reducidos
+export function formatVehicleReferenceShort(referencia: string, tipo: string): string {
+  const fullRef = formatVehicleReference(referencia, tipo)
+  if (!fullRef) return ''
+  
+  const normalizedTipo = tipo?.toUpperCase()
+  
+  // Para compras: solo # + últimos 2 dígitos
+  if (normalizedTipo === 'C' || normalizedTipo === 'COMPRA' || !normalizedTipo) {
+    // Extraer números del final
+    const numbers = fullRef.replace(/[^0-9]/g, '')
+    if (numbers.length >= 2) {
+      return `#${numbers.slice(-2)}`
+    }
+    return fullRef
+  }
+  
+  // Para otros tipos: LETRA-últimos dígitos (máximo 5 caracteres)
+  if (fullRef.includes('-')) {
+    const [prefix, suffix] = fullRef.split('-')
+    if (suffix && suffix.length > 2) {
+      return `${prefix}-${suffix.slice(-1)}`
+    }
+    return fullRef
+  }
+  
+  return fullRef
 }
 
 // Función auxiliar para formatear números con separador de miles
