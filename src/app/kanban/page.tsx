@@ -6,6 +6,7 @@ import { useToast } from '@/components/Toast'
 import { useConfirmModal } from '@/components/ConfirmModal'
 import { useAutoSync } from '@/hooks/useAutoSync'
 import { KanbanLoadingSkeleton } from '@/components/LoadingSkeleton'
+import { formatVehicleReference } from '@/lib/utils'
 
 interface Vehiculo {
   id: number
@@ -177,7 +178,7 @@ export default function KanbanPage() {
 
   const handleDelete = (id: number) => {
     const vehiculo = vehiculos.find(v => v.id === id)
-    const vehiculoName = vehiculo ? `${vehiculo.marca} ${vehiculo.modelo} (#${vehiculo.referencia})` : 'este vehículo'
+    const vehiculoName = vehiculo ? `${vehiculo.marca} ${vehiculo.modelo} (${formatVehicleReference(vehiculo.referencia, vehiculo.tipo)})` : 'este vehículo'
     
     showConfirm(
       'Eliminar Vehículo',

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/Toast'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatVehicleReference } from '@/lib/utils'
 import Link from 'next/link'
 
 interface Cliente {
@@ -402,7 +402,7 @@ export default function NuevoDealPage() {
                             </div>
                           </div>
                           <div className="text-gray-500 text-xs">
-                            Ref: {vehiculo.referencia} • Mat: {vehiculo.matricula}
+                            Ref: {formatVehicleReference(vehiculo.referencia, vehiculo.tipo)} • Mat: {vehiculo.matricula}
                           </div>
                           <div className="text-gray-500 text-xs">
                             {vehiculo.tipo} {vehiculo.año && `• ${vehiculo.año}`}

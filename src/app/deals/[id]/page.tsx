@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useToast } from '@/components/Toast'
 import { generarContratoReserva, generarContratoVenta, generarFactura } from '@/lib/contractGenerator'
 import { addReminder, createDocumentacionReminder } from '@/lib/reminders'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatVehicleReference } from '@/lib/utils'
 import DealVentaInfo from '@/components/DealVentaInfo'
 import FacturaTypeModal from '@/components/FacturaTypeModal'
 
@@ -369,7 +369,7 @@ export default function DealDetail() {
               body: JSON.stringify({
                 clienteId: deal.clienteId,
                 titulo: 'Solicitar cambio de nombre',
-                descripcion: `Solicitar documentación para cambio de nombre del vehículo ${deal.vehiculo.referencia} al cliente ${deal.cliente.nombre} ${deal.cliente.apellidos}`,
+                descripcion: `Solicitar documentación para cambio de nombre del vehículo ${formatVehicleReference(deal.vehiculo.referencia, deal.vehiculo.tipo)} al cliente ${deal.cliente.nombre} ${deal.cliente.apellidos}`,
                 tipo: 'otro',
                 prioridad: 'alta',
                 fechaRecordatorio: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 días desde ahora
