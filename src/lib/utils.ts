@@ -19,7 +19,7 @@ export function formatDateTime(dateString: string): string {
 }
 
 export function formatCurrency(amount: number): string {
-  if (amount === 0) return '0€'
+  if (amount == null || amount === 0) return '0€'
 
   // Redondear a 2 decimales
   const roundedAmount = Math.round(amount * 100) / 100

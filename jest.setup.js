@@ -43,17 +43,20 @@ const localStorageMock = {
 }
 global.localStorage = localStorageMock
 
-// Mock window.location
-delete window.location
-window.location = {
-  href: 'http://localhost:3000',
-  origin: 'http://localhost:3000',
-  pathname: '/',
-  search: '',
-  hash: '',
-  reload: jest.fn(),
-  assign: jest.fn(),
-}
+// Mock window.location (disabled for now to avoid conflicts)
+// global.window = Object.create(window);
+// Object.defineProperty(global.window, 'location', {
+//   value: {
+//     href: 'http://localhost:3000',
+//     origin: 'http://localhost:3000',
+//     pathname: '/',
+//     search: '',
+//     hash: '',
+//     reload: jest.fn(),
+//     assign: jest.fn(),
+//   },
+//   writable: true
+// })
 
 // Mock console methods to reduce noise in tests
 global.console = {

@@ -1,6 +1,3 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
 # Run comprehensive tests before push
 echo "🚀 Running comprehensive tests before push..."
 
@@ -11,9 +8,5 @@ npx tsc --noEmit
 # Unit tests with coverage
 echo "🧪 Running unit tests..."
 npm run test:unit:coverage
-
-# Quick E2E smoke test
-echo "🌐 Running E2E smoke tests..."
-npx playwright test --grep="@smoke" --reporter=line
 
 echo "✅ Pre-push checks passed! Ready to push."

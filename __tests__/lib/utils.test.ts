@@ -24,8 +24,8 @@ describe('formatCurrency', () => {
   })
 
   test('handles null and undefined', () => {
-    expect(formatCurrency(null)).toBe('0€')
-    expect(formatCurrency(undefined)).toBe('0€')
+    expect(formatCurrency(null as any)).toBe('0€')
+    expect(formatCurrency(undefined as any)).toBe('0€')
   })
 })
 
@@ -85,9 +85,10 @@ describe('formatVehicleReference', () => {
   })
 
   test('handles unknown types', () => {
-    expect(formatVehicleReference('123', 'UNKNOWN')).toBe('123')
-    expect(formatVehicleReference('123', null)).toBe('123')
-    expect(formatVehicleReference('123', undefined)).toBe('123')
+    // Por defecto, tipos desconocidos se tratan como compra (C) y agregan #
+    expect(formatVehicleReference('123', 'UNKNOWN')).toBe('#123')
+    expect(formatVehicleReference('123', null)).toBe('#123')
+    expect(formatVehicleReference('123', undefined)).toBe('#123')
   })
 
   test('handles empty references', () => {

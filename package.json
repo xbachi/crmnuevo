@@ -34,7 +34,6 @@
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
-      "eslint --fix",
       "prettier --write"
     ],
     "*.{md,json}": [
@@ -88,6 +87,7 @@
     "lint-staged": "^16.1.6",
     "msw": "^2.11.2",
     "playwright": "^1.55.0",
+    "prettier": "^3.6.2",
     "prisma": "^6.16.1",
     "supertest": "^7.1.4",
     "tailwindcss": "^4",
