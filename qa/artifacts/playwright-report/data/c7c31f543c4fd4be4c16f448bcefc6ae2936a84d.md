@@ -1,0 +1,274 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - link "SC SevenCars CRM Platform" [ref=e5]:
+        - /url: /
+        - generic [ref=e7]: SC
+        - generic [ref=e8]:
+          - heading "SevenCars" [level=1] [ref=e9]
+          - paragraph [ref=e10]: CRM Platform
+      - navigation [ref=e11]:
+        - generic [ref=e12]:
+          - link "Dashboard" [ref=e13]:
+            - /url: /
+            - img [ref=e14]
+            - generic [ref=e16]: Dashboard
+          - link "Vehículos" [ref=e17]:
+            - /url: /vehiculos
+            - img [ref=e18]
+            - generic [ref=e20]: Vehículos
+          - link "Clientes" [ref=e21]:
+            - /url: /clientes
+            - img [ref=e22]
+            - generic [ref=e24]: Clientes
+          - link "Inversores" [ref=e25]:
+            - /url: /inversores
+            - img [ref=e26]
+            - generic [ref=e29]: Inversores
+          - link "Deals" [ref=e30]:
+            - /url: /deals
+            - img [ref=e31]
+            - generic [ref=e33]: Deals
+          - link "Depósitos de venta" [ref=e34]:
+            - /url: /depositos
+            - img [ref=e35]
+            - generic [ref=e37]: Depósitos de venta
+          - link "Procesos Venta" [ref=e38]:
+            - /url: /kanban
+            - img [ref=e39]
+            - generic [ref=e41]: Procesos Venta
+          - link "Documentación" [ref=e42]:
+            - /url: /documentacion
+            - img [ref=e43]
+            - generic [ref=e45]: Documentación
+          - link "Importar CSV" [ref=e46]:
+            - /url: /importar-csv
+            - img [ref=e47]
+            - generic [ref=e49]: Importar CSV
+      - generic [ref=e52]:
+        - img [ref=e54]
+        - generic [ref=e56]:
+          - paragraph [ref=e57]: Admin User
+          - paragraph [ref=e58]: Administrador
+      - button "Contraer" [ref=e59]:
+        - img [ref=e60]
+    - main [ref=e62]:
+      - generic [ref=e64]:
+        - generic [ref=e65]:
+          - heading "Dashboard" [level=1] [ref=e66]
+          - paragraph [ref=e67]: Bienvenido a SevenCars CRM - Resumen del día
+        - generic [ref=e68]:
+          - generic [ref=e69]:
+            - generic [ref=e70]:
+              - generic [ref=e71]:
+                - heading "Recordatorios Importantes" [level=2] [ref=e72]
+                - link "Ver todos los deals →" [ref=e74]:
+                  - /url: /deals
+              - generic [ref=e75]:
+                - generic [ref=e77]:
+                  - generic [ref=e78]:
+                    - generic [ref=e79]:
+                      - generic [ref=e80]: 🚗
+                      - heading "ITV Vencida" [level=4] [ref=e81]
+                      - generic [ref=e82]: 🔴 Alta
+                    - paragraph [ref=e83]: 15 vehículos tienen la ITV vencida
+                    - button "Ver detalles (15)" [ref=e85]:
+                      - img [ref=e86]
+                      - text: Ver detalles (15)
+                  - generic [ref=e88]:
+                    - button "Ir →" [ref=e89]
+                    - button "Actualizar" [ref=e90]:
+                      - img [ref=e91]
+                - generic [ref=e94]:
+                  - generic [ref=e95]:
+                    - generic [ref=e96]:
+                      - generic [ref=e97]: 📄
+                      - heading "Documentación Pendiente" [level=4] [ref=e98]
+                      - generic [ref=e99]: 🟡 Media
+                    - paragraph [ref=e100]: 13 vehículos necesitan documentación
+                    - button "Ver detalles (13)" [ref=e102]:
+                      - img [ref=e103]
+                      - text: Ver detalles (13)
+                  - generic [ref=e105]:
+                    - button "Ir →" [ref=e106]
+                    - button "Actualizar" [ref=e107]:
+                      - img [ref=e108]
+              - generic [ref=e112]:
+                - heading "Recordatorios Manuales" [level=3] [ref=e113]
+                - paragraph [ref=e114]: No hay recordatorios pendientes
+              - generic [ref=e115]:
+                - generic [ref=e116]:
+                  - heading "Últimas Operaciones" [level=3] [ref=e117]
+                  - link "Ver todas →" [ref=e118]:
+                    - /url: /deals
+                - generic [ref=e119]:
+                  - generic [ref=e120]:
+                    - generic [ref=e122]:
+                      - 'heading "Deal #RES-2025-#1036" [level=4] [ref=e123]'
+                      - generic [ref=e124]: activo
+                    - generic [ref=e125]:
+                      - generic [ref=e126]:
+                        - paragraph [ref=e127]: Cliente
+                        - paragraph [ref=e128]: Sebastian Pelella
+                      - generic [ref=e129]:
+                        - paragraph [ref=e130]: Vehículo
+                        - paragraph [ref=e131]: VW T-Roc
+                      - generic [ref=e132]:
+                        - generic [ref=e133]:
+                          - paragraph [ref=e134]: Precio
+                          - paragraph [ref=e135]: 55.000,00 €
+                        - generic [ref=e136]:
+                          - paragraph [ref=e137]: Fecha
+                          - paragraph [ref=e138]: 15/09/2025
+                  - generic [ref=e139]:
+                    - generic [ref=e141]:
+                      - 'heading "Deal #RES-2025-#1039" [level=4] [ref=e142]'
+                      - generic [ref=e143]: activo
+                    - generic [ref=e144]:
+                      - generic [ref=e145]:
+                        - paragraph [ref=e146]: Cliente
+                        - paragraph [ref=e147]: Sebastian Pelella
+                      - generic [ref=e148]:
+                        - paragraph [ref=e149]: Vehículo
+                        - paragraph [ref=e150]: Vw Golf VIII
+                      - generic [ref=e151]:
+                        - generic [ref=e152]:
+                          - paragraph [ref=e153]: Precio
+                          - paragraph [ref=e154]: 21.800,00 €
+                        - generic [ref=e155]:
+                          - paragraph [ref=e156]: Fecha
+                          - paragraph [ref=e157]: 15/09/2025
+                  - generic [ref=e158]:
+                    - generic [ref=e160]:
+                      - 'heading "Deal #RES-2025-#1041" [level=4] [ref=e161]'
+                      - generic [ref=e162]: activo
+                    - generic [ref=e163]:
+                      - generic [ref=e164]:
+                        - paragraph [ref=e165]: Cliente
+                        - paragraph [ref=e166]: cliente3 cliente3
+                      - generic [ref=e167]:
+                        - paragraph [ref=e168]: Vehículo
+                        - paragraph [ref=e169]: Jeep Renegade
+                      - generic [ref=e170]:
+                        - generic [ref=e171]:
+                          - paragraph [ref=e172]: Precio
+                          - paragraph [ref=e173]: 14.700,00 €
+                        - generic [ref=e174]:
+                          - paragraph [ref=e175]: Fecha
+                          - paragraph [ref=e176]: 14/09/2025
+              - generic [ref=e178]:
+                - generic [ref=e179]:
+                  - heading "Métricas del Mes" [level=3] [ref=e180]
+                  - generic [ref=e183]: Tiempo real
+                - generic [ref=e184]:
+                  - generic [ref=e185]:
+                    - heading "Distribución por Categoría" [level=4] [ref=e187]
+                    - img [ref=e189]
+                  - generic [ref=e190]:
+                    - heading "Proporción Total" [level=4] [ref=e192]
+                    - img [ref=e194]
+                - generic [ref=e195]:
+                  - generic [ref=e196]:
+                    - generic:
+                      - generic [ref=e197]:
+                        - paragraph [ref=e198]: Vendidos
+                        - paragraph [ref=e199]: "0"
+                      - generic [ref=e201]: 🚗
+                  - generic [ref=e202]:
+                    - generic:
+                      - generic [ref=e203]:
+                        - paragraph [ref=e204]: En Stock
+                        - paragraph [ref=e205]: "20"
+                      - generic [ref=e207]: 📦
+                  - generic [ref=e208]:
+                    - generic:
+                      - generic [ref=e209]:
+                        - paragraph [ref=e210]: Depósitos
+                        - paragraph [ref=e211]: "4"
+                      - generic [ref=e213]: 🏪
+                  - generic [ref=e214]:
+                    - generic:
+                      - generic [ref=e215]:
+                        - paragraph [ref=e216]: En Proceso
+                        - paragraph [ref=e217]: "8"
+                      - generic [ref=e219]: ⚙️
+            - generic [ref=e220]:
+              - heading "Acciones Rápidas" [level=2] [ref=e221]
+              - generic [ref=e222]:
+                - link "➕ Cargar Vehículo Nuevo registro" [ref=e223]:
+                  - /url: /cargar-vehiculo
+                  - generic [ref=e224]:
+                    - generic [ref=e225]: ➕
+                    - generic [ref=e226]:
+                      - heading "Cargar Vehículo" [level=3] [ref=e227]
+                      - paragraph [ref=e228]: Nuevo registro
+                - link "📋 Ver Vehículos Gestionar inventario" [ref=e229]:
+                  - /url: /vehiculos
+                  - generic [ref=e230]:
+                    - generic [ref=e231]: 📋
+                    - generic [ref=e232]:
+                      - heading "Ver Vehículos" [level=3] [ref=e233]
+                      - paragraph [ref=e234]: Gestionar inventario
+                - link "📊 Proceso Flujo de trabajo" [ref=e235]:
+                  - /url: /kanban
+                  - generic [ref=e236]:
+                    - generic [ref=e237]: 📊
+                    - generic [ref=e238]:
+                      - heading "Proceso" [level=3] [ref=e239]
+                      - paragraph [ref=e240]: Flujo de trabajo
+          - generic [ref=e241]:
+            - generic [ref=e242]:
+              - heading "Resumen de Vehículos" [level=2] [ref=e243]
+              - generic [ref=e244]:
+                - generic [ref=e246]:
+                  - generic [ref=e248]: 📊
+                  - generic [ref=e249]:
+                    - paragraph [ref=e250]: Total Activos
+                    - paragraph [ref=e251]: "20"
+                - generic [ref=e253]:
+                  - generic [ref=e255]: ✅
+                  - generic [ref=e256]:
+                    - paragraph [ref=e257]: Publicados
+                    - paragraph [ref=e258]: "14"
+                - generic [ref=e260]:
+                  - generic [ref=e262]: 🔧
+                  - generic [ref=e263]:
+                    - paragraph [ref=e264]: En Proceso
+                    - paragraph [ref=e265]: "6"
+            - generic [ref=e266]:
+              - heading "Resumen Vehículos Depósito Venta" [level=2] [ref=e267]
+              - generic [ref=e268]:
+                - generic [ref=e270]:
+                  - generic [ref=e272]: 📦
+                  - generic [ref=e273]:
+                    - paragraph [ref=e274]: Total Vehículos en Depósito
+                    - paragraph [ref=e275]: "4"
+                - generic [ref=e277]:
+                  - generic [ref=e279]: 🔧
+                  - generic [ref=e280]:
+                    - paragraph [ref=e281]: En Proceso
+                    - paragraph [ref=e282]: "2"
+                - generic [ref=e284]:
+                  - generic [ref=e286]: ✅
+                  - generic [ref=e287]:
+                    - paragraph [ref=e288]: Publicados
+                    - paragraph [ref=e289]: "2"
+            - generic [ref=e290]:
+              - generic [ref=e291]:
+                - heading "Ventas por Mes" [level=2] [ref=e292]
+                - combobox [ref=e293]:
+                  - option "Mes Actual" [selected]
+                  - option "Mes Anterior"
+                  - option "Últimos 3 Meses"
+                  - option "Últimos 6 Meses"
+                  - option "Año Actual"
+              - generic [ref=e295]:
+                - generic [ref=e296]: septiembre de 2025
+                - generic [ref=e300]: "16"
+  - button "Open Next.js Dev Tools" [ref=e306] [cursor=pointer]:
+    - img [ref=e307] [cursor=pointer]
+  - alert [ref=e312]
+```

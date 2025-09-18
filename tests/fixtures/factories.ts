@@ -355,3 +355,10 @@ export const createTestDepositos = (count: number, overrides: Partial<TestDeposi
 export const createTestInversores = (count: number, overrides: Partial<TestInversor> = {}): TestInversor[] => {
   return Array.from({ length: count }, () => createTestInversor(overrides))
 }
+
+// Aliases for backwards compatibility with integration tests
+export const createCliente = createTestCliente
+export const createVehiculo = createTestVehiculo
+export const createDeal = createTestDeal
+export const createDeposito = createTestDeposito
+export const createInversor = createTestInversor

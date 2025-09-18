@@ -1,0 +1,175 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - link "SC SevenCars CRM Platform" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e7] [cursor=pointer]: SC
+        - generic [ref=e8] [cursor=pointer]:
+          - heading "SevenCars" [level=1] [ref=e9] [cursor=pointer]
+          - paragraph [ref=e10] [cursor=pointer]: CRM Platform
+      - navigation [ref=e11]:
+        - generic [ref=e12]:
+          - link "Dashboard" [ref=e13] [cursor=pointer]:
+            - /url: /
+            - img [ref=e14] [cursor=pointer]
+            - generic [ref=e16] [cursor=pointer]: Dashboard
+          - link "Vehículos" [ref=e17] [cursor=pointer]:
+            - /url: /vehiculos
+            - img [ref=e18] [cursor=pointer]
+            - generic [ref=e20] [cursor=pointer]: Vehículos
+          - link "Clientes" [ref=e21] [cursor=pointer]:
+            - /url: /clientes
+            - img [ref=e22] [cursor=pointer]
+            - generic [ref=e24] [cursor=pointer]: Clientes
+          - link "Inversores" [ref=e25] [cursor=pointer]:
+            - /url: /inversores
+            - img [ref=e26] [cursor=pointer]
+            - generic [ref=e29] [cursor=pointer]: Inversores
+          - link "Deals" [ref=e30] [cursor=pointer]:
+            - /url: /deals
+            - img [ref=e31] [cursor=pointer]
+            - generic [ref=e33] [cursor=pointer]: Deals
+          - link "Depósitos de venta" [ref=e34] [cursor=pointer]:
+            - /url: /depositos
+            - img [ref=e35] [cursor=pointer]
+            - generic [ref=e37] [cursor=pointer]: Depósitos de venta
+          - link "Procesos Venta" [ref=e38] [cursor=pointer]:
+            - /url: /kanban
+            - img [ref=e39] [cursor=pointer]
+            - generic [ref=e41] [cursor=pointer]: Procesos Venta
+          - link "Documentación" [ref=e42] [cursor=pointer]:
+            - /url: /documentacion
+            - img [ref=e43] [cursor=pointer]
+            - generic [ref=e45] [cursor=pointer]: Documentación
+          - link "Importar CSV" [ref=e46] [cursor=pointer]:
+            - /url: /importar-csv
+            - img [ref=e47] [cursor=pointer]
+            - generic [ref=e49] [cursor=pointer]: Importar CSV
+      - generic [ref=e52]:
+        - img [ref=e54]
+        - generic [ref=e56]:
+          - paragraph [ref=e57]: Admin User
+          - paragraph [ref=e58]: Administrador
+      - button "Contraer" [ref=e59]:
+        - img [ref=e60]
+    - main [ref=e62]:
+      - generic [ref=e64]:
+        - generic [ref=e65]:
+          - heading "Dashboard" [level=1] [ref=e66]
+          - paragraph [ref=e67]: Bienvenido a SevenCars CRM - Resumen del día
+        - generic [ref=e68]:
+          - generic [ref=e69]:
+            - generic [ref=e70]:
+              - generic [ref=e71]:
+                - heading "Recordatorios Importantes" [level=2] [ref=e72]
+                - link "Ver todos los deals →" [ref=e74] [cursor=pointer]:
+                  - /url: /deals
+              - heading "Recordatorios Manuales" [level=3] [ref=e82]
+              - generic [ref=e87]:
+                - generic [ref=e88]:
+                  - heading "Últimas Operaciones" [level=3] [ref=e89]
+                  - link "Ver todas →" [ref=e90] [cursor=pointer]:
+                    - /url: /deals
+                - generic [ref=e91]:
+                  - generic [ref=e93]: 📋
+                  - paragraph [ref=e94]: No hay operaciones recientes
+                  - paragraph [ref=e95]: Las operaciones aparecerán aquí cuando se creen deals
+              - generic [ref=e97]:
+                - generic [ref=e98]:
+                  - heading "Métricas del Mes" [level=3] [ref=e99]
+                  - generic [ref=e102]: Tiempo real
+                - generic [ref=e103]:
+                  - generic [ref=e104]:
+                    - heading "Distribución por Categoría" [level=4] [ref=e107]
+                    - img [ref=e109]
+                  - generic [ref=e110]:
+                    - heading "Proporción Total" [level=4] [ref=e113]
+                    - img [ref=e115]
+                - generic [ref=e116]:
+                  - generic [ref=e118]:
+                    - generic [ref=e119]:
+                      - paragraph [ref=e120]: Vendidos
+                      - paragraph [ref=e121]: "0"
+                    - generic [ref=e123]: 🚗
+                  - generic [ref=e125]:
+                    - generic [ref=e126]:
+                      - paragraph [ref=e127]: En Stock
+                      - paragraph [ref=e128]: "47"
+                    - generic [ref=e130]: 📦
+                  - generic [ref=e132]:
+                    - generic [ref=e133]:
+                      - paragraph [ref=e134]: Depósitos
+                      - paragraph [ref=e135]: "0"
+                    - generic [ref=e137]: 🏪
+                  - generic [ref=e139]:
+                    - generic [ref=e140]:
+                      - paragraph [ref=e141]: En Proceso
+                      - paragraph [ref=e142]: "24"
+                    - generic [ref=e144]: ⚙️
+            - generic [ref=e145]:
+              - heading "Acciones Rápidas" [level=2] [ref=e146]
+              - generic [ref=e147]:
+                - link "➕ Cargar Vehículo Nuevo registro" [ref=e148] [cursor=pointer]:
+                  - /url: /cargar-vehiculo
+                  - generic [ref=e149] [cursor=pointer]:
+                    - generic [ref=e150] [cursor=pointer]: ➕
+                    - generic [ref=e151] [cursor=pointer]:
+                      - heading "Cargar Vehículo" [level=3] [ref=e152] [cursor=pointer]
+                      - paragraph [ref=e153] [cursor=pointer]: Nuevo registro
+                - link "📋 Ver Vehículos Gestionar inventario" [ref=e154] [cursor=pointer]:
+                  - /url: /vehiculos
+                  - generic [ref=e155] [cursor=pointer]:
+                    - generic [ref=e156] [cursor=pointer]: 📋
+                    - generic [ref=e157] [cursor=pointer]:
+                      - heading "Ver Vehículos" [level=3] [ref=e158] [cursor=pointer]
+                      - paragraph [ref=e159] [cursor=pointer]: Gestionar inventario
+                - link "📊 Proceso Flujo de trabajo" [ref=e160] [cursor=pointer]:
+                  - /url: /kanban
+                  - generic [ref=e161] [cursor=pointer]:
+                    - generic [ref=e162] [cursor=pointer]: 📊
+                    - generic [ref=e163] [cursor=pointer]:
+                      - heading "Proceso" [level=3] [ref=e164] [cursor=pointer]
+                      - paragraph [ref=e165] [cursor=pointer]: Flujo de trabajo
+          - generic [ref=e166]:
+            - generic [ref=e167]:
+              - heading "Resumen de Vehículos" [level=2] [ref=e168]
+              - generic [ref=e169]:
+                - generic [ref=e171]:
+                  - generic [ref=e173]: 📊
+                  - generic [ref=e174]:
+                    - paragraph [ref=e175]: Total Activos
+                    - paragraph [ref=e176]: "47"
+                - generic [ref=e178]:
+                  - generic [ref=e180]: ✅
+                  - generic [ref=e181]:
+                    - paragraph [ref=e182]: Publicados
+                    - paragraph [ref=e183]: "23"
+                - generic [ref=e185]:
+                  - generic [ref=e187]: 🔧
+                  - generic [ref=e188]:
+                    - paragraph [ref=e189]: En Proceso
+                    - paragraph [ref=e190]: "24"
+            - generic [ref=e191]:
+              - heading "Resumen Vehículos Depósito Venta" [level=2] [ref=e192]
+              - generic [ref=e193]:
+                - generic [ref=e195]:
+                  - generic [ref=e197]: 📦
+                  - generic [ref=e198]:
+                    - paragraph [ref=e199]: Total Vehículos en Depósito
+                    - paragraph [ref=e200]: "0"
+                - generic [ref=e202]:
+                  - generic [ref=e204]: 🔧
+                  - generic [ref=e205]:
+                    - paragraph [ref=e206]: En Proceso
+                    - paragraph [ref=e207]: "0"
+                - generic [ref=e209]:
+                  - generic [ref=e211]: ✅
+                  - generic [ref=e212]:
+                    - paragraph [ref=e213]: Publicados
+                    - paragraph [ref=e214]: "0"
+            - heading "Ventas por Mes" [level=2] [ref=e216]
+  - alert [ref=e221]
+```

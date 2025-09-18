@@ -1,0 +1,3109 @@
+<testsuites id="" name="" tests="85" failures="68" skipped="0" errors="0" time="148.431149">
+<testsuite name="complete-crm-workflow.spec.ts" timestamp="2025-09-18T06:06:50.562Z" hostname="chromium" tests="1" failures="1" skipped="0" time="32.881" errors="0">
+<testcase name="Complete CRM Workflow › Quick smoke test for all main sections" classname="complete-crm-workflow.spec.ts" time="32.881">
+<failure message="complete-crm-workflow.spec.ts:289:7 Quick smoke test for all main sections" type="FAILURE">
+<![CDATA[  [chromium] › complete-crm-workflow.spec.ts:289:7 › Complete CRM Workflow › Quick smoke test for all main sections 
+
+    Test timeout of 30000ms exceeded while running "beforeEach" hook.
+
+      2 |
+      3 | test.describe('Complete CRM Workflow', () => {
+    > 4 |   test.beforeEach(async ({ page }) => {
+        |        ^
+      5 |     // Navegar a la página principal
+      6 |     await page.goto('/')
+      7 |     
+        at C:\crmseven-master\tests\e2e\complete-crm-workflow.spec.ts:4:8
+
+    Error: page.waitForLoadState: Test timeout of 30000ms exceeded.
+
+       7 |     
+       8 |     // Esperar a que la página cargue completamente
+    >  9 |     await page.waitForLoadState('networkidle')
+         |                ^
+      10 |   })
+      11 |
+      12 |   test('Complete CRM workflow: Create client, vehicles, deal, deposit and move kanban states', async ({ page }) => {
+        at C:\crmseven-master\tests\e2e\complete-crm-workflow.spec.ts:9:16
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\complete-crm-workflow-Comp-4d7e0--test-for-all-main-sections-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\complete-crm-workflow-Comp-4d7e0--test-for-all-main-sections-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\complete-crm-workflow-Comp-4d7e0--test-for-all-main-sections-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\complete-crm-workflow-Comp-4d7e0--test-for-all-main-sections-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\complete-crm-workflow-Comp-4d7e0--test-for-all-main-sections-chromium\video.webm]]
+
+[[ATTACHMENT|test-results\complete-crm-workflow-Comp-4d7e0--test-for-all-main-sections-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+<testsuite name="smoke-navigation.spec.ts" timestamp="2025-09-18T06:06:50.562Z" hostname="chromium" tests="16" failures="15" skipped="0" time="461.547" errors="0">
+<testcase name="Smoke Tests - Navigation @smoke › Homepage loads successfully" classname="smoke-navigation.spec.ts" time="32.191">
+<failure message="smoke-navigation.spec.ts:19:7 Homepage loads successfully" type="FAILURE">
+<![CDATA[  [chromium] › smoke-navigation.spec.ts:19:7 › Smoke Tests - Navigation @smoke › Homepage loads successfully 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: page.waitForLoadState: Test timeout of 30000ms exceeded.
+
+      34 |     })
+      35 |     
+    > 36 |     await page.waitForLoadState('networkidle')
+         |                ^
+      37 |     
+      38 |     // Filter out non-critical errors
+      39 |     const criticalErrors = errors.filter(error => 
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:36:16
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-c6c0e-Homepage-loads-successfully-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-c6c0e-Homepage-loads-successfully-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-c6c0e-Homepage-loads-successfully-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-c6c0e-Homepage-loads-successfully-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-c6c0e-Homepage-loads-successfully-chromium\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-c6c0e-Homepage-loads-successfully-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Clientes page loads" classname="smoke-navigation.spec.ts" time="32.813">
+<failure message="smoke-navigation.spec.ts:48:7 Clientes page loads" type="FAILURE">
+<![CDATA[  [chromium] › smoke-navigation.spec.ts:48:7 › Smoke Tests - Navigation @smoke › Clientes page loads 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('h1, [data-testid="page-title"]') resolved to 2 elements:
+        1) <h1 class="text-xl font-bold text-gray-900">SevenCars</h1> aka getByRole('link', { name: 'SC SevenCars CRM Platform' })
+        2) <h1 class="text-3xl font-bold text-slate-800 mb-2">Gestión de Clientes</h1> aka getByRole('heading', { name: 'Gestión de Clientes' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('h1, [data-testid="page-title"]')
+
+
+      50 |     
+      51 |     await expect(page).toHaveURL(/.*clientes/)
+    > 52 |     await expect(page.locator('h1, [data-testid="page-title"]')).toBeVisible()
+         |                                                                  ^
+      53 |     
+      54 |     // Should have list or empty state
+      55 |     await expect(
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:52:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-a9455-n-smoke-Clientes-page-loads-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-a9455-n-smoke-Clientes-page-loads-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-a9455-n-smoke-Clientes-page-loads-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-a9455-n-smoke-Clientes-page-loads-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-a9455-n-smoke-Clientes-page-loads-chromium\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-a9455-n-smoke-Clientes-page-loads-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Vehiculos page loads" classname="smoke-navigation.spec.ts" time="32.832">
+<failure message="smoke-navigation.spec.ts:60:7 Vehiculos page loads" type="FAILURE">
+<![CDATA[  [chromium] › smoke-navigation.spec.ts:60:7 › Smoke Tests - Navigation @smoke › Vehiculos page loads 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('h1, [data-testid="page-title"]') resolved to 2 elements:
+        1) <h1 class="text-xl font-bold text-gray-900">SevenCars</h1> aka getByRole('link', { name: 'SC SevenCars CRM Platform' })
+        2) <h1 class="text-3xl font-bold text-slate-800 mb-2">Vehículos</h1> aka getByRole('heading', { name: 'Vehículos' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('h1, [data-testid="page-title"]')
+
+
+      62 |     
+      63 |     await expect(page).toHaveURL(/.*vehiculos/)
+    > 64 |     await expect(page.locator('h1, [data-testid="page-title"]')).toBeVisible()
+         |                                                                  ^
+      65 |     
+      66 |     // Should have vehicle list or empty state
+      67 |     await expect(
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:64:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-abcdc--smoke-Vehiculos-page-loads-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-abcdc--smoke-Vehiculos-page-loads-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-abcdc--smoke-Vehiculos-page-loads-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-abcdc--smoke-Vehiculos-page-loads-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-abcdc--smoke-Vehiculos-page-loads-chromium\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-abcdc--smoke-Vehiculos-page-loads-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Deals page loads" classname="smoke-navigation.spec.ts" time="32.894">
+<failure message="smoke-navigation.spec.ts:72:7 Deals page loads" type="FAILURE">
+<![CDATA[  [chromium] › smoke-navigation.spec.ts:72:7 › Smoke Tests - Navigation @smoke › Deals page loads ──
+
+    Test timeout of 30000ms exceeded.
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('h1, [data-testid="page-title"]') resolved to 2 elements:
+        1) <h1 class="text-xl font-bold text-gray-900">SevenCars</h1> aka getByRole('link', { name: 'SC SevenCars CRM Platform' })
+        2) <h1 class="text-xl font-bold text-white">Deals</h1> aka getByRole('heading', { name: 'Deals' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('h1, [data-testid="page-title"]')
+
+
+      74 |     
+      75 |     await expect(page).toHaveURL(/.*deals/)
+    > 76 |     await expect(page.locator('h1, [data-testid="page-title"]')).toBeVisible()
+         |                                                                  ^
+      77 |     
+      78 |     // Should have deals list or empty state
+      79 |     await expect(
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:76:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-a40f9-tion-smoke-Deals-page-loads-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-a40f9-tion-smoke-Deals-page-loads-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-a40f9-tion-smoke-Deals-page-loads-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-a40f9-tion-smoke-Deals-page-loads-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-a40f9-tion-smoke-Deals-page-loads-chromium\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-a40f9-tion-smoke-Deals-page-loads-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Depositos page loads" classname="smoke-navigation.spec.ts" time="32.915">
+<failure message="smoke-navigation.spec.ts:84:7 Depositos page loads" type="FAILURE">
+<![CDATA[  [chromium] › smoke-navigation.spec.ts:84:7 › Smoke Tests - Navigation @smoke › Depositos page loads 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('h1, [data-testid="page-title"]') resolved to 2 elements:
+        1) <h1 class="text-xl font-bold text-gray-900">SevenCars</h1> aka getByRole('link', { name: 'SC SevenCars CRM Platform' })
+        2) <h1 class="text-xl font-bold text-white">Depósitos de Venta</h1> aka getByRole('heading', { name: 'Depósitos de Venta' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('h1, [data-testid="page-title"]')
+
+
+      86 |     
+      87 |     await expect(page).toHaveURL(/.*depositos/)
+    > 88 |     await expect(page.locator('h1, [data-testid="page-title"]')).toBeVisible()
+         |                                                                  ^
+      89 |     
+      90 |     // Should have deposits list or empty state
+      91 |     await expect(
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:88:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-bed3f--smoke-Depositos-page-loads-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-bed3f--smoke-Depositos-page-loads-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-bed3f--smoke-Depositos-page-loads-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-bed3f--smoke-Depositos-page-loads-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-bed3f--smoke-Depositos-page-loads-chromium\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-bed3f--smoke-Depositos-page-loads-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Inversores page loads" classname="smoke-navigation.spec.ts" time="32.202">
+<failure message="smoke-navigation.spec.ts:96:7 Inversores page loads" type="FAILURE">
+<![CDATA[  [chromium] › smoke-navigation.spec.ts:96:7 › Smoke Tests - Navigation @smoke › Inversores page loads 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('h1, [data-testid="page-title"]') resolved to 2 elements:
+        1) <h1 class="text-xl font-bold text-gray-900">SevenCars</h1> aka getByRole('link', { name: 'SC SevenCars CRM Platform' })
+        2) <h1 class="text-3xl font-bold text-slate-800 mb-2">Gestión de Inversores</h1> aka getByRole('heading', { name: 'Gestión de Inversores' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('h1, [data-testid="page-title"]')
+
+
+       98 |     
+       99 |     await expect(page).toHaveURL(/.*inversores/)
+    > 100 |     await expect(page.locator('h1, [data-testid="page-title"]')).toBeVisible()
+          |                                                                  ^
+      101 |     
+      102 |     // Should have investors list or empty state
+      103 |     await expect(
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:100:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-40dcb-smoke-Inversores-page-loads-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-40dcb-smoke-Inversores-page-loads-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-40dcb-smoke-Inversores-page-loads-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-40dcb-smoke-Inversores-page-loads-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-40dcb-smoke-Inversores-page-loads-chromium\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-40dcb-smoke-Inversores-page-loads-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Kanban page loads" classname="smoke-navigation.spec.ts" time="32.705">
+<failure message="smoke-navigation.spec.ts:108:7 Kanban page loads" type="FAILURE">
+<![CDATA[  [chromium] › smoke-navigation.spec.ts:108:7 › Smoke Tests - Navigation @smoke › Kanban page loads 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator:  locator('[data-testid="kanban-column"]')
+    Expected: visible
+    Received: <element(s) not found>
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for locator('[data-testid="kanban-column"]')
+
+
+      113 |     
+      114 |     // Should have kanban columns
+    > 115 |     await expect(page.locator('[data-testid="kanban-column"]')).toBeVisible({ timeout: 10000 })
+          |                                                                 ^
+      116 |   })
+      117 |
+      118 |   test('Navigation links work', async ({ page }) => {
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:115:65
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-ce354-ion-smoke-Kanban-page-loads-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-ce354-ion-smoke-Kanban-page-loads-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-ce354-ion-smoke-Kanban-page-loads-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-ce354-ion-smoke-Kanban-page-loads-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-ce354-ion-smoke-Kanban-page-loads-chromium\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-ce354-ion-smoke-Kanban-page-loads-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Navigation links work" classname="smoke-navigation.spec.ts" time="9.023">
+<failure message="smoke-navigation.spec.ts:118:7 Navigation links work" type="FAILURE">
+<![CDATA[  [chromium] › smoke-navigation.spec.ts:118:7 › Smoke Tests - Navigation @smoke › Navigation links work 
+
+    Error: expect(page).toHaveURL(expected) failed
+
+    Expected pattern: /\/clientes/
+    Received string:  "http://localhost:3000/"
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "toHaveURL" with timeout 5000ms
+        9 × unexpected value "http://localhost:3000/"
+
+
+      133 |       if (await linkElement.isVisible()) {
+      134 |         await linkElement.click()
+    > 135 |         await expect(page).toHaveURL(new RegExp(link.url.replace('/', '\\/')))
+          |                            ^
+      136 |         await page.goBack()
+      137 |         await page.waitForLoadState('networkidle')
+      138 |       }
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:135:28
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-b6ff2-smoke-Navigation-links-work-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-b6ff2-smoke-Navigation-links-work-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-b6ff2-smoke-Navigation-links-work-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-b6ff2-smoke-Navigation-links-work-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-b6ff2-smoke-Navigation-links-work-chromium\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-b6ff2-smoke-Navigation-links-work-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Create forms load without errors" classname="smoke-navigation.spec.ts" time="33.129">
+<failure message="smoke-navigation.spec.ts:142:7 Create forms load without errors" type="FAILURE">
+<![CDATA[  [chromium] › smoke-navigation.spec.ts:142:7 › Smoke Tests - Navigation @smoke › Create forms load without errors 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('form, [data-testid="form"], input, textarea, select') resolved to 12 elements:
+        1) <form class="space-y-6">…</form> aka locator('form')
+        2) <input value="" type="text" id="nombre" required="" name="nombre" placeholder="Ej: Juan" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'Nombre *' })
+        3) <input value="" type="text" required="" id="apellidos" name="apellidos" placeholder="Ej: García López" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'Apellidos *' })
+        4) <input value="" type="tel" required="" id="telefono" name="telefono" placeholder="Ej: 612345678" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'Teléfono *' })
+        5) <input value="" id="email" type="email" name="email" placeholder="Ej: juan@email.com" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'Email' })
+        6) <input id="dni" value="" name="dni" type="text" placeholder="Ej: 12345678A" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'DNI' })
+        7) <input value="" type="text" id="direccion" name="direccion" placeholder="Ej: Calle Mayor 123" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'Dirección' })
+        8) <input value="" type="text" id="ciudad" name="ciudad" placeholder="Ej: Valencia" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'Ciudad' })
+        9) <input value="" type="text" id="provincia" name="provincia" placeholder="Ej: Valencia" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'Provincia' })
+        10) <input value="" type="text" id="codPostal" name="codPostal" placeholder="Ej: 46001" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'Código Postal' })
+        ...
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('form, [data-testid="form"], input, textarea, select')
+
+
+      157 |       await expect(
+      158 |         page.locator('form, [data-testid="form"], input, textarea, select')
+    > 159 |       ).toBeVisible({ timeout: 5000 })
+          |         ^
+      160 |       
+      161 |       // Should have save/submit button
+      162 |       await expect(
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:159:9
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-cf57f-e-forms-load-without-errors-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-cf57f-e-forms-load-without-errors-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-cf57f-e-forms-load-without-errors-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-cf57f-e-forms-load-without-errors-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-cf57f-e-forms-load-without-errors-chromium\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-cf57f-e-forms-load-without-errors-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Dashboard metrics load" classname="smoke-navigation.spec.ts" time="32.617">
+<failure message="smoke-navigation.spec.ts:168:7 Dashboard metrics load" type="FAILURE">
+<![CDATA[  [chromium] › smoke-navigation.spec.ts:168:7 › Smoke Tests - Navigation @smoke › Dashboard metrics load 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator:  locator('[data-testid="metric"], .metric, .dashboard-card, .stat-card')
+    Expected: visible
+    Received: <element(s) not found>
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for locator('[data-testid="metric"], .metric, .dashboard-card, .stat-card')
+
+
+      172 |     await expect(
+      173 |       page.locator('[data-testid="metric"], .metric, .dashboard-card, .stat-card')
+    > 174 |     ).toBeVisible({ timeout: 10000 })
+          |       ^
+      175 |     
+      176 |     // Check for specific metrics if they exist
+      177 |     const metricSelectors = [
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:174:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-5094b-moke-Dashboard-metrics-load-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-5094b-moke-Dashboard-metrics-load-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-5094b-moke-Dashboard-metrics-load-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-5094b-moke-Dashboard-metrics-load-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-5094b-moke-Dashboard-metrics-load-chromium\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-5094b-moke-Dashboard-metrics-load-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Search functionality works" classname="smoke-navigation.spec.ts" time="32.185">
+<failure message="smoke-navigation.spec.ts:195:7 Search functionality works" type="FAILURE">
+<![CDATA[  [chromium] › smoke-navigation.spec.ts:195:7 › Smoke Tests - Navigation @smoke › Search functionality works 
+
+    Test timeout of 30000ms exceeded.
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-ec219--Search-functionality-works-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-ec219--Search-functionality-works-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-ec219--Search-functionality-works-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-ec219--Search-functionality-works-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-ec219--Search-functionality-works-chromium\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-ec219--Search-functionality-works-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Mobile viewport works" classname="smoke-navigation.spec.ts" time="23.085">
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Error pages handle gracefully" classname="smoke-navigation.spec.ts" time="16.121">
+<failure message="smoke-navigation.spec.ts:240:7 Error pages handle gracefully" type="FAILURE">
+<![CDATA[  [chromium] › smoke-navigation.spec.ts:240:7 › Smoke Tests - Navigation @smoke › Error pages handle gracefully 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      247 |     const isRedirect = !url.includes('non-existent-page')
+      248 |     
+    > 249 |     expect(isErrorPage || isRedirect).toBe(true)
+          |                                       ^
+      250 |   })
+      251 |
+      252 |   test('Form validation shows user-friendly errors', async ({ page }) => {
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:249:39
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-2fa10-ror-pages-handle-gracefully-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-2fa10-ror-pages-handle-gracefully-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-2fa10-ror-pages-handle-gracefully-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[Console error: Failed to load resource: the server responded with a status of 404 (Not Found)
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-2fa10-ror-pages-handle-gracefully-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-2fa10-ror-pages-handle-gracefully-chromium\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-2fa10-ror-pages-handle-gracefully-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Form validation shows user-friendly errors" classname="smoke-navigation.spec.ts" time="17.225">
+<failure message="smoke-navigation.spec.ts:252:7 Form validation shows user-friendly errors" type="FAILURE">
+<![CDATA[  [chromium] › smoke-navigation.spec.ts:252:7 › Smoke Tests - Navigation @smoke › Form validation shows user-friendly errors 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator:  locator('.error, .invalid, [data-testid="error"], .text-red')
+    Expected: visible
+    Received: <element(s) not found>
+    Timeout:  3000ms
+
+    Call log:
+      - Expect "toBeVisible" with timeout 3000ms
+      - waiting for locator('.error, .invalid, [data-testid="error"], .text-red')
+
+
+      262 |       await expect(
+      263 |         page.locator('.error, .invalid, [data-testid="error"], .text-red')
+    > 264 |       ).toBeVisible({ timeout: 3000 })
+          |         ^
+      265 |     }
+      266 |   })
+      267 | })
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:264:9
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-039c6--shows-user-friendly-errors-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-039c6--shows-user-friendly-errors-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-039c6--shows-user-friendly-errors-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-039c6--shows-user-friendly-errors-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-039c6--shows-user-friendly-errors-chromium\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-039c6--shows-user-friendly-errors-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Performance Smoke Tests @smoke › Pages load within reasonable time" classname="smoke-navigation.spec.ts" time="30.158">
+<failure message="smoke-navigation.spec.ts:270:7 Pages load within reasonable time" type="FAILURE">
+<![CDATA[  [chromium] › smoke-navigation.spec.ts:270:7 › Performance Smoke Tests @smoke › Pages load within reasonable time 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: page.waitForLoadState: Test timeout of 30000ms exceeded.
+
+      275 |       
+      276 |       await page.goto(pagePath)
+    > 277 |       await page.waitForLoadState('networkidle')
+          |                  ^
+      278 |       
+      279 |       const loadTime = Date.now() - startTime
+      280 |       
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:277:18
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Performan-cbcb5-load-within-reasonable-time-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Performan-cbcb5-load-within-reasonable-time-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Performan-cbcb5-load-within-reasonable-time-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Performan-cbcb5-load-within-reasonable-time-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Performan-cbcb5-load-within-reasonable-time-chromium\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Performan-cbcb5-load-within-reasonable-time-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Performance Smoke Tests @smoke › API responses are timely" classname="smoke-navigation.spec.ts" time="39.452">
+<failure message="smoke-navigation.spec.ts:288:7 API responses are timely" type="FAILURE">
+<![CDATA[  [chromium] › smoke-navigation.spec.ts:288:7 › Performance Smoke Tests @smoke › API responses are timely 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: page.goto: Test timeout of 30000ms exceeded.
+    Call log:
+      - navigating to "http://localhost:3000/clientes", waiting until "load"
+
+
+      306 |     
+      307 |     // Navigate to pages that make API calls
+    > 308 |     await page.goto('/clientes')
+          |                ^
+      309 |     await page.waitForTimeout(2000)
+      310 |     
+      311 |     await page.goto('/vehiculos')
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:308:16
+
+    attachment #1: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Performan-59a09-ke-API-responses-are-timely-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Performan-59a09-ke-API-responses-are-timely-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Performan-59a09-ke-API-responses-are-timely-chromium\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Performan-59a09-ke-API-responses-are-timely-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+<testsuite name="complete-crm-workflow.spec.ts" timestamp="2025-09-18T06:06:50.562Z" hostname="firefox" tests="1" failures="1" skipped="0" time="30.111" errors="0">
+<testcase name="Complete CRM Workflow › Quick smoke test for all main sections" classname="complete-crm-workflow.spec.ts" time="30.111">
+<failure message="complete-crm-workflow.spec.ts:289:7 Quick smoke test for all main sections" type="FAILURE">
+<![CDATA[  [firefox] › complete-crm-workflow.spec.ts:289:7 › Complete CRM Workflow › Quick smoke test for all main sections 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: page.goto: Test timeout of 30000ms exceeded.
+    Call log:
+      - navigating to "http://localhost:3000/clientes", waiting until "load"
+
+
+      305 |       console.log(`🔍 Testing ${section.name}...`)
+      306 |       
+    > 307 |       await page.goto(section.url)
+          |                  ^
+      308 |       await page.waitForLoadState('networkidle')
+      309 |       
+      310 |       // Verificar que la página cargó sin errores 404/500
+        at C:\crmseven-master\tests\e2e\complete-crm-workflow.spec.ts:307:18
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\complete-crm-workflow-Comp-4d7e0--test-for-all-main-sections-firefox\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\complete-crm-workflow-Comp-4d7e0--test-for-all-main-sections-firefox\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\complete-crm-workflow-Comp-4d7e0--test-for-all-main-sections-firefox\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[🔍 Testing Dashboard...
+✅ Dashboard OK
+🔍 Testing Clientes...
+
+[[ATTACHMENT|test-results\complete-crm-workflow-Comp-4d7e0--test-for-all-main-sections-firefox\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\complete-crm-workflow-Comp-4d7e0--test-for-all-main-sections-firefox\video.webm]]
+
+[[ATTACHMENT|test-results\complete-crm-workflow-Comp-4d7e0--test-for-all-main-sections-firefox\error-context.md]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+<testsuite name="smoke-navigation.spec.ts" timestamp="2025-09-18T06:06:50.562Z" hostname="firefox" tests="16" failures="13" skipped="0" time="371.506" errors="0">
+<testcase name="Smoke Tests - Navigation @smoke › Homepage loads successfully" classname="smoke-navigation.spec.ts" time="14.869">
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Clientes page loads" classname="smoke-navigation.spec.ts" time="12.287">
+<failure message="smoke-navigation.spec.ts:48:7 Clientes page loads" type="FAILURE">
+<![CDATA[  [firefox] › smoke-navigation.spec.ts:48:7 › Smoke Tests - Navigation @smoke › Clientes page loads 
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('h1, [data-testid="page-title"]') resolved to 2 elements:
+        1) <h1 class="text-xl font-bold text-gray-900">SevenCars</h1> aka getByRole('link', { name: 'SC SevenCars CRM Platform' })
+        2) <h1 class="text-3xl font-bold text-slate-800 mb-2">Gestión de Clientes</h1> aka getByRole('heading', { name: 'Gestión de Clientes' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('h1, [data-testid="page-title"]')
+
+
+      50 |     
+      51 |     await expect(page).toHaveURL(/.*clientes/)
+    > 52 |     await expect(page.locator('h1, [data-testid="page-title"]')).toBeVisible()
+         |                                                                  ^
+      53 |     
+      54 |     // Should have list or empty state
+      55 |     await expect(
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:52:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-a9455-n-smoke-Clientes-page-loads-firefox\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-a9455-n-smoke-Clientes-page-loads-firefox\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-a9455-n-smoke-Clientes-page-loads-firefox\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[Console error: [JavaScript Error: "Error: Error: strict mode violation: locator('h1, [data-testid="page-title"]') resolved to 2 elements:
+    1) <h1 class="text-xl font-bold text-gray-900">SevenCars</h1> aka getByRole('link', { name: 'SC SevenCars CRM Platform' })
+    2) <h1 class="text-3xl font-bold text-slate-800 mb-2">Gestión de Clientes</h1> aka getByRole('heading', { name: 'Gestión de Clientes' })
+" {file: "debugger eval code" line: 7347}]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-a9455-n-smoke-Clientes-page-loads-firefox\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-a9455-n-smoke-Clientes-page-loads-firefox\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-a9455-n-smoke-Clientes-page-loads-firefox\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Vehiculos page loads" classname="smoke-navigation.spec.ts" time="13.427">
+<failure message="smoke-navigation.spec.ts:60:7 Vehiculos page loads" type="FAILURE">
+<![CDATA[  [firefox] › smoke-navigation.spec.ts:60:7 › Smoke Tests - Navigation @smoke › Vehiculos page loads 
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('h1, [data-testid="page-title"]') resolved to 2 elements:
+        1) <h1 class="text-xl font-bold text-gray-900">SevenCars</h1> aka getByRole('link', { name: 'SC SevenCars CRM Platform' })
+        2) <h1 class="text-3xl font-bold text-slate-800 mb-2">Vehículos</h1> aka getByRole('heading', { name: 'Vehículos' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('h1, [data-testid="page-title"]')
+
+
+      62 |     
+      63 |     await expect(page).toHaveURL(/.*vehiculos/)
+    > 64 |     await expect(page.locator('h1, [data-testid="page-title"]')).toBeVisible()
+         |                                                                  ^
+      65 |     
+      66 |     // Should have vehicle list or empty state
+      67 |     await expect(
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:64:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-abcdc--smoke-Vehiculos-page-loads-firefox\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-abcdc--smoke-Vehiculos-page-loads-firefox\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-abcdc--smoke-Vehiculos-page-loads-firefox\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[Console error: [JavaScript Error: "Error: Error: strict mode violation: locator('h1, [data-testid="page-title"]') resolved to 2 elements:
+    1) <h1 class="text-xl font-bold text-gray-900">SevenCars</h1> aka getByRole('link', { name: 'SC SevenCars CRM Platform' })
+    2) <h1 class="text-3xl font-bold text-slate-800 mb-2">Vehículos</h1> aka getByRole('heading', { name: 'Vehículos' })
+" {file: "debugger eval code" line: 7347}]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-abcdc--smoke-Vehiculos-page-loads-firefox\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-abcdc--smoke-Vehiculos-page-loads-firefox\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-abcdc--smoke-Vehiculos-page-loads-firefox\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Deals page loads" classname="smoke-navigation.spec.ts" time="14.101">
+<failure message="smoke-navigation.spec.ts:72:7 Deals page loads" type="FAILURE">
+<![CDATA[  [firefox] › smoke-navigation.spec.ts:72:7 › Smoke Tests - Navigation @smoke › Deals page loads ───
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('h1, [data-testid="page-title"]') resolved to 2 elements:
+        1) <h1 class="text-xl font-bold text-gray-900">SevenCars</h1> aka getByRole('link', { name: 'SC SevenCars CRM Platform' })
+        2) <h1 class="text-xl font-bold text-white">Deals</h1> aka getByRole('heading', { name: 'Deals' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('h1, [data-testid="page-title"]')
+
+
+      74 |     
+      75 |     await expect(page).toHaveURL(/.*deals/)
+    > 76 |     await expect(page.locator('h1, [data-testid="page-title"]')).toBeVisible()
+         |                                                                  ^
+      77 |     
+      78 |     // Should have deals list or empty state
+      79 |     await expect(
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:76:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-a40f9-tion-smoke-Deals-page-loads-firefox\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-a40f9-tion-smoke-Deals-page-loads-firefox\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-a40f9-tion-smoke-Deals-page-loads-firefox\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[Console error: [JavaScript Error: "Error: Error: strict mode violation: locator('h1, [data-testid="page-title"]') resolved to 2 elements:
+    1) <h1 class="text-xl font-bold text-gray-900">SevenCars</h1> aka getByRole('link', { name: 'SC SevenCars CRM Platform' })
+    2) <h1 class="text-xl font-bold text-white">Deals</h1> aka getByRole('heading', { name: 'Deals' })
+" {file: "debugger eval code" line: 7347}]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-a40f9-tion-smoke-Deals-page-loads-firefox\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-a40f9-tion-smoke-Deals-page-loads-firefox\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-a40f9-tion-smoke-Deals-page-loads-firefox\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Depositos page loads" classname="smoke-navigation.spec.ts" time="14.591">
+<failure message="smoke-navigation.spec.ts:84:7 Depositos page loads" type="FAILURE">
+<![CDATA[  [firefox] › smoke-navigation.spec.ts:84:7 › Smoke Tests - Navigation @smoke › Depositos page loads 
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('h1, [data-testid="page-title"]') resolved to 2 elements:
+        1) <h1 class="text-xl font-bold text-gray-900">SevenCars</h1> aka getByRole('link', { name: 'SC SevenCars CRM Platform' })
+        2) <h1 class="text-xl font-bold text-white">Depósitos de Venta</h1> aka getByRole('heading', { name: 'Depósitos de Venta' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('h1, [data-testid="page-title"]')
+
+
+      86 |     
+      87 |     await expect(page).toHaveURL(/.*depositos/)
+    > 88 |     await expect(page.locator('h1, [data-testid="page-title"]')).toBeVisible()
+         |                                                                  ^
+      89 |     
+      90 |     // Should have deposits list or empty state
+      91 |     await expect(
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:88:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-bed3f--smoke-Depositos-page-loads-firefox\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-bed3f--smoke-Depositos-page-loads-firefox\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-bed3f--smoke-Depositos-page-loads-firefox\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[Console error: [JavaScript Error: "Error: Error: strict mode violation: locator('h1, [data-testid="page-title"]') resolved to 2 elements:
+    1) <h1 class="text-xl font-bold text-gray-900">SevenCars</h1> aka getByRole('link', { name: 'SC SevenCars CRM Platform' })
+    2) <h1 class="text-xl font-bold text-white">Depósitos de Venta</h1> aka getByRole('heading', { name: 'Depósitos de Venta' })
+" {file: "debugger eval code" line: 7347}]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-bed3f--smoke-Depositos-page-loads-firefox\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-bed3f--smoke-Depositos-page-loads-firefox\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-bed3f--smoke-Depositos-page-loads-firefox\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Inversores page loads" classname="smoke-navigation.spec.ts" time="14.829">
+<failure message="smoke-navigation.spec.ts:96:7 Inversores page loads" type="FAILURE">
+<![CDATA[  [firefox] › smoke-navigation.spec.ts:96:7 › Smoke Tests - Navigation @smoke › Inversores page loads 
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('h1, [data-testid="page-title"]') resolved to 2 elements:
+        1) <h1 class="text-xl font-bold text-gray-900">SevenCars</h1> aka getByRole('link', { name: 'SC SevenCars CRM Platform' })
+        2) <h1 class="text-3xl font-bold text-slate-800 mb-2">Gestión de Inversores</h1> aka getByRole('heading', { name: 'Gestión de Inversores' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('h1, [data-testid="page-title"]')
+
+
+       98 |     
+       99 |     await expect(page).toHaveURL(/.*inversores/)
+    > 100 |     await expect(page.locator('h1, [data-testid="page-title"]')).toBeVisible()
+          |                                                                  ^
+      101 |     
+      102 |     // Should have investors list or empty state
+      103 |     await expect(
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:100:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-40dcb-smoke-Inversores-page-loads-firefox\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-40dcb-smoke-Inversores-page-loads-firefox\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-40dcb-smoke-Inversores-page-loads-firefox\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[Console error: [JavaScript Error: "Error: Error: strict mode violation: locator('h1, [data-testid="page-title"]') resolved to 2 elements:
+    1) <h1 class="text-xl font-bold text-gray-900">SevenCars</h1> aka getByRole('link', { name: 'SC SevenCars CRM Platform' })
+    2) <h1 class="text-3xl font-bold text-slate-800 mb-2">Gestión de Inversores</h1> aka getByRole('heading', { name: 'Gestión de Inversores' })
+" {file: "debugger eval code" line: 7347}]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-40dcb-smoke-Inversores-page-loads-firefox\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-40dcb-smoke-Inversores-page-loads-firefox\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-40dcb-smoke-Inversores-page-loads-firefox\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Kanban page loads" classname="smoke-navigation.spec.ts" time="22.456">
+<failure message="smoke-navigation.spec.ts:108:7 Kanban page loads" type="FAILURE">
+<![CDATA[  [firefox] › smoke-navigation.spec.ts:108:7 › Smoke Tests - Navigation @smoke › Kanban page loads ─
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator:  locator('[data-testid="kanban-column"]')
+    Expected: visible
+    Received: <element(s) not found>
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for locator('[data-testid="kanban-column"]')
+
+
+      113 |     
+      114 |     // Should have kanban columns
+    > 115 |     await expect(page.locator('[data-testid="kanban-column"]')).toBeVisible({ timeout: 10000 })
+          |                                                                 ^
+      116 |   })
+      117 |
+      118 |   test('Navigation links work', async ({ page }) => {
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:115:65
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-ce354-ion-smoke-Kanban-page-loads-firefox\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-ce354-ion-smoke-Kanban-page-loads-firefox\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-ce354-ion-smoke-Kanban-page-loads-firefox\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-ce354-ion-smoke-Kanban-page-loads-firefox\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-ce354-ion-smoke-Kanban-page-loads-firefox\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-ce354-ion-smoke-Kanban-page-loads-firefox\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Navigation links work" classname="smoke-navigation.spec.ts" time="30.155">
+<failure message="smoke-navigation.spec.ts:118:7 Navigation links work" type="FAILURE">
+<![CDATA[  [firefox] › smoke-navigation.spec.ts:118:7 › Smoke Tests - Navigation @smoke › Navigation links work 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: expect(page).toHaveURL(expected) failed
+
+    Expected pattern: /\/clientes/
+    Received string:  "http://localhost:3000/"
+
+    Call log:
+      - Expect "toHaveURL" with timeout 5000ms
+        3 × unexpected value "http://localhost:3000/"
+
+
+      133 |       if (await linkElement.isVisible()) {
+      134 |         await linkElement.click()
+    > 135 |         await expect(page).toHaveURL(new RegExp(link.url.replace('/', '\\/')))
+          |                            ^
+      136 |         await page.goBack()
+      137 |         await page.waitForLoadState('networkidle')
+      138 |       }
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:135:28
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-b6ff2-smoke-Navigation-links-work-firefox\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-b6ff2-smoke-Navigation-links-work-firefox\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-b6ff2-smoke-Navigation-links-work-firefox\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-b6ff2-smoke-Navigation-links-work-firefox\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-b6ff2-smoke-Navigation-links-work-firefox\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-b6ff2-smoke-Navigation-links-work-firefox\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Create forms load without errors" classname="smoke-navigation.spec.ts" time="30.196">
+<failure message="smoke-navigation.spec.ts:142:7 Create forms load without errors" type="FAILURE">
+<![CDATA[  [firefox] › smoke-navigation.spec.ts:142:7 › Smoke Tests - Navigation @smoke › Create forms load without errors 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: page.goto: Test timeout of 30000ms exceeded.
+    Call log:
+      - navigating to "http://localhost:3000/clientes/crear", waiting until "load"
+
+
+      149 |     
+      150 |     for (const createPage of createPages) {
+    > 151 |       await page.goto(createPage)
+          |                  ^
+      152 |       
+      153 |       // Should load without errors
+      154 |       await expect(page).toHaveURL(new RegExp(createPage.replace('/', '\\/')))
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:151:18
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-cf57f-e-forms-load-without-errors-firefox\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-cf57f-e-forms-load-without-errors-firefox\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-cf57f-e-forms-load-without-errors-firefox\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-cf57f-e-forms-load-without-errors-firefox\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-cf57f-e-forms-load-without-errors-firefox\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-cf57f-e-forms-load-without-errors-firefox\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Dashboard metrics load" classname="smoke-navigation.spec.ts" time="30.194">
+<failure message="smoke-navigation.spec.ts:168:7 Dashboard metrics load" type="FAILURE">
+<![CDATA[  [firefox] › smoke-navigation.spec.ts:168:7 › Smoke Tests - Navigation @smoke › Dashboard metrics load 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator:  locator('[data-testid="metric"], .metric, .dashboard-card, .stat-card')
+    Expected: visible
+    Received: <element(s) not found>
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for locator('[data-testid="metric"], .metric, .dashboard-card, .stat-card')
+
+
+      172 |     await expect(
+      173 |       page.locator('[data-testid="metric"], .metric, .dashboard-card, .stat-card')
+    > 174 |     ).toBeVisible({ timeout: 10000 })
+          |       ^
+      175 |     
+      176 |     // Check for specific metrics if they exist
+      177 |     const metricSelectors = [
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:174:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-5094b-moke-Dashboard-metrics-load-firefox\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-5094b-moke-Dashboard-metrics-load-firefox\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-5094b-moke-Dashboard-metrics-load-firefox\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-5094b-moke-Dashboard-metrics-load-firefox\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-5094b-moke-Dashboard-metrics-load-firefox\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-5094b-moke-Dashboard-metrics-load-firefox\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Search functionality works" classname="smoke-navigation.spec.ts" time="27.231">
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Mobile viewport works" classname="smoke-navigation.spec.ts" time="28.867">
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Error pages handle gracefully" classname="smoke-navigation.spec.ts" time="27.757">
+<failure message="smoke-navigation.spec.ts:240:7 Error pages handle gracefully" type="FAILURE">
+<![CDATA[  [firefox] › smoke-navigation.spec.ts:240:7 › Smoke Tests - Navigation @smoke › Error pages handle gracefully 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      247 |     const isRedirect = !url.includes('non-existent-page')
+      248 |     
+    > 249 |     expect(isErrorPage || isRedirect).toBe(true)
+          |                                       ^
+      250 |   })
+      251 |
+      252 |   test('Form validation shows user-friendly errors', async ({ page }) => {
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:249:39
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-2fa10-ror-pages-handle-gracefully-firefox\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-2fa10-ror-pages-handle-gracefully-firefox\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-2fa10-ror-pages-handle-gracefully-firefox\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-2fa10-ror-pages-handle-gracefully-firefox\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-2fa10-ror-pages-handle-gracefully-firefox\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-2fa10-ror-pages-handle-gracefully-firefox\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Form validation shows user-friendly errors" classname="smoke-navigation.spec.ts" time="30.272">
+<failure message="smoke-navigation.spec.ts:252:7 Form validation shows user-friendly errors" type="FAILURE">
+<![CDATA[  [firefox] › smoke-navigation.spec.ts:252:7 › Smoke Tests - Navigation @smoke › Form validation shows user-friendly errors 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator:  locator('.error, .invalid, [data-testid="error"], .text-red')
+    Expected: visible
+    Received: <element(s) not found>
+
+    Call log:
+      - Expect "toBeVisible" with timeout 3000ms
+      - waiting for locator('.error, .invalid, [data-testid="error"], .text-red')
+
+
+      262 |       await expect(
+      263 |         page.locator('.error, .invalid, [data-testid="error"], .text-red')
+    > 264 |       ).toBeVisible({ timeout: 3000 })
+          |         ^
+      265 |     }
+      266 |   })
+      267 | })
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:264:9
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-039c6--shows-user-friendly-errors-firefox\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-039c6--shows-user-friendly-errors-firefox\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-039c6--shows-user-friendly-errors-firefox\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-039c6--shows-user-friendly-errors-firefox\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-039c6--shows-user-friendly-errors-firefox\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-039c6--shows-user-friendly-errors-firefox\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Performance Smoke Tests @smoke › Pages load within reasonable time" classname="smoke-navigation.spec.ts" time="30.133">
+<failure message="smoke-navigation.spec.ts:270:7 Pages load within reasonable time" type="FAILURE">
+<![CDATA[  [firefox] › smoke-navigation.spec.ts:270:7 › Performance Smoke Tests @smoke › Pages load within reasonable time 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: page.waitForLoadState: Test timeout of 30000ms exceeded.
+
+      275 |       
+      276 |       await page.goto(pagePath)
+    > 277 |       await page.waitForLoadState('networkidle')
+          |                  ^
+      278 |       
+      279 |       const loadTime = Date.now() - startTime
+      280 |       
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:277:18
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Performan-cbcb5-load-within-reasonable-time-firefox\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Performan-cbcb5-load-within-reasonable-time-firefox\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Performan-cbcb5-load-within-reasonable-time-firefox\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Performan-cbcb5-load-within-reasonable-time-firefox\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Performan-cbcb5-load-within-reasonable-time-firefox\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Performan-cbcb5-load-within-reasonable-time-firefox\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Performance Smoke Tests @smoke › API responses are timely" classname="smoke-navigation.spec.ts" time="30.141">
+<failure message="smoke-navigation.spec.ts:288:7 API responses are timely" type="FAILURE">
+<![CDATA[  [firefox] › smoke-navigation.spec.ts:288:7 › Performance Smoke Tests @smoke › API responses are timely 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: page.goto: Test timeout of 30000ms exceeded.
+    Call log:
+      - navigating to "http://localhost:3000/vehiculos", waiting until "load"
+
+
+      309 |     await page.waitForTimeout(2000)
+      310 |     
+    > 311 |     await page.goto('/vehiculos')
+          |                ^
+      312 |     await page.waitForTimeout(2000)
+      313 |     
+      314 |     // Check API response times
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:311:16
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Performan-59a09-ke-API-responses-are-timely-firefox\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Performan-59a09-ke-API-responses-are-timely-firefox\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Performan-59a09-ke-API-responses-are-timely-firefox\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Performan-59a09-ke-API-responses-are-timely-firefox\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Performan-59a09-ke-API-responses-are-timely-firefox\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Performan-59a09-ke-API-responses-are-timely-firefox\error-context.md]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+<testsuite name="complete-crm-workflow.spec.ts" timestamp="2025-09-18T06:06:50.562Z" hostname="webkit" tests="1" failures="1" skipped="0" time="30.36" errors="0">
+<testcase name="Complete CRM Workflow › Quick smoke test for all main sections" classname="complete-crm-workflow.spec.ts" time="30.36">
+<failure message="complete-crm-workflow.spec.ts:289:7 Quick smoke test for all main sections" type="FAILURE">
+<![CDATA[  [webkit] › complete-crm-workflow.spec.ts:289:7 › Complete CRM Workflow › Quick smoke test for all main sections 
+
+    Test timeout of 30000ms exceeded while running "beforeEach" hook.
+
+      2 |
+      3 | test.describe('Complete CRM Workflow', () => {
+    > 4 |   test.beforeEach(async ({ page }) => {
+        |        ^
+      5 |     // Navegar a la página principal
+      6 |     await page.goto('/')
+      7 |     
+        at C:\crmseven-master\tests\e2e\complete-crm-workflow.spec.ts:4:8
+
+    Error: page.waitForLoadState: Test timeout of 30000ms exceeded.
+
+       7 |     
+       8 |     // Esperar a que la página cargue completamente
+    >  9 |     await page.waitForLoadState('networkidle')
+         |                ^
+      10 |   })
+      11 |
+      12 |   test('Complete CRM workflow: Create client, vehicles, deal, deposit and move kanban states', async ({ page }) => {
+        at C:\crmseven-master\tests\e2e\complete-crm-workflow.spec.ts:9:16
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\complete-crm-workflow-Comp-4d7e0--test-for-all-main-sections-webkit\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\complete-crm-workflow-Comp-4d7e0--test-for-all-main-sections-webkit\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\complete-crm-workflow-Comp-4d7e0--test-for-all-main-sections-webkit\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\complete-crm-workflow-Comp-4d7e0--test-for-all-main-sections-webkit\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\complete-crm-workflow-Comp-4d7e0--test-for-all-main-sections-webkit\video.webm]]
+
+[[ATTACHMENT|test-results\complete-crm-workflow-Comp-4d7e0--test-for-all-main-sections-webkit\error-context.md]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+<testsuite name="smoke-navigation.spec.ts" timestamp="2025-09-18T06:06:50.562Z" hostname="webkit" tests="16" failures="13" skipped="0" time="198.959" errors="0">
+<testcase name="Smoke Tests - Navigation @smoke › Homepage loads successfully" classname="smoke-navigation.spec.ts" time="30.343">
+<failure message="smoke-navigation.spec.ts:19:7 Homepage loads successfully" type="FAILURE">
+<![CDATA[  [webkit] › smoke-navigation.spec.ts:19:7 › Smoke Tests - Navigation @smoke › Homepage loads successfully 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: page.waitForLoadState: Test timeout of 30000ms exceeded.
+
+      34 |     })
+      35 |     
+    > 36 |     await page.waitForLoadState('networkidle')
+         |                ^
+      37 |     
+      38 |     // Filter out non-critical errors
+      39 |     const criticalErrors = errors.filter(error => 
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:36:16
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-c6c0e-Homepage-loads-successfully-webkit\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-c6c0e-Homepage-loads-successfully-webkit\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-c6c0e-Homepage-loads-successfully-webkit\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-c6c0e-Homepage-loads-successfully-webkit\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-c6c0e-Homepage-loads-successfully-webkit\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-c6c0e-Homepage-loads-successfully-webkit\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Clientes page loads" classname="smoke-navigation.spec.ts" time="6.023">
+<failure message="smoke-navigation.spec.ts:48:7 Clientes page loads" type="FAILURE">
+<![CDATA[  [webkit] › smoke-navigation.spec.ts:48:7 › Smoke Tests - Navigation @smoke › Clientes page loads ─
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('h1, [data-testid="page-title"]') resolved to 2 elements:
+        1) <h1 class="text-xl font-bold text-gray-900">SevenCars</h1> aka getByRole('link', { name: 'SC SevenCars CRM Platform' })
+        2) <h1 class="text-3xl font-bold text-slate-800 mb-2">Gestión de Clientes</h1> aka getByRole('heading', { name: 'Gestión de Clientes' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('h1, [data-testid="page-title"]')
+
+
+      50 |     
+      51 |     await expect(page).toHaveURL(/.*clientes/)
+    > 52 |     await expect(page.locator('h1, [data-testid="page-title"]')).toBeVisible()
+         |                                                                  ^
+      53 |     
+      54 |     // Should have list or empty state
+      55 |     await expect(
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:52:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-a9455-n-smoke-Clientes-page-loads-webkit\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-a9455-n-smoke-Clientes-page-loads-webkit\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-a9455-n-smoke-Clientes-page-loads-webkit\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-a9455-n-smoke-Clientes-page-loads-webkit\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-a9455-n-smoke-Clientes-page-loads-webkit\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-a9455-n-smoke-Clientes-page-loads-webkit\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Vehiculos page loads" classname="smoke-navigation.spec.ts" time="6.026">
+<failure message="smoke-navigation.spec.ts:60:7 Vehiculos page loads" type="FAILURE">
+<![CDATA[  [webkit] › smoke-navigation.spec.ts:60:7 › Smoke Tests - Navigation @smoke › Vehiculos page loads 
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('h1, [data-testid="page-title"]') resolved to 2 elements:
+        1) <h1 class="text-xl font-bold text-gray-900">SevenCars</h1> aka getByRole('link', { name: 'SC SevenCars CRM Platform' })
+        2) <h1 class="text-3xl font-bold text-slate-800 mb-2">Vehículos</h1> aka getByRole('heading', { name: 'Vehículos' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('h1, [data-testid="page-title"]')
+
+
+      62 |     
+      63 |     await expect(page).toHaveURL(/.*vehiculos/)
+    > 64 |     await expect(page.locator('h1, [data-testid="page-title"]')).toBeVisible()
+         |                                                                  ^
+      65 |     
+      66 |     // Should have vehicle list or empty state
+      67 |     await expect(
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:64:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-abcdc--smoke-Vehiculos-page-loads-webkit\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-abcdc--smoke-Vehiculos-page-loads-webkit\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-abcdc--smoke-Vehiculos-page-loads-webkit\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-abcdc--smoke-Vehiculos-page-loads-webkit\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-abcdc--smoke-Vehiculos-page-loads-webkit\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-abcdc--smoke-Vehiculos-page-loads-webkit\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Deals page loads" classname="smoke-navigation.spec.ts" time="6.275">
+<failure message="smoke-navigation.spec.ts:72:7 Deals page loads" type="FAILURE">
+<![CDATA[  [webkit] › smoke-navigation.spec.ts:72:7 › Smoke Tests - Navigation @smoke › Deals page loads ────
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('h1, [data-testid="page-title"]') resolved to 2 elements:
+        1) <h1 class="text-xl font-bold text-gray-900">SevenCars</h1> aka getByRole('link', { name: 'SC SevenCars CRM Platform' })
+        2) <h1 class="text-xl font-bold text-white">Deals</h1> aka getByRole('heading', { name: 'Deals' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('h1, [data-testid="page-title"]')
+
+
+      74 |     
+      75 |     await expect(page).toHaveURL(/.*deals/)
+    > 76 |     await expect(page.locator('h1, [data-testid="page-title"]')).toBeVisible()
+         |                                                                  ^
+      77 |     
+      78 |     // Should have deals list or empty state
+      79 |     await expect(
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:76:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-a40f9-tion-smoke-Deals-page-loads-webkit\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-a40f9-tion-smoke-Deals-page-loads-webkit\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-a40f9-tion-smoke-Deals-page-loads-webkit\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-a40f9-tion-smoke-Deals-page-loads-webkit\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-a40f9-tion-smoke-Deals-page-loads-webkit\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-a40f9-tion-smoke-Deals-page-loads-webkit\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Depositos page loads" classname="smoke-navigation.spec.ts" time="6.254">
+<failure message="smoke-navigation.spec.ts:84:7 Depositos page loads" type="FAILURE">
+<![CDATA[  [webkit] › smoke-navigation.spec.ts:84:7 › Smoke Tests - Navigation @smoke › Depositos page loads 
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('h1, [data-testid="page-title"]') resolved to 2 elements:
+        1) <h1 class="text-xl font-bold text-gray-900">SevenCars</h1> aka getByRole('link', { name: 'SC SevenCars CRM Platform' })
+        2) <h1 class="text-xl font-bold text-white">Depósitos de Venta</h1> aka getByRole('heading', { name: 'Depósitos de Venta' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('h1, [data-testid="page-title"]')
+
+
+      86 |     
+      87 |     await expect(page).toHaveURL(/.*depositos/)
+    > 88 |     await expect(page.locator('h1, [data-testid="page-title"]')).toBeVisible()
+         |                                                                  ^
+      89 |     
+      90 |     // Should have deposits list or empty state
+      91 |     await expect(
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:88:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-bed3f--smoke-Depositos-page-loads-webkit\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-bed3f--smoke-Depositos-page-loads-webkit\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-bed3f--smoke-Depositos-page-loads-webkit\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-bed3f--smoke-Depositos-page-loads-webkit\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-bed3f--smoke-Depositos-page-loads-webkit\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-bed3f--smoke-Depositos-page-loads-webkit\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Inversores page loads" classname="smoke-navigation.spec.ts" time="5.628">
+<failure message="smoke-navigation.spec.ts:96:7 Inversores page loads" type="FAILURE">
+<![CDATA[  [webkit] › smoke-navigation.spec.ts:96:7 › Smoke Tests - Navigation @smoke › Inversores page loads 
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('h1, [data-testid="page-title"]') resolved to 2 elements:
+        1) <h1 class="text-xl font-bold text-gray-900">SevenCars</h1> aka getByRole('link', { name: 'SC SevenCars CRM Platform' })
+        2) <h1 class="text-3xl font-bold text-slate-800 mb-2">Gestión de Inversores</h1> aka getByRole('heading', { name: 'Gestión de Inversores' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('h1, [data-testid="page-title"]')
+
+
+       98 |     
+       99 |     await expect(page).toHaveURL(/.*inversores/)
+    > 100 |     await expect(page.locator('h1, [data-testid="page-title"]')).toBeVisible()
+          |                                                                  ^
+      101 |     
+      102 |     // Should have investors list or empty state
+      103 |     await expect(
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:100:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-40dcb-smoke-Inversores-page-loads-webkit\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-40dcb-smoke-Inversores-page-loads-webkit\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-40dcb-smoke-Inversores-page-loads-webkit\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-40dcb-smoke-Inversores-page-loads-webkit\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-40dcb-smoke-Inversores-page-loads-webkit\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-40dcb-smoke-Inversores-page-loads-webkit\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Kanban page loads" classname="smoke-navigation.spec.ts" time="16.261">
+<failure message="smoke-navigation.spec.ts:108:7 Kanban page loads" type="FAILURE">
+<![CDATA[  [webkit] › smoke-navigation.spec.ts:108:7 › Smoke Tests - Navigation @smoke › Kanban page loads ──
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator:  locator('[data-testid="kanban-column"]')
+    Expected: visible
+    Received: <element(s) not found>
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for locator('[data-testid="kanban-column"]')
+
+
+      113 |     
+      114 |     // Should have kanban columns
+    > 115 |     await expect(page.locator('[data-testid="kanban-column"]')).toBeVisible({ timeout: 10000 })
+          |                                                                 ^
+      116 |   })
+      117 |
+      118 |   test('Navigation links work', async ({ page }) => {
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:115:65
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-ce354-ion-smoke-Kanban-page-loads-webkit\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-ce354-ion-smoke-Kanban-page-loads-webkit\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-ce354-ion-smoke-Kanban-page-loads-webkit\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-ce354-ion-smoke-Kanban-page-loads-webkit\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-ce354-ion-smoke-Kanban-page-loads-webkit\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-ce354-ion-smoke-Kanban-page-loads-webkit\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Navigation links work" classname="smoke-navigation.spec.ts" time="11.271">
+<failure message="smoke-navigation.spec.ts:118:7 Navigation links work" type="FAILURE">
+<![CDATA[  [webkit] › smoke-navigation.spec.ts:118:7 › Smoke Tests - Navigation @smoke › Navigation links work 
+
+    Error: expect(page).toHaveURL(expected) failed
+
+    Expected pattern: /\/clientes/
+    Received string:  "http://localhost:3000/"
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "toHaveURL" with timeout 5000ms
+        9 × unexpected value "http://localhost:3000/"
+
+
+      133 |       if (await linkElement.isVisible()) {
+      134 |         await linkElement.click()
+    > 135 |         await expect(page).toHaveURL(new RegExp(link.url.replace('/', '\\/')))
+          |                            ^
+      136 |         await page.goBack()
+      137 |         await page.waitForLoadState('networkidle')
+      138 |       }
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:135:28
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-b6ff2-smoke-Navigation-links-work-webkit\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-b6ff2-smoke-Navigation-links-work-webkit\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-b6ff2-smoke-Navigation-links-work-webkit\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-b6ff2-smoke-Navigation-links-work-webkit\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-b6ff2-smoke-Navigation-links-work-webkit\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-b6ff2-smoke-Navigation-links-work-webkit\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Create forms load without errors" classname="smoke-navigation.spec.ts" time="6.48">
+<failure message="smoke-navigation.spec.ts:142:7 Create forms load without errors" type="FAILURE">
+<![CDATA[  [webkit] › smoke-navigation.spec.ts:142:7 › Smoke Tests - Navigation @smoke › Create forms load without errors 
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('form, [data-testid="form"], input, textarea, select') resolved to 12 elements:
+        1) <form class="space-y-6">…</form> aka locator('form')
+        2) <input value="" type="text" id="nombre" required="" name="nombre" placeholder="Ej: Juan" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'Nombre *' })
+        3) <input value="" type="text" required="" id="apellidos" name="apellidos" placeholder="Ej: García López" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'Apellidos *' })
+        4) <input value="" type="tel" required="" id="telefono" name="telefono" placeholder="Ej: 612345678" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'Teléfono *' })
+        5) <input value="" id="email" type="email" name="email" placeholder="Ej: juan@email.com" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'Email' })
+        6) <input id="dni" value="" name="dni" type="text" placeholder="Ej: 12345678A" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'DNI' })
+        7) <input value="" type="text" id="direccion" name="direccion" placeholder="Ej: Calle Mayor 123" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'Dirección' })
+        8) <input value="" type="text" id="ciudad" name="ciudad" placeholder="Ej: Valencia" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'Ciudad' })
+        9) <input value="" type="text" id="provincia" name="provincia" placeholder="Ej: Valencia" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'Provincia' })
+        10) <input value="" type="text" id="codPostal" name="codPostal" placeholder="Ej: 46001" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'Código Postal' })
+        ...
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('form, [data-testid="form"], input, textarea, select')
+
+
+      157 |       await expect(
+      158 |         page.locator('form, [data-testid="form"], input, textarea, select')
+    > 159 |       ).toBeVisible({ timeout: 5000 })
+          |         ^
+      160 |       
+      161 |       // Should have save/submit button
+      162 |       await expect(
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:159:9
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-cf57f-e-forms-load-without-errors-webkit\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-cf57f-e-forms-load-without-errors-webkit\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-cf57f-e-forms-load-without-errors-webkit\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-cf57f-e-forms-load-without-errors-webkit\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-cf57f-e-forms-load-without-errors-webkit\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-cf57f-e-forms-load-without-errors-webkit\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Dashboard metrics load" classname="smoke-navigation.spec.ts" time="16.012">
+<failure message="smoke-navigation.spec.ts:168:7 Dashboard metrics load" type="FAILURE">
+<![CDATA[  [webkit] › smoke-navigation.spec.ts:168:7 › Smoke Tests - Navigation @smoke › Dashboard metrics load 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator:  locator('[data-testid="metric"], .metric, .dashboard-card, .stat-card')
+    Expected: visible
+    Received: <element(s) not found>
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for locator('[data-testid="metric"], .metric, .dashboard-card, .stat-card')
+
+
+      172 |     await expect(
+      173 |       page.locator('[data-testid="metric"], .metric, .dashboard-card, .stat-card')
+    > 174 |     ).toBeVisible({ timeout: 10000 })
+          |       ^
+      175 |     
+      176 |     // Check for specific metrics if they exist
+      177 |     const metricSelectors = [
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:174:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-5094b-moke-Dashboard-metrics-load-webkit\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-5094b-moke-Dashboard-metrics-load-webkit\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-5094b-moke-Dashboard-metrics-load-webkit\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-5094b-moke-Dashboard-metrics-load-webkit\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-5094b-moke-Dashboard-metrics-load-webkit\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-5094b-moke-Dashboard-metrics-load-webkit\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Search functionality works" classname="smoke-navigation.spec.ts" time="7.607">
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Mobile viewport works" classname="smoke-navigation.spec.ts" time="9.495">
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Error pages handle gracefully" classname="smoke-navigation.spec.ts" time="10.328">
+<failure message="smoke-navigation.spec.ts:240:7 Error pages handle gracefully" type="FAILURE">
+<![CDATA[  [webkit] › smoke-navigation.spec.ts:240:7 › Smoke Tests - Navigation @smoke › Error pages handle gracefully 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      247 |     const isRedirect = !url.includes('non-existent-page')
+      248 |     
+    > 249 |     expect(isErrorPage || isRedirect).toBe(true)
+          |                                       ^
+      250 |   })
+      251 |
+      252 |   test('Form validation shows user-friendly errors', async ({ page }) => {
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:249:39
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-2fa10-ror-pages-handle-gracefully-webkit\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-2fa10-ror-pages-handle-gracefully-webkit\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-2fa10-ror-pages-handle-gracefully-webkit\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[Console error: Failed to load resource: the server responded with a status of 404 (Not Found)
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-2fa10-ror-pages-handle-gracefully-webkit\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-2fa10-ror-pages-handle-gracefully-webkit\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-2fa10-ror-pages-handle-gracefully-webkit\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Form validation shows user-friendly errors" classname="smoke-navigation.spec.ts" time="12.853">
+<failure message="smoke-navigation.spec.ts:252:7 Form validation shows user-friendly errors" type="FAILURE">
+<![CDATA[  [webkit] › smoke-navigation.spec.ts:252:7 › Smoke Tests - Navigation @smoke › Form validation shows user-friendly errors 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator:  locator('.error, .invalid, [data-testid="error"], .text-red')
+    Expected: visible
+    Received: <element(s) not found>
+    Timeout:  3000ms
+
+    Call log:
+      - Expect "toBeVisible" with timeout 3000ms
+      - waiting for locator('.error, .invalid, [data-testid="error"], .text-red')
+
+
+      262 |       await expect(
+      263 |         page.locator('.error, .invalid, [data-testid="error"], .text-red')
+    > 264 |       ).toBeVisible({ timeout: 3000 })
+          |         ^
+      265 |     }
+      266 |   })
+      267 | })
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:264:9
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-039c6--shows-user-friendly-errors-webkit\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-039c6--shows-user-friendly-errors-webkit\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-039c6--shows-user-friendly-errors-webkit\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-039c6--shows-user-friendly-errors-webkit\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-039c6--shows-user-friendly-errors-webkit\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-039c6--shows-user-friendly-errors-webkit\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Performance Smoke Tests @smoke › Pages load within reasonable time" classname="smoke-navigation.spec.ts" time="23.852">
+<failure message="smoke-navigation.spec.ts:270:7 Pages load within reasonable time" type="FAILURE">
+<![CDATA[  [webkit] › smoke-navigation.spec.ts:270:7 › Performance Smoke Tests @smoke › Pages load within reasonable time 
+
+    Error: expect(received).toBeLessThan(expected)
+
+    Expected: < 5000
+    Received:   23236
+
+      280 |       
+      281 |       // Should load within 5 seconds (reasonable for development)
+    > 282 |       expect(loadTime).toBeLessThan(5000)
+          |                        ^
+      283 |       
+      284 |       console.log(`${pagePath} loaded in ${loadTime}ms`)
+      285 |     }
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:282:24
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Performan-cbcb5-load-within-reasonable-time-webkit\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Performan-cbcb5-load-within-reasonable-time-webkit\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Performan-cbcb5-load-within-reasonable-time-webkit\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Performan-cbcb5-load-within-reasonable-time-webkit\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Performan-cbcb5-load-within-reasonable-time-webkit\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Performan-cbcb5-load-within-reasonable-time-webkit\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Performance Smoke Tests @smoke › API responses are timely" classname="smoke-navigation.spec.ts" time="24.251">
+</testcase>
+</testsuite>
+<testsuite name="complete-crm-workflow.spec.ts" timestamp="2025-09-18T06:06:50.562Z" hostname="Mobile Chrome" tests="1" failures="1" skipped="0" time="30.584" errors="0">
+<testcase name="Complete CRM Workflow › Quick smoke test for all main sections" classname="complete-crm-workflow.spec.ts" time="30.584">
+<failure message="complete-crm-workflow.spec.ts:289:7 Quick smoke test for all main sections" type="FAILURE">
+<![CDATA[  [Mobile Chrome] › complete-crm-workflow.spec.ts:289:7 › Complete CRM Workflow › Quick smoke test for all main sections 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: page.waitForLoadState: Test timeout of 30000ms exceeded.
+
+      306 |       
+      307 |       await page.goto(section.url)
+    > 308 |       await page.waitForLoadState('networkidle')
+          |                  ^
+      309 |       
+      310 |       // Verificar que la página cargó sin errores 404/500
+      311 |       const title = await page.title()
+        at C:\crmseven-master\tests\e2e\complete-crm-workflow.spec.ts:308:18
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\complete-crm-workflow-Comp-4d7e0--test-for-all-main-sections-Mobile-Chrome\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\complete-crm-workflow-Comp-4d7e0--test-for-all-main-sections-Mobile-Chrome\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\complete-crm-workflow-Comp-4d7e0--test-for-all-main-sections-Mobile-Chrome\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[🔍 Testing Dashboard...
+✅ Dashboard OK
+🔍 Testing Clientes...
+✅ Clientes OK
+🔍 Testing Crear Cliente...
+
+[[ATTACHMENT|test-results\complete-crm-workflow-Comp-4d7e0--test-for-all-main-sections-Mobile-Chrome\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\complete-crm-workflow-Comp-4d7e0--test-for-all-main-sections-Mobile-Chrome\video.webm]]
+
+[[ATTACHMENT|test-results\complete-crm-workflow-Comp-4d7e0--test-for-all-main-sections-Mobile-Chrome\error-context.md]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+<testsuite name="smoke-navigation.spec.ts" timestamp="2025-09-18T06:06:50.562Z" hostname="Mobile Chrome" tests="16" failures="11" skipped="0" time="175.686" errors="0">
+<testcase name="Smoke Tests - Navigation @smoke › Homepage loads successfully" classname="smoke-navigation.spec.ts" time="20.168">
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Clientes page loads" classname="smoke-navigation.spec.ts" time="7.258">
+<failure message="smoke-navigation.spec.ts:48:7 Clientes page loads" type="FAILURE">
+<![CDATA[  [Mobile Chrome] › smoke-navigation.spec.ts:48:7 › Smoke Tests - Navigation @smoke › Clientes page loads 
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('h1, [data-testid="page-title"]') resolved to 2 elements:
+        1) <h1 class="text-xl font-bold text-gray-900">SevenCars</h1> aka getByRole('link', { name: 'SC SevenCars CRM Platform' })
+        2) <h1 class="text-3xl font-bold text-slate-800 mb-2">Gestión de Clientes</h1> aka getByRole('heading', { name: 'Gestión de Clientes' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('h1, [data-testid="page-title"]')
+
+
+      50 |     
+      51 |     await expect(page).toHaveURL(/.*clientes/)
+    > 52 |     await expect(page.locator('h1, [data-testid="page-title"]')).toBeVisible()
+         |                                                                  ^
+      53 |     
+      54 |     // Should have list or empty state
+      55 |     await expect(
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:52:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-a9455-n-smoke-Clientes-page-loads-Mobile-Chrome\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-a9455-n-smoke-Clientes-page-loads-Mobile-Chrome\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-a9455-n-smoke-Clientes-page-loads-Mobile-Chrome\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-a9455-n-smoke-Clientes-page-loads-Mobile-Chrome\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-a9455-n-smoke-Clientes-page-loads-Mobile-Chrome\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-a9455-n-smoke-Clientes-page-loads-Mobile-Chrome\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Vehiculos page loads" classname="smoke-navigation.spec.ts" time="5.41">
+<failure message="smoke-navigation.spec.ts:60:7 Vehiculos page loads" type="FAILURE">
+<![CDATA[  [Mobile Chrome] › smoke-navigation.spec.ts:60:7 › Smoke Tests - Navigation @smoke › Vehiculos page loads 
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('h1, [data-testid="page-title"]') resolved to 2 elements:
+        1) <h1 class="text-xl font-bold text-gray-900">SevenCars</h1> aka getByRole('link', { name: 'SC SevenCars CRM Platform' })
+        2) <h1 class="text-3xl font-bold text-slate-800 mb-2">Vehículos</h1> aka getByRole('heading', { name: 'Vehículos' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('h1, [data-testid="page-title"]')
+
+
+      62 |     
+      63 |     await expect(page).toHaveURL(/.*vehiculos/)
+    > 64 |     await expect(page.locator('h1, [data-testid="page-title"]')).toBeVisible()
+         |                                                                  ^
+      65 |     
+      66 |     // Should have vehicle list or empty state
+      67 |     await expect(
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:64:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-abcdc--smoke-Vehiculos-page-loads-Mobile-Chrome\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-abcdc--smoke-Vehiculos-page-loads-Mobile-Chrome\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-abcdc--smoke-Vehiculos-page-loads-Mobile-Chrome\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-abcdc--smoke-Vehiculos-page-loads-Mobile-Chrome\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-abcdc--smoke-Vehiculos-page-loads-Mobile-Chrome\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-abcdc--smoke-Vehiculos-page-loads-Mobile-Chrome\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Deals page loads" classname="smoke-navigation.spec.ts" time="7.163">
+<failure message="smoke-navigation.spec.ts:72:7 Deals page loads" type="FAILURE">
+<![CDATA[  [Mobile Chrome] › smoke-navigation.spec.ts:72:7 › Smoke Tests - Navigation @smoke › Deals page loads 
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('h1, [data-testid="page-title"]') resolved to 2 elements:
+        1) <h1 class="text-xl font-bold text-gray-900">SevenCars</h1> aka getByRole('link', { name: 'SC SevenCars CRM Platform' })
+        2) <h1 class="text-xl font-bold text-white">Deals</h1> aka getByRole('heading', { name: 'Deals' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('h1, [data-testid="page-title"]')
+
+
+      74 |     
+      75 |     await expect(page).toHaveURL(/.*deals/)
+    > 76 |     await expect(page.locator('h1, [data-testid="page-title"]')).toBeVisible()
+         |                                                                  ^
+      77 |     
+      78 |     // Should have deals list or empty state
+      79 |     await expect(
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:76:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-a40f9-tion-smoke-Deals-page-loads-Mobile-Chrome\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-a40f9-tion-smoke-Deals-page-loads-Mobile-Chrome\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-a40f9-tion-smoke-Deals-page-loads-Mobile-Chrome\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-a40f9-tion-smoke-Deals-page-loads-Mobile-Chrome\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-a40f9-tion-smoke-Deals-page-loads-Mobile-Chrome\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-a40f9-tion-smoke-Deals-page-loads-Mobile-Chrome\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Depositos page loads" classname="smoke-navigation.spec.ts" time="3.841">
+<failure message="smoke-navigation.spec.ts:84:7 Depositos page loads" type="FAILURE">
+<![CDATA[  [Mobile Chrome] › smoke-navigation.spec.ts:84:7 › Smoke Tests - Navigation @smoke › Depositos page loads 
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('h1, [data-testid="page-title"]') resolved to 2 elements:
+        1) <h1 class="text-xl font-bold text-gray-900">SevenCars</h1> aka getByRole('link', { name: 'SC SevenCars CRM Platform' })
+        2) <h1 class="text-xl font-bold text-white">Depósitos de Venta</h1> aka getByRole('heading', { name: 'Depósitos de Venta' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('h1, [data-testid="page-title"]')
+
+
+      86 |     
+      87 |     await expect(page).toHaveURL(/.*depositos/)
+    > 88 |     await expect(page.locator('h1, [data-testid="page-title"]')).toBeVisible()
+         |                                                                  ^
+      89 |     
+      90 |     // Should have deposits list or empty state
+      91 |     await expect(
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:88:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-bed3f--smoke-Depositos-page-loads-Mobile-Chrome\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-bed3f--smoke-Depositos-page-loads-Mobile-Chrome\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-bed3f--smoke-Depositos-page-loads-Mobile-Chrome\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-bed3f--smoke-Depositos-page-loads-Mobile-Chrome\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-bed3f--smoke-Depositos-page-loads-Mobile-Chrome\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-bed3f--smoke-Depositos-page-loads-Mobile-Chrome\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Inversores page loads" classname="smoke-navigation.spec.ts" time="5.713">
+<failure message="smoke-navigation.spec.ts:96:7 Inversores page loads" type="FAILURE">
+<![CDATA[  [Mobile Chrome] › smoke-navigation.spec.ts:96:7 › Smoke Tests - Navigation @smoke › Inversores page loads 
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('h1, [data-testid="page-title"]') resolved to 2 elements:
+        1) <h1 class="text-xl font-bold text-gray-900">SevenCars</h1> aka getByRole('link', { name: 'SC SevenCars CRM Platform' })
+        2) <h1 class="text-3xl font-bold text-slate-800 mb-2">Gestión de Inversores</h1> aka getByRole('heading', { name: 'Gestión de Inversores' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('h1, [data-testid="page-title"]')
+
+
+       98 |     
+       99 |     await expect(page).toHaveURL(/.*inversores/)
+    > 100 |     await expect(page.locator('h1, [data-testid="page-title"]')).toBeVisible()
+          |                                                                  ^
+      101 |     
+      102 |     // Should have investors list or empty state
+      103 |     await expect(
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:100:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-40dcb-smoke-Inversores-page-loads-Mobile-Chrome\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-40dcb-smoke-Inversores-page-loads-Mobile-Chrome\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-40dcb-smoke-Inversores-page-loads-Mobile-Chrome\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-40dcb-smoke-Inversores-page-loads-Mobile-Chrome\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-40dcb-smoke-Inversores-page-loads-Mobile-Chrome\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-40dcb-smoke-Inversores-page-loads-Mobile-Chrome\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Kanban page loads" classname="smoke-navigation.spec.ts" time="17.405">
+<failure message="smoke-navigation.spec.ts:108:7 Kanban page loads" type="FAILURE">
+<![CDATA[  [Mobile Chrome] › smoke-navigation.spec.ts:108:7 › Smoke Tests - Navigation @smoke › Kanban page loads 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator:  locator('[data-testid="kanban-column"]')
+    Expected: visible
+    Received: <element(s) not found>
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for locator('[data-testid="kanban-column"]')
+
+
+      113 |     
+      114 |     // Should have kanban columns
+    > 115 |     await expect(page.locator('[data-testid="kanban-column"]')).toBeVisible({ timeout: 10000 })
+          |                                                                 ^
+      116 |   })
+      117 |
+      118 |   test('Navigation links work', async ({ page }) => {
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:115:65
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-ce354-ion-smoke-Kanban-page-loads-Mobile-Chrome\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-ce354-ion-smoke-Kanban-page-loads-Mobile-Chrome\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-ce354-ion-smoke-Kanban-page-loads-Mobile-Chrome\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-ce354-ion-smoke-Kanban-page-loads-Mobile-Chrome\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-ce354-ion-smoke-Kanban-page-loads-Mobile-Chrome\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-ce354-ion-smoke-Kanban-page-loads-Mobile-Chrome\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Navigation links work" classname="smoke-navigation.spec.ts" time="19.169">
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Create forms load without errors" classname="smoke-navigation.spec.ts" time="8.406">
+<failure message="smoke-navigation.spec.ts:142:7 Create forms load without errors" type="FAILURE">
+<![CDATA[  [Mobile Chrome] › smoke-navigation.spec.ts:142:7 › Smoke Tests - Navigation @smoke › Create forms load without errors 
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('form, [data-testid="form"], input, textarea, select') resolved to 12 elements:
+        1) <form class="space-y-6">…</form> aka locator('form')
+        2) <input value="" type="text" id="nombre" required="" name="nombre" placeholder="Ej: Juan" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'Nombre *' })
+        3) <input value="" type="text" required="" id="apellidos" name="apellidos" placeholder="Ej: García López" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'Apellidos *' })
+        4) <input value="" type="tel" required="" id="telefono" name="telefono" placeholder="Ej: 612345678" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'Teléfono *' })
+        5) <input value="" id="email" type="email" name="email" placeholder="Ej: juan@email.com" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'Email' })
+        6) <input id="dni" value="" name="dni" type="text" placeholder="Ej: 12345678A" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'DNI' })
+        7) <input value="" type="text" id="direccion" name="direccion" placeholder="Ej: Calle Mayor 123" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'Dirección' })
+        8) <input value="" type="text" id="ciudad" name="ciudad" placeholder="Ej: Valencia" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'Ciudad' })
+        9) <input value="" type="text" id="provincia" name="provincia" placeholder="Ej: Valencia" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'Provincia' })
+        10) <input value="" type="text" id="codPostal" name="codPostal" placeholder="Ej: 46001" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'Código Postal' })
+        ...
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('form, [data-testid="form"], input, textarea, select')
+
+
+      157 |       await expect(
+      158 |         page.locator('form, [data-testid="form"], input, textarea, select')
+    > 159 |       ).toBeVisible({ timeout: 5000 })
+          |         ^
+      160 |       
+      161 |       // Should have save/submit button
+      162 |       await expect(
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:159:9
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-cf57f-e-forms-load-without-errors-Mobile-Chrome\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-cf57f-e-forms-load-without-errors-Mobile-Chrome\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-cf57f-e-forms-load-without-errors-Mobile-Chrome\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-cf57f-e-forms-load-without-errors-Mobile-Chrome\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-cf57f-e-forms-load-without-errors-Mobile-Chrome\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-cf57f-e-forms-load-without-errors-Mobile-Chrome\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Dashboard metrics load" classname="smoke-navigation.spec.ts" time="16.728">
+<failure message="smoke-navigation.spec.ts:168:7 Dashboard metrics load" type="FAILURE">
+<![CDATA[  [Mobile Chrome] › smoke-navigation.spec.ts:168:7 › Smoke Tests - Navigation @smoke › Dashboard metrics load 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator:  locator('[data-testid="metric"], .metric, .dashboard-card, .stat-card')
+    Expected: visible
+    Received: <element(s) not found>
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for locator('[data-testid="metric"], .metric, .dashboard-card, .stat-card')
+
+
+      172 |     await expect(
+      173 |       page.locator('[data-testid="metric"], .metric, .dashboard-card, .stat-card')
+    > 174 |     ).toBeVisible({ timeout: 10000 })
+          |       ^
+      175 |     
+      176 |     // Check for specific metrics if they exist
+      177 |     const metricSelectors = [
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:174:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-5094b-moke-Dashboard-metrics-load-Mobile-Chrome\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-5094b-moke-Dashboard-metrics-load-Mobile-Chrome\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-5094b-moke-Dashboard-metrics-load-Mobile-Chrome\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-5094b-moke-Dashboard-metrics-load-Mobile-Chrome\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-5094b-moke-Dashboard-metrics-load-Mobile-Chrome\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-5094b-moke-Dashboard-metrics-load-Mobile-Chrome\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Search functionality works" classname="smoke-navigation.spec.ts" time="5.793">
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Mobile viewport works" classname="smoke-navigation.spec.ts" time="5.605">
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Error pages handle gracefully" classname="smoke-navigation.spec.ts" time="5.528">
+<failure message="smoke-navigation.spec.ts:240:7 Error pages handle gracefully" type="FAILURE">
+<![CDATA[  [Mobile Chrome] › smoke-navigation.spec.ts:240:7 › Smoke Tests - Navigation @smoke › Error pages handle gracefully 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      247 |     const isRedirect = !url.includes('non-existent-page')
+      248 |     
+    > 249 |     expect(isErrorPage || isRedirect).toBe(true)
+          |                                       ^
+      250 |   })
+      251 |
+      252 |   test('Form validation shows user-friendly errors', async ({ page }) => {
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:249:39
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-2fa10-ror-pages-handle-gracefully-Mobile-Chrome\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-2fa10-ror-pages-handle-gracefully-Mobile-Chrome\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-2fa10-ror-pages-handle-gracefully-Mobile-Chrome\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[Console error: Failed to load resource: the server responded with a status of 404 (Not Found)
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-2fa10-ror-pages-handle-gracefully-Mobile-Chrome\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-2fa10-ror-pages-handle-gracefully-Mobile-Chrome\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-2fa10-ror-pages-handle-gracefully-Mobile-Chrome\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Form validation shows user-friendly errors" classname="smoke-navigation.spec.ts" time="30.156">
+<failure message="smoke-navigation.spec.ts:252:7 Form validation shows user-friendly errors" type="FAILURE">
+<![CDATA[  [Mobile Chrome] › smoke-navigation.spec.ts:252:7 › Smoke Tests - Navigation @smoke › Form validation shows user-friendly errors 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for locator('button[type="submit"], [data-testid="submit"]').first()
+        - locator resolved to <button type="submit" class="px-6 py-3 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">Crear Cliente</button>
+      - attempting click action
+        - waiting for element to be visible, enabled and stable
+        - element is visible, enabled and stable
+        - scrolling into view if needed
+        - done scrolling
+        - <label for="comoLlego" class="block text-sm font-medium text-gray-700 mb-1">📞 Cómo llegó a nosotros</label> from <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">…</div> subtree intercepts pointer events
+      - retrying click action
+        - waiting for element to be visible, enabled and stable
+        - element is visible, enabled and stable
+        - scrolling into view if needed
+        - done scrolling
+        - <select id="comoLlego" name="comoLlego" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors">…</select> from <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">…</div> subtree intercepts pointer events
+      - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <label for="comoLlego" class="block text-sm font-medium text-gray-700 mb-1">📞 Cómo llegó a nosotros</label> from <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">…</div> subtree intercepts pointer events
+        - retrying click action
+          - waiting 100ms
+        12 × waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - <label for="comoLlego" class="block text-sm font-medium text-gray-700 mb-1">📞 Cómo llegó a nosotros</label> from <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">…</div> subtree intercepts pointer events
+         - retrying click action
+           - waiting 500ms
+           - waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - <select id="comoLlego" name="comoLlego" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors">…</select> from <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">…</div> subtree intercepts pointer events
+         - retrying click action
+           - waiting 500ms
+           - waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - <label for="comoLlego" class="block text-sm font-medium text-gray-700 mb-1">📞 Cómo llegó a nosotros</label> from <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">…</div> subtree intercepts pointer events
+         - retrying click action
+           - waiting 500ms
+           - waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - <label for="comoLlego" class="block text-sm font-medium text-gray-700 mb-1">📞 Cómo llegó a nosotros</label> from <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">…</div> subtree intercepts pointer events
+         - retrying click action
+           - waiting 500ms
+        - waiting for element to be visible, enabled and stable
+        - element is visible, enabled and stable
+        - scrolling into view if needed
+        - done scrolling
+        - <label for="comoLlego" class="block text-sm font-medium text-gray-700 mb-1">📞 Cómo llegó a nosotros</label> from <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">…</div> subtree intercepts pointer events
+      - retrying click action
+        - waiting 500ms
+        - waiting for element to be visible, enabled and stable
+        - element is visible, enabled and stable
+        - scrolling into view if needed
+        - done scrolling
+        - <select id="comoLlego" name="comoLlego" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors">…</select> from <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">…</div> subtree intercepts pointer events
+      - retrying click action
+        - waiting 500ms
+
+
+      257 |     
+      258 |     if (await submitButton.isVisible()) {
+    > 259 |       await submitButton.click()
+          |                          ^
+      260 |       
+      261 |       // Should show validation errors
+      262 |       await expect(
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:259:26
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-039c6--shows-user-friendly-errors-Mobile-Chrome\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-039c6--shows-user-friendly-errors-Mobile-Chrome\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-039c6--shows-user-friendly-errors-Mobile-Chrome\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-039c6--shows-user-friendly-errors-Mobile-Chrome\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-039c6--shows-user-friendly-errors-Mobile-Chrome\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-039c6--shows-user-friendly-errors-Mobile-Chrome\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Performance Smoke Tests @smoke › Pages load within reasonable time" classname="smoke-navigation.spec.ts" time="5.278">
+<failure message="smoke-navigation.spec.ts:270:7 Pages load within reasonable time" type="FAILURE">
+<![CDATA[  [Mobile Chrome] › smoke-navigation.spec.ts:270:7 › Performance Smoke Tests @smoke › Pages load within reasonable time 
+
+    Error: expect(received).toBeLessThan(expected)
+
+    Expected: < 5000
+    Received:   5027
+
+      280 |       
+      281 |       // Should load within 5 seconds (reasonable for development)
+    > 282 |       expect(loadTime).toBeLessThan(5000)
+          |                        ^
+      283 |       
+      284 |       console.log(`${pagePath} loaded in ${loadTime}ms`)
+      285 |     }
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:282:24
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Performan-cbcb5-load-within-reasonable-time-Mobile-Chrome\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Performan-cbcb5-load-within-reasonable-time-Mobile-Chrome\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Performan-cbcb5-load-within-reasonable-time-Mobile-Chrome\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Performan-cbcb5-load-within-reasonable-time-Mobile-Chrome\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Performan-cbcb5-load-within-reasonable-time-Mobile-Chrome\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Performan-cbcb5-load-within-reasonable-time-Mobile-Chrome\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Performance Smoke Tests @smoke › API responses are timely" classname="smoke-navigation.spec.ts" time="12.065">
+</testcase>
+</testsuite>
+<testsuite name="complete-crm-workflow.spec.ts" timestamp="2025-09-18T06:06:50.562Z" hostname="Mobile Safari" tests="1" failures="1" skipped="0" time="28.353" errors="0">
+<testcase name="Complete CRM Workflow › Quick smoke test for all main sections" classname="complete-crm-workflow.spec.ts" time="28.353">
+<failure message="complete-crm-workflow.spec.ts:289:7 Quick smoke test for all main sections" type="FAILURE">
+<![CDATA[  [Mobile Safari] › complete-crm-workflow.spec.ts:289:7 › Complete CRM Workflow › Quick smoke test for all main sections 
+
+    Error: page.goto: Navigation to "http://localhost:3000/deals/crear" is interrupted by another navigation to "http://localhost:3000/deals"
+    Call log:
+      - navigating to "http://localhost:3000/deals/crear", waiting until "load"
+
+
+      305 |       console.log(`🔍 Testing ${section.name}...`)
+      306 |       
+    > 307 |       await page.goto(section.url)
+          |                  ^
+      308 |       await page.waitForLoadState('networkidle')
+      309 |       
+      310 |       // Verificar que la página cargó sin errores 404/500
+        at C:\crmseven-master\tests\e2e\complete-crm-workflow.spec.ts:307:18
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\complete-crm-workflow-Comp-4d7e0--test-for-all-main-sections-Mobile-Safari\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\complete-crm-workflow-Comp-4d7e0--test-for-all-main-sections-Mobile-Safari\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\complete-crm-workflow-Comp-4d7e0--test-for-all-main-sections-Mobile-Safari\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[🔍 Testing Dashboard...
+✅ Dashboard OK
+🔍 Testing Clientes...
+✅ Clientes OK
+🔍 Testing Crear Cliente...
+✅ Crear Cliente OK
+🔍 Testing Vehículos...
+✅ Vehículos OK
+🔍 Testing Cargar Vehículo...
+✅ Cargar Vehículo OK
+🔍 Testing Kanban...
+✅ Kanban OK
+🔍 Testing Deals...
+✅ Deals OK
+🔍 Testing Crear Deal...
+
+[[ATTACHMENT|test-results\complete-crm-workflow-Comp-4d7e0--test-for-all-main-sections-Mobile-Safari\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\complete-crm-workflow-Comp-4d7e0--test-for-all-main-sections-Mobile-Safari\video.webm]]
+
+[[ATTACHMENT|test-results\complete-crm-workflow-Comp-4d7e0--test-for-all-main-sections-Mobile-Safari\error-context.md]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+<testsuite name="smoke-navigation.spec.ts" timestamp="2025-09-18T06:06:50.562Z" hostname="Mobile Safari" tests="16" failures="11" skipped="0" time="94.544" errors="0">
+<testcase name="Smoke Tests - Navigation @smoke › Homepage loads successfully" classname="smoke-navigation.spec.ts" time="4.501">
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Clientes page loads" classname="smoke-navigation.spec.ts" time="1.139">
+<failure message="smoke-navigation.spec.ts:48:7 Clientes page loads" type="FAILURE">
+<![CDATA[  [Mobile Safari] › smoke-navigation.spec.ts:48:7 › Smoke Tests - Navigation @smoke › Clientes page loads 
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('h1, [data-testid="page-title"]') resolved to 2 elements:
+        1) <h1 class="text-xl font-bold text-gray-900">SevenCars</h1> aka getByRole('link', { name: 'SC SevenCars CRM Platform' })
+        2) <h1 class="text-3xl font-bold text-slate-800 mb-2">Gestión de Clientes</h1> aka getByRole('heading', { name: 'Gestión de Clientes' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('h1, [data-testid="page-title"]')
+
+
+      50 |     
+      51 |     await expect(page).toHaveURL(/.*clientes/)
+    > 52 |     await expect(page.locator('h1, [data-testid="page-title"]')).toBeVisible()
+         |                                                                  ^
+      53 |     
+      54 |     // Should have list or empty state
+      55 |     await expect(
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:52:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-a9455-n-smoke-Clientes-page-loads-Mobile-Safari\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-a9455-n-smoke-Clientes-page-loads-Mobile-Safari\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-a9455-n-smoke-Clientes-page-loads-Mobile-Safari\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-a9455-n-smoke-Clientes-page-loads-Mobile-Safari\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-a9455-n-smoke-Clientes-page-loads-Mobile-Safari\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-a9455-n-smoke-Clientes-page-loads-Mobile-Safari\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Vehiculos page loads" classname="smoke-navigation.spec.ts" time="4.797">
+<failure message="smoke-navigation.spec.ts:60:7 Vehiculos page loads" type="FAILURE">
+<![CDATA[  [Mobile Safari] › smoke-navigation.spec.ts:60:7 › Smoke Tests - Navigation @smoke › Vehiculos page loads 
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('h1, [data-testid="page-title"]') resolved to 2 elements:
+        1) <h1 class="text-xl font-bold text-gray-900">SevenCars</h1> aka getByRole('link', { name: 'SC SevenCars CRM Platform' })
+        2) <h1 class="text-3xl font-bold text-slate-800 mb-2">Vehículos</h1> aka getByRole('heading', { name: 'Vehículos' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('h1, [data-testid="page-title"]')
+
+
+      62 |     
+      63 |     await expect(page).toHaveURL(/.*vehiculos/)
+    > 64 |     await expect(page.locator('h1, [data-testid="page-title"]')).toBeVisible()
+         |                                                                  ^
+      65 |     
+      66 |     // Should have vehicle list or empty state
+      67 |     await expect(
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:64:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-abcdc--smoke-Vehiculos-page-loads-Mobile-Safari\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-abcdc--smoke-Vehiculos-page-loads-Mobile-Safari\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-abcdc--smoke-Vehiculos-page-loads-Mobile-Safari\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-abcdc--smoke-Vehiculos-page-loads-Mobile-Safari\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-abcdc--smoke-Vehiculos-page-loads-Mobile-Safari\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-abcdc--smoke-Vehiculos-page-loads-Mobile-Safari\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Deals page loads" classname="smoke-navigation.spec.ts" time="4.758">
+<failure message="smoke-navigation.spec.ts:72:7 Deals page loads" type="FAILURE">
+<![CDATA[  [Mobile Safari] › smoke-navigation.spec.ts:72:7 › Smoke Tests - Navigation @smoke › Deals page loads 
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('h1, [data-testid="page-title"]') resolved to 2 elements:
+        1) <h1 class="text-xl font-bold text-gray-900">SevenCars</h1> aka getByRole('link', { name: 'SC SevenCars CRM Platform' })
+        2) <h1 class="text-xl font-bold text-white">Deals</h1> aka getByRole('heading', { name: 'Deals' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('h1, [data-testid="page-title"]')
+
+
+      74 |     
+      75 |     await expect(page).toHaveURL(/.*deals/)
+    > 76 |     await expect(page.locator('h1, [data-testid="page-title"]')).toBeVisible()
+         |                                                                  ^
+      77 |     
+      78 |     // Should have deals list or empty state
+      79 |     await expect(
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:76:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-a40f9-tion-smoke-Deals-page-loads-Mobile-Safari\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-a40f9-tion-smoke-Deals-page-loads-Mobile-Safari\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-a40f9-tion-smoke-Deals-page-loads-Mobile-Safari\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-a40f9-tion-smoke-Deals-page-loads-Mobile-Safari\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-a40f9-tion-smoke-Deals-page-loads-Mobile-Safari\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-a40f9-tion-smoke-Deals-page-loads-Mobile-Safari\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Depositos page loads" classname="smoke-navigation.spec.ts" time="4.393">
+<failure message="smoke-navigation.spec.ts:84:7 Depositos page loads" type="FAILURE">
+<![CDATA[  [Mobile Safari] › smoke-navigation.spec.ts:84:7 › Smoke Tests - Navigation @smoke › Depositos page loads 
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('h1, [data-testid="page-title"]') resolved to 2 elements:
+        1) <h1 class="text-xl font-bold text-gray-900">SevenCars</h1> aka getByRole('link', { name: 'SC SevenCars CRM Platform' })
+        2) <h1 class="text-xl font-bold text-white">Depósitos de Venta</h1> aka getByRole('heading', { name: 'Depósitos de Venta' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('h1, [data-testid="page-title"]')
+
+
+      86 |     
+      87 |     await expect(page).toHaveURL(/.*depositos/)
+    > 88 |     await expect(page.locator('h1, [data-testid="page-title"]')).toBeVisible()
+         |                                                                  ^
+      89 |     
+      90 |     // Should have deposits list or empty state
+      91 |     await expect(
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:88:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-bed3f--smoke-Depositos-page-loads-Mobile-Safari\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-bed3f--smoke-Depositos-page-loads-Mobile-Safari\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-bed3f--smoke-Depositos-page-loads-Mobile-Safari\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-bed3f--smoke-Depositos-page-loads-Mobile-Safari\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-bed3f--smoke-Depositos-page-loads-Mobile-Safari\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-bed3f--smoke-Depositos-page-loads-Mobile-Safari\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Inversores page loads" classname="smoke-navigation.spec.ts" time="4.046">
+<failure message="smoke-navigation.spec.ts:96:7 Inversores page loads" type="FAILURE">
+<![CDATA[  [Mobile Safari] › smoke-navigation.spec.ts:96:7 › Smoke Tests - Navigation @smoke › Inversores page loads 
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('h1, [data-testid="page-title"]') resolved to 2 elements:
+        1) <h1 class="text-xl font-bold text-gray-900">SevenCars</h1> aka getByRole('link', { name: 'SC SevenCars CRM Platform' })
+        2) <h1 class="text-3xl font-bold text-slate-800 mb-2">Gestión de Inversores</h1> aka getByRole('heading', { name: 'Gestión de Inversores' })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('h1, [data-testid="page-title"]')
+
+
+       98 |     
+       99 |     await expect(page).toHaveURL(/.*inversores/)
+    > 100 |     await expect(page.locator('h1, [data-testid="page-title"]')).toBeVisible()
+          |                                                                  ^
+      101 |     
+      102 |     // Should have investors list or empty state
+      103 |     await expect(
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:100:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-40dcb-smoke-Inversores-page-loads-Mobile-Safari\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-40dcb-smoke-Inversores-page-loads-Mobile-Safari\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-40dcb-smoke-Inversores-page-loads-Mobile-Safari\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-40dcb-smoke-Inversores-page-loads-Mobile-Safari\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-40dcb-smoke-Inversores-page-loads-Mobile-Safari\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-40dcb-smoke-Inversores-page-loads-Mobile-Safari\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Kanban page loads" classname="smoke-navigation.spec.ts" time="12.794">
+<failure message="smoke-navigation.spec.ts:108:7 Kanban page loads" type="FAILURE">
+<![CDATA[  [Mobile Safari] › smoke-navigation.spec.ts:108:7 › Smoke Tests - Navigation @smoke › Kanban page loads 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator:  locator('[data-testid="kanban-column"]')
+    Expected: visible
+    Received: <element(s) not found>
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for locator('[data-testid="kanban-column"]')
+
+
+      113 |     
+      114 |     // Should have kanban columns
+    > 115 |     await expect(page.locator('[data-testid="kanban-column"]')).toBeVisible({ timeout: 10000 })
+          |                                                                 ^
+      116 |   })
+      117 |
+      118 |   test('Navigation links work', async ({ page }) => {
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:115:65
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-ce354-ion-smoke-Kanban-page-loads-Mobile-Safari\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-ce354-ion-smoke-Kanban-page-loads-Mobile-Safari\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-ce354-ion-smoke-Kanban-page-loads-Mobile-Safari\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-ce354-ion-smoke-Kanban-page-loads-Mobile-Safari\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-ce354-ion-smoke-Kanban-page-loads-Mobile-Safari\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-ce354-ion-smoke-Kanban-page-loads-Mobile-Safari\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Navigation links work" classname="smoke-navigation.spec.ts" time="8.643">
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Create forms load without errors" classname="smoke-navigation.spec.ts" time="2.734">
+<failure message="smoke-navigation.spec.ts:142:7 Create forms load without errors" type="FAILURE">
+<![CDATA[  [Mobile Safari] › smoke-navigation.spec.ts:142:7 › Smoke Tests - Navigation @smoke › Create forms load without errors 
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('form, [data-testid="form"], input, textarea, select') resolved to 12 elements:
+        1) <form class="space-y-6">…</form> aka locator('form')
+        2) <input value="" type="text" id="nombre" required="" name="nombre" placeholder="Ej: Juan" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'Nombre *' })
+        3) <input value="" type="text" required="" id="apellidos" name="apellidos" placeholder="Ej: García López" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'Apellidos *' })
+        4) <input value="" type="tel" required="" id="telefono" name="telefono" placeholder="Ej: 612345678" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'Teléfono *' })
+        5) <input value="" id="email" type="email" name="email" placeholder="Ej: juan@email.com" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'Email' })
+        6) <input id="dni" value="" name="dni" type="text" placeholder="Ej: 12345678A" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'DNI' })
+        7) <input value="" type="text" id="direccion" name="direccion" placeholder="Ej: Calle Mayor 123" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'Dirección' })
+        8) <input value="" type="text" id="ciudad" name="ciudad" placeholder="Ej: Valencia" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'Ciudad' })
+        9) <input value="" type="text" id="provincia" name="provincia" placeholder="Ej: Valencia" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'Provincia' })
+        10) <input value="" type="text" id="codPostal" name="codPostal" placeholder="Ej: 46001" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"/> aka getByRole('textbox', { name: 'Código Postal' })
+        ...
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('form, [data-testid="form"], input, textarea, select')
+
+
+      157 |       await expect(
+      158 |         page.locator('form, [data-testid="form"], input, textarea, select')
+    > 159 |       ).toBeVisible({ timeout: 5000 })
+          |         ^
+      160 |       
+      161 |       // Should have save/submit button
+      162 |       await expect(
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:159:9
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-cf57f-e-forms-load-without-errors-Mobile-Safari\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-cf57f-e-forms-load-without-errors-Mobile-Safari\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-cf57f-e-forms-load-without-errors-Mobile-Safari\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-cf57f-e-forms-load-without-errors-Mobile-Safari\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-cf57f-e-forms-load-without-errors-Mobile-Safari\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-cf57f-e-forms-load-without-errors-Mobile-Safari\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Dashboard metrics load" classname="smoke-navigation.spec.ts" time="12.491">
+<failure message="smoke-navigation.spec.ts:168:7 Dashboard metrics load" type="FAILURE">
+<![CDATA[  [Mobile Safari] › smoke-navigation.spec.ts:168:7 › Smoke Tests - Navigation @smoke › Dashboard metrics load 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator:  locator('[data-testid="metric"], .metric, .dashboard-card, .stat-card')
+    Expected: visible
+    Received: <element(s) not found>
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for locator('[data-testid="metric"], .metric, .dashboard-card, .stat-card')
+
+
+      172 |     await expect(
+      173 |       page.locator('[data-testid="metric"], .metric, .dashboard-card, .stat-card')
+    > 174 |     ).toBeVisible({ timeout: 10000 })
+          |       ^
+      175 |     
+      176 |     // Check for specific metrics if they exist
+      177 |     const metricSelectors = [
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:174:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-5094b-moke-Dashboard-metrics-load-Mobile-Safari\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-5094b-moke-Dashboard-metrics-load-Mobile-Safari\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-5094b-moke-Dashboard-metrics-load-Mobile-Safari\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-5094b-moke-Dashboard-metrics-load-Mobile-Safari\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-5094b-moke-Dashboard-metrics-load-Mobile-Safari\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-5094b-moke-Dashboard-metrics-load-Mobile-Safari\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Search functionality works" classname="smoke-navigation.spec.ts" time="2.462">
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Mobile viewport works" classname="smoke-navigation.spec.ts" time="2.361">
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Error pages handle gracefully" classname="smoke-navigation.spec.ts" time="2.228">
+<failure message="smoke-navigation.spec.ts:240:7 Error pages handle gracefully" type="FAILURE">
+<![CDATA[  [Mobile Safari] › smoke-navigation.spec.ts:240:7 › Smoke Tests - Navigation @smoke › Error pages handle gracefully 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      247 |     const isRedirect = !url.includes('non-existent-page')
+      248 |     
+    > 249 |     expect(isErrorPage || isRedirect).toBe(true)
+          |                                       ^
+      250 |   })
+      251 |
+      252 |   test('Form validation shows user-friendly errors', async ({ page }) => {
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:249:39
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-2fa10-ror-pages-handle-gracefully-Mobile-Safari\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-2fa10-ror-pages-handle-gracefully-Mobile-Safari\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-2fa10-ror-pages-handle-gracefully-Mobile-Safari\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[Console error: Failed to load resource: the server responded with a status of 404 (Not Found)
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-2fa10-ror-pages-handle-gracefully-Mobile-Safari\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-2fa10-ror-pages-handle-gracefully-Mobile-Safari\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-2fa10-ror-pages-handle-gracefully-Mobile-Safari\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Smoke Tests - Navigation @smoke › Form validation shows user-friendly errors" classname="smoke-navigation.spec.ts" time="5.588">
+<failure message="smoke-navigation.spec.ts:252:7 Form validation shows user-friendly errors" type="FAILURE">
+<![CDATA[  [Mobile Safari] › smoke-navigation.spec.ts:252:7 › Smoke Tests - Navigation @smoke › Form validation shows user-friendly errors 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator:  locator('.error, .invalid, [data-testid="error"], .text-red')
+    Expected: visible
+    Received: <element(s) not found>
+    Timeout:  3000ms
+
+    Call log:
+      - Expect "toBeVisible" with timeout 3000ms
+      - waiting for locator('.error, .invalid, [data-testid="error"], .text-red')
+
+
+      262 |       await expect(
+      263 |         page.locator('.error, .invalid, [data-testid="error"], .text-red')
+    > 264 |       ).toBeVisible({ timeout: 3000 })
+          |         ^
+      265 |     }
+      266 |   })
+      267 | })
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:264:9
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-039c6--shows-user-friendly-errors-Mobile-Safari\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-039c6--shows-user-friendly-errors-Mobile-Safari\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Smoke-Tes-039c6--shows-user-friendly-errors-Mobile-Safari\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-039c6--shows-user-friendly-errors-Mobile-Safari\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-039c6--shows-user-friendly-errors-Mobile-Safari\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Smoke-Tes-039c6--shows-user-friendly-errors-Mobile-Safari\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Performance Smoke Tests @smoke › Pages load within reasonable time" classname="smoke-navigation.spec.ts" time="10.978">
+<failure message="smoke-navigation.spec.ts:270:7 Pages load within reasonable time" type="FAILURE">
+<![CDATA[  [Mobile Safari] › smoke-navigation.spec.ts:270:7 › Performance Smoke Tests @smoke › Pages load within reasonable time 
+
+    Error: expect(received).toBeLessThan(expected)
+
+    Expected: < 5000
+    Received:   5799
+
+      280 |       
+      281 |       // Should load within 5 seconds (reasonable for development)
+    > 282 |       expect(loadTime).toBeLessThan(5000)
+          |                        ^
+      283 |       
+      284 |       console.log(`${pagePath} loaded in ${loadTime}ms`)
+      285 |     }
+        at C:\crmseven-master\tests\e2e\smoke-navigation.spec.ts:282:24
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Performan-cbcb5-load-within-reasonable-time-Mobile-Safari\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\qa\artifacts\test-results\smoke-navigation-Performan-cbcb5-load-within-reasonable-time-Mobile-Safari\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\qa\artifacts\test-results\smoke-navigation-Performan-cbcb5-load-within-reasonable-time-Mobile-Safari\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[/ loaded in 3232ms
+/clientes loaded in 1478ms
+
+[[ATTACHMENT|test-results\smoke-navigation-Performan-cbcb5-load-within-reasonable-time-Mobile-Safari\test-failed-1.png]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Performan-cbcb5-load-within-reasonable-time-Mobile-Safari\video.webm]]
+
+[[ATTACHMENT|test-results\smoke-navigation-Performan-cbcb5-load-within-reasonable-time-Mobile-Safari\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Performance Smoke Tests @smoke › API responses are timely" classname="smoke-navigation.spec.ts" time="10.631">
+</testcase>
+</testsuite>
+</testsuites>

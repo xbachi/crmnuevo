@@ -1,0 +1,99 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - link "SC SevenCars CRM Platform" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e7] [cursor=pointer]: SC
+        - generic [ref=e8] [cursor=pointer]:
+          - heading "SevenCars" [level=1] [ref=e9] [cursor=pointer]
+          - paragraph [ref=e10] [cursor=pointer]: CRM Platform
+      - navigation [ref=e11]:
+        - generic [ref=e12]:
+          - link "Dashboard" [ref=e13] [cursor=pointer]:
+            - /url: /
+            - img [ref=e14] [cursor=pointer]
+            - generic [ref=e16] [cursor=pointer]: Dashboard
+          - link "Vehículos" [ref=e17] [cursor=pointer]:
+            - /url: /vehiculos
+            - img [ref=e18] [cursor=pointer]
+            - generic [ref=e20] [cursor=pointer]: Vehículos
+          - link "Clientes" [ref=e21] [cursor=pointer]:
+            - /url: /clientes
+            - img [ref=e22] [cursor=pointer]
+            - generic [ref=e24] [cursor=pointer]: Clientes
+          - link "Inversores" [ref=e25] [cursor=pointer]:
+            - /url: /inversores
+            - img [ref=e26] [cursor=pointer]
+            - generic [ref=e29] [cursor=pointer]: Inversores
+          - link "Deals" [ref=e30] [cursor=pointer]:
+            - /url: /deals
+            - img [ref=e31] [cursor=pointer]
+            - generic [ref=e33] [cursor=pointer]: Deals
+          - link "Depósitos de venta" [ref=e34] [cursor=pointer]:
+            - /url: /depositos
+            - img [ref=e35] [cursor=pointer]
+            - generic [ref=e37] [cursor=pointer]: Depósitos de venta
+          - link "Procesos Venta" [ref=e38] [cursor=pointer]:
+            - /url: /kanban
+            - img [ref=e39] [cursor=pointer]
+            - generic [ref=e41] [cursor=pointer]: Procesos Venta
+          - link "Documentación" [ref=e42] [cursor=pointer]:
+            - /url: /documentacion
+            - img [ref=e43] [cursor=pointer]
+            - generic [ref=e45] [cursor=pointer]: Documentación
+          - link "Importar CSV" [ref=e46] [cursor=pointer]:
+            - /url: /importar-csv
+            - img [ref=e47] [cursor=pointer]
+            - generic [ref=e49] [cursor=pointer]: Importar CSV
+      - generic [ref=e52]:
+        - img [ref=e54]
+        - generic [ref=e56]:
+          - paragraph [ref=e57]: Admin User
+          - paragraph [ref=e58]: Administrador
+      - button "Contraer" [ref=e59]:
+        - img [ref=e60]
+    - main [ref=e62]:
+      - main [ref=e64]:
+        - generic [ref=e65]:
+          - generic [ref=e68]:
+            - generic [ref=e69]:
+              - img [ref=e71]
+              - generic [ref=e73]:
+                - heading "Deals" [level=1] [ref=e74]
+                - paragraph [ref=e75]: 0 registrados • 0 mostrados
+            - button "Actualizar" [ref=e77]:
+              - img [ref=e78]
+              - generic [ref=e80]: Actualizar
+          - generic [ref=e81]:
+            - generic [ref=e82]:
+              - generic [ref=e84]:
+                - textbox "Buscar en todos los deals por cliente, vehículo..." [ref=e85]
+                - img [ref=e86]
+              - button "Nuevo Deal" [ref=e88]:
+                - img [ref=e89]
+                - generic [ref=e91]: Nuevo Deal
+            - generic [ref=e92]:
+              - generic [ref=e93]:
+                - generic [ref=e94]: "Estado:"
+                - generic [ref=e95]:
+                  - button "Nuevo 0" [ref=e96]:
+                    - generic [ref=e97]: Nuevo
+                    - generic [ref=e98]: "0"
+                  - button "Reservado 0" [ref=e99]:
+                    - generic [ref=e100]: Reservado
+                    - generic [ref=e101]: "0"
+                  - button "Vendido 0" [ref=e102]:
+                    - generic [ref=e103]: Vendido
+                    - generic [ref=e104]: "0"
+                  - button "Facturado 0" [ref=e105]:
+                    - generic [ref=e106]: Facturado
+                    - generic [ref=e107]: "0"
+              - button "Todos 0" [ref=e109]:
+                - generic [ref=e110]: Todos
+                - generic [ref=e111]: "0"
+        - paragraph [ref=e114]: Cargando deals...
+  - alert [ref=e115]
+```

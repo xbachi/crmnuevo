@@ -1,0 +1,62 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - link "SC SevenCars CRM Platform" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e7] [cursor=pointer]: SC
+        - generic [ref=e8] [cursor=pointer]:
+          - heading "SevenCars" [level=1] [ref=e9] [cursor=pointer]
+          - paragraph [ref=e10] [cursor=pointer]: CRM Platform
+      - navigation [ref=e11]:
+        - generic [ref=e12]:
+          - link "Dashboard" [ref=e13] [cursor=pointer]:
+            - /url: /
+            - img [ref=e14] [cursor=pointer]
+            - generic [ref=e16] [cursor=pointer]: Dashboard
+          - link "Vehículos" [ref=e17] [cursor=pointer]:
+            - /url: /vehiculos
+            - img [ref=e18] [cursor=pointer]
+            - generic [ref=e20] [cursor=pointer]: Vehículos
+          - link "Clientes" [ref=e21] [cursor=pointer]:
+            - /url: /clientes
+            - img [ref=e22] [cursor=pointer]
+            - generic [ref=e24] [cursor=pointer]: Clientes
+          - link "Inversores" [ref=e25] [cursor=pointer]:
+            - /url: /inversores
+            - img [ref=e26] [cursor=pointer]
+            - generic [ref=e29] [cursor=pointer]: Inversores
+          - link "Deals" [ref=e30] [cursor=pointer]:
+            - /url: /deals
+            - img [ref=e31] [cursor=pointer]
+            - generic [ref=e33] [cursor=pointer]: Deals
+          - link "Depósitos de venta" [ref=e34] [cursor=pointer]:
+            - /url: /depositos
+            - img [ref=e35] [cursor=pointer]
+            - generic [ref=e37] [cursor=pointer]: Depósitos de venta
+          - link "Procesos Venta" [ref=e38] [cursor=pointer]:
+            - /url: /kanban
+            - img [ref=e39] [cursor=pointer]
+            - generic [ref=e41] [cursor=pointer]: Procesos Venta
+          - link "Documentación" [ref=e42] [cursor=pointer]:
+            - /url: /documentacion
+            - img [ref=e43] [cursor=pointer]
+            - generic [ref=e45] [cursor=pointer]: Documentación
+          - link "Importar CSV" [ref=e46] [cursor=pointer]:
+            - /url: /importar-csv
+            - img [ref=e47] [cursor=pointer]
+            - generic [ref=e49] [cursor=pointer]: Importar CSV
+      - generic [ref=e52]:
+        - img [ref=e54]
+        - generic [ref=e56]:
+          - paragraph [ref=e57]: Admin User
+          - paragraph [ref=e58]: Administrador
+      - button "Contraer" [ref=e59]:
+        - img [ref=e60]
+    - main [ref=e62]
+  - button "Open Next.js Dev Tools" [ref=e79] [cursor=pointer]:
+    - img [ref=e80] [cursor=pointer]
+  - alert [ref=e83]
+```

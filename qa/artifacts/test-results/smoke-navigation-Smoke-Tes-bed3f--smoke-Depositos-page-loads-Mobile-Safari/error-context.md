@@ -1,0 +1,91 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - link "SC SevenCars CRM Platform" [ref=e5]:
+      - /url: /
+      - generic [ref=e7]: SC
+      - generic [ref=e8]:
+        - heading "SevenCars" [level=1] [ref=e9]
+        - paragraph [ref=e10]: CRM Platform
+    - navigation [ref=e11]:
+      - generic [ref=e12]:
+        - link "Dashboard" [ref=e13]:
+          - /url: /
+          - img [ref=e14]
+          - generic [ref=e16]: Dashboard
+        - link "Vehículos" [ref=e17]:
+          - /url: /vehiculos
+          - img [ref=e18]
+          - generic [ref=e20]: Vehículos
+        - link "Clientes" [ref=e21]:
+          - /url: /clientes
+          - img [ref=e22]
+          - generic [ref=e24]: Clientes
+        - link "Inversores" [ref=e25]:
+          - /url: /inversores
+          - img [ref=e26]
+          - generic [ref=e29]: Inversores
+        - link "Deals" [ref=e30]:
+          - /url: /deals
+          - img [ref=e31]
+          - generic [ref=e33]: Deals
+        - link "Depósitos de venta" [ref=e34]:
+          - /url: /depositos
+          - img [ref=e35]
+          - generic [ref=e37]: Depósitos de venta
+        - link "Procesos Venta" [ref=e38]:
+          - /url: /kanban
+          - img [ref=e39]
+          - generic [ref=e41]: Procesos Venta
+        - link "Documentación" [ref=e42]:
+          - /url: /documentacion
+          - img [ref=e43]
+          - generic [ref=e45]: Documentación
+        - link "Importar CSV" [ref=e46]:
+          - /url: /importar-csv
+          - img [ref=e47]
+          - generic [ref=e49]: Importar CSV
+    - generic [ref=e52]:
+      - img [ref=e54]
+      - generic [ref=e56]:
+        - paragraph [ref=e57]: Admin User
+        - paragraph [ref=e58]: Administrador
+    - button "Contraer" [ref=e59]:
+      - img [ref=e60]
+  - main [ref=e62]:
+    - main [ref=e64]:
+      - generic [ref=e65]:
+        - generic [ref=e68]:
+          - generic [ref=e69]:
+            - img [ref=e71]
+            - generic [ref=e73]:
+              - heading "Depósitos de Venta" [level=1] [ref=e74]
+              - paragraph [ref=e75]: 0 registrados • 0 mostrados
+          - button "Actualizar" [ref=e77]:
+            - img [ref=e78]
+            - generic [ref=e80]: Actualizar
+        - generic [ref=e81]:
+          - generic [ref=e82]:
+            - generic [ref=e84]:
+              - textbox "Buscar en todos los depósitos por cliente, vehículo..." [ref=e85]
+              - img [ref=e86]
+            - button "Nuevo Depósito" [ref=e88]:
+              - img [ref=e89]
+              - generic [ref=e91]: Nuevo Depósito
+          - generic [ref=e92]:
+            - generic [ref=e93]:
+              - generic [ref=e94]: "Estado:"
+              - generic [ref=e95]:
+                - button "Activos 0" [ref=e96]:
+                  - generic [ref=e97]: Activos
+                  - generic [ref=e98]: "0"
+                - button "Finalizados 0" [ref=e99]:
+                  - generic [ref=e100]: Finalizados
+                  - generic [ref=e101]: "0"
+            - button "Todos 0" [ref=e103]:
+              - generic [ref=e104]: Todos
+              - generic [ref=e105]: "0"
+      - paragraph [ref=e108]: Cargando depósitos...
+```

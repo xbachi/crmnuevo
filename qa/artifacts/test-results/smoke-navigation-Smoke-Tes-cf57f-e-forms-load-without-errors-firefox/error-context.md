@@ -1,0 +1,133 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - link "SC SevenCars CRM Platform" [ref=e5] [cursor=pointer]:
+      - /url: /
+      - generic [ref=e7] [cursor=pointer]: SC
+      - generic [ref=e8] [cursor=pointer]:
+        - heading "SevenCars" [level=1] [ref=e9] [cursor=pointer]
+        - paragraph [ref=e10] [cursor=pointer]: CRM Platform
+    - navigation [ref=e11]:
+      - generic [ref=e12]:
+        - link "Dashboard" [ref=e13] [cursor=pointer]:
+          - /url: /
+          - img [ref=e14] [cursor=pointer]
+          - generic [ref=e16] [cursor=pointer]: Dashboard
+        - link "Vehículos" [ref=e17] [cursor=pointer]:
+          - /url: /vehiculos
+          - img [ref=e18] [cursor=pointer]
+          - generic [ref=e20] [cursor=pointer]: Vehículos
+        - link "Clientes" [ref=e21] [cursor=pointer]:
+          - /url: /clientes
+          - img [ref=e22] [cursor=pointer]
+          - generic [ref=e24] [cursor=pointer]: Clientes
+        - link "Inversores" [ref=e25] [cursor=pointer]:
+          - /url: /inversores
+          - img [ref=e26] [cursor=pointer]
+          - generic [ref=e29] [cursor=pointer]: Inversores
+        - link "Deals" [ref=e30] [cursor=pointer]:
+          - /url: /deals
+          - img [ref=e31] [cursor=pointer]
+          - generic [ref=e33] [cursor=pointer]: Deals
+        - link "Depósitos de venta" [ref=e34] [cursor=pointer]:
+          - /url: /depositos
+          - img [ref=e35] [cursor=pointer]
+          - generic [ref=e37] [cursor=pointer]: Depósitos de venta
+        - link "Procesos Venta" [ref=e38] [cursor=pointer]:
+          - /url: /kanban
+          - img [ref=e39] [cursor=pointer]
+          - generic [ref=e41] [cursor=pointer]: Procesos Venta
+        - link "Documentación" [ref=e42] [cursor=pointer]:
+          - /url: /documentacion
+          - img [ref=e43] [cursor=pointer]
+          - generic [ref=e45] [cursor=pointer]: Documentación
+        - link "Importar CSV" [ref=e46] [cursor=pointer]:
+          - /url: /importar-csv
+          - img [ref=e47] [cursor=pointer]
+          - generic [ref=e49] [cursor=pointer]: Importar CSV
+    - generic [ref=e52]:
+      - img [ref=e54]
+      - generic [ref=e56]:
+        - paragraph [ref=e57]: Admin User
+        - paragraph [ref=e58]: Administrador
+    - button "Contraer" [ref=e59]:
+      - img [ref=e60]
+  - main [ref=e62]:
+    - generic [ref=e64]:
+      - generic [ref=e66]:
+        - generic [ref=e67]:
+          - heading "Crear Nuevo Cliente" [level=1] [ref=e68]
+          - paragraph [ref=e69]: Completa la información del cliente para agregarlo al CRM
+        - button "← Volver a Clientes" [ref=e70]
+      - generic [ref=e71]:
+        - generic [ref=e72]:
+          - generic [ref=e73]:
+            - img [ref=e75]
+            - generic [ref=e77]:
+              - heading "Información Personal" [level=2] [ref=e78]
+              - paragraph [ref=e79]: Datos básicos del cliente
+          - generic [ref=e80]:
+            - generic [ref=e81]:
+              - generic [ref=e82]: Nombre *
+              - textbox "Nombre *" [ref=e83]
+            - generic [ref=e84]:
+              - generic [ref=e85]: Apellidos *
+              - textbox "Apellidos *" [ref=e86]
+            - generic [ref=e87]:
+              - generic [ref=e88]: Teléfono *
+              - textbox "Teléfono *" [ref=e89]
+            - generic [ref=e90]:
+              - generic [ref=e91]: Email
+              - textbox "Email" [ref=e92]
+            - generic [ref=e93]:
+              - generic [ref=e94]: DNI
+              - textbox "DNI" [ref=e95]
+          - generic [ref=e96]:
+            - heading "Dirección (opcional)" [level=4] [ref=e97]
+            - generic [ref=e98]:
+              - generic [ref=e99]:
+                - generic [ref=e100]: Dirección
+                - textbox "Dirección" [ref=e101]
+              - generic [ref=e102]:
+                - generic [ref=e103]: Ciudad
+                - textbox "Ciudad" [ref=e104]
+              - generic [ref=e105]:
+                - generic [ref=e106]: Provincia
+                - textbox "Provincia" [ref=e107]
+              - generic [ref=e108]:
+                - generic [ref=e109]: Código Postal
+                - textbox "Código Postal" [ref=e110]
+        - button "Intereses del Cliente Preferencias de vehículo y presupuesto (opcional) Mostrar" [ref=e112]:
+          - generic [ref=e113]:
+            - img [ref=e115]
+            - generic [ref=e117]:
+              - heading "Intereses del Cliente" [level=2] [ref=e118]
+              - paragraph [ref=e119]: Preferencias de vehículo y presupuesto (opcional)
+          - generic [ref=e120]:
+            - generic [ref=e121]: Mostrar
+            - img [ref=e122]
+        - generic [ref=e124]:
+          - generic [ref=e125]:
+            - img [ref=e127]
+            - generic [ref=e129]:
+              - heading "Información de Contacto" [level=2] [ref=e130]
+              - paragraph [ref=e131]: Cómo llegó y notas adicionales (opcional)
+          - generic [ref=e132]:
+            - generic [ref=e133]:
+              - generic [ref=e134]: 📞 Cómo llegó a nosotros
+              - combobox "📞 Cómo llegó a nosotros" [ref=e135]:
+                - option "No especificado" [selected]
+                - option "Google"
+                - option "Recomendado"
+                - option "Visita directa"
+                - option "Redes sociales"
+                - option "Otro"
+            - generic [ref=e136]:
+              - generic [ref=e137]: 📝 Notas del cliente
+              - textbox "📝 Notas del cliente" [ref=e138]
+        - generic [ref=e139]:
+          - button "Cancelar" [ref=e140]
+          - button "Crear Cliente" [ref=e141]
+```
