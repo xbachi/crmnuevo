@@ -401,78 +401,75 @@ export default function VehiculoDetailPage() {
               <div className="p-6">
                 {/* Información General */}
                 {activeTab === 'general' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Datos Básicos */}
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Datos Básicos</h3>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Marca</label>
-                        <p className="text-gray-900">{vehiculo.marca}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Marca y Modelo */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-center space-x-2 mb-3">
+                        <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                          </svg>
+                        </div>
+                        <h3 className="font-semibold text-blue-900">Identificación</h3>
                       </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Modelo</label>
-                        <p className="text-gray-900">{vehiculo.modelo}</p>
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Matrícula</label>
-                        <p className="text-gray-900 font-mono">{vehiculo.matricula}</p>
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Bastidor</label>
-                        <p className="text-gray-900 font-mono text-sm break-all">{vehiculo.bastidor}</p>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-3">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Kilómetros</label>
-                          <p className="text-gray-900">{vehiculo.kms?.toLocaleString() || 'N/A'} km</p>
+                          <label className="block text-xs font-medium text-blue-700 mb-1">Marca</label>
+                          <p className="text-blue-900 font-semibold">{vehiculo.marca}</p>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Año</label>
-                          <p className="text-gray-900">{vehiculo.año || 'N/A'}</p>
+                          <label className="block text-xs font-medium text-blue-700 mb-1">Modelo</label>
+                          <p className="text-blue-900 font-semibold">{vehiculo.modelo}</p>
                         </div>
                       </div>
                     </div>
 
-                    {/* Características */}
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Características</h3>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
-                        <p className="text-gray-900">{vehiculo.color || 'N/A'}</p>
+                    {/* Matrícula y Bastidor */}
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="flex items-center space-x-2 mb-3">
+                        <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                        <h3 className="font-semibold text-green-900">Documentación</h3>
                       </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Matriculación</label>
-                        <p className="text-gray-900">
-                          {vehiculo.fechaMatriculacion ? formatDate(vehiculo.fechaMatriculacion) : 'N/A'}
-                        </p>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-3">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Combustible</label>
-                          <p className="text-gray-900">{vehiculo.combustible || 'N/A'}</p>
+                          <label className="block text-xs font-medium text-green-700 mb-1">Matrícula</label>
+                          <p className="text-green-900 font-mono font-semibold">{vehiculo.matricula}</p>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Cambio</label>
-                          <p className="text-gray-900">{vehiculo.cambio || 'N/A'}</p>
+                          <label className="block text-xs font-medium text-green-700 mb-1">Bastidor</label>
+                          <p className="text-green-900 font-mono text-sm break-all">{vehiculo.bastidor}</p>
                         </div>
                       </div>
-                      
-                      <div className="grid grid-cols-2 gap-4">
+                    </div>
+
+                    {/* KMs, Fecha y Color */}
+                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                      <div className="flex items-center space-x-2 mb-3">
+                        <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
+                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <h3 className="font-semibold text-orange-900">Características</h3>
+                      </div>
+                      <div className="space-y-3">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Potencia</label>
-                          <p className="text-gray-900">{vehiculo.potencia ? `${vehiculo.potencia} CV` : 'N/A'}</p>
+                          <label className="block text-xs font-medium text-orange-700 mb-1">Kilómetros</label>
+                          <p className="text-orange-900 font-semibold">{vehiculo.kms?.toLocaleString() || 'N/A'} km</p>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Puertas</label>
-                          <p className="text-gray-900">{vehiculo.puertas || 'N/A'}</p>
+                          <label className="block text-xs font-medium text-orange-700 mb-1">Fecha Matriculación</label>
+                          <p className="text-orange-900 font-medium">
+                            {vehiculo.fechaMatriculacion ? formatDate(vehiculo.fechaMatriculacion) : 'N/A'}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-orange-700 mb-1">Color</label>
+                          <p className="text-orange-900 font-medium">{vehiculo.color || 'N/A'}</p>
                         </div>
                       </div>
                     </div>
@@ -601,6 +598,113 @@ export default function VehiculoDetailPage() {
               </div>
             </div>
 
+            {/* Documentación del Vehículo */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+              <div className="flex items-center space-x-2 mb-6">
+                <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <h2 className="text-lg font-semibold text-gray-900">Documentación Legal</h2>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* ITV */}
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="flex items-center space-x-2 mb-3">
+                    <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
+                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <h3 className="font-semibold text-red-900">ITV</h3>
+                  </div>
+                  <div className="space-y-2">
+                    <div>
+                      <label className="block text-xs font-medium text-red-700 mb-1">Estado</label>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        vehiculo.itv === 'al dia' ? 'bg-green-100 text-green-800' :
+                        vehiculo.itv === 'vencida' ? 'bg-red-100 text-red-800' :
+                        vehiculo.itv === 'proxima a vencer' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {vehiculo.itv || 'N/A'}
+                      </span>
+                    </div>
+                    {vehiculo.fechaVencimientoItv && (
+                      <div>
+                        <label className="block text-xs font-medium text-red-700 mb-1">Vencimiento</label>
+                        <p className="text-red-900 text-sm font-medium">
+                          {formatDate(vehiculo.fechaVencimientoItv)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Seguro */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center space-x-2 mb-3">
+                    <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                    </div>
+                    <h3 className="font-semibold text-blue-900">Seguro</h3>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-blue-700 mb-1">Estado</label>
+                    <p className="text-blue-900 font-medium">{vehiculo.seguro || 'N/A'}</p>
+                  </div>
+                </div>
+
+                {/* Segunda Llave */}
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <div className="flex items-center space-x-2 mb-3">
+                    <div className="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center">
+                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                      </svg>
+                    </div>
+                    <h3 className="font-semibold text-yellow-900">2ª Llave</h3>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-yellow-700 mb-1">Disponible</label>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      vehiculo.segundaLlave === 'si' ? 'bg-green-100 text-green-800' :
+                      vehiculo.segundaLlave === 'no' ? 'bg-red-100 text-red-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {vehiculo.segundaLlave || 'N/A'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Documentación */}
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center space-x-2 mb-3">
+                    <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <h3 className="font-semibold text-green-900">Documentación</h3>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-green-700 mb-1">Estado</label>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      vehiculo.documentacion === 'completa' ? 'bg-green-100 text-green-800' :
+                      vehiculo.documentacion === 'incompleta' ? 'bg-red-100 text-red-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {vehiculo.documentacion || 'N/A'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Notas */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Notas ({notas.length})</h2>
@@ -689,43 +793,176 @@ export default function VehiculoDetailPage() {
           {/* Sidebar Derecha */}
           <div className="space-y-6">
             
-            {/* Documentación */}
+            {/* Estado del Vehículo */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Documentación</h2>
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <h2 className="text-lg font-semibold text-gray-900">Estado</h2>
+              </div>
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Estado ITV</label>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    vehiculo.itv === 'al dia' ? 'bg-green-100 text-green-800' :
-                    vehiculo.itv === 'vencida' ? 'bg-red-100 text-red-800' :
-                    vehiculo.itv === 'proxima a vencer' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {vehiculo.itv || 'N/A'}
-                  </span>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Estado Actual</label>
+                  <div className="flex items-center space-x-3">
+                    <span className={`px-3 py-2 rounded-lg text-sm font-medium ${getEstadoColor(vehiculo.estado)}`}>
+                      {vehiculo.estado.toUpperCase()}
+                    </span>
+                  </div>
                 </div>
 
+                {/* Estado detallado según el estado actual */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Vencimiento ITV</label>
-                  <p className="text-gray-900 text-sm">
-                    {vehiculo.fechaVencimientoItv ? formatDate(vehiculo.fechaVencimientoItv) : 'N/A'}
-                  </p>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    {(() => {
+                      switch (vehiculo.estado.toLowerCase()) {
+                        case 'mecanica':
+                        case 'mecánica':
+                          return (
+                            <div className="flex items-center space-x-2">
+                              <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+                              <span className="text-yellow-800 font-medium">En proceso: Mecánica</span>
+                            </div>
+                          )
+                        case 'fotos':
+                          return (
+                            <div className="flex items-center space-x-2">
+                              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                              <span className="text-blue-800 font-medium">En proceso: Sesión de fotos</span>
+                            </div>
+                          )
+                        case 'publicado':
+                          return (
+                            <div className="flex items-center space-x-2">
+                              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                              <span className="text-green-800 font-medium">Disponible para venta</span>
+                            </div>
+                          )
+                        case 'reservado':
+                          return (
+                            <div className="flex items-center space-x-2">
+                              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                              <span className="text-orange-800 font-medium">Reservado por cliente</span>
+                            </div>
+                          )
+                        case 'vendido':
+                          return (
+                            <div className="flex items-center space-x-2">
+                              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                              <span className="text-red-800 font-medium">Vendido - Falta facturar</span>
+                            </div>
+                          )
+                        case 'facturado':
+                          return (
+                            <div className="flex items-center space-x-2">
+                              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                              <span className="text-purple-800 font-medium">Proceso completado</span>
+                            </div>
+                          )
+                        default:
+                          return (
+                            <div className="flex items-center space-x-2">
+                              <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+                              <span className="text-gray-800 font-medium">Estado inicial</span>
+                            </div>
+                          )
+                      }
+                    })()}
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Seguro</label>
-                  <p className="text-gray-900 text-sm">{vehiculo.seguro || 'N/A'}</p>
+                {vehiculo.ubicacion && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Ubicación</label>
+                    <p className="text-gray-900 text-sm bg-gray-50 rounded-lg p-2">{vehiculo.ubicacion}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Documentos del Vehículo */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-lg font-semibold text-gray-900">Documentos</h2>
+                </div>
+                <button className="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors">
+                  <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Subir
+                </button>
+              </div>
+              
+              {/* Lista de tipos de documentos */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">Documentación Legal</p>
+                      <p className="text-xs text-gray-500">Permisos de circulación, etc.</p>
+                    </div>
+                  </div>
+                  <span className="text-xs text-gray-400">0 archivos</span>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Segunda Llave</label>
-                  <p className="text-gray-900 text-sm">{vehiculo.segundaLlave || 'N/A'}</p>
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
+                      <svg className="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">Facturas</p>
+                      <p className="text-xs text-gray-500">Compra, reparaciones, etc.</p>
+                    </div>
+                  </div>
+                  <span className="text-xs text-gray-400">0 archivos</span>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Ubicación</label>
-                  <p className="text-gray-900 text-sm">{vehiculo.ubicacion || 'N/A'}</p>
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+                      <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">Inspecciones</p>
+                      <p className="text-xs text-gray-500">ITV, revisiones técnicas</p>
+                    </div>
+                  </div>
+                  <span className="text-xs text-gray-400">0 archivos</span>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">Fotografías</p>
+                      <p className="text-xs text-gray-500">Daños, estado del vehículo</p>
+                    </div>
+                  </div>
+                  <span className="text-xs text-gray-400">0 archivos</span>
                 </div>
               </div>
             </div>
@@ -827,4 +1064,5 @@ export default function VehiculoDetailPage() {
       <ConfirmModalComponent />
     </div>
   )
+}
 }
