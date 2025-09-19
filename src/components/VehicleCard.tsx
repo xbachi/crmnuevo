@@ -20,6 +20,7 @@ interface Vehiculo {
   esCocheInversor?: boolean
   inversorId?: number
   inversorNombre?: string
+  deposito_id?: number
   fechaCompra?: string
   precioCompra?: number
   gastosTransporte?: number
@@ -235,7 +236,31 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
       vehiculoVendido ? 'opacity-60 grayscale' : ''
     }`}>
       
-      {/* Header con gradiente */}
+      {/* Links de inversor/depósito por encima del header */}
+      {(esInversor || esDeposito) && (
+        <div className="px-6 py-2 bg-gray-50 border-b border-gray-200">
+          <div className="flex justify-between items-center">
+            {esInversor && vehiculo.inversorId && (
+              <button
+                onClick={handleInvestorClick}
+                className="text-xs text-orange-600 hover:text-orange-800 font-medium"
+              >
+                👤 Ver Inversor
+              </button>
+            )}
+            {esDeposito && vehiculo.deposito_id && (
+              <Link
+                href={`/depositos/${vehiculo.deposito_id}`}
+                className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+              >
+                📦 Ver Depósito
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Header con gradiente - CLICKEABLE COMPLETO */}
       <div 
         className={`px-6 py-4 border-b cursor-pointer hover:opacity-90 transition-opacity ${
           esDeposito 
@@ -590,29 +615,6 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
           
           {/* Botones de acción */}
           <div className="flex space-x-2">
-            {onView && (
-              <Link 
-                href={vehiculoVendido ? '#' : `/vehiculos/${generateVehicleSlug(vehiculo)}`}
-                className={`p-2 rounded-lg transition-all duration-200 ${
-                  vehiculoVendido 
-                    ? 'text-gray-300 cursor-not-allowed pointer-events-none' 
-                    : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'
-                }`}
-                title={vehiculoVendido ? "Vehículo vendido - No disponible" : "Ver detalles"}
-                onClick={() => {
-                  console.log(`👁️ [VEHICLE CARD] Ver detalles clicked - Referencia: ${vehiculo.referencia}`)
-                  if (!vehiculoVendido) {
-                    const slug = generateVehicleSlug(vehiculo)
-                    console.log(`🔗 [VEHICLE CARD] Link navegando a: /vehiculos/${slug}`)
-                  }
-                }}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-              </Link>
-            )}
             {onEdit && (
               <button 
                 onClick={() => !vehiculoVendido && onEdit(vehiculo)}
