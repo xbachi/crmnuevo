@@ -7,10 +7,10 @@ const pool = new Pool({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { referencia: string } }
+  { params }: { params: Promise<{ referencia: string }> }
 ) {
   try {
-    const { referencia } = params
+    const { referencia } = await params
     
     // Limpiar la referencia para búsqueda (quitar prefijos)
     const cleanReferencia = referencia.replace(/^[#IDR-]+/, '').replace(/[^0-9]/g, '')
@@ -28,7 +28,7 @@ export async function GET(
         itv, "fechaItv", "fechaVencimientoItv", seguro, "segundaLlave", 
         carpeta, master, "hojasA", documentacion, ubicacion,
         "createdAt", "updatedAt"
-      FROM vehiculos 
+      FROM "Vehiculo" 
       WHERE referencia = $1 
          OR referencia = $2 
          OR referencia = $3 

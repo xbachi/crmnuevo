@@ -236,13 +236,17 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
     }`}>
       
       {/* Header con gradiente */}
-      <div className={`px-6 py-4 border-b ${
-        esDeposito 
-          ? 'bg-gradient-to-r from-cyan-200 to-blue-200 border-cyan-300' 
-          : esInversor
-          ? 'bg-gradient-to-r from-orange-200 to-amber-200 border-orange-300'
-          : 'bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200'
-      }`}>
+      <div 
+        className={`px-6 py-4 border-b cursor-pointer hover:opacity-90 transition-opacity ${
+          esDeposito 
+            ? 'bg-gradient-to-r from-cyan-200 to-blue-200 border-cyan-300' 
+            : esInversor
+            ? 'bg-gradient-to-r from-orange-200 to-amber-200 border-orange-300'
+            : 'bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200'
+        }`}
+        onClick={() => !vehiculoVendido && router.push(`/vehiculos/${generateVehicleSlug(vehiculo)}`)}
+        title={vehiculoVendido ? "Vehículo vendido - No disponible" : "Ver detalles del vehículo"}
+      >
         <div className="flex items-start justify-between">
           {/* Logo del vehículo */}
           <div className="flex items-start space-x-4">
