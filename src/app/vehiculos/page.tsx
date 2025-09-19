@@ -6,7 +6,7 @@ import { useToast } from '@/components/Toast'
 import { useConfirmModal } from '@/components/ConfirmModal'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import VehicleCard from '@/components/VehicleCard'
-import { formatVehicleReference } from '@/lib/utils'
+import { formatVehicleReference, generateVehicleSlug } from '@/lib/utils'
 
 interface Vehiculo {
   id: number
@@ -876,7 +876,7 @@ export default function ListaVehiculos() {
                     <tr 
                       key={`${vehiculo.id}-${vehiculo.updatedAt}-${index}`} 
                       className={`${getRowBackgroundColor(vehiculo.tipo)} transition-colors duration-200 ${vehiculoVendido ? 'opacity-60 grayscale' : ''} cursor-pointer hover:bg-blue-50`}
-                      onClick={() => router.push(`/vehiculos/${vehiculo.id}`)}
+                      onClick={() => router.push(`/vehiculos/${generateVehicleSlug(vehiculo)}`)}
                     >
                       <td className="px-3 py-4">
                         <div className="flex items-center">

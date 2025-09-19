@@ -144,3 +144,10 @@ function formatNumberWithThousands(num: number): string {
 export function formatPercentage(value: number): string {
   return `${value.toFixed(1)}%`
 }
+
+// Función para generar el slug del vehículo
+export function generateVehicleSlug(vehiculo: { id: number; marca: string; modelo: string }): string {
+  const cleanMarca = vehiculo.marca.toLowerCase().replace(/[^a-z0-9]/g, '')
+  const cleanModelo = vehiculo.modelo.toLowerCase().replace(/[^a-z0-9]/g, '')
+  return `${vehiculo.id}-${cleanMarca}-${cleanModelo}`
+}

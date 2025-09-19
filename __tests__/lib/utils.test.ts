@@ -5,6 +5,7 @@ import {
   formatVehicleReference,
   formatVehicleReferenceShort,
   formatPercentage,
+  generateVehicleSlug,
 } from '@/lib/utils'
 
 describe('formatCurrency', () => {
@@ -125,6 +126,28 @@ describe('formatVehicleReferenceShort', () => {
     
     // Renting: R- + último dígito
     expect(formatVehicleReferenceShort('789', 'R')).toBe('R-9')
+  })
+})
+
+describe('generateVehicleSlug', () => {
+  test('generates correct slug format', () => {
+    const vehiculo = { id: 1014, marca: 'Ford', modelo: 'Puma' }
+    expect(generateVehicleSlug(vehiculo)).toBe('1014-ford-puma')
+  })
+
+  test('handles special characters and spaces', () => {
+    const vehiculo = { id: 123, marca: 'BMW X', modelo: 'Serie 3' }
+    expect(generateVehicleSlug(vehiculo)).toBe('123-bmwx-serie3')
+  })
+
+  test('handles accents and symbols', () => {
+    const vehiculo = { id: 456, marca: 'Citroën', modelo: 'C4 Picasso' }
+    expect(generateVehicleSlug(vehiculo)).toBe('456-citron-c4picasso')
+  })
+
+  test('handles numbers and mixed case', () => {
+    const vehiculo = { id: 789, marca: 'Audi', modelo: 'A4 2.0' }
+    expect(generateVehicleSlug(vehiculo)).toBe('789-audi-a420')
   })
 })
 

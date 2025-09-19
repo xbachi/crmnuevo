@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { formatVehicleReference } from '@/lib/utils'
+import { formatVehicleReference, generateVehicleSlug } from '@/lib/utils'
 
 interface Vehiculo {
   id: number
@@ -579,7 +579,7 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
           <div className="flex space-x-2">
             {onView && (
               <Link 
-                href={vehiculoVendido ? '#' : `/vehiculos/${vehiculo.id}`}
+                href={vehiculoVendido ? '#' : `/vehiculos/${generateVehicleSlug(vehiculo)}`}
                 className={`p-2 rounded-lg transition-all duration-200 ${
                   vehiculoVendido 
                     ? 'text-gray-300 cursor-not-allowed pointer-events-none' 
