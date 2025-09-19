@@ -578,12 +578,11 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
           {/* Botones de acción */}
           <div className="flex space-x-2">
             {onView && (
-              <button 
-                onClick={() => !vehiculoVendido && onView(vehiculo.id)}
-                disabled={vehiculoVendido}
+              <Link 
+                href={vehiculoVendido ? '#' : `/vehiculos/${vehiculo.id}`}
                 className={`p-2 rounded-lg transition-all duration-200 ${
                   vehiculoVendido 
-                    ? 'text-gray-300 cursor-not-allowed' 
+                    ? 'text-gray-300 cursor-not-allowed pointer-events-none' 
                     : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'
                 }`}
                 title={vehiculoVendido ? "Vehículo vendido - No disponible" : "Ver detalles"}
@@ -592,7 +591,7 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
-              </button>
+              </Link>
             )}
             {onEdit && (
               <button 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/Toast'
 import { useConfirmModal } from '@/components/ConfirmModal'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
@@ -56,6 +57,7 @@ interface PaginationInfo {
 }
 
 export default function ListaVehiculos() {
+  const router = useRouter()
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>([])
   const [filteredVehiculos, setFilteredVehiculos] = useState<Vehiculo[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -871,7 +873,11 @@ export default function ListaVehiculos() {
                     }
                     
                     return (
-                    <tr key={`${vehiculo.id}-${vehiculo.updatedAt}-${index}`} className={`${getRowBackgroundColor(vehiculo.tipo)} transition-colors duration-200 ${vehiculoVendido ? 'opacity-60 grayscale' : ''}`}>
+                    <tr 
+                      key={`${vehiculo.id}-${vehiculo.updatedAt}-${index}`} 
+                      className={`${getRowBackgroundColor(vehiculo.tipo)} transition-colors duration-200 ${vehiculoVendido ? 'opacity-60 grayscale' : ''} cursor-pointer hover:bg-blue-50`}
+                      onClick={() => router.push(`/vehiculos/${vehiculo.id}`)}
+                    >
                       <td className="px-3 py-4">
                         <div className="flex items-center">
                           <div className={`w-12 h-10 rounded-lg flex items-center justify-center mr-2 ${

@@ -16,6 +16,7 @@
     "test:real": "jest __tests__/integration/real-database-tests.test.ts",
     "verify:crm": "node scripts/verify-crm-functions.js",
     "check:database": "node scripts/check-database.js",
+    "setup:vehiculo-tables": "node scripts/setup-vehiculo-tables.js",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
