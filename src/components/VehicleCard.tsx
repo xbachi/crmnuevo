@@ -244,7 +244,16 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
             ? 'bg-gradient-to-r from-orange-200 to-amber-200 border-orange-300'
             : 'bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200'
         }`}
-        onClick={() => !vehiculoVendido && router.push(`/vehiculos/${generateVehicleSlug(vehiculo)}`)}
+        onClick={() => {
+          console.log(`🎯 [VEHICLE CARD] Header clicked - Referencia: ${vehiculo.referencia}`)
+          if (!vehiculoVendido) {
+            const slug = generateVehicleSlug(vehiculo)
+            console.log(`🔗 [VEHICLE CARD] Navegando a: /vehiculos/${slug}`)
+            router.push(`/vehiculos/${slug}`)
+          } else {
+            console.log(`⚠️ [VEHICLE CARD] Vehículo vendido - navegación bloqueada`)
+          }
+        }}
         title={vehiculoVendido ? "Vehículo vendido - No disponible" : "Ver detalles del vehículo"}
       >
         <div className="flex items-start justify-between">
@@ -590,6 +599,13 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
                     : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'
                 }`}
                 title={vehiculoVendido ? "Vehículo vendido - No disponible" : "Ver detalles"}
+                onClick={() => {
+                  console.log(`👁️ [VEHICLE CARD] Ver detalles clicked - Referencia: ${vehiculo.referencia}`)
+                  if (!vehiculoVendido) {
+                    const slug = generateVehicleSlug(vehiculo)
+                    console.log(`🔗 [VEHICLE CARD] Link navegando a: /vehiculos/${slug}`)
+                  }
+                }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
