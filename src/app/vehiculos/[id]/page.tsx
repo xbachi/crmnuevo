@@ -93,8 +93,18 @@ interface VehiculoRecordatorio {
 // Función para extraer la referencia del slug
 const extractReferenciaFromSlug = (slug: string): string => {
   console.log(`🔧 [EXTRACT] Extracting referencia from slug: "${slug}"`)
+  
+  // Si el slug contiene un prefijo como I-, D-, R-, extraer solo la parte numérica
+  const match = slug.match(/^([IDR]-)?(\d+)/)
+  if (match) {
+    const referencia = match[2] // Solo la parte numérica
+    console.log(`🔧 [EXTRACT] Extracted referencia: "${referencia}"`)
+    return referencia
+  }
+  
+  // Fallback: tomar la primera parte del slug
   const referencia = slug.split('-')[0]
-  console.log(`🔧 [EXTRACT] Extracted referencia: "${referencia}"`)
+  console.log(`🔧 [EXTRACT] Fallback referencia: "${referencia}"`)
   return referencia
 }
 
