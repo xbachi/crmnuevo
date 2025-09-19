@@ -94,48 +94,57 @@ interface VehiculoRecordatorio {
 const extractReferenciaFromSlug = (slug: string): string => {
   console.log(`🔧 [EXTRACT] Extracting referencia from slug: "${slug}"`)
   
-  // Casos especiales para diferentes formatos de referencia
-  if (slug.startsWith('i')) {
-    // Para vehículos de inversor como "i99-opel-corsa"
+  // CASO 1: I-i99-opel-corsa (inversor con prefijo I-)
+  if (slug.startsWith('I-')) {
+    const match = slug.match(/^I-i(\d+)/)
+    if (match) {
+      const referencia = `I-i${match[1]}`
+      console.log(`🔧 [EXTRACT] Inversor con prefijo I-: "${referencia}"`)
+      return referencia
+    }
+  }
+  
+  // CASO 2: i99-opel-corsa (inversor sin prefijo)
+  if (slug.startsWith('i') && !slug.startsWith('I-')) {
     const match = slug.match(/^i(\d+)/)
     if (match) {
-      const referencia = match[1]
-      console.log(`🔧 [EXTRACT] Inversor referencia: "${referencia}"`)
+      const referencia = `I-i${match[1]}`
+      console.log(`🔧 [EXTRACT] Inversor sin prefijo: "${referencia}"`)
       return referencia
     }
   }
   
+  // CASO 3: d121212-opel-cors (depósito)
   if (slug.startsWith('d')) {
-    // Para vehículos de depósito como "d121212-opel-cors"
     const match = slug.match(/^d(\d+)/)
     if (match) {
-      const referencia = match[1]
-      console.log(`🔧 [EXTRACT] Deposito referencia: "${referencia}"`)
+      const referencia = `d${match[1]}`
+      console.log(`🔧 [EXTRACT] Deposito: "${referencia}"`)
       return referencia
     }
   }
   
+  // CASO 4: r123-marca-modelo (renting)
   if (slug.startsWith('r')) {
-    // Para vehículos de renting como "r123-marca-modelo"
     const match = slug.match(/^r(\d+)/)
     if (match) {
-      const referencia = match[1]
-      console.log(`🔧 [EXTRACT] Renting referencia: "${referencia}"`)
+      const referencia = `R-${match[1]}`
+      console.log(`🔧 [EXTRACT] Renting: "${referencia}"`)
       return referencia
     }
   }
   
-  // Si el slug contiene un prefijo como I-, D-, R-, extraer solo la parte numérica
-  const match = slug.match(/^([IDR]-)?(\d+)/)
+  // CASO 5: 1037-ford-puma (compra con #)
+  const match = slug.match(/^(\d+)/)
   if (match) {
-    const referencia = match[2] // Solo la parte numérica
-    console.log(`🔧 [EXTRACT] Prefixed referencia: "${referencia}"`)
+    const referencia = `#${match[1]}`
+    console.log(`🔧 [EXTRACT] Compra: "${referencia}"`)
     return referencia
   }
   
   // Fallback: tomar la primera parte del slug
   const referencia = slug.split('-')[0]
-  console.log(`🔧 [EXTRACT] Fallback referencia: "${referencia}"`)
+  console.log(`🔧 [EXTRACT] Fallback: "${referencia}"`)
   return referencia
 }
 
