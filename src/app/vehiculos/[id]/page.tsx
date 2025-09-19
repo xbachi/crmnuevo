@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useToast } from '@/components/Toast'
 import { useConfirmModal } from '@/components/ConfirmModal'
-import { formatCurrency, formatVehicleReference, formatDate } from '@/lib/utils'
+import { formatCurrency, formatVehicleReference, formatDate, generateVehicleSlug } from '@/lib/utils'
 
 interface Vehiculo {
   id: number
@@ -126,68 +126,69 @@ export default function VehiculoDetailPage() {
   })
 
   useEffect(() => {
+    const fetchVehiculo = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch(`/api/vehiculos/by-referencia/${vehiculoReferencia}`)
+        if (response.ok) {
+          const data = await response.json()
+          setVehiculo(data)
+          
+          // Verificar si la URL es correcta y redirigir si es necesario
+          const correctSlug = generateVehicleSlug(data)
+          if (vehiculoSlug !== correctSlug) {
+            router.replace(`/vehiculos/${correctSlug}`)
+          }
+        } else {
+          console.error('Error al cargar el vehículo')
+          router.push('/vehiculos')
+        }
+      } catch (error) {
+        console.error('Error:', error)
+        router.push('/vehiculos')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
     if (vehiculoReferencia) {
       fetchVehiculo()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vehiculoReferencia])
 
   useEffect(() => {
+    const fetchNotas = async () => {
+      if (!vehiculo?.id) return
+      try {
+        const response = await fetch(`/api/vehiculos/${vehiculo.id}/notas`)
+        if (response.ok) {
+          const data = await response.json()
+          setNotas(data)
+        }
+      } catch (error) {
+        console.error('Error al cargar notas:', error)
+      }
+    }
+
+    const fetchRecordatorios = async () => {
+      if (!vehiculo?.id) return
+      try {
+        const response = await fetch(`/api/vehiculos/${vehiculo.id}/recordatorios`)
+        if (response.ok) {
+          const data = await response.json()
+          setRecordatorios(data)
+        }
+      } catch (error) {
+        console.error('Error al cargar recordatorios:', error)
+      }
+    }
+
     if (vehiculo?.id) {
       fetchNotas()
       fetchRecordatorios()
     }
   }, [vehiculo?.id])
-
-  const fetchVehiculo = async () => {
-    try {
-      const response = await fetch(`/api/vehiculos/by-referencia/${vehiculoReferencia}`)
-      if (response.ok) {
-        const data = await response.json()
-        setVehiculo(data)
-        
-        // Verificar si la URL es correcta y redirigir si es necesario
-        const correctSlug = generateVehicleSlug(data)
-        if (vehiculoSlug !== correctSlug) {
-          router.replace(`/vehiculos/${correctSlug}`)
-        }
-      } else {
-        showToast('Error al cargar el vehículo', 'error')
-        router.push('/vehiculos')
-      }
-    } catch (error) {
-      console.error('Error:', error)
-      showToast('Error al cargar el vehículo', 'error')
-      router.push('/vehiculos')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const fetchNotas = async () => {
-    if (!vehiculo?.id) return
-    try {
-      const response = await fetch(`/api/vehiculos/${vehiculo.id}/notas`)
-      if (response.ok) {
-        const data = await response.json()
-        setNotas(data)
-      }
-    } catch (error) {
-      console.error('Error al cargar notas:', error)
-    }
-  }
-
-  const fetchRecordatorios = async () => {
-    if (!vehiculo?.id) return
-    try {
-      const response = await fetch(`/api/vehiculos/${vehiculo.id}/recordatorios`)
-      if (response.ok) {
-        const data = await response.json()
-        setRecordatorios(data)
-      }
-    } catch (error) {
-      console.error('Error al cargar recordatorios:', error)
-    }
-  }
 
   const handleAgregarNota = async () => {
     if (!nuevaNota.trim() || !vehiculo?.id) return
@@ -206,14 +207,18 @@ export default function VehiculoDetailPage() {
 
       if (response.ok) {
         setNuevaNota('')
-        fetchNotas()
-        showToast('Nota agregada exitosamente', 'success')
+        // Recargar notas
+        const notasResponse = await fetch(`/api/vehiculos/${vehiculo.id}/notas`)
+        if (notasResponse.ok) {
+          const notasData = await notasResponse.json()
+          setNotas(notasData)
+        }
+        console.log('Nota agregada exitosamente')
       } else {
-        showToast('Error al agregar la nota', 'error')
+        console.error('Error al agregar la nota')
       }
     } catch (error) {
-      console.error('Error:', error)
-      showToast('Error al agregar la nota', 'error')
+      console.error('Error al agregar la nota:', error)
     }
   }
 
@@ -235,14 +240,18 @@ export default function VehiculoDetailPage() {
           tipo: 'otro',
           prioridad: 'media'
         })
-        fetchRecordatorios()
-        showToast('Recordatorio agregado exitosamente', 'success')
+        // Recargar recordatorios
+        const recordatoriosResponse = await fetch(`/api/vehiculos/${vehiculo.id}/recordatorios`)
+        if (recordatoriosResponse.ok) {
+          const recordatoriosData = await recordatoriosResponse.json()
+          setRecordatorios(recordatoriosData)
+        }
+        console.log('Recordatorio agregado exitosamente')
       } else {
-        showToast('Error al agregar el recordatorio', 'error')
+        console.error('Error al agregar el recordatorio')
       }
     } catch (error) {
-      console.error('Error:', error)
-      showToast('Error al agregar el recordatorio', 'error')
+      console.error('Error al agregar el recordatorio:', error)
     }
   }
 
@@ -322,7 +331,6 @@ export default function VehiculoDetailPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <ToastContainer />
       
       {/* Header */}
       <div className="bg-white shadow-sm border-b border-slate-200">
