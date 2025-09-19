@@ -1014,9 +1014,8 @@ export default function ListaVehiculos() {
                 vehiculo={vehiculo}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
-                onView={(id) => {
-                  // Función para ver detalles del vehículo
-                  console.log('Ver vehículo:', id)
+                onView={() => {
+                  router.push(`/vehiculos/${generateVehicleSlug(vehiculo)}`)
                 }}
               />
             ))}
