@@ -92,7 +92,10 @@ interface VehiculoRecordatorio {
 
 // Función para extraer la referencia del slug
 const extractReferenciaFromSlug = (slug: string): string => {
-  return slug.split('-')[0]
+  console.log(`🔧 [EXTRACT] Extracting referencia from slug: "${slug}"`)
+  const referencia = slug.split('-')[0]
+  console.log(`🔧 [EXTRACT] Extracted referencia: "${referencia}"`)
+  return referencia
 }
 
 export default function VehiculoDetailPage() {
@@ -128,23 +131,49 @@ export default function VehiculoDetailPage() {
   useEffect(() => {
     const fetchVehiculo = async () => {
       try {
+        console.log(`🔍 [VEHICULO PAGE] Iniciando búsqueda de vehículo`)
+        console.log(`📝 [VEHICULO PAGE] Slug completo: "${vehiculoSlug}"`)
+        console.log(`🔢 [VEHICULO PAGE] Referencia extraída: "${vehiculoReferencia}"`)
+        
         setIsLoading(true)
-        const response = await fetch(`/api/vehiculos/by-referencia/${vehiculoReferencia}`)
+        const apiUrl = `/api/vehiculos/by-referencia/${vehiculoReferencia}`
+        console.log(`📞 [VEHICULO PAGE] Llamando API: ${apiUrl}`)
+        
+        const response = await fetch(apiUrl)
+        console.log(`📡 [VEHICULO PAGE] Response status: ${response.status}`)
+        
         if (response.ok) {
           const data = await response.json()
+          console.log(`✅ [VEHICULO PAGE] Datos recibidos:`, {
+            id: data.id,
+            referencia: data.referencia,
+            marca: data.marca,
+            modelo: data.modelo
+          })
           setVehiculo(data)
           
           // Verificar si la URL es correcta y redirigir si es necesario
           const correctSlug = generateVehicleSlug(data)
+          console.log(`🔗 [VEHICULO PAGE] Slug correcto calculado: "${correctSlug}"`)
+          console.log(`🔗 [VEHICULO PAGE] Slug actual: "${vehiculoSlug}"`)
+          
           if (vehiculoSlug !== correctSlug) {
+            console.log(`🔄 [VEHICULO PAGE] Redirigiendo a slug correcto: /vehiculos/${correctSlug}`)
             router.replace(`/vehiculos/${correctSlug}`)
           }
         } else {
-          console.error('Error al cargar el vehículo')
+          const errorData = await response.json().catch(() => ({}))
+          console.error(`❌ [VEHICULO PAGE] Error al cargar el vehículo:`, {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorData
+          })
+          console.log(`🔄 [VEHICULO PAGE] Redirigiendo a /vehiculos`)
           router.push('/vehiculos')
         }
       } catch (error) {
-        console.error('Error:', error)
+        console.error('❌ [VEHICULO PAGE] Error en fetchVehiculo:', error)
+        console.log(`🔄 [VEHICULO PAGE] Redirigiendo a /vehiculos por error`)
         router.push('/vehiculos')
       } finally {
         setIsLoading(false)
@@ -152,7 +181,10 @@ export default function VehiculoDetailPage() {
     }
 
     if (vehiculoReferencia) {
+      console.log(`🚀 [VEHICULO PAGE] Iniciando useEffect con referencia: "${vehiculoReferencia}"`)
       fetchVehiculo()
+    } else {
+      console.log(`⚠️ [VEHICULO PAGE] No hay referencia para buscar`)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vehiculoReferencia])
