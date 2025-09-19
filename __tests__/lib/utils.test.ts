@@ -130,23 +130,34 @@ describe('formatVehicleReferenceShort', () => {
 })
 
 describe('generateVehicleSlug', () => {
-  test('generates correct slug format', () => {
-    const vehiculo = { id: 1014, marca: 'Ford', modelo: 'Puma' }
-    expect(generateVehicleSlug(vehiculo)).toBe('1014-ford-puma')
+  test('generates correct slug format with clean reference', () => {
+    const vehiculo = { referencia: '1037', marca: 'Ford', modelo: 'Puma' }
+    expect(generateVehicleSlug(vehiculo)).toBe('1037-ford-puma')
+  })
+
+  test('handles references with prefixes', () => {
+    const vehiculo1 = { referencia: '#1234', marca: 'BMW', modelo: 'X5' }
+    expect(generateVehicleSlug(vehiculo1)).toBe('1234-bmw-x5')
+    
+    const vehiculo2 = { referencia: 'I-567', marca: 'Audi', modelo: 'A4' }
+    expect(generateVehicleSlug(vehiculo2)).toBe('567-audi-a4')
+    
+    const vehiculo3 = { referencia: 'D-890', marca: 'Tesla', modelo: 'Model 3' }
+    expect(generateVehicleSlug(vehiculo3)).toBe('890-tesla-model3')
   })
 
   test('handles special characters and spaces', () => {
-    const vehiculo = { id: 123, marca: 'BMW X', modelo: 'Serie 3' }
+    const vehiculo = { referencia: 'R-123', marca: 'BMW X', modelo: 'Serie 3' }
     expect(generateVehicleSlug(vehiculo)).toBe('123-bmwx-serie3')
   })
 
   test('handles accents and symbols', () => {
-    const vehiculo = { id: 456, marca: 'Citroën', modelo: 'C4 Picasso' }
+    const vehiculo = { referencia: '#456', marca: 'Citroën', modelo: 'C4 Picasso' }
     expect(generateVehicleSlug(vehiculo)).toBe('456-citron-c4picasso')
   })
 
   test('handles numbers and mixed case', () => {
-    const vehiculo = { id: 789, marca: 'Audi', modelo: 'A4 2.0' }
+    const vehiculo = { referencia: '789', marca: 'Audi', modelo: 'A4 2.0' }
     expect(generateVehicleSlug(vehiculo)).toBe('789-audi-a420')
   })
 })

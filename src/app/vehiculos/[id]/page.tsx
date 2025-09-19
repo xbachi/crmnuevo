@@ -90,19 +90,17 @@ interface VehiculoRecordatorio {
   createdAt: string
 }
 
-// Función para generar el slug
-const generateVehicleSlug = (vehiculo: Vehiculo): string => {
-  const cleanMarca = vehiculo.marca.toLowerCase().replace(/[^a-z0-9]/g, '')
-  const cleanModelo = vehiculo.modelo.toLowerCase().replace(/[^a-z0-9]/g, '')
-  return `${vehiculo.id}-${cleanMarca}-${cleanModelo}`
+// Función para extraer la referencia del slug
+const extractReferenciaFromSlug = (slug: string): string => {
+  return slug.split('-')[0]
 }
 
 export default function VehiculoDetailPage() {
   const router = useRouter()
   const params = useParams()
-  // Extraer ID del formato "id-marca-modelo"
+  // Extraer referencia del formato "referencia-marca-modelo"
   const vehiculoSlug = params.id as string
-  const vehiculoId = vehiculoSlug.split('-')[0]
+  const vehiculoReferencia = extractReferenciaFromSlug(vehiculoSlug)
   const { showToast, ToastContainer } = useToast()
   const { showConfirm, ConfirmModalComponent } = useConfirmModal()
 
@@ -128,16 +126,21 @@ export default function VehiculoDetailPage() {
   })
 
   useEffect(() => {
-    if (vehiculoId) {
+    if (vehiculoReferencia) {
       fetchVehiculo()
+    }
+  }, [vehiculoReferencia])
+
+  useEffect(() => {
+    if (vehiculo?.id) {
       fetchNotas()
       fetchRecordatorios()
     }
-  }, [vehiculoId])
+  }, [vehiculo?.id])
 
   const fetchVehiculo = async () => {
     try {
-      const response = await fetch(`/api/vehiculos/${vehiculoId}`)
+      const response = await fetch(`/api/vehiculos/by-referencia/${vehiculoReferencia}`)
       if (response.ok) {
         const data = await response.json()
         setVehiculo(data)
@@ -161,8 +164,9 @@ export default function VehiculoDetailPage() {
   }
 
   const fetchNotas = async () => {
+    if (!vehiculo?.id) return
     try {
-      const response = await fetch(`/api/vehiculos/${vehiculoId}/notas`)
+      const response = await fetch(`/api/vehiculos/${vehiculo.id}/notas`)
       if (response.ok) {
         const data = await response.json()
         setNotas(data)
@@ -173,8 +177,9 @@ export default function VehiculoDetailPage() {
   }
 
   const fetchRecordatorios = async () => {
+    if (!vehiculo?.id) return
     try {
-      const response = await fetch(`/api/vehiculos/${vehiculoId}/recordatorios`)
+      const response = await fetch(`/api/vehiculos/${vehiculo.id}/recordatorios`)
       if (response.ok) {
         const data = await response.json()
         setRecordatorios(data)
@@ -185,10 +190,10 @@ export default function VehiculoDetailPage() {
   }
 
   const handleAgregarNota = async () => {
-    if (!nuevaNota.trim()) return
+    if (!nuevaNota.trim() || !vehiculo?.id) return
 
     try {
-      const response = await fetch(`/api/vehiculos/${vehiculoId}/notas`, {
+      const response = await fetch(`/api/vehiculos/${vehiculo.id}/notas`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -213,10 +218,10 @@ export default function VehiculoDetailPage() {
   }
 
   const handleAgregarRecordatorio = async () => {
-    if (!nuevoRecordatorio.titulo.trim() || !nuevoRecordatorio.fechaRecordatorio) return
+    if (!nuevoRecordatorio.titulo.trim() || !nuevoRecordatorio.fechaRecordatorio || !vehiculo?.id) return
 
     try {
-      const response = await fetch(`/api/vehiculos/${vehiculoId}/recordatorios`, {
+      const response = await fetch(`/api/vehiculos/${vehiculo.id}/recordatorios`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(nuevoRecordatorio)
