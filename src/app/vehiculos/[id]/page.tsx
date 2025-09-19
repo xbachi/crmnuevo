@@ -94,11 +94,42 @@ interface VehiculoRecordatorio {
 const extractReferenciaFromSlug = (slug: string): string => {
   console.log(`🔧 [EXTRACT] Extracting referencia from slug: "${slug}"`)
   
+  // Casos especiales para diferentes formatos de referencia
+  if (slug.startsWith('i')) {
+    // Para vehículos de inversor como "i99-opel-corsa"
+    const match = slug.match(/^i(\d+)/)
+    if (match) {
+      const referencia = match[1]
+      console.log(`🔧 [EXTRACT] Inversor referencia: "${referencia}"`)
+      return referencia
+    }
+  }
+  
+  if (slug.startsWith('d')) {
+    // Para vehículos de depósito como "d121212-opel-cors"
+    const match = slug.match(/^d(\d+)/)
+    if (match) {
+      const referencia = match[1]
+      console.log(`🔧 [EXTRACT] Deposito referencia: "${referencia}"`)
+      return referencia
+    }
+  }
+  
+  if (slug.startsWith('r')) {
+    // Para vehículos de renting como "r123-marca-modelo"
+    const match = slug.match(/^r(\d+)/)
+    if (match) {
+      const referencia = match[1]
+      console.log(`🔧 [EXTRACT] Renting referencia: "${referencia}"`)
+      return referencia
+    }
+  }
+  
   // Si el slug contiene un prefijo como I-, D-, R-, extraer solo la parte numérica
   const match = slug.match(/^([IDR]-)?(\d+)/)
   if (match) {
     const referencia = match[2] // Solo la parte numérica
-    console.log(`🔧 [EXTRACT] Extracted referencia: "${referencia}"`)
+    console.log(`🔧 [EXTRACT] Prefixed referencia: "${referencia}"`)
     return referencia
   }
   
