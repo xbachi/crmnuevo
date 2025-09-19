@@ -18,14 +18,25 @@ export async function GET(
     const cleanReferencia = referencia.replace(/^[#IDR-]+/, '').replace(/[^0-9]/g, '')
     console.log(`🧹 [ENDPOINT] Referencia limpia: "${cleanReferencia}"`)
     
-    // Usar una consulta simple con solo las columnas básicas para evitar errores
+    // Usar las columnas exactas que funcionan en el sistema
     const query = `
-      SELECT * FROM "Vehiculo" 
-      WHERE referencia = $1 
-         OR referencia = $2 
-         OR referencia = $3 
-         OR referencia = $4
-         OR referencia = $5
+      SELECT 
+        v.id, v.referencia, v.marca, v.modelo, v.matricula, v.bastidor, 
+        v.kms, v.tipo, v.estado, v.orden, v."createdAt", v."updatedAt",
+        v.color, v."fechaMatriculacion", v.año, v."esCocheInversor", 
+        v."inversorId", v."fechaCompra", v."precioCompra", v."gastosTransporte",
+        v."gastosTasas", v."gastosMecanica", v."gastosPintura", v."gastosLimpieza",
+        v."gastosOtros", v."precioPublicacion", v."precioVenta", v."beneficioNeto",
+        v."notasInversor", v."fotoInversor", v.itv, v.seguro, v."segundaLlave",
+        v.carpeta, v.master, v."hojasA", v.documentacion, v.ubicacion,
+        i.nombre as inversor_nombre
+      FROM "Vehiculo" v
+      LEFT JOIN "Inversor" i ON v."inversorId" = i.id
+      WHERE v.referencia = $1 
+         OR v.referencia = $2 
+         OR v.referencia = $3 
+         OR v.referencia = $4
+         OR v.referencia = $5
       LIMIT 1
     `
     
