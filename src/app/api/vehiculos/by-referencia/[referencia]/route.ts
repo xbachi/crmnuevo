@@ -18,7 +18,7 @@ export async function GET(
     const cleanReferencia = referencia.replace(/^[#IDR-]+/, '').replace(/[^0-9]/g, '')
     console.log(`🧹 [ENDPOINT] Referencia limpia: "${cleanReferencia}"`)
     
-    // Usar las columnas exactas que funcionan en el sistema
+    // Usar exactamente las mismas columnas que funcionan en getVehiculos
     const query = `
       SELECT 
         v.id, v.referencia, v.marca, v.modelo, v.matricula, v.bastidor, 
@@ -28,8 +28,7 @@ export async function GET(
         v."gastosTasas", v."gastosMecanica", v."gastosPintura", v."gastosLimpieza",
         v."gastosOtros", v."precioPublicacion", v."precioVenta", v."beneficioNeto",
         v."notasInversor", v."fotoInversor", v.itv, v.seguro, v."segundaLlave",
-        v.carpeta, v.master, v."hojasA", v.documentacion, v.ubicacion,
-        i.nombre as inversor_nombre
+        v.carpeta, v.master, v."hojasA", v.documentacion, i.nombre as inversor_nombre
       FROM "Vehiculo" v
       LEFT JOIN "Inversor" i ON v."inversorId" = i.id
       WHERE v.referencia = $1 

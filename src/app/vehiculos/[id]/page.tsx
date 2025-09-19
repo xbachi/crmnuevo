@@ -150,6 +150,7 @@ export default function VehiculoDetailPage() {
             marca: data.marca,
             modelo: data.modelo
           })
+          console.log(`✅ [VEHICULO PAGE] Datos completos del vehículo:`, data)
           setVehiculo(data)
           
           // Verificar si la URL es correcta y redirigir si es necesario
@@ -160,6 +161,8 @@ export default function VehiculoDetailPage() {
           if (vehiculoSlug !== correctSlug) {
             console.log(`🔄 [VEHICULO PAGE] Redirigiendo a slug correcto: /vehiculos/${correctSlug}`)
             router.replace(`/vehiculos/${correctSlug}`)
+          } else {
+            console.log(`✅ [VEHICULO PAGE] URL es correcta, mostrando página del vehículo`)
           }
         } else {
           const errorData = await response.json().catch(() => ({}))
@@ -341,6 +344,7 @@ export default function VehiculoDetailPage() {
   }
 
   if (isLoading) {
+    console.log(`⏳ [VEHICULO PAGE] Mostrando pantalla de carga...`)
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
@@ -349,6 +353,7 @@ export default function VehiculoDetailPage() {
   }
 
   if (!vehiculo) {
+    console.log(`⚠️ [VEHICULO PAGE] No hay datos de vehículo para mostrar`)
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
@@ -360,6 +365,8 @@ export default function VehiculoDetailPage() {
       </div>
     )
   }
+
+  console.log(`🎯 [VEHICULO PAGE] Renderizando página del vehículo: ${vehiculo.marca} ${vehiculo.modelo} (${vehiculo.referencia})`)
 
   return (
     <div className="min-h-screen bg-slate-50">
