@@ -470,55 +470,89 @@ export default function InvestorDashboardPage() {
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
                 {/* Información de contacto - Izquierda (20%) */}
                 <div className="w-full lg:w-1/5 mb-6 lg:mb-0 lg:mr-6">
-                  <h3 className="text-sm font-medium text-gray-500 mb-2">Información de contacto</h3>
-                  <div className="space-y-1 text-sm text-gray-900">
-                    {inversor.email && <p>📧 {inversor.email}</p>}
-                    <p>🆔 ID: {inversor.id}</p>
-                    {inversor.fechaAporte && (
-                      <p>📅 Fecha aporte: {new Date(inversor.fechaAporte).toLocaleDateString('es-ES')}</p>
-                    )}
-                    {inversor.notasInternas && (
-                      <div className="mt-2">
-                        <h4 className="text-xs font-medium text-gray-500 mb-1">Notas</h4>
-                        <p className="text-xs text-gray-600">{inversor.notasInternas}</p>
+                  <h3 className="text-lg font-semibold text-gray-700 mb-4">Información de contacto</h3>
+                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 border border-gray-200">
+                    <div className="space-y-3">
+                      {inversor.email && (
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-600">Email</p>
+                            <p className="text-sm text-gray-900">{inversor.email}</p>
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                          <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">ID</p>
+                          <p className="text-sm text-gray-900">{inversor.id}</p>
+                        </div>
                       </div>
-                    )}
+                      {inversor.fechaAporte && (
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                            <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-600">Fecha aporte</p>
+                            <p className="text-sm text-gray-900">{new Date(inversor.fechaAporte).toLocaleDateString('es-ES')}</p>
+                          </div>
+                        </div>
+                      )}
+                      {inversor.notasInternas && (
+                        <div className="mt-4 pt-3 border-t border-gray-200">
+                          <h4 className="text-sm font-semibold text-gray-700 mb-2">Notas internas</h4>
+                          <p className="text-sm text-gray-600 bg-white rounded-lg p-3 border border-gray-200">{inversor.notasInternas}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
                 {/* Resumen de Capital - Centro (60%) */}
                 {metrics && (
                   <div className="w-full lg:w-3/5 mb-6 lg:mb-0 lg:mr-6">
-                    <h3 className="text-lg font-semibold text-gray-500 mb-4 text-center">Resumen de Capital</h3>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="text-center">
-                        <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                          <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <h3 className="text-xl font-semibold text-gray-700 mb-6 text-center">Resumen de Capital</h3>
+                    <div className="grid grid-cols-3 gap-6">
+                      <div className="text-center bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-200">
+                        <div className="w-16 h-16 bg-orange-200 rounded-full flex items-center justify-center mx-auto mb-3">
+                          <svg className="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                           </svg>
                         </div>
-                        <p className="text-xs font-medium text-gray-500 mb-1">Capital Aportado</p>
-                        <p className="text-lg font-bold text-orange-600">€{metrics.capitalAportado.toLocaleString()}</p>
+                        <p className="text-sm font-semibold text-gray-600 mb-2">Capital Aportado</p>
+                        <p className="text-xl font-bold text-orange-700">€{metrics.capitalAportado.toLocaleString()}</p>
                       </div>
                       
-                      <div className="text-center">
-                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                          <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="text-center bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
+                        <div className="w-16 h-16 bg-blue-200 rounded-full flex items-center justify-center mx-auto mb-3">
+                          <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                           </svg>
                         </div>
-                        <p className="text-xs font-medium text-gray-500 mb-1">Capital Invertido</p>
-                        <p className="text-lg font-bold text-blue-600">€{metrics.capitalInvertido.toLocaleString()}</p>
+                        <p className="text-sm font-semibold text-gray-600 mb-2">Capital Invertido</p>
+                        <p className="text-xl font-bold text-blue-700">€{metrics.capitalInvertido.toLocaleString()}</p>
                       </div>
                       
-                      <div className="text-center">
-                        <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                          <svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="text-center bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl p-4 border border-emerald-200">
+                        <div className="w-16 h-16 bg-emerald-200 rounded-full flex items-center justify-center mx-auto mb-3">
+                          <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                           </svg>
                         </div>
-                        <p className="text-xs font-medium text-gray-500 mb-1">Capital Disponible</p>
-                        <p className={`text-lg font-bold ${metrics.capitalDisponible >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                        <p className="text-sm font-semibold text-gray-600 mb-2">Capital Disponible</p>
+                        <p className={`text-xl font-bold ${metrics.capitalDisponible >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
                           €{metrics.capitalDisponible.toLocaleString()}
                         </p>
                       </div>
@@ -529,40 +563,42 @@ export default function InvestorDashboardPage() {
                 {/* Rendimiento - Derecha (20%) */}
                 {metrics && (
                   <div className="w-full lg:w-1/5">
-                    <h3 className="text-base font-medium text-gray-500 mb-3 text-center">Rendimiento</h3>
-                    <div className="space-y-2 text-base">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-1">
-                          <div className="w-4 h-4 bg-green-100 rounded-full flex items-center justify-center">
-                            <svg className="w-2 h-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2" />
-                            </svg>
+                    <h3 className="text-lg font-semibold text-gray-700 mb-4 text-center">Rendimiento</h3>
+                    <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 border border-gray-200">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between bg-white rounded-lg p-3 border border-gray-200">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                              <svg className="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2" />
+                              </svg>
+                            </div>
+                            <span className="text-gray-700 font-medium text-sm">Beneficio:</span>
                           </div>
-                          <span className="text-gray-600 text-sm">Beneficio:</span>
+                          <span className="font-bold text-green-700 text-lg">€{(metrics.beneficioAcumulado || 0).toLocaleString()}</span>
                         </div>
-                        <span className="font-bold text-green-600 text-base">€{(metrics.beneficioAcumulado || 0).toLocaleString()}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-1">
-                          <div className="w-4 h-4 bg-blue-100 rounded-full flex items-center justify-center">
-                            <svg className="w-2 h-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                            </svg>
+                        <div className="flex items-center justify-between bg-white rounded-lg p-3 border border-gray-200">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                              <svg className="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                              </svg>
+                            </div>
+                            <span className="text-gray-700 font-medium text-sm">ROI:</span>
                           </div>
-                          <span className="text-gray-600 text-sm">ROI:</span>
+                          <span className="font-bold text-blue-700 text-lg">{(metrics.roi || 0).toFixed(1)}%</span>
                         </div>
-                        <span className="font-bold text-blue-600 text-base">{(metrics.roi || 0).toFixed(1)}%</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-1">
-                          <div className="w-4 h-4 bg-purple-100 rounded-full flex items-center justify-center">
-                            <svg className="w-2 h-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                            </svg>
+                        <div className="flex items-center justify-between bg-white rounded-lg p-3 border border-gray-200">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center">
+                              <svg className="w-3 h-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                              </svg>
+                            </div>
+                            <span className="text-gray-700 font-medium text-sm">ROI Anual:</span>
                           </div>
-                          <span className="text-gray-600 text-xs">ROI Anual:</span>
+                          <span className="font-bold text-purple-700 text-lg">{calculateAnnualizedROI().toFixed(1)}%</span>
                         </div>
-                        <span className="font-bold text-purple-600 text-sm">{calculateAnnualizedROI().toFixed(1)}%</span>
                       </div>
                     </div>
                   </div>
