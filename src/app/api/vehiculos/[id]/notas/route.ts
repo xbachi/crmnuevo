@@ -61,6 +61,48 @@ export async function POST(
   }
 }
 
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id: vehiculoId } = await params
+    const data = await request.json()
+    const { id: notaId, contenido } = data
+
+    console.log(`✏️ [NOTAS] Actualizando nota ${notaId} del vehículo ${vehiculoId}`)
+
+    // Validaciones
+    if (!notaId) {
+      return NextResponse.json({ error: 'ID de nota es obligatorio' }, { status: 400 })
+    }
+    if (!contenido || contenido.trim() === '') {
+      return NextResponse.json({ error: 'El contenido de la nota es obligatorio' }, { status: 400 })
+    }
+
+    const client = await pool.connect()
+    
+    const result = await client.query(`
+      UPDATE VehiculoNotas 
+      SET contenido = $1, fecha_creacion = NOW()
+      WHERE id = $2 AND vehiculo_id = $3
+      RETURNING *
+    `, [contenido.trim(), notaId, vehiculoId])
+    
+    client.release()
+    
+    if (result.rows.length === 0) {
+      return NextResponse.json({ error: 'Nota no encontrada' }, { status: 404 })
+    }
+    
+    console.log(`✅ [NOTAS] Nota actualizada exitosamente:`, result.rows[0])
+    return NextResponse.json(result.rows[0])
+  } catch (error) {
+    console.error('❌ [NOTAS] Error al actualizar nota del vehículo:', error)
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
+  }
+}
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

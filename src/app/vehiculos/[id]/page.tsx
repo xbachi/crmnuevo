@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useToast } from '@/components/Toast'
 import { useConfirmModal } from '@/components/ConfirmModal'
 import { formatCurrency, formatVehicleReference, formatDate, generateVehicleSlug } from '@/lib/utils'
+import NotasSection from '@/components/NotasSection'
 
 interface Vehiculo {
   id: number
@@ -128,10 +129,13 @@ export default function VehiculoDetailPage() {
   const [activeTab, setActiveTab] = useState<'general' | 'financiero'>('general')
   const [isAdmin] = useState(true) // TODO: Obtener del contexto de autenticación
 
-  // Estados para nueva nota
-  const [nuevaNota, setNuevaNota] = useState('')
-  const [editingNotaId, setEditingNotaId] = useState<number | null>(null)
-  const [editingNotaTexto, setEditingNotaTexto] = useState('')
+  // Estados para notas
+  const [notas, setNotas] = useState<Array<{
+    id: number
+    contenido: string
+    usuario_nombre: string
+    fecha_creacion: string
+  }>>([])
   
   // Estados para documentos
   const [documentos, setDocumentos] = useState<Array<{
@@ -299,6 +303,25 @@ export default function VehiculoDetailPage() {
     }
   }
 
+  // Función para obtener notas desde la API
+  const fetchNotas = async () => {
+    try {
+      console.log(`📝 [VEHICULO PAGE] Obteniendo notas para vehículo ${vehiculoId}`)
+      const response = await fetch(`/api/vehiculos/${vehiculoId}/notas`)
+      if (response.ok) {
+        const data = await response.json()
+        setNotas(data)
+        console.log(`✅ [VEHICULO PAGE] Notas cargadas:`, data.length)
+      } else {
+        console.error('Error al obtener notas:', response.statusText)
+        setNotas([])
+      }
+    } catch (error) {
+      console.error('Error al obtener notas:', error)
+      setNotas([])
+    }
+  }
+
 
   useEffect(() => {
     const fetchVehiculoEffect = async () => {
@@ -309,6 +332,7 @@ export default function VehiculoDetailPage() {
       console.log(`🚀 [VEHICULO PAGE] Iniciando useEffect con ID: "${vehiculoId}"`)
       fetchVehiculo()
       fetchDocumentos()
+      fetchNotas()
     } else {
       console.log(`⚠️ [VEHICULO PAGE] No hay ID para buscar`)
     }
@@ -316,53 +340,6 @@ export default function VehiculoDetailPage() {
   }, [vehiculoId])
 
 
-  const handleAgregarNota = async () => {
-    if (!nuevaNota.trim()) return
-    
-    try {
-      const nota = {
-        id: Date.now(),
-        fecha: new Date(),
-        contenido: nuevaNota,
-        autor: 'Admin'
-      }
-      
-      setNotas([...notas, nota])
-      setNuevaNota('')
-      showToast('Nota agregada correctamente', 'success')
-    } catch (error) {
-      showToast('Error al agregar la nota', 'error')
-    }
-  }
-
-  const handleEditarNota = (nota: any) => {
-    setEditingNotaId(nota.id)
-    setEditingNotaTexto(nota.contenido)
-  }
-
-  const handleGuardarEdicionNota = () => {
-    if (!editingNotaTexto.trim()) return
-    
-    setNotas(notas.map(nota => 
-      nota.id === editingNotaId 
-        ? { ...nota, contenido: editingNotaTexto }
-        : nota
-    ))
-    
-    setEditingNotaId(null)
-    setEditingNotaTexto('')
-    showToast('Nota actualizada correctamente', 'success')
-  }
-
-  const handleCancelarEdicionNota = () => {
-    setEditingNotaId(null)
-    setEditingNotaTexto('')
-  }
-
-  const handleEliminarNota = (notaId: number) => {
-    setNotas(notas.filter(nota => nota.id !== notaId))
-    showToast('Nota eliminada correctamente', 'success')
-  }
 
   // Funciones para manejar documentos
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1684,92 +1661,11 @@ export default function VehiculoDetailPage() {
             </div>
 
             {/* Notas */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Notas ({notas.length})</h2>
-              
-              {/* Agregar nueva nota */}
-              <div className="mb-4">
-                <textarea
-                  value={nuevaNota}
-                  onChange={(e) => setNuevaNota(e.target.value)}
-                  placeholder="Agregar una nueva nota..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                  rows={3}
-                />
-                <button
-                  onClick={handleAgregarNota}
-                  disabled={!nuevaNota.trim()}
-                  className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                >
-                  Agregar Nota
-                </button>
-              </div>
-              
-              {/* Lista de notas */}
-              <div className="space-y-3">
-                {notas.map(nota => (
-                  <div key={nota.id} className="border border-gray-200 rounded-lg p-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        {editingNotaId === nota.id ? (
-                          <div className="space-y-2">
-                            <textarea
-                              value={editingNotaTexto}
-                              onChange={(e) => setEditingNotaTexto(e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                              rows={3}
-                            />
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={handleGuardarEdicionNota}
-                                className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
-                              >
-                                Guardar
-                              </button>
-                              <button
-                                onClick={handleCancelarEdicionNota}
-                                className="px-3 py-1 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm"
-                              >
-                                Cancelar
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <>
-                            <p className="text-gray-900">{nota.contenido}</p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {nota.autor} • {nota.fecha.toLocaleDateString('es-ES')}
-                            </p>
-                          </>
-                        )}
-                      </div>
-                      {editingNotaId !== nota.id && (
-                        <div className="flex space-x-1 ml-2">
-                          <button
-                            onClick={() => handleEditarNota(nota)}
-                            className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
-                            title="Editar nota"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" />
-                            </svg>
-                          </button>
-                          <button
-                            onClick={() => handleEliminarNota(nota.id)}
-                            className="p-1 text-gray-400 hover:text-red-600 transition-colors"
-                            title="Eliminar nota"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <NotasSection 
+              notas={notas} 
+              onNotasChange={setNotas} 
+              vehiculoId={vehiculo?.id || 0} 
+            />
           </div>
 
           {/* Sidebar Derecha */}

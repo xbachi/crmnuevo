@@ -1,0 +1,222 @@
+'use client'
+
+import { useState } from 'react'
+import { useToast } from '@/components/Toast'
+
+interface Nota {
+  id: number
+  contenido: string
+  usuario_nombre: string
+  fecha_creacion: string
+}
+
+interface NotasSectionProps {
+  notas: Nota[]
+  onNotasChange: (notas: Nota[]) => void
+  vehiculoId: number
+}
+
+export default function NotasSection({ notas, onNotasChange, vehiculoId }: NotasSectionProps) {
+  const { showToast } = useToast()
+  const [nuevaNota, setNuevaNota] = useState('')
+  const [editingNotaId, setEditingNotaId] = useState<number | null>(null)
+  const [editingNotaTexto, setEditingNotaTexto] = useState('')
+
+  const handleAgregarNota = async () => {
+    if (!nuevaNota.trim()) return
+    
+    try {
+      console.log(`📝 [NOTA] Agregando nota para vehículo ${vehiculoId}`)
+      const response = await fetch(`/api/vehiculos/${vehiculoId}/notas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contenido: nuevaNota,
+          usuario_nombre: 'Admin'
+        })
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('❌ [NOTA] Error agregando nota:', errorData)
+        showToast(`Error al agregar la nota: ${errorData.error}`, 'error')
+        return
+      }
+      
+      const nuevaNotaData = await response.json()
+      console.log(`✅ [NOTA] Nota agregada:`, nuevaNotaData)
+      
+      // Actualizar estado local
+      onNotasChange([nuevaNotaData, ...notas])
+      setNuevaNota('')
+      showToast('Nota agregada correctamente', 'success')
+    } catch (error) {
+      console.error('❌ [NOTA] Error agregando nota:', error)
+      showToast('Error al agregar la nota', 'error')
+    }
+  }
+
+  const handleEditarNota = (nota: Nota) => {
+    setEditingNotaId(nota.id)
+    setEditingNotaTexto(nota.contenido)
+  }
+
+  const handleGuardarEdicionNota = async () => {
+    if (!editingNotaTexto.trim() || !editingNotaId) return
+    
+    try {
+      console.log(`📝 [NOTA] Actualizando nota ${editingNotaId} para vehículo ${vehiculoId}`)
+      const response = await fetch(`/api/vehiculos/${vehiculoId}/notas`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingNotaId,
+          contenido: editingNotaTexto
+        })
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('❌ [NOTA] Error actualizando nota:', errorData)
+        showToast(`Error al actualizar la nota: ${errorData.error}`, 'error')
+        return
+      }
+      
+      const notaActualizada = await response.json()
+      console.log(`✅ [NOTA] Nota actualizada:`, notaActualizada)
+      
+      // Actualizar estado local
+      onNotasChange(notas.map(nota => 
+        nota.id === editingNotaId ? notaActualizada : nota
+      ))
+      
+      setEditingNotaId(null)
+      setEditingNotaTexto('')
+      showToast('Nota actualizada correctamente', 'success')
+    } catch (error) {
+      console.error('❌ [NOTA] Error actualizando nota:', error)
+      showToast('Error al actualizar la nota', 'error')
+    }
+  }
+
+  const handleCancelarEdicionNota = () => {
+    setEditingNotaId(null)
+    setEditingNotaTexto('')
+  }
+
+  const handleEliminarNota = async (notaId: number) => {
+    try {
+      console.log(`🗑️ [NOTA] Eliminando nota ${notaId} del vehículo ${vehiculoId}`)
+      const response = await fetch(`/api/vehiculos/${vehiculoId}/notas?notaId=${notaId}`, {
+        method: 'DELETE'
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('❌ [NOTA] Error eliminando nota:', errorData)
+        showToast(`Error al eliminar la nota: ${errorData.error}`, 'error')
+        return
+      }
+      
+      console.log(`✅ [NOTA] Nota eliminada`)
+      
+      // Actualizar estado local
+      onNotasChange(notas.filter(nota => nota.id !== notaId))
+      showToast('Nota eliminada correctamente', 'success')
+    } catch (error) {
+      console.error('❌ [NOTA] Error eliminando nota:', error)
+      showToast('Error al eliminar la nota', 'error')
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+      <h2 className="text-lg font-semibold text-gray-900 mb-4">Notas</h2>
+      
+      {/* Formulario para agregar nota */}
+      <div className="mb-6">
+        <div className="flex space-x-3">
+          <textarea
+            value={nuevaNota}
+            onChange={(e) => setNuevaNota(e.target.value)}
+            placeholder="Escribe una nota..."
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            rows={3}
+          />
+          <button
+            onClick={handleAgregarNota}
+            disabled={!nuevaNota.trim()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+          >
+            Agregar Nota
+          </button>
+        </div>
+      </div>
+      
+      {/* Lista de notas */}
+      <div className="space-y-3">
+        {notas.map(nota => (
+          <div key={nota.id} className="border border-gray-200 rounded-lg p-3">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                {editingNotaId === nota.id ? (
+                  <div className="space-y-2">
+                    <textarea
+                      value={editingNotaTexto}
+                      onChange={(e) => setEditingNotaTexto(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                      rows={3}
+                    />
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={handleGuardarEdicionNota}
+                        className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                      >
+                        Guardar
+                      </button>
+                      <button
+                        onClick={handleCancelarEdicionNota}
+                        className="px-3 py-1 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-gray-900">{nota.contenido}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {nota.usuario_nombre} • {new Date(nota.fecha_creacion).toLocaleDateString('es-ES')}
+                    </p>
+                  </>
+                )}
+              </div>
+              {editingNotaId !== nota.id && (
+                <div className="flex space-x-1 ml-2">
+                  <button
+                    onClick={() => handleEditarNota(nota)}
+                    className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                    title="Editar nota"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => handleEliminarNota(nota.id)}
+                    className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                    title="Eliminar nota"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
