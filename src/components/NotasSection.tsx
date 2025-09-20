@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useToast } from '@/components/Toast'
 
 interface Nota {
@@ -22,6 +22,32 @@ export default function NotasSection({ notas, onNotasChange, entityId, entityTyp
   const [nuevaNota, setNuevaNota] = useState('')
   const [editingNotaId, setEditingNotaId] = useState<number | null>(null)
   const [editingNotaTexto, setEditingNotaTexto] = useState('')
+
+  // Cargar notas al montar el componente
+  const fetchNotas = async () => {
+    if (!entityId) return
+    
+    try {
+      console.log(`📝 [NOTA] Cargando notas para ${entityType} ${entityId}`)
+      const response = await fetch(`/api/${entityType}s/${entityId}/notas`)
+      
+      if (response.ok) {
+        const data = await response.json()
+        onNotasChange(data)
+        console.log(`✅ [NOTA] Notas cargadas: ${data.length}`)
+      } else {
+        console.error('❌ [NOTA] Error al cargar notas:', response.statusText)
+        showToast('Error al cargar las notas', 'error')
+      }
+    } catch (error) {
+      console.error('❌ [NOTA] Error al cargar notas:', error)
+      showToast('Error al cargar las notas', 'error')
+    }
+  }
+
+  useEffect(() => {
+    fetchNotas()
+  }, [entityId, entityType])
 
   const handleAgregarNota = async () => {
     if (!nuevaNota.trim()) return
@@ -47,8 +73,8 @@ export default function NotasSection({ notas, onNotasChange, entityId, entityTyp
       const nuevaNotaData = await response.json()
       console.log(`✅ [NOTA] Nota agregada:`, nuevaNotaData)
       
-      // Actualizar estado local
-      onNotasChange([nuevaNotaData, ...notas])
+      // Recargar todas las notas
+      await fetchNotas()
       setNuevaNota('')
       showToast('Nota agregada correctamente', 'success')
     } catch (error) {
@@ -86,10 +112,8 @@ export default function NotasSection({ notas, onNotasChange, entityId, entityTyp
       const notaActualizada = await response.json()
       console.log(`✅ [NOTA] Nota actualizada:`, notaActualizada)
       
-      // Actualizar estado local
-      onNotasChange(notas.map(nota => 
-        nota.id === editingNotaId ? notaActualizada : nota
-      ))
+      // Recargar todas las notas
+      await fetchNotas()
       
       setEditingNotaId(null)
       setEditingNotaTexto('')
@@ -121,8 +145,8 @@ export default function NotasSection({ notas, onNotasChange, entityId, entityTyp
       
       console.log(`✅ [NOTA] Nota eliminada`)
       
-      // Actualizar estado local
-      onNotasChange(notas.filter(nota => nota.id !== notaId))
+      // Recargar todas las notas
+      await fetchNotas()
       showToast('Nota eliminada correctamente', 'success')
     } catch (error) {
       console.error('❌ [NOTA] Error eliminando nota:', error)
