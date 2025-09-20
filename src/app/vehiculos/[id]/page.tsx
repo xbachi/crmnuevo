@@ -165,73 +165,83 @@ export default function VehiculoDetailPage() {
     prioridad: 'media' as 'baja' | 'media' | 'alta'
   })
 
-  useEffect(() => {
-    const fetchVehiculo = async () => {
-      try {
-        console.log(`🔍 [VEHICULO PAGE] Iniciando búsqueda de vehículo`)
-        console.log(`📝 [VEHICULO PAGE] Slug completo: "${vehiculoSlug}"`)
-        console.log(`🔢 [VEHICULO PAGE] ID extraído: "${vehiculoId}"`)
-        
-        if (!vehiculoId) {
-          console.log(`❌ [VEHICULO PAGE] No se pudo extraer ID del slug`)
-          setError('ID de vehículo inválido')
-          setIsLoading(false)
-          return
-        }
-        
-        setIsLoading(true)
-        const apiUrl = `/api/vehiculos/${vehiculoId}`
-        console.log(`📞 [VEHICULO PAGE] Llamando API: ${apiUrl}`)
-        
-        const response = await fetch(apiUrl)
-        console.log(`📡 [VEHICULO PAGE] Response status: ${response.status}`)
-        
-        if (response.ok) {
-          const data = await response.json()
-          console.log(`✅ [VEHICULO PAGE] Datos recibidos:`, {
-            id: data.id,
-            referencia: data.referencia,
-            marca: data.marca,
-            modelo: data.modelo,
-            estado: data.estado
-          })
-          console.log(`✅ [VEHICULO PAGE] Estado del vehículo:`, {
-            estado: data.estado,
-            tipo: typeof data.estado,
-            esNull: data.estado === null,
-            esUndefined: data.estado === undefined
-          })
-          console.log(`✅ [VEHICULO PAGE] Datos completos del vehículo:`, data)
-          setVehiculo(data)
-          
-          // Verificar si la URL es correcta y redirigir si es necesario
-          const correctSlug = generateVehicleSlug(data)
-          console.log(`🔗 [VEHICULO PAGE] Slug correcto calculado: "${correctSlug}"`)
-          console.log(`🔗 [VEHICULO PAGE] Slug actual: "${vehiculoSlug}"`)
-          
-          if (vehiculoSlug !== correctSlug) {
-            console.log(`🔄 [VEHICULO PAGE] Redirigiendo a slug correcto: /vehiculos/${correctSlug}`)
-            router.replace(`/vehiculos/${correctSlug}`)
-          } else {
-            console.log(`✅ [VEHICULO PAGE] URL es correcta, mostrando página del vehículo`)
-          }
-        } else {
-          const errorData = await response.json().catch(() => ({}))
-          console.error(`❌ [VEHICULO PAGE] Error al cargar el vehículo:`, {
-            status: response.status,
-            statusText: response.statusText,
-            error: errorData
-          })
-          console.log(`🔄 [VEHICULO PAGE] Redirigiendo a /vehiculos`)
-          router.push('/vehiculos')
-        }
-      } catch (error) {
-        console.error('❌ [VEHICULO PAGE] Error en fetchVehiculo:', error)
-        console.log(`🔄 [VEHICULO PAGE] Redirigiendo a /vehiculos por error`)
-        router.push('/vehiculos')
-      } finally {
+  // Función para obtener datos del vehículo
+  const fetchVehiculo = async () => {
+    try {
+      console.log(`🔍 [VEHICULO PAGE] Iniciando búsqueda de vehículo`)
+      console.log(`📝 [VEHICULO PAGE] Slug completo: "${vehiculoSlug}"`)
+      console.log(`🔢 [VEHICULO PAGE] ID extraído: "${vehiculoId}"`)
+      
+      if (!vehiculoId) {
+        console.log(`❌ [VEHICULO PAGE] No se pudo extraer ID del slug`)
+        setError('ID de vehículo inválido')
         setIsLoading(false)
+        return null
       }
+      
+      setIsLoading(true)
+      const apiUrl = `/api/vehiculos/${vehiculoId}`
+      console.log(`📞 [VEHICULO PAGE] Llamando API: ${apiUrl}`)
+      
+      const response = await fetch(apiUrl)
+      console.log(`📡 [VEHICULO PAGE] Response status: ${response.status}`)
+      
+      if (response.ok) {
+        const data = await response.json()
+        console.log(`✅ [VEHICULO PAGE] Datos recibidos:`, {
+          id: data.id,
+          referencia: data.referencia,
+          marca: data.marca,
+          modelo: data.modelo,
+          estado: data.estado
+        })
+        console.log(`✅ [VEHICULO PAGE] Estado del vehículo:`, {
+          estado: data.estado,
+          tipo: typeof data.estado,
+          esNull: data.estado === null,
+          esUndefined: data.estado === undefined
+        })
+        console.log(`✅ [VEHICULO PAGE] Datos completos del vehículo:`, data)
+        setVehiculo(data)
+        setError(null)
+        
+        // Verificar si la URL es correcta y redirigir si es necesario
+        const correctSlug = generateVehicleSlug(data)
+        console.log(`🔗 [VEHICULO PAGE] Slug correcto calculado: "${correctSlug}"`)
+        console.log(`🔗 [VEHICULO PAGE] Slug actual: "${vehiculoSlug}"`)
+        
+        if (vehiculoSlug !== correctSlug) {
+          console.log(`🔄 [VEHICULO PAGE] Redirigiendo a slug correcto: /vehiculos/${correctSlug}`)
+          router.replace(`/vehiculos/${correctSlug}`)
+        } else {
+          console.log(`✅ [VEHICULO PAGE] URL es correcta, mostrando página del vehículo`)
+        }
+        
+        return data
+      } else {
+        const errorData = await response.json().catch(() => ({}))
+        console.error(`❌ [VEHICULO PAGE] Error al cargar el vehículo:`, {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData
+        })
+        console.log(`🔄 [VEHICULO PAGE] Redirigiendo a /vehiculos`)
+        router.push('/vehiculos')
+        setError('Error al cargar vehículo')
+        return null
+      }
+    } catch (error) {
+      console.error('❌ [VEHICULO PAGE] Error en fetchVehiculo:', error)
+      setError('Error al cargar vehículo')
+      return null
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    const fetchVehiculoEffect = async () => {
+      await fetchVehiculo()
     }
 
     const fetchDocumentos = async () => {
