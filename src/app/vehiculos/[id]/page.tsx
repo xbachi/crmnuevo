@@ -726,6 +726,7 @@ export default function VehiculoDetailPage() {
                       </div>
                     </div>
                   </div>
+                  </div>
                 )}
 
                 {/* Información Financiera (Solo Admin) - Formato Mejorado */}
