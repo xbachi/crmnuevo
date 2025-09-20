@@ -1,8 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile, mkdir } from 'fs/promises'
+import { writeFile, mkdir, readFile } from 'fs/promises'
 import { join } from 'path'
-import { existsSync } from 'fs'
-import { pool } from '@/lib/direct-database'
+
+const METADATA_FILE = 'vehiculo-files-metadata.json'
+
+async function loadMetadata(vehiculoId: string) {
+  try {
+    const metadataDir = join(process.cwd(), 'public', 'uploads', 'vehiculos', vehiculoId)
+    await mkdir(metadataDir, { recursive: true })
+    const metadataPath = join(metadataDir, METADATA_FILE)
+    const data = await readFile(metadataPath, 'utf-8')
+    return JSON.parse(data)
+  } catch (error) {
+    return []
+  }
+}
+
+async function saveMetadata(vehiculoId: string, metadata: any[]) {
+  try {
+    const metadataDir = join(process.cwd(), 'public', 'uploads', 'vehiculos', vehiculoId)
+    await mkdir(metadataDir, { recursive: true })
+    const metadataPath = join(metadataDir, METADATA_FILE)
+    await writeFile(metadataPath, JSON.stringify(metadata, null, 2))
+  } catch (error) {
+    console.error('Error saving metadata:', error)
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,92 +35,59 @@ export async function POST(request: NextRequest) {
     const file = formData.get('file') as File
     const vehiculoId = formData.get('vehiculoId') as string
 
-    console.log(`📝 [UPLOAD API] Datos recibidos:`, {
-      fileName: file?.name,
-      fileSize: file?.size,
-      fileType: file?.type,
-      vehiculoId: vehiculoId
-    })
-
     if (!file || !vehiculoId) {
-      console.log(`❌ [UPLOAD API] Datos faltantes:`, { file: !!file, vehiculoId: !!vehiculoId })
-      return NextResponse.json({ error: 'Archivo y ID de vehículo requeridos' }, { status: 400 })
+      return NextResponse.json({ error: 'Archivo y vehículo ID requeridos' }, { status: 400 })
     }
+
+    console.log(`📁 [UPLOAD API] Archivo: ${file.name}, Vehículo: ${vehiculoId}`)
 
     // Crear directorio si no existe
     const uploadDir = join(process.cwd(), 'public', 'uploads', 'vehiculos', vehiculoId)
-    console.log(`📁 [UPLOAD API] Directorio de subida: ${uploadDir}`)
-    
-    if (!existsSync(uploadDir)) {
-      console.log(`📁 [UPLOAD API] Creando directorio: ${uploadDir}`)
-      await mkdir(uploadDir, { recursive: true })
-    }
+    await mkdir(uploadDir, { recursive: true })
 
     // Generar nombre único para el archivo
     const timestamp = Date.now()
-    const fileName = `${timestamp}-${file.name}`
-    const filePath = join(uploadDir, fileName)
-    console.log(`📁 [UPLOAD API] Archivo destino: ${filePath}`)
+    const fileExtension = file.name.split('.').pop()
+    const uniqueFileName = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
+    const filePath = join(uploadDir, uniqueFileName)
 
-    // Convertir archivo a buffer y guardarlo
-    console.log(`💾 [UPLOAD API] Guardando archivo físico...`)
+    // Guardar archivo
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
     await writeFile(filePath, buffer)
-    console.log(`✅ [UPLOAD API] Archivo guardado exitosamente`)
 
-    // Guardar información en la base de datos
-    console.log(`💾 [UPLOAD API] Guardando información en base de datos...`)
-    
-    const insertQuery = `
-      INSERT INTO VehiculoDocumentos 
-      (vehiculo_id, nombre_archivo, nombre_original, ruta_archivo, tamaño_bytes, tipo_mime, fecha_subida)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING id, fecha_subida
-    `
-    
-    const insertValues = [
-      parseInt(vehiculoId),
-      fileName,
-      file.name,
-      `/uploads/vehiculos/${vehiculoId}/${fileName}`,
-      file.size,
-      file.type,
-      new Date().toISOString()
-    ]
-    
-    console.log(`🔍 [UPLOAD API] Query: ${insertQuery}`)
-    console.log(`🔍 [UPLOAD API] Valores:`, insertValues)
-    
-    const result = await pool.query(insertQuery, insertValues)
-    const documentId = result.rows[0].id
-    const fechaSubida = result.rows[0].fecha_subida
+    console.log(`✅ [UPLOAD API] Archivo guardado en: ${filePath}`)
 
-    console.log(`✅ [UPLOAD API] Documento guardado en BD: ID ${documentId} para vehículo ${vehiculoId}`)
+    // Cargar metadatos existentes
+    const existingMetadata = await loadMetadata(vehiculoId)
+    
+    // Agregar nuevo archivo a metadatos
+    const newFileMetadata = {
+      id: Date.now().toString(),
+      name: file.name,
+      fileName: uniqueFileName,
+      size: file.size,
+      type: file.type,
+      uploadDate: new Date().toISOString(),
+      path: `/uploads/vehiculos/${vehiculoId}/${uniqueFileName}`
+    }
+    
+    existingMetadata.push(newFileMetadata)
+    await saveMetadata(vehiculoId, existingMetadata)
 
-    // Retornar información del archivo
-    return NextResponse.json({
-      success: true,
-      file: {
-        id: documentId.toString(),
-        nombre: file.name,
-        tamaño: file.size,
-        fechaSubida: fechaSubida,
-        tipo: file.type,
-        ruta: `/uploads/vehiculos/${vehiculoId}/${fileName}`
-      }
+    console.log(`✅ [UPLOAD API] Metadatos actualizados`)
+
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Archivo subido exitosamente',
+      file: newFileMetadata
     })
 
   } catch (error) {
-    console.error('❌ [UPLOAD API] Error al subir archivo:', error)
-    console.error('❌ [UPLOAD API] Error details:', {
-      message: error instanceof Error ? error.message : 'Error desconocido',
-      stack: error instanceof Error ? error.stack : undefined,
-      vehiculoId: formData?.get('vehiculoId')
-    })
+    console.error('❌ [UPLOAD API] Error:', error)
     return NextResponse.json({ 
-      error: 'Error al subir archivo',
-      details: error instanceof Error ? error.message : 'Error desconocido'
+      success: false, 
+      error: 'Error al subir archivo' 
     }, { status: 500 })
   }
 }

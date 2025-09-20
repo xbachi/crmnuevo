@@ -237,18 +237,16 @@ export default function VehiculoDetailPage() {
     const fetchDocumentos = async () => {
       try {
         console.log(`📁 [VEHICULO PAGE] Obteniendo documentos para vehículo ${vehiculoId}`)
-        const response = await fetch(`/api/vehiculos/${vehiculoId}/documentos-temp`)
+        const response = await fetch(`/api/vehiculos/${vehiculoId}/files`)
         if (response.ok) {
           const data = await response.json()
-          if (data.success) {
-            // Convertir tamaño de bytes a formato legible
-            const documentosFormateados = data.documentos.map((doc: any) => ({
-              ...doc,
-              tamaño: formatFileSize(doc.tamaño)
-            }))
-            setDocumentos(documentosFormateados)
-            console.log(`✅ [VEHICULO PAGE] Documentos cargados:`, documentosFormateados)
-          }
+          // Convertir tamaño de bytes a formato legible
+          const documentosFormateados = data.map((doc: any) => ({
+            ...doc,
+            tamañoFormateado: formatFileSize(doc.size)
+          }))
+          setDocumentos(documentosFormateados)
+          console.log(`✅ [VEHICULO PAGE] Archivos cargados:`, documentosFormateados.length)
         } else {
           console.error('Error al obtener documentos:', response.statusText)
         }
@@ -351,7 +349,7 @@ export default function VehiculoDetailPage() {
         if (response.ok) {
           const responseData = await response.json()
           showToast('Archivo subido exitosamente', 'success')
-          // Recargar documentos desde la base de datos
+          // Recargar archivos
           await fetchDocumentos()
         } else {
           showToast('Error al subir archivo', 'error')
@@ -368,8 +366,8 @@ export default function VehiculoDetailPage() {
     if (documento) {
       // Crear un enlace temporal para descargar el archivo
       const link = document.createElement('a')
-      link.href = documento.ruta || `/uploads/vehiculos/${vehiculoId}/${documento.nombre}`
-      link.download = documento.nombre
+      link.href = documento.path
+      link.download = documento.name
       link.target = '_blank'
       document.body.appendChild(link)
       link.click()
@@ -623,8 +621,8 @@ export default function VehiculoDetailPage() {
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${getEstadoColor(vehiculo.estado || 'disponible')}`}>
-                {(vehiculo.estado || 'disponible').toUpperCase()}
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${getEstadoColor(vehiculo.estado || 'inicial')}`}>
+                {(vehiculo.estado || 'inicial').toUpperCase()}
               </span>
               <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getTipoColor(vehiculo.tipo)}`}>
                 {vehiculo.tipo === 'C' ? 'COMPRA' : 
@@ -728,11 +726,29 @@ export default function VehiculoDetailPage() {
                       <div className="space-y-3">
                         <div>
                           <label className="block text-xs font-medium text-blue-700 mb-1">Marca</label>
-                          <p className="text-blue-900 font-semibold">{vehiculo.marca}</p>
+                          {isEditingGeneral ? (
+                            <input
+                              type="text"
+                              value={editingData.marca}
+                              onChange={(e) => setEditingData(prev => ({ ...prev, marca: e.target.value }))}
+                              className="w-full text-blue-900 bg-white border border-blue-300 rounded px-2 py-1 text-sm font-medium"
+                            />
+                          ) : (
+                            <p className="text-blue-900 font-semibold">{vehiculo.marca}</p>
+                          )}
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-blue-700 mb-1">Modelo</label>
-                          <p className="text-blue-900 font-semibold">{vehiculo.modelo}</p>
+                          {isEditingGeneral ? (
+                            <input
+                              type="text"
+                              value={editingData.modelo}
+                              onChange={(e) => setEditingData(prev => ({ ...prev, modelo: e.target.value }))}
+                              className="w-full text-blue-900 bg-white border border-blue-300 rounded px-2 py-1 text-sm font-medium"
+                            />
+                          ) : (
+                            <p className="text-blue-900 font-semibold">{vehiculo.modelo}</p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -750,11 +766,29 @@ export default function VehiculoDetailPage() {
                       <div className="space-y-3">
                         <div>
                           <label className="block text-xs font-medium text-green-700 mb-1">Matrícula</label>
-                          <p className="text-green-900 font-mono font-semibold">{vehiculo.matricula}</p>
+                          {isEditingGeneral ? (
+                            <input
+                              type="text"
+                              value={editingData.matricula}
+                              onChange={(e) => setEditingData(prev => ({ ...prev, matricula: e.target.value }))}
+                              className="w-full text-green-900 bg-white border border-green-300 rounded px-2 py-1 text-sm font-medium font-mono"
+                            />
+                          ) : (
+                            <p className="text-green-900 font-mono font-semibold">{vehiculo.matricula}</p>
+                          )}
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-green-700 mb-1">Bastidor</label>
-                          <p className="text-green-900 font-mono text-sm break-all">{vehiculo.bastidor}</p>
+                          {isEditingGeneral ? (
+                            <input
+                              type="text"
+                              value={editingData.bastidor}
+                              onChange={(e) => setEditingData(prev => ({ ...prev, bastidor: e.target.value }))}
+                              className="w-full text-green-900 bg-white border border-green-300 rounded px-2 py-1 text-sm font-medium font-mono"
+                            />
+                          ) : (
+                            <p className="text-green-900 font-mono text-sm break-all">{vehiculo.bastidor}</p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1171,8 +1205,8 @@ export default function VehiculoDetailPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Estado Actual</label>
                   <div className="flex items-center space-x-3">
-                    <span className={`px-3 py-2 rounded-lg text-sm font-medium ${getEstadoColor(vehiculo.estado || 'disponible')}`}>
-                      {(vehiculo.estado || 'disponible').toUpperCase()}
+                    <span className={`px-3 py-2 rounded-lg text-sm font-medium ${getEstadoColor(vehiculo.estado || 'inicial')}`}>
+                      {(vehiculo.estado || 'inicial').toUpperCase()}
                     </span>
                   </div>
                 </div>
@@ -1263,11 +1297,11 @@ export default function VehiculoDetailPage() {
                    </svg>
                  </div>
                  <div className="flex-1 min-w-0">
-                   <p className="font-medium text-gray-900 truncate" title={doc.nombre}>
-                     {doc.nombre.length > 30 ? `${doc.nombre.substring(0, 30)}...` : doc.nombre}
+                   <p className="font-medium text-gray-900 truncate" title={doc.name}>
+                     {doc.name.length > 30 ? `${doc.name.substring(0, 30)}...` : doc.name}
                    </p>
                    <p className="text-xs text-gray-500">
-                     {doc.tamaño} • {new Date(doc.fechaSubida).toLocaleDateString('es-ES')}
+                     {doc.tamañoFormateado} • {new Date(doc.uploadDate).toLocaleDateString('es-ES')}
                    </p>
                  </div>
                </div>
