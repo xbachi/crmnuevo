@@ -210,9 +210,17 @@ export default function VehiculoDetailPage() {
         
         // Actualizar estado del vehículo
         console.log('🔄 [FETCH] Actualizando estado del vehículo...')
+        console.log('🔄 [FETCH] Datos recibidos del servidor:', {
+          id: data.id,
+          marca: data.marca,
+          modelo: data.modelo,
+          color: data.color,
+          estado: data.estado
+        })
         setVehiculo(data)
         setError(null)
         console.log('✅ [FETCH] Estado del vehículo actualizado')
+        console.log('✅ [FETCH] Color actualizado a:', data.color)
         
         // Verificar si la URL es correcta y redirigir si es necesario
         const correctSlug = generateVehicleSlug(data)
@@ -568,6 +576,14 @@ export default function VehiculoDetailPage() {
           console.log('✅ [SAVE] Nuevo estado del vehículo:', vehiculoActualizado.estado)
           console.log('✅ [SAVE] Nueva marca:', vehiculoActualizado.marca)
           console.log('✅ [SAVE] Nuevo modelo:', vehiculoActualizado.modelo)
+          console.log('✅ [SAVE] Nuevo color:', vehiculoActualizado.color)
+          console.log('✅ [SAVE] Datos completos recargados:', {
+            id: vehiculoActualizado.id,
+            marca: vehiculoActualizado.marca,
+            modelo: vehiculoActualizado.modelo,
+            color: vehiculoActualizado.color,
+            estado: vehiculoActualizado.estado
+          })
         } else {
           console.warn('⚠️ [SAVE] No se pudieron recargar los datos del vehículo')
         }
