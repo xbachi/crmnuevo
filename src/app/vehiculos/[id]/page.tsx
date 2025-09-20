@@ -116,20 +116,19 @@ export default function VehiculoDetailPage() {
   const { showConfirm, ConfirmModalComponent } = useConfirmModal()
 
   const [vehiculo, setVehiculo] = useState<Vehiculo | null>(null)
-  const [notas, setNotas] = useState<VehiculoNota[]>([])
+  const [notas, setNotas] = useState<Array<{
+    id: number
+    contenido: string
+    autor: string
+    fecha: Date
+  }>>([])
   const [recordatorios, setRecordatorios] = useState<VehiculoRecordatorio[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'general' | 'financiero'>('general')
   const [isAdmin] = useState(true) // TODO: Obtener del contexto de autenticación
 
-  // Estados para notas
-  const [notas, setNotas] = useState<Array<{
-    id: number
-    contenido: string
-    usuario_nombre: string
-    fecha_creacion: string
-  }>>([])
+  // Estados para nueva nota
   const [nuevaNota, setNuevaNota] = useState('')
   
   // Estados para documentos
@@ -298,22 +297,6 @@ export default function VehiculoDetailPage() {
     }
   }
 
-  // Función para obtener notas
-  const fetchNotas = async () => {
-    try {
-      console.log(`📝 [VEHICULO PAGE] Obteniendo notas para vehículo ${vehiculoId}`)
-      const response = await fetch(`/api/vehiculos/${vehiculoId}/notas`)
-      if (response.ok) {
-        const data = await response.json()
-        setNotas(data)
-        console.log(`✅ [VEHICULO PAGE] Notas cargadas:`, data.length)
-      } else {
-        console.error('Error al obtener notas:', response.statusText)
-      }
-    } catch (error) {
-      console.error('Error al obtener notas:', error)
-    }
-  }
 
   useEffect(() => {
     const fetchVehiculoEffect = async () => {
@@ -324,73 +307,28 @@ export default function VehiculoDetailPage() {
       console.log(`🚀 [VEHICULO PAGE] Iniciando useEffect con ID: "${vehiculoId}"`)
       fetchVehiculo()
       fetchDocumentos()
-      fetchNotas()
     } else {
       console.log(`⚠️ [VEHICULO PAGE] No hay ID para buscar`)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vehiculoId])
 
-  useEffect(() => {
-    const fetchNotas = async () => {
-      if (!vehiculo?.id) return
-      try {
-        const response = await fetch(`/api/vehiculos/${vehiculo.id}/notas`)
-        if (response.ok) {
-          const data = await response.json()
-          setNotas(data)
-        }
-      } catch (error) {
-        console.error('Error al cargar notas:', error)
-      }
-    }
-
-    const fetchRecordatorios = async () => {
-      if (!vehiculo?.id) return
-      try {
-        const response = await fetch(`/api/vehiculos/${vehiculo.id}/recordatorios`)
-        if (response.ok) {
-          const data = await response.json()
-          setRecordatorios(data)
-        }
-      } catch (error) {
-        console.error('Error al cargar recordatorios:', error)
-      }
-    }
-
-    if (vehiculo?.id) {
-      fetchNotas()
-      fetchRecordatorios()
-    }
-  }, [vehiculo?.id])
 
   const handleAgregarNota = async () => {
-    if (!nuevaNota.trim() || !vehiculo?.id) return
-
+    if (!nuevaNota.trim()) return
+    
     try {
-      console.log(`📝 [NOTAS] Agregando nota para vehículo ${vehiculo.id}`)
-      const response = await fetch(`/api/vehiculos/${vehiculo.id}/notas`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contenido: nuevaNota,
-          usuario_nombre: 'Usuario Actual' // TODO: Obtener del contexto de autenticación
-        })
-      })
-
-      if (response.ok) {
-        setNuevaNota('')
-        // Recargar notas
-        await fetchNotas()
-        showToast('Nota agregada exitosamente', 'success')
-        console.log('✅ [NOTAS] Nota agregada exitosamente')
-      } else {
-        const errorData = await response.json()
-        console.error('❌ [NOTAS] Error al agregar la nota:', errorData)
-        showToast('Error al agregar la nota', 'error')
+      const nota = {
+        id: Date.now(),
+        fecha: new Date(),
+        contenido: nuevaNota,
+        autor: 'Admin'
       }
+      
+      setNotas([...notas, nota])
+      setNuevaNota('')
+      showToast('Nota agregada correctamente', 'success')
     } catch (error) {
-      console.error('❌ [NOTAS] Error al agregar la nota:', error)
       showToast('Error al agregar la nota', 'error')
     }
   }
@@ -1744,13 +1682,7 @@ export default function VehiculoDetailPage() {
                       <div className="flex-1">
                         <p className="text-gray-900">{nota.contenido}</p>
                         <p className="text-xs text-gray-500 mt-1">
-                          {nota.usuario_nombre} • {new Date(nota.fecha_creacion).toLocaleDateString('es-ES', {
-                            year: 'numeric',
-                            month: '2-digit',
-                            day: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
+                          {nota.autor} • {nota.fecha.toLocaleDateString('es-ES')}
                         </p>
                       </div>
                     </div>
