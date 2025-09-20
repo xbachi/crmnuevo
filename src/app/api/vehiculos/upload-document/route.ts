@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { existsSync } from 'fs'
-import { pool } from '@/lib/database'
+import { pool } from '@/lib/direct-database'
 
 export async function POST(request: NextRequest) {
   try {

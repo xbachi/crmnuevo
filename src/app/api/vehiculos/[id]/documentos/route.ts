@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { pool } from '@/lib/database'
+import { pool } from '@/lib/direct-database'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const vehiculoId = params.id
+    const { id: vehiculoId } = await params
     console.log(`🔍 [DOCUMENTOS API] Iniciando obtención de documentos`)
     console.log(`📝 [DOCUMENTOS API] Vehículo ID: ${vehiculoId}`)
     console.log(`📝 [DOCUMENTOS API] URL completa: ${request.url}`)
@@ -49,7 +49,7 @@ export async function GET(
     console.error('❌ [DOCUMENTOS API] Error details:', {
       message: error instanceof Error ? error.message : 'Error desconocido',
       stack: error instanceof Error ? error.stack : undefined,
-      vehiculoId: params.id
+      vehiculoId: vehiculoId
     })
     return NextResponse.json({ 
       success: false, 

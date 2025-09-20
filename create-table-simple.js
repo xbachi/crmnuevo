@@ -1,12 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { pool } from '@/lib/direct-database'
+const { Pool } = require('pg')
 
-export async function POST(request: NextRequest) {
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+})
+
+async function createTable() {
   try {
     console.log('🔧 Creando tabla VehiculoDocumentos...')
     
-    const createTableSQL = `
-      -- Crear tabla para documentos de vehículos
+    const sql = `
       CREATE TABLE IF NOT EXISTS VehiculoDocumentos (
         id SERIAL PRIMARY KEY,
         vehiculo_id INTEGER NOT NULL,
@@ -21,28 +24,18 @@ export async function POST(request: NextRequest) {
         FOREIGN KEY (vehiculo_id) REFERENCES Vehiculos(id) ON DELETE CASCADE
       );
 
-      -- Crear índice para búsquedas por vehículo
       CREATE INDEX IF NOT EXISTS idx_vehiculo_documentos_vehiculo_id ON VehiculoDocumentos(vehiculo_id);
-
-      -- Crear índice para búsquedas por fecha
       CREATE INDEX IF NOT EXISTS idx_vehiculo_documentos_fecha ON VehiculoDocumentos(fecha_subida);
     `
     
-    await pool.query(createTableSQL)
-    
+    await pool.query(sql)
     console.log('✅ Tabla VehiculoDocumentos creada exitosamente')
     
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Tabla VehiculoDocumentos creada exitosamente' 
-    })
-    
   } catch (error) {
-    console.error('❌ Error al crear tabla VehiculoDocumentos:', error)
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Error al crear tabla VehiculoDocumentos',
-      details: error instanceof Error ? error.message : 'Error desconocido'
-    }, { status: 500 })
+    console.error('❌ Error:', error)
+  } finally {
+    await pool.end()
   }
 }
+
+createTable()
