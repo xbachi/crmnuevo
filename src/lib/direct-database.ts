@@ -661,6 +661,13 @@ export async function getVehiculoById(id: number): Promise<Vehiculo | null> {
     if (result.rows.length === 0) return null
     
     const row = result.rows[0]
+    console.log('🔍 [GET_VEHICULO] Datos de la base de datos:', {
+      id: row.id,
+      marca: row.marca,
+      modelo: row.modelo,
+      color: row.color,
+      estado: row.estado
+    })
     return {
       id: row.id,
       referencia: row.referencia,
@@ -701,7 +708,8 @@ export async function getVehiculoById(id: number): Promise<Vehiculo | null> {
       precioVenta: row.precioVenta,
       beneficioNeto: row.beneficioNeto,
       notasInversor: row.notasInversor,
-      fotoInversor: row.fotoInversor
+      fotoInversor: row.fotoInversor,
+      color: row.color
     }
   } catch (error) {
     console.error('Error obteniendo vehículo por ID:', error)
