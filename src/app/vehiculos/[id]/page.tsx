@@ -123,7 +123,13 @@ export default function VehiculoDetailPage() {
   const [activeTab, setActiveTab] = useState<'general' | 'financiero'>('general')
   const [isAdmin] = useState(true) // TODO: Obtener del contexto de autenticación
 
-  // Estados para nueva nota (simplificado)
+  // Estados para notas
+  const [notas, setNotas] = useState<Array<{
+    id: number
+    contenido: string
+    usuario_nombre: string
+    fecha_creacion: string
+  }>>([])
   const [nuevaNota, setNuevaNota] = useState('')
   
   // Estados para documentos
@@ -139,6 +145,7 @@ export default function VehiculoDetailPage() {
   // Estados para edición
   const [isEditingGeneral, setIsEditingGeneral] = useState(false)
   const [isEditingDocumentacion, setIsEditingDocumentacion] = useState(false)
+  const [isEditingFinanciero, setIsEditingFinanciero] = useState(false)
   const [editingData, setEditingData] = useState({
     marca: '',
     modelo: '',
@@ -154,7 +161,15 @@ export default function VehiculoDetailPage() {
     carpeta: '',
     master: '',
     hojasA: '',
-    documentacion: ''
+    documentacion: '',
+    precioCompra: 0,
+    gastosTransporte: 0,
+    gastosTasas: 0,
+    gastosMecanica: 0,
+    gastosPintura: 0,
+    gastosLimpieza: 0,
+    gastosOtros: 0,
+    precioVenta: 0
   })
 
   // Estados para nuevo recordatorio
@@ -283,6 +298,23 @@ export default function VehiculoDetailPage() {
     }
   }
 
+  // Función para obtener notas
+  const fetchNotas = async () => {
+    try {
+      console.log(`📝 [VEHICULO PAGE] Obteniendo notas para vehículo ${vehiculoId}`)
+      const response = await fetch(`/api/vehiculos/${vehiculoId}/notas`)
+      if (response.ok) {
+        const data = await response.json()
+        setNotas(data)
+        console.log(`✅ [VEHICULO PAGE] Notas cargadas:`, data.length)
+      } else {
+        console.error('Error al obtener notas:', response.statusText)
+      }
+    } catch (error) {
+      console.error('Error al obtener notas:', error)
+    }
+  }
+
   useEffect(() => {
     const fetchVehiculoEffect = async () => {
       await fetchVehiculo()
@@ -292,6 +324,7 @@ export default function VehiculoDetailPage() {
       console.log(`🚀 [VEHICULO PAGE] Iniciando useEffect con ID: "${vehiculoId}"`)
       fetchVehiculo()
       fetchDocumentos()
+      fetchNotas()
     } else {
       console.log(`⚠️ [VEHICULO PAGE] No hay ID para buscar`)
     }
@@ -335,31 +368,30 @@ export default function VehiculoDetailPage() {
     if (!nuevaNota.trim() || !vehiculo?.id) return
 
     try {
+      console.log(`📝 [NOTAS] Agregando nota para vehículo ${vehiculo.id}`)
       const response = await fetch(`/api/vehiculos/${vehiculo.id}/notas`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contenido: nuevaNota,
-          tipo: 'general',
-          prioridad: 'media',
-          usuario: 'Usuario Actual' // TODO: Obtener del contexto de autenticación
+          usuario_nombre: 'Usuario Actual' // TODO: Obtener del contexto de autenticación
         })
       })
 
       if (response.ok) {
         setNuevaNota('')
         // Recargar notas
-        const notasResponse = await fetch(`/api/vehiculos/${vehiculo.id}/notas`)
-        if (notasResponse.ok) {
-          const notasData = await notasResponse.json()
-          setNotas(notasData)
-        }
-        console.log('Nota agregada exitosamente')
+        await fetchNotas()
+        showToast('Nota agregada exitosamente', 'success')
+        console.log('✅ [NOTAS] Nota agregada exitosamente')
       } else {
-        console.error('Error al agregar la nota')
+        const errorData = await response.json()
+        console.error('❌ [NOTAS] Error al agregar la nota:', errorData)
+        showToast('Error al agregar la nota', 'error')
       }
     } catch (error) {
-      console.error('Error al agregar la nota:', error)
+      console.error('❌ [NOTAS] Error al agregar la nota:', error)
+      showToast('Error al agregar la nota', 'error')
     }
   }
 
@@ -510,11 +542,40 @@ export default function VehiculoDetailPage() {
     }
   }
 
+  const startEditingFinanciero = () => {
+    console.log('🔧 [EDIT] ===== INICIANDO EDICIÓN FINANCIERO =====')
+    console.log('🔧 [EDIT] Vehículo actual:', vehiculo)
+    console.log('🔧 [EDIT] ID del vehículo:', vehiculo?.id)
+    
+    if (vehiculo) {
+      const newEditingData = {
+        ...editingData,
+        precioCompra: vehiculo.precioCompra || 0,
+        gastosTransporte: vehiculo.gastosTransporte || 0,
+        gastosTasas: vehiculo.gastosTasas || 0,
+        gastosMecanica: vehiculo.gastosMecanica || 0,
+        gastosPintura: vehiculo.gastosPintura || 0,
+        gastosLimpieza: vehiculo.gastosLimpieza || 0,
+        gastosOtros: vehiculo.gastosOtros || 0,
+        precioVenta: vehiculo.precioVenta || 0
+      }
+      
+      console.log('🔧 [EDIT] Datos de edición financiero:', newEditingData)
+      setEditingData(newEditingData)
+      setIsEditingFinanciero(true)
+      console.log('✅ [EDIT] Modo edición financiero activado')
+    } else {
+      console.error('❌ [EDIT] No hay vehículo para editar')
+      showToast('Error: No hay vehículo para editar', 'error')
+    }
+  }
+
   const cancelEditing = () => {
     console.log('🔧 [EDIT] Cancelando edición')
     console.log('🔧 [EDIT] Datos actuales antes de cancelar:', editingData)
     setIsEditingGeneral(false)
     setIsEditingDocumentacion(false)
+    setIsEditingFinanciero(false)
     console.log('🔧 [EDIT] Modo edición desactivado')
   }
 
@@ -535,6 +596,7 @@ export default function VehiculoDetailPage() {
     })
     console.log('🔧 [SAVE] Modo edición general:', isEditingGeneral)
     console.log('🔧 [SAVE] Modo edición documentación:', isEditingDocumentacion)
+    console.log('🔧 [SAVE] Modo edición financiero:', isEditingFinanciero)
     console.log('🔧 [SAVE] ¿Hay datos para guardar?', Object.keys(editingData).length > 0)
     
     if (!vehiculo?.id) {
@@ -566,6 +628,18 @@ export default function VehiculoDetailPage() {
       if (editingData.master !== undefined) camposAGuardar.master = editingData.master
       if (editingData.carpeta !== undefined) camposAGuardar.carpeta = editingData.carpeta
       if (editingData.hojasA !== undefined) camposAGuardar.hojasA = editingData.hojasA
+    }
+
+    if (isEditingFinanciero) {
+      // Campos de información financiera
+      if (editingData.precioCompra !== undefined) camposAGuardar.precioCompra = editingData.precioCompra
+      if (editingData.gastosTransporte !== undefined) camposAGuardar.gastosTransporte = editingData.gastosTransporte
+      if (editingData.gastosTasas !== undefined) camposAGuardar.gastosTasas = editingData.gastosTasas
+      if (editingData.gastosMecanica !== undefined) camposAGuardar.gastosMecanica = editingData.gastosMecanica
+      if (editingData.gastosPintura !== undefined) camposAGuardar.gastosPintura = editingData.gastosPintura
+      if (editingData.gastosLimpieza !== undefined) camposAGuardar.gastosLimpieza = editingData.gastosLimpieza
+      if (editingData.gastosOtros !== undefined) camposAGuardar.gastosOtros = editingData.gastosOtros
+      if (editingData.precioVenta !== undefined) camposAGuardar.precioVenta = editingData.precioVenta
     }
 
     console.log('🔧 [SAVE] Campos filtrados para guardar:', camposAGuardar)
@@ -619,6 +693,7 @@ export default function VehiculoDetailPage() {
         console.log('🔧 [SAVE] Desactivando modo edición...')
         setIsEditingGeneral(false)
         setIsEditingDocumentacion(false)
+        setIsEditingFinanciero(false)
         console.log('✅ [SAVE] Modo edición desactivado')
         
         showToast('Cambios guardados exitosamente', 'success')
@@ -1065,6 +1140,42 @@ export default function VehiculoDetailPage() {
                 {/* Información Financiera (Solo Admin) - Formato Mejorado */}
                 {activeTab === 'financiero' && isAdmin && (
                   <div className="space-y-6">
+                    {/* Botones de edición */}
+                    <div className="flex justify-end space-x-3">
+                      {!isEditingFinanciero ? (
+                        <button
+                          onClick={startEditingFinanciero}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" />
+                          </svg>
+                          <span>Editar Información Financiera</span>
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            onClick={cancelEditing}
+                            className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors flex items-center space-x-2"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            <span>Cancelar</span>
+                          </button>
+                          <button
+                            onClick={saveEditing}
+                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span>Guardar Cambios</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
+
                     {/* Resumen Financiero con Iconos y Colores */}
                     <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
                       <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
@@ -1152,31 +1263,101 @@ export default function VehiculoDetailPage() {
                         <div className="space-y-3">
                           <div className="flex justify-between items-center py-2 border-b border-gray-200">
                             <span className="text-sm text-gray-600">Precio de Compra</span>
-                            <span className="font-semibold">{formatCurrency(vehiculo.precioCompra || 0)}</span>
+                            {isEditingFinanciero ? (
+                              <input
+                                type="number"
+                                value={editingData.precioCompra}
+                                onChange={(e) => setEditingData(prev => ({ ...prev, precioCompra: parseFloat(e.target.value) || 0 }))}
+                                className="w-24 text-right font-semibold border border-gray-300 rounded px-2 py-1 text-sm"
+                                placeholder="0"
+                              />
+                            ) : (
+                              <span className="font-semibold">{formatCurrency(vehiculo.precioCompra || 0)}</span>
+                            )}
                           </div>
                           <div className="flex justify-between items-center py-2 border-b border-gray-200">
                             <span className="text-sm text-gray-600">Transporte</span>
-                            <span className="font-semibold">{formatCurrency(vehiculo.gastosTransporte || 0)}</span>
+                            {isEditingFinanciero ? (
+                              <input
+                                type="number"
+                                value={editingData.gastosTransporte}
+                                onChange={(e) => setEditingData(prev => ({ ...prev, gastosTransporte: parseFloat(e.target.value) || 0 }))}
+                                className="w-24 text-right font-semibold border border-gray-300 rounded px-2 py-1 text-sm"
+                                placeholder="0"
+                              />
+                            ) : (
+                              <span className="font-semibold">{formatCurrency(vehiculo.gastosTransporte || 0)}</span>
+                            )}
                           </div>
                           <div className="flex justify-between items-center py-2 border-b border-gray-200">
                             <span className="text-sm text-gray-600">Tasas</span>
-                            <span className="font-semibold">{formatCurrency(vehiculo.gastosTasas || 0)}</span>
+                            {isEditingFinanciero ? (
+                              <input
+                                type="number"
+                                value={editingData.gastosTasas}
+                                onChange={(e) => setEditingData(prev => ({ ...prev, gastosTasas: parseFloat(e.target.value) || 0 }))}
+                                className="w-24 text-right font-semibold border border-gray-300 rounded px-2 py-1 text-sm"
+                                placeholder="0"
+                              />
+                            ) : (
+                              <span className="font-semibold">{formatCurrency(vehiculo.gastosTasas || 0)}</span>
+                            )}
                           </div>
                           <div className="flex justify-between items-center py-2 border-b border-gray-200">
                             <span className="text-sm text-gray-600">Mecánica</span>
-                            <span className="font-semibold">{formatCurrency(vehiculo.gastosMecanica || 0)}</span>
+                            {isEditingFinanciero ? (
+                              <input
+                                type="number"
+                                value={editingData.gastosMecanica}
+                                onChange={(e) => setEditingData(prev => ({ ...prev, gastosMecanica: parseFloat(e.target.value) || 0 }))}
+                                className="w-24 text-right font-semibold border border-gray-300 rounded px-2 py-1 text-sm"
+                                placeholder="0"
+                              />
+                            ) : (
+                              <span className="font-semibold">{formatCurrency(vehiculo.gastosMecanica || 0)}</span>
+                            )}
                           </div>
                           <div className="flex justify-between items-center py-2 border-b border-gray-200">
                             <span className="text-sm text-gray-600">Pintura</span>
-                            <span className="font-semibold">{formatCurrency(vehiculo.gastosPintura || 0)}</span>
+                            {isEditingFinanciero ? (
+                              <input
+                                type="number"
+                                value={editingData.gastosPintura}
+                                onChange={(e) => setEditingData(prev => ({ ...prev, gastosPintura: parseFloat(e.target.value) || 0 }))}
+                                className="w-24 text-right font-semibold border border-gray-300 rounded px-2 py-1 text-sm"
+                                placeholder="0"
+                              />
+                            ) : (
+                              <span className="font-semibold">{formatCurrency(vehiculo.gastosPintura || 0)}</span>
+                            )}
                           </div>
                           <div className="flex justify-between items-center py-2 border-b border-gray-200">
                             <span className="text-sm text-gray-600">Limpieza</span>
-                            <span className="font-semibold">{formatCurrency(vehiculo.gastosLimpieza || 0)}</span>
+                            {isEditingFinanciero ? (
+                              <input
+                                type="number"
+                                value={editingData.gastosLimpieza}
+                                onChange={(e) => setEditingData(prev => ({ ...prev, gastosLimpieza: parseFloat(e.target.value) || 0 }))}
+                                className="w-24 text-right font-semibold border border-gray-300 rounded px-2 py-1 text-sm"
+                                placeholder="0"
+                              />
+                            ) : (
+                              <span className="font-semibold">{formatCurrency(vehiculo.gastosLimpieza || 0)}</span>
+                            )}
                           </div>
                           <div className="flex justify-between items-center py-2 border-b border-gray-200">
                             <span className="text-sm text-gray-600">Otros</span>
-                            <span className="font-semibold">{formatCurrency(vehiculo.gastosOtros || 0)}</span>
+                            {isEditingFinanciero ? (
+                              <input
+                                type="number"
+                                value={editingData.gastosOtros}
+                                onChange={(e) => setEditingData(prev => ({ ...prev, gastosOtros: parseFloat(e.target.value) || 0 }))}
+                                className="w-24 text-right font-semibold border border-gray-300 rounded px-2 py-1 text-sm"
+                                placeholder="0"
+                              />
+                            ) : (
+                              <span className="font-semibold">{formatCurrency(vehiculo.gastosOtros || 0)}</span>
+                            )}
                           </div>
                           <div className="flex justify-between items-center py-3 bg-white rounded-lg px-3 mt-4">
                             <span className="text-lg font-bold text-gray-900">Total Invertido</span>
@@ -1199,7 +1380,17 @@ export default function VehiculoDetailPage() {
                         <div className="space-y-3">
                           <div className="flex justify-between items-center py-2 border-b border-gray-200">
                             <span className="text-sm text-gray-600">Precio de Venta</span>
-                            <span className="font-semibold text-lg">{formatCurrency(vehiculo.precioVenta || 0)}</span>
+                            {isEditingFinanciero ? (
+                              <input
+                                type="number"
+                                value={editingData.precioVenta}
+                                onChange={(e) => setEditingData(prev => ({ ...prev, precioVenta: parseFloat(e.target.value) || 0 }))}
+                                className="w-32 text-right font-semibold text-lg border border-gray-300 rounded px-2 py-1"
+                                placeholder="0"
+                              />
+                            ) : (
+                              <span className="font-semibold text-lg">{formatCurrency(vehiculo.precioVenta || 0)}</span>
+                            )}
                           </div>
                           <div className="flex justify-between items-center py-2 border-b border-gray-200">
                             <span className="text-sm text-gray-600">IVA (21%)</span>
@@ -1527,50 +1718,45 @@ export default function VehiculoDetailPage() {
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Notas ({notas.length})</h2>
               
-              {/* Agregar Nueva Nota - Simplificado */}
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                <div className="mb-3">
-                  <textarea
-                    value={nuevaNota}
-                    onChange={(e) => setNuevaNota(e.target.value)}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="Escribe tu nota aquí..."
-                  />
-                </div>
+              {/* Agregar nueva nota */}
+              <div className="mb-4">
+                <textarea
+                  value={nuevaNota}
+                  onChange={(e) => setNuevaNota(e.target.value)}
+                  placeholder="Agregar una nueva nota..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  rows={3}
+                />
                 <button
                   onClick={handleAgregarNota}
                   disabled={!nuevaNota.trim()}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
                 >
                   Agregar Nota
                 </button>
               </div>
-
-              {/* Lista de Notas */}
-              {notas.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No hay notas registradas</p>
-              ) : (
-                <div className="space-y-4">
-                  {notas.map((nota) => (
-                    <div key={nota.id} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="text-sm text-gray-600">
-                          <div className="font-medium">{nota.usuario}</div>
-                          <div>{new Date(nota.fecha).toLocaleString('es-ES', {
+              
+              {/* Lista de notas */}
+              <div className="space-y-3">
+                {notas.map(nota => (
+                  <div key={nota.id} className="border border-gray-200 rounded-lg p-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="text-gray-900">{nota.contenido}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {nota.usuario_nombre} • {new Date(nota.fecha_creacion).toLocaleDateString('es-ES', {
                             year: 'numeric',
                             month: '2-digit',
                             day: '2-digit',
                             hour: '2-digit',
                             minute: '2-digit'
-                          })}</div>
-                        </div>
+                          })}
+                        </p>
                       </div>
-                      <p className="text-gray-900">{nota.contenido}</p>
                     </div>
-                  ))}
-                </div>
-              )}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -1627,37 +1813,6 @@ export default function VehiculoDetailPage() {
                   </div>
                 )}
 
-                {/* Estado detallado según el estado actual */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <div className={`w-2 h-2 rounded-full ${
-                        vehiculo.estado.toLowerCase() === 'disponible' ? 'bg-green-500' :
-                        vehiculo.estado.toLowerCase() === 'reservado' ? 'bg-orange-500' :
-                        vehiculo.estado.toLowerCase() === 'vendido' ? 'bg-red-500' :
-                        vehiculo.estado.toLowerCase() === 'facturado' ? 'bg-indigo-500' :
-                        'bg-gray-500'
-                      }`}></div>
-                      <span className="text-gray-800 font-medium">{getDescripcionEstado(vehiculo.estado)}</span>
-                    </div>
-                    
-                    {/* Sub-estados para disponible */}
-                    {vehiculo.estado.toLowerCase() === 'disponible' && (
-                      <div className="text-sm text-gray-600">
-                        <p className="mb-2">Puede estar en:</p>
-                        <div className="grid grid-cols-2 gap-1">
-                          {getSubEstado(vehiculo.estado).map((subEstado, index) => (
-                            <div key={index} className="flex items-center space-x-1">
-                              <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                              <span>{subEstado}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
 
                 {vehiculo.ubicacion && (
                   <div>
