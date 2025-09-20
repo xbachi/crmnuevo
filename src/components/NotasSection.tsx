@@ -25,19 +25,28 @@ export default function NotasSection({ notas, onNotasChange, entityId, entityTyp
 
   // Cargar notas al montar el componente
   const fetchNotas = async () => {
-    if (!entityId) return
+    if (!entityId || entityId === 0) {
+      console.log(`⚠️ [NOTA] EntityId no válido: ${entityId}`)
+      return
+    }
     
     try {
       console.log(`📝 [NOTA] Cargando notas para ${entityType} ${entityId}`)
       const response = await fetch(`/api/${entityType}s/${entityId}/notas`)
       
       if (response.ok) {
-        const data = await response.json()
-        onNotasChange(data)
-        console.log(`✅ [NOTA] Notas cargadas: ${data.length}`)
+        const contentType = response.headers.get('content-type')
+        if (contentType && contentType.includes('application/json')) {
+          const data = await response.json()
+          onNotasChange(data)
+          console.log(`✅ [NOTA] Notas cargadas: ${data.length}`)
+        } else {
+          console.error('❌ [NOTA] Respuesta no es JSON:', contentType)
+          showToast('Error: Respuesta del servidor no es válida', 'error')
+        }
       } else {
-        console.error('❌ [NOTA] Error al cargar notas:', response.statusText)
-        showToast('Error al cargar las notas', 'error')
+        console.error('❌ [NOTA] Error al cargar notas:', response.status, response.statusText)
+        showToast(`Error al cargar las notas: ${response.status}`, 'error')
       }
     } catch (error) {
       console.error('❌ [NOTA] Error al cargar notas:', error)
