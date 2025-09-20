@@ -699,7 +699,7 @@ export default function InvestorDashboardPage() {
                   notas={notas} 
                   onNotasChange={setNotas} 
                   entityId={inversor.id} 
-                  entityType="inversor"
+                  entityType="inversores"
                 />
               ) : (
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">

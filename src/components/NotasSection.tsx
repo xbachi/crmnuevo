@@ -32,7 +32,8 @@ export default function NotasSection({ notas, onNotasChange, entityId, entityTyp
     
     try {
       console.log(`📝 [NOTA] Cargando notas para ${entityType} ${entityId}`)
-      const response = await fetch(`/api/${entityType}s/${entityId}/notas`)
+      const apiUrl = entityType === 'inversores' ? `/api/inversores/${entityId}/notas` : `/api/${entityType}s/${entityId}/notas`
+      const response = await fetch(apiUrl)
       
       if (response.ok) {
         const contentType = response.headers.get('content-type')
@@ -63,7 +64,8 @@ export default function NotasSection({ notas, onNotasChange, entityId, entityTyp
     
     try {
       console.log(`📝 [NOTA] Agregando nota para ${entityType} ${entityId}`)
-      const response = await fetch(`/api/${entityType}s/${entityId}/notas`, {
+      const apiUrl = entityType === 'inversores' ? `/api/inversores/${entityId}/notas` : `/api/${entityType}s/${entityId}/notas`
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -102,7 +104,8 @@ export default function NotasSection({ notas, onNotasChange, entityId, entityTyp
     
     try {
       console.log(`📝 [NOTA] Actualizando nota ${editingNotaId} para ${entityType} ${entityId}`)
-      const response = await fetch(`/api/${entityType}s/${entityId}/notas`, {
+      const apiUrl = entityType === 'inversores' ? `/api/inversores/${entityId}/notas` : `/api/${entityType}s/${entityId}/notas`
+      const response = await fetch(apiUrl, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -141,7 +144,8 @@ export default function NotasSection({ notas, onNotasChange, entityId, entityTyp
   const handleEliminarNota = async (notaId: number) => {
     try {
       console.log(`🗑️ [NOTA] Eliminando nota ${notaId} del ${entityType} ${entityId}`)
-      const response = await fetch(`/api/${entityType}s/${entityId}/notas?notaId=${notaId}`, {
+      const apiUrl = entityType === 'inversores' ? `/api/inversores/${entityId}/notas?notaId=${notaId}` : `/api/${entityType}s/${entityId}/notas?notaId=${notaId}`
+      const response = await fetch(apiUrl, {
         method: 'DELETE'
       })
       
