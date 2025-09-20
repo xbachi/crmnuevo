@@ -6,6 +6,7 @@ import { Cliente, NotaCliente } from '@/lib/database'
 import { useSimpleToast } from '@/hooks/useSimpleToast'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import ClientReminders from '@/components/ClientReminders'
+import RecordatoriosSection from '@/components/RecordatoriosSection'
 
 export default function ClienteDetailPage() {
   const router = useRouter()
@@ -14,6 +15,7 @@ export default function ClienteDetailPage() {
   
   const [cliente, setCliente] = useState<Cliente | null>(null)
   const [notas, setNotas] = useState<NotaCliente[]>([])
+  const [recordatorios, setRecordatorios] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isEditingPersonal, setIsEditingPersonal] = useState(false)
   const [isEditingIntereses, setIsEditingIntereses] = useState(false)
@@ -1464,6 +1466,21 @@ export default function ClienteDetailPage() {
                 )}
               </div>
             </div>
+
+            {/* Bloque de Recordatorios */}
+            {cliente?.id ? (
+              <RecordatoriosSection 
+                recordatorios={recordatorios} 
+                onRecordatoriosChange={setRecordatorios} 
+                entityId={cliente.id} 
+                entityType="cliente"
+              />
+            ) : (
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mt-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Recordatorios</h2>
+                <p className="text-gray-500 text-center py-4">Cargando...</p>
+              </div>
+            )}
           </div>
 
           {/* Sidebar */}
