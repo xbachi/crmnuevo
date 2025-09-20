@@ -9,6 +9,7 @@ import { useSimpleToast } from '@/hooks/useSimpleToast'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { formatDateTime } from '@/lib/utils'
 import NotasSection from '@/components/NotasSection'
+import RecordatoriosSection from '@/components/RecordatoriosSection'
 
 interface InvestorMetrics {
   beneficioAcumulado: number
@@ -48,6 +49,7 @@ export default function InvestorDashboardPage() {
   const [editingVehiculo, setEditingVehiculo] = useState<Vehiculo | null>(null)
   const [isEditingVehiculo, setIsEditingVehiculo] = useState(false)
   const [notas, setNotas] = useState<any[]>([])
+  const [recordatorios, setRecordatorios] = useState<any[]>([])
 
   const inversorId = (params.id as string).split('-')[0] // Extraer solo el ID del slug
 
@@ -740,6 +742,21 @@ export default function InvestorDashboardPage() {
             ) : (
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Notas</h2>
+                <p className="text-gray-500 text-center py-4">Cargando...</p>
+              </div>
+            )}
+
+            {/* Bloque de Recordatorios */}
+            {inversor?.id ? (
+              <RecordatoriosSection 
+                recordatorios={recordatorios} 
+                onRecordatoriosChange={setRecordatorios} 
+                entityId={inversor.id} 
+                entityType="inversor"
+              />
+            ) : (
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mt-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Recordatorios</h2>
                 <p className="text-gray-500 text-center py-4">Cargando...</p>
               </div>
             )}

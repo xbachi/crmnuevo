@@ -73,6 +73,22 @@ export async function GET() {
       ORDER BY dr.fecha_recordatorio ASC
     `)
     
+    // Obtener recordatorios de inversores
+    const inversoresRecordatorios = await client.query(`
+      SELECT 
+        ir.*,
+        'inversor' as tipo_entidad,
+        i.id as entidad_numero,
+        i.nombre as cliente_nombre,
+        NULL as cliente_apellidos,
+        NULL as vehiculo_marca,
+        NULL as vehiculo_modelo
+      FROM "InversorRecordatorios" ir
+      LEFT JOIN "Inversor" i ON ir.inversor_id = i.id
+      WHERE ir.completado = false
+      ORDER BY ir.fecha_recordatorio ASC
+    `)
+    
     client.release()
     
     // Combinar todos los recordatorios
@@ -93,6 +109,11 @@ export async function GET() {
         created_at: row.createdAt
       })),
       ...depositosRecordatorios.rows.map(row => ({
+        ...row,
+        fecha_recordatorio: row.fecha_recordatorio,
+        created_at: row.created_at
+      })),
+      ...inversoresRecordatorios.rows.map(row => ({
         ...row,
         fecha_recordatorio: row.fecha_recordatorio,
         created_at: row.created_at

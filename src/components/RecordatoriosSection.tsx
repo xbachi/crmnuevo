@@ -19,7 +19,7 @@ interface RecordatoriosSectionProps {
   recordatorios: Recordatorio[]
   onRecordatoriosChange: (recordatorios: Recordatorio[]) => void
   entityId: number
-  entityType: 'deal' | 'vehiculo' | 'cliente' | 'deposito'
+  entityType: 'deal' | 'vehiculo' | 'cliente' | 'deposito' | 'inversor'
 }
 
 export default function RecordatoriosSection({ 
