@@ -479,21 +479,45 @@ export default function VehiculoDetailPage() {
   const getEstadoColor = (estado: string) => {
     switch (estado.toLowerCase()) {
       case 'disponible':
-      case 'sin estado':
-        return 'bg-gray-100 text-gray-800'
-      case 'mecanica':
-      case 'mecánica':
-        return 'bg-yellow-100 text-yellow-800'
-      case 'fotos':
-        return 'bg-blue-100 text-blue-800'
-      case 'publicado':
         return 'bg-green-100 text-green-800'
       case 'reservado':
         return 'bg-orange-100 text-orange-800'
       case 'vendido':
         return 'bg-red-100 text-red-800'
+      case 'facturado':
+        return 'bg-indigo-100 text-indigo-800'
       default:
         return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  const getDescripcionEstado = (estado: string) => {
+    switch (estado.toLowerCase()) {
+      case 'disponible':
+        return 'Vehículo disponible para venta'
+      case 'reservado':
+        return 'Vehículo reservado por cliente'
+      case 'vendido':
+        return 'Vehículo vendido'
+      case 'facturado':
+        return 'Venta facturada'
+      default:
+        return 'Estado no definido'
+    }
+  }
+
+  const getSubEstado = (estado: string) => {
+    switch (estado.toLowerCase()) {
+      case 'disponible':
+        return ['Inicial', 'Mecauto', 'Pintura', 'Limpieza', 'Fotos', 'Publicado']
+      case 'reservado':
+        return ['Reserva confirmada', 'Pendiente de pago', 'Documentación en trámite']
+      case 'vendido':
+        return ['Venta completada', 'Pendiente de entrega', 'Entregado']
+      case 'facturado':
+        return ['Factura emitida', 'Pago recibido', 'Proceso completado']
+      default:
+        return []
     }
   }
 
@@ -615,7 +639,21 @@ export default function VehiculoDetailPage() {
               <div className="p-6">
                 {/* Información General */}
                 {activeTab === 'general' && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-6">
+                    {/* Botón de edición */}
+                    <div className="flex justify-end">
+                      <button
+                        onClick={startEditingGeneral}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" />
+                        </svg>
+                        <span>Editar Información</span>
+                      </button>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* Marca y Modelo */}
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                       <div className="flex items-center space-x-2 mb-3">
@@ -863,13 +901,24 @@ export default function VehiculoDetailPage() {
 
             {/* Documentación del Vehículo */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <div className="flex items-center space-x-2 mb-6">
-                <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-lg font-semibold text-gray-900">Documentación Legal</h2>
                 </div>
-                <h2 className="text-lg font-semibold text-gray-900">Documentación Legal</h2>
+                <button
+                  onClick={startEditingDocumentacion}
+                  className="px-3 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm flex items-center space-x-1"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" />
+                  </svg>
+                  <span>Editar</span>
+                </button>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -1047,60 +1096,31 @@ export default function VehiculoDetailPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
                   <div className="bg-gray-50 rounded-lg p-3">
-                    {(() => {
-                      switch (vehiculo.estado.toLowerCase()) {
-                        case 'mecanica':
-                        case 'mecánica':
-                          return (
-                            <div className="flex items-center space-x-2">
-                              <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
-                              <span className="text-yellow-800 font-medium">En proceso: Mecánica</span>
+                    <div className="flex items-center space-x-2 mb-2">
+                      <div className={`w-2 h-2 rounded-full ${
+                        vehiculo.estado.toLowerCase() === 'disponible' ? 'bg-green-500' :
+                        vehiculo.estado.toLowerCase() === 'reservado' ? 'bg-orange-500' :
+                        vehiculo.estado.toLowerCase() === 'vendido' ? 'bg-red-500' :
+                        vehiculo.estado.toLowerCase() === 'facturado' ? 'bg-indigo-500' :
+                        'bg-gray-500'
+                      }`}></div>
+                      <span className="text-gray-800 font-medium">{getDescripcionEstado(vehiculo.estado)}</span>
+                    </div>
+                    
+                    {/* Sub-estados para disponible */}
+                    {vehiculo.estado.toLowerCase() === 'disponible' && (
+                      <div className="text-sm text-gray-600">
+                        <p className="mb-2">Puede estar en:</p>
+                        <div className="grid grid-cols-2 gap-1">
+                          {getSubEstado(vehiculo.estado).map((subEstado, index) => (
+                            <div key={index} className="flex items-center space-x-1">
+                              <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                              <span>{subEstado}</span>
                             </div>
-                          )
-                        case 'fotos':
-                          return (
-                            <div className="flex items-center space-x-2">
-                              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                              <span className="text-blue-800 font-medium">En proceso: Sesión de fotos</span>
-                            </div>
-                          )
-                        case 'publicado':
-                          return (
-                            <div className="flex items-center space-x-2">
-                              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                              <span className="text-green-800 font-medium">Disponible para venta</span>
-                            </div>
-                          )
-                        case 'reservado':
-                          return (
-                            <div className="flex items-center space-x-2">
-                              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                              <span className="text-orange-800 font-medium">Reservado por cliente</span>
-                            </div>
-                          )
-                        case 'vendido':
-                          return (
-                            <div className="flex items-center space-x-2">
-                              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                              <span className="text-red-800 font-medium">Vendido - Falta facturar</span>
-                            </div>
-                          )
-                        case 'facturado':
-                          return (
-                            <div className="flex items-center space-x-2">
-                              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                              <span className="text-purple-800 font-medium">Proceso completado</span>
-                            </div>
-                          )
-                        default:
-                          return (
-                            <div className="flex items-center space-x-2">
-                              <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
-                              <span className="text-gray-800 font-medium">Estado inicial</span>
-                            </div>
-                          )
-                      }
-                    })()}
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
