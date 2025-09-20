@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import RemindersList from '@/components/RemindersList'
 import DashboardReminders from '@/components/DashboardReminders'
-import ManualReminders from '@/components/ManualReminders'
+import DashboardRecordatorios from '@/components/DashboardRecordatorios'
 import VentasPorMes from '@/components/VentasPorMes'
 import InteractiveMetricsChart from '@/components/InteractiveMetricsChart'
 
@@ -213,7 +213,7 @@ export default function Home() {
               
               {/* Recordatorios manuales (del sistema de recordatorios) */}
               <div className="mb-4">
-                <ManualReminders />
+                <DashboardRecordatorios />
               </div>
               
               {/* Últimas Operaciones */}
