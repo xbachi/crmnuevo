@@ -81,14 +81,15 @@ interface VehiculoNota {
 
 interface VehiculoRecordatorio {
   id: number
-  vehiculoId: number
+  vehiculo_id: number
   titulo: string
   descripcion: string
-  fechaRecordatorio: string
-  tipo: 'itv' | 'seguro' | 'revision' | 'documentacion' | 'otro'
-  prioridad: 'baja' | 'media' | 'alta'
+  fecha_recordatorio: string
+  tipo: string
+  prioridad: string
   completado: boolean
-  createdAt: string
+  created_at: string
+  updated_at: string
 }
 
 // Función para extraer el ID del slug (formato: id-marca-modelo)
@@ -316,6 +317,25 @@ export default function VehiculoDetailPage() {
     }
   }
 
+  // Función para obtener recordatorios desde la API
+  const fetchRecordatorios = async () => {
+    try {
+      console.log(`📅 [VEHICULO PAGE] Obteniendo recordatorios para vehículo ${vehiculoId}`)
+      const response = await fetch(`/api/vehiculos/${vehiculoId}/recordatorios`)
+      if (response.ok) {
+        const data = await response.json()
+        setRecordatorios(data)
+        console.log(`✅ [VEHICULO PAGE] Recordatorios cargados:`, data.length)
+      } else {
+        console.error('Error al obtener recordatorios:', response.statusText)
+        setRecordatorios([])
+      }
+    } catch (error) {
+      console.error('Error al obtener recordatorios:', error)
+      setRecordatorios([])
+    }
+  }
+
 
   useEffect(() => {
     const fetchVehiculoEffect = async () => {
@@ -327,6 +347,7 @@ export default function VehiculoDetailPage() {
       fetchVehiculo()
       fetchDocumentos()
       fetchNotas()
+      fetchRecordatorios()
     } else {
       console.log(`⚠️ [VEHICULO PAGE] No hay ID para buscar`)
     }
@@ -689,12 +710,7 @@ export default function VehiculoDetailPage() {
         })
         
         // Recargar recordatorios
-        const recordatoriosResponse = await fetch(`/api/vehiculos/${vehiculo.id}/recordatorios`)
-        if (recordatoriosResponse.ok) {
-          const recordatoriosData = await recordatoriosResponse.json()
-          setRecordatorios(recordatoriosData)
-          console.log(`📅 [RECORDATORIO] Recordatorios recargados:`, recordatoriosData.length)
-        }
+        await fetchRecordatorios()
         
         showToast('Recordatorio agregado correctamente', 'success')
       } else {
@@ -1900,7 +1916,7 @@ export default function VehiculoDetailPage() {
                           </span>
                         </div>
                         <div className="text-xs text-gray-500">
-                          {formatDate(recordatorio.fechaRecordatorio)}
+                          {formatDate(recordatorio.fecha_recordatorio)}
                         </div>
                       </div>
                       <h4 className="font-medium text-gray-900 text-sm mb-1">{recordatorio.titulo}</h4>
