@@ -302,22 +302,26 @@ export default function InvestorDashboardPage() {
   return (
     <div className="min-h-screen bg-gray-100">
       <main className="max-w-7xl mx-auto px-6 py-4">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center space-x-4 mb-4">
-            <button
-              onClick={() => router.push('/inversores')}
-              className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <div>
-              <h1 className="text-3xl font-bold text-slate-800">{inversor.nombre}</h1>
-              <p className="text-slate-600">Dashboard del inversor</p>
-            </div>
-          </div>
+        {/* Layout principal con dos columnas */}
+        <div className="flex gap-6">
+          {/* Contenido principal - 70% del ancho */}
+          <div className="w-[70%]">
+            {/* Header */}
+            <div className="mb-6">
+              <div className="flex items-center space-x-4 mb-4">
+                <button
+                  onClick={() => router.push('/inversores')}
+                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <div>
+                  <h1 className="text-3xl font-bold text-slate-800">{inversor.nombre}</h1>
+                  <p className="text-slate-600">Dashboard del inversor</p>
+                </div>
+              </div>
 
           {/* Información del inversor */}
           <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 mb-6">
@@ -685,29 +689,24 @@ export default function InvestorDashboardPage() {
             ))}
           </div>
         )}
-
-        {/* Bloque de Notas */}
-        <div className="mt-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Columna izquierda - vacía para mantener el layout */}
-            <div className="lg:col-span-1"></div>
-            
-            {/* Columna derecha - Notas */}
-            <div className="lg:col-span-2">
-              {inversor?.id ? (
-                <NotasSection 
-                  notas={notas} 
-                  onNotasChange={setNotas} 
-                  entityId={inversor.id} 
-                  entityType="inversores"
-                />
-              ) : (
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Notas</h2>
-                  <p className="text-gray-500 text-center py-4">Cargando...</p>
-                </div>
-              )}
-            </div>
+          </div>
+          
+          {/* Sidebar derecho - 30% del ancho */}
+          <div className="w-[30%]">
+            {/* Bloque de Notas */}
+            {inversor?.id ? (
+              <NotasSection 
+                notas={notas} 
+                onNotasChange={setNotas} 
+                entityId={inversor.id} 
+                entityType="inversores"
+              />
+            ) : (
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Notas</h2>
+                <p className="text-gray-500 text-center py-4">Cargando...</p>
+              </div>
+            )}
           </div>
         </div>
       </main>
