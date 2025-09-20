@@ -90,70 +90,28 @@ interface VehiculoRecordatorio {
   createdAt: string
 }
 
-// Función para extraer la referencia del slug
-const extractReferenciaFromSlug = (slug: string): string => {
-  console.log(`🔧 [EXTRACT] Extracting referencia from slug: "${slug}"`)
+// Función para extraer el ID del slug (formato: id-marca-modelo)
+const extractIdFromSlug = (slug: string): string | null => {
+  console.log(`🔧 [EXTRACT] Extracting ID from slug: "${slug}"`)
   
-  // CASO 1: I-i99-opel-corsa (inversor con prefijo I-)
-  if (slug.startsWith('I-')) {
-    const match = slug.match(/^I-i(\d+)/)
-    if (match) {
-      const referencia = `I-i${match[1]}`
-      console.log(`🔧 [EXTRACT] Inversor con prefijo I-: "${referencia}"`)
-      return referencia
-    }
-  }
-  
-  // CASO 2: i99-opel-corsa (inversor sin prefijo)
-  if (slug.startsWith('i') && !slug.startsWith('I-')) {
-    const match = slug.match(/^i(\d+)/)
-    if (match) {
-      const referencia = `I-i${match[1]}`
-      console.log(`🔧 [EXTRACT] Inversor sin prefijo: "${referencia}"`)
-      return referencia
-    }
-  }
-  
-  // CASO 3: d121212-opel-cors (depósito)
-  if (slug.startsWith('d')) {
-    const match = slug.match(/^d(\d+)/)
-    if (match) {
-      const referencia = `d${match[1]}`
-      console.log(`🔧 [EXTRACT] Deposito: "${referencia}"`)
-      return referencia
-    }
-  }
-  
-  // CASO 4: r123-marca-modelo (renting)
-  if (slug.startsWith('r')) {
-    const match = slug.match(/^r(\d+)/)
-    if (match) {
-      const referencia = `R-${match[1]}`
-      console.log(`🔧 [EXTRACT] Renting: "${referencia}"`)
-      return referencia
-    }
-  }
-  
-  // CASO 5: 1037-ford-puma (compra con #)
-  const match = slug.match(/^(\d+)/)
+  // Extraer el ID de la primera parte del slug
+  const match = slug.match(/^(\d+)-/)
   if (match) {
-    const referencia = `#${match[1]}`
-    console.log(`🔧 [EXTRACT] Compra: "${referencia}"`)
-    return referencia
+    const id = match[1]
+    console.log(`🔧 [EXTRACT] ID encontrado: "${id}"`)
+    return id
   }
   
-  // Fallback: tomar la primera parte del slug
-  const referencia = slug.split('-')[0]
-  console.log(`🔧 [EXTRACT] Fallback: "${referencia}"`)
-  return referencia
+  console.log(`❌ [EXTRACT] No se pudo extraer ID del slug: "${slug}"`)
+  return null
 }
 
 export default function VehiculoDetailPage() {
   const router = useRouter()
   const params = useParams()
-  // Extraer referencia del formato "referencia-marca-modelo"
+  // Extraer ID del formato "id-marca-modelo"
   const vehiculoSlug = params.id as string
-  const vehiculoReferencia = extractReferenciaFromSlug(vehiculoSlug)
+  const vehiculoId = extractIdFromSlug(vehiculoSlug)
   const { showToast, ToastContainer } = useToast()
   const { showConfirm, ConfirmModalComponent } = useConfirmModal()
 
@@ -183,10 +141,17 @@ export default function VehiculoDetailPage() {
       try {
         console.log(`🔍 [VEHICULO PAGE] Iniciando búsqueda de vehículo`)
         console.log(`📝 [VEHICULO PAGE] Slug completo: "${vehiculoSlug}"`)
-        console.log(`🔢 [VEHICULO PAGE] Referencia extraída: "${vehiculoReferencia}"`)
+        console.log(`🔢 [VEHICULO PAGE] ID extraído: "${vehiculoId}"`)
+        
+        if (!vehiculoId) {
+          console.log(`❌ [VEHICULO PAGE] No se pudo extraer ID del slug`)
+          setError('ID de vehículo inválido')
+          setIsLoading(false)
+          return
+        }
         
         setIsLoading(true)
-        const apiUrl = `/api/vehiculos/by-referencia/${vehiculoReferencia}`
+        const apiUrl = `/api/vehiculos/${vehiculoId}`
         console.log(`📞 [VEHICULO PAGE] Llamando API: ${apiUrl}`)
         
         const response = await fetch(apiUrl)

@@ -269,16 +269,16 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
             ? 'bg-gradient-to-r from-orange-200 to-amber-200 border-orange-300'
             : 'bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200'
         }`}
-        onClick={() => {
-          console.log(`🎯 [VEHICLE CARD] Header clicked - Referencia: ${vehiculo.referencia}`)
-          if (!vehiculoVendido) {
-            const slug = generateVehicleSlug(vehiculo)
-            console.log(`🔗 [VEHICLE CARD] Navegando a: /vehiculos/${slug}`)
-            router.push(`/vehiculos/${slug}`)
-          } else {
-            console.log(`⚠️ [VEHICLE CARD] Vehículo vendido - navegación bloqueada`)
-          }
-        }}
+             onClick={() => {
+               console.log(`🎯 [VEHICLE CARD] Header clicked - ID: ${vehiculo.id}`)
+               if (!vehiculoVendido) {
+                 const slug = generateVehicleSlug(vehiculo)
+                 console.log(`🔗 [VEHICLE CARD] Navegando a: /vehiculos/${slug}`)
+                 router.push(`/vehiculos/${slug}`)
+               } else {
+                 console.log(`⚠️ [VEHICLE CARD] Vehículo vendido - navegación bloqueada`)
+               }
+             }}
         title={vehiculoVendido ? "Vehículo vendido - No disponible" : "Ver detalles del vehículo"}
       >
         <div className="flex items-start justify-between">

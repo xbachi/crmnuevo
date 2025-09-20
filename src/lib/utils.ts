@@ -146,10 +146,9 @@ export function formatPercentage(value: number): string {
 }
 
 // Función para generar el slug del vehículo
-export function generateVehicleSlug(vehiculo: { referencia: string; marca: string; modelo: string }): string {
-  // Limpiar la referencia de prefijos como #, I-, D-, R-
-  const cleanReferencia = vehiculo.referencia.replace(/^[#IDR-]+/, '').replace(/[^0-9]/g, '')
+export function generateVehicleSlug(vehiculo: { id: number; marca: string; modelo: string }): string {
+  // Usar ID + marca + modelo (formato simple)
   const cleanMarca = vehiculo.marca.toLowerCase().replace(/[^a-z0-9]/g, '')
   const cleanModelo = vehiculo.modelo.toLowerCase().replace(/[^a-z0-9]/g, '')
-  return `${cleanReferencia}-${cleanMarca}-${cleanModelo}`
+  return `${vehiculo.id}-${cleanMarca}-${cleanModelo}`
 }
