@@ -503,6 +503,7 @@ export default function VehiculoDetailPage() {
     })
     console.log('🔧 [SAVE] Modo edición general:', isEditingGeneral)
     console.log('🔧 [SAVE] Modo edición documentación:', isEditingDocumentacion)
+    console.log('🔧 [SAVE] ¿Hay datos para guardar?', Object.keys(editingData).length > 0)
     
     if (!vehiculo?.id) {
       console.error('❌ [SAVE] No hay ID de vehículo')
@@ -510,12 +511,44 @@ export default function VehiculoDetailPage() {
       return
     }
 
+    // Filtrar solo los campos que están siendo editados
+    const camposAGuardar: any = {}
+    
+    if (isEditingGeneral) {
+      // Campos de información general
+      if (editingData.marca !== undefined) camposAGuardar.marca = editingData.marca
+      if (editingData.modelo !== undefined) camposAGuardar.modelo = editingData.modelo
+      if (editingData.matricula !== undefined) camposAGuardar.matricula = editingData.matricula
+      if (editingData.bastidor !== undefined) camposAGuardar.bastidor = editingData.bastidor
+      if (editingData.kms !== undefined) camposAGuardar.kms = editingData.kms
+      if (editingData.fechaMatriculacion !== undefined) camposAGuardar.fechaMatriculacion = editingData.fechaMatriculacion
+      if (editingData.color !== undefined) camposAGuardar.color = editingData.color
+    }
+    
+    if (isEditingDocumentacion) {
+      // Campos de documentación legal
+      if (editingData.itv !== undefined) camposAGuardar.itv = editingData.itv
+      if (editingData.seguro !== undefined) camposAGuardar.seguro = editingData.seguro
+      if (editingData.segundaLlave !== undefined) camposAGuardar.segundaLlave = editingData.segundaLlave
+      if (editingData.documentacion !== undefined) camposAGuardar.documentacion = editingData.documentacion
+    }
+
+    console.log('🔧 [SAVE] Campos filtrados para guardar:', camposAGuardar)
+    console.log('🔧 [SAVE] Número de campos a guardar:', Object.keys(camposAGuardar).length)
+
+    if (Object.keys(camposAGuardar).length === 0) {
+      console.warn('⚠️ [SAVE] No hay campos para guardar')
+      showToast('No hay cambios para guardar', 'warning')
+      return
+    }
+
     try {
       console.log('🔧 [SAVE] Enviando petición PUT a /api/vehiculos/' + vehiculo.id)
+      console.log('🔧 [SAVE] Datos que se envían al servidor:', camposAGuardar)
       const response = await fetch(`/api/vehiculos/${vehiculo.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editingData)
+        body: JSON.stringify(camposAGuardar)
       })
 
       console.log('🔧 [SAVE] Respuesta del servidor:', response.status)
