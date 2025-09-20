@@ -789,6 +789,16 @@ export async function updateVehiculo(id: number, vehiculoData: Partial<Vehiculo>
     console.log('💾 Valores:', values)
     console.log('🔧 SET clause:', setClause)
     console.log('🔍 vehiculoData completo:', vehiculoData)
+    console.log('🔍 Campos de documentación:', {
+      itv: vehiculoData.itv,
+      seguro: vehiculoData.seguro,
+      segundaLlave: vehiculoData.segundaLlave,
+      documentacion: vehiculoData.documentacion
+    })
+    
+    console.log('🔧 Ejecutando query SQL...')
+    console.log('🔧 Query:', `UPDATE "Vehiculo" SET ${setClause}, "updatedAt" = NOW() WHERE id = $1 RETURNING *`)
+    console.log('🔧 Parámetros:', [id, ...values])
     
     const result = await client.query(`
       UPDATE "Vehiculo" 
@@ -803,7 +813,10 @@ export async function updateVehiculo(id: number, vehiculoData: Partial<Vehiculo>
     
     return result.rows[0] as Vehiculo || null
   } catch (error) {
-    console.error('Error actualizando vehículo:', error)
+    console.error('❌ Error actualizando vehículo:', error)
+    console.error('❌ Tipo de error:', typeof error)
+    console.error('❌ Mensaje de error:', error instanceof Error ? error.message : 'Error desconocido')
+    console.error('❌ Stack trace:', error instanceof Error ? error.stack : 'No stack trace')
     throw error
   } finally {
     client.release()
