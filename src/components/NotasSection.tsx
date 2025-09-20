@@ -134,23 +134,21 @@ export default function NotasSection({ notas, onNotasChange, vehiculoId }: Notas
       <h2 className="text-lg font-semibold text-gray-900 mb-4">Notas</h2>
       
       {/* Formulario para agregar nota */}
-      <div className="mb-6">
-        <div className="flex space-x-3">
-          <textarea
-            value={nuevaNota}
-            onChange={(e) => setNuevaNota(e.target.value)}
-            placeholder="Escribe una nota..."
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-            rows={3}
-          />
-          <button
-            onClick={handleAgregarNota}
-            disabled={!nuevaNota.trim()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-          >
-            Agregar Nota
-          </button>
-        </div>
+      <div className="mb-4">
+        <textarea
+          value={nuevaNota}
+          onChange={(e) => setNuevaNota(e.target.value)}
+          placeholder="Agregar una nueva nota..."
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+          rows={3}
+        />
+        <button
+          onClick={handleAgregarNota}
+          disabled={!nuevaNota.trim()}
+          className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+        >
+          Agregar Nota
+        </button>
       </div>
       
       {/* Lista de notas */}
