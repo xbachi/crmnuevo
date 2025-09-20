@@ -261,30 +261,31 @@ export default function VehiculoDetailPage() {
     }
   }
 
+  // Función para obtener documentos
+  const fetchDocumentos = async () => {
+    try {
+      console.log(`📁 [VEHICULO PAGE] Obteniendo documentos para vehículo ${vehiculoId}`)
+      const response = await fetch(`/api/vehiculos/${vehiculoId}/files`)
+      if (response.ok) {
+        const data = await response.json()
+        // Convertir tamaño de bytes a formato legible
+        const documentosFormateados = data.map((doc: any) => ({
+          ...doc,
+          tamañoFormateado: formatFileSize(doc.size)
+        }))
+        setDocumentos(documentosFormateados)
+        console.log(`✅ [VEHICULO PAGE] Archivos cargados:`, documentosFormateados.length)
+      } else {
+        console.error('Error al obtener documentos:', response.statusText)
+      }
+    } catch (error) {
+      console.error('Error al obtener documentos:', error)
+    }
+  }
+
   useEffect(() => {
     const fetchVehiculoEffect = async () => {
       await fetchVehiculo()
-    }
-
-    const fetchDocumentos = async () => {
-      try {
-        console.log(`📁 [VEHICULO PAGE] Obteniendo documentos para vehículo ${vehiculoId}`)
-        const response = await fetch(`/api/vehiculos/${vehiculoId}/files`)
-        if (response.ok) {
-          const data = await response.json()
-          // Convertir tamaño de bytes a formato legible
-          const documentosFormateados = data.map((doc: any) => ({
-            ...doc,
-            tamañoFormateado: formatFileSize(doc.size)
-          }))
-          setDocumentos(documentosFormateados)
-          console.log(`✅ [VEHICULO PAGE] Archivos cargados:`, documentosFormateados.length)
-        } else {
-          console.error('Error al obtener documentos:', response.statusText)
-        }
-      } catch (error) {
-        console.error('Error al obtener documentos:', error)
-      }
     }
 
     if (vehiculoId) {
