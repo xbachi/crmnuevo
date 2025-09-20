@@ -694,12 +694,19 @@ export default function InvestorDashboardPage() {
             
             {/* Columna derecha - Notas */}
             <div className="lg:col-span-2">
-              <NotasSection 
-                notas={notas} 
-                onNotasChange={setNotas} 
-                entityId={inversor?.id || 0} 
-                entityType="inversor"
-              />
+              {inversor?.id ? (
+                <NotasSection 
+                  notas={notas} 
+                  onNotasChange={setNotas} 
+                  entityId={inversor.id} 
+                  entityType="inversor"
+                />
+              ) : (
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Notas</h2>
+                  <p className="text-gray-500 text-center py-4">Cargando...</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

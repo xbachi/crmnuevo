@@ -1046,12 +1046,19 @@ export default function DealDetail() {
             </div>
 
             {/* Notas */}
-            <NotasSection 
-              notas={notas} 
-              onNotasChange={setNotas} 
-              entityId={deal?.id || 0} 
-              entityType="deal"
-            />
+            {deal?.id ? (
+              <NotasSection 
+                notas={notas} 
+                onNotasChange={setNotas} 
+                entityId={deal.id} 
+                entityType="deal"
+              />
+            ) : (
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Notas</h2>
+                <p className="text-gray-500 text-center py-4">Cargando...</p>
+              </div>
+            )}
           </div>
 
           {/* Panel Lateral */}
