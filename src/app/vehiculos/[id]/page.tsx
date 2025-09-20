@@ -690,120 +690,169 @@ export default function VehiculoDetailPage() {
                   </div>
                 )}
 
-                {/* Información Financiera (Solo Admin) */}
+                {/* Información Financiera (Solo Admin) - Formato Mejorado */}
                 {activeTab === 'financiero' && isAdmin && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Costos */}
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Costos de Adquisición</h3>
+                  <div className="space-y-6">
+                    {/* Resumen Financiero con Iconos y Colores */}
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
+                      <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                        <svg className="w-6 h-6 mr-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                        </svg>
+                        Resumen Financiero
+                      </h3>
                       
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Precio de Compra</label>
-                        <p className="text-gray-900 text-lg font-semibold">
-                          {vehiculo.precioCompra ? formatCurrency(vehiculo.precioCompra) : 'N/A'}
-                        </p>
-                      </div>
+                      {(() => {
+                        const totalInvertido = (vehiculo.precioCompra || 0) +
+                                             (vehiculo.gastosTransporte || 0) +
+                                             (vehiculo.gastosTasas || 0) +
+                                             (vehiculo.gastosMecanica || 0) +
+                                             (vehiculo.gastosPintura || 0) +
+                                             (vehiculo.gastosLimpieza || 0) +
+                                             (vehiculo.gastosOtros || 0)
+                        const precioVenta = vehiculo.precioVenta || 0
+                        const iva = precioVenta > 0 ? (precioVenta - totalInvertido) * 0.21 : 0
+                        const beneficio = precioVenta - iva - totalInvertido
 
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Transporte</label>
-                          <p className="text-gray-900">
-                            {vehiculo.gastosTransporte ? formatCurrency(vehiculo.gastosTransporte) : 'N/A'}
-                          </p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Tasas</label>
-                          <p className="text-gray-900">
-                            {vehiculo.gastosTasas ? formatCurrency(vehiculo.gastosTasas) : 'N/A'}
-                          </p>
-                        </div>
-                      </div>
+                        return (
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            {/* Total Invertido */}
+                            <div className="bg-white rounded-lg p-4 border border-gray-200">
+                              <div className="flex items-center mb-2">
+                                <svg className="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                <span className="text-sm font-medium text-gray-600">Total Invertido</span>
+                              </div>
+                              <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalInvertido)}</p>
+                            </div>
 
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Mecánica</label>
-                          <p className="text-gray-900">
-                            {vehiculo.gastosMecanica ? formatCurrency(vehiculo.gastosMecanica) : 'N/A'}
-                          </p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Otros</label>
-                          <p className="text-gray-900">
-                            {vehiculo.gastosOtros ? formatCurrency(vehiculo.gastosOtros) : 'N/A'}
-                          </p>
-                        </div>
-                      </div>
+                            {/* Precio de Venta */}
+                            <div className="bg-white rounded-lg p-4 border border-gray-200">
+                              <div className="flex items-center mb-2">
+                                <svg className="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                                </svg>
+                                <span className="text-sm font-medium text-gray-600">Precio de Venta</span>
+                              </div>
+                              <p className="text-2xl font-bold text-gray-900">{formatCurrency(precioVenta)}</p>
+                            </div>
 
-                      {/* Total */}
-                      <div className="border-t pt-4">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-medium text-gray-700">Total Invertido:</span>
-                          <span className="text-lg font-bold text-gray-900">
-                            {(() => {
-                              const total = (vehiculo.precioCompra || 0) +
-                                           (vehiculo.gastosTransporte || 0) +
-                                           (vehiculo.gastosTasas || 0) +
-                                           (vehiculo.gastosMecanica || 0) +
-                                           (vehiculo.gastosPintura || 0) +
-                                           (vehiculo.gastosLimpieza || 0) +
-                                           (vehiculo.gastosOtros || 0)
-                              return formatCurrency(total)
-                            })()}
-                          </span>
-                        </div>
-                      </div>
+                            {/* IVA */}
+                            <div className="bg-white rounded-lg p-4 border border-gray-200">
+                              <div className="flex items-center mb-2">
+                                <svg className="w-5 h-5 text-yellow-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                </svg>
+                                <span className="text-sm font-medium text-gray-600">IVA (21%)</span>
+                              </div>
+                              <p className="text-2xl font-bold text-gray-900">{formatCurrency(iva)}</p>
+                            </div>
+
+                            {/* Beneficio Neto */}
+                            <div className="bg-white rounded-lg p-4 border border-gray-200">
+                              <div className="flex items-center mb-2">
+                                <svg className="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                </svg>
+                                <span className="text-sm font-medium text-gray-600">Beneficio Neto</span>
+                              </div>
+                              <p className={`text-2xl font-bold ${beneficio >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {formatCurrency(beneficio)}
+                              </p>
+                            </div>
+                          </div>
+                        )
+                      })()}
                     </div>
 
-                    {/* Precios y Beneficios */}
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Precios y Beneficios</h3>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Precio de Publicación</label>
-                        <p className="text-gray-900 text-lg font-semibold">
-                          {vehiculo.precioPublicacion ? formatCurrency(vehiculo.precioPublicacion) : 'N/A'}
-                        </p>
+                    {/* Desglose Detallado */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Costos de Adquisición */}
+                      <div className="bg-gray-50 rounded-lg p-6">
+                        <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                          <svg className="w-5 h-5 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Costos de Adquisición
+                        </h4>
+                        
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                            <span className="text-sm text-gray-600">Precio de Compra</span>
+                            <span className="font-semibold">{formatCurrency(vehiculo.precioCompra || 0)}</span>
+                          </div>
+                          <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                            <span className="text-sm text-gray-600">Transporte</span>
+                            <span className="font-semibold">{formatCurrency(vehiculo.gastosTransporte || 0)}</span>
+                          </div>
+                          <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                            <span className="text-sm text-gray-600">Tasas</span>
+                            <span className="font-semibold">{formatCurrency(vehiculo.gastosTasas || 0)}</span>
+                          </div>
+                          <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                            <span className="text-sm text-gray-600">Mecánica</span>
+                            <span className="font-semibold">{formatCurrency(vehiculo.gastosMecanica || 0)}</span>
+                          </div>
+                          <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                            <span className="text-sm text-gray-600">Pintura</span>
+                            <span className="font-semibold">{formatCurrency(vehiculo.gastosPintura || 0)}</span>
+                          </div>
+                          <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                            <span className="text-sm text-gray-600">Limpieza</span>
+                            <span className="font-semibold">{formatCurrency(vehiculo.gastosLimpieza || 0)}</span>
+                          </div>
+                          <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                            <span className="text-sm text-gray-600">Otros</span>
+                            <span className="font-semibold">{formatCurrency(vehiculo.gastosOtros || 0)}</span>
+                          </div>
+                          <div className="flex justify-between items-center py-3 bg-white rounded-lg px-3 mt-4">
+                            <span className="text-lg font-bold text-gray-900">Total Invertido</span>
+                            <span className="text-lg font-bold text-red-600">
+                              {formatCurrency((vehiculo.precioCompra || 0) + (vehiculo.gastosTransporte || 0) + (vehiculo.gastosTasas || 0) + (vehiculo.gastosMecanica || 0) + (vehiculo.gastosPintura || 0) + (vehiculo.gastosLimpieza || 0) + (vehiculo.gastosOtros || 0))}
+                            </span>
+                          </div>
+                        </div>
                       </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Precio de Venta</label>
-                        <p className="text-gray-900 text-lg font-semibold">
-                          {vehiculo.precioVenta ? formatCurrency(vehiculo.precioVenta) : 'N/A'}
-                        </p>
-                      </div>
-
-                      {/* Cálculo de Beneficio */}
-                      <div className="border-t pt-4">
-                        <div className="space-y-2">
-                          {(() => {
-                            const totalInvertido = (vehiculo.precioCompra || 0) +
-                                                 (vehiculo.gastosTransporte || 0) +
-                                                 (vehiculo.gastosTasas || 0) +
-                                                 (vehiculo.gastosMecanica || 0) +
-                                                 (vehiculo.gastosPintura || 0) +
-                                                 (vehiculo.gastosLimpieza || 0) +
-                                                 (vehiculo.gastosOtros || 0)
-                            const precioVenta = vehiculo.precioVenta || 0
-                            const beneficioBruto = precioVenta - totalInvertido
-                            const porcentajeBeneficio = totalInvertido > 0 ? (beneficioBruto / totalInvertido) * 100 : 0
-
-                            return (
-                              <>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm text-gray-600">Beneficio Bruto:</span>
-                                  <span className={`font-semibold ${beneficioBruto >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                    {formatCurrency(beneficioBruto)}
-                                  </span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm text-gray-600">Margen:</span>
-                                  <span className={`font-semibold ${porcentajeBeneficio >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                    {porcentajeBeneficio.toFixed(1)}%
-                                  </span>
-                                </div>
-                              </>
-                            )
-                          })()}
+                      {/* Información de Venta */}
+                      <div className="bg-gray-50 rounded-lg p-6">
+                        <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                          <svg className="w-5 h-5 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                          </svg>
+                          Información de Venta
+                        </h4>
+                        
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                            <span className="text-sm text-gray-600">Precio de Venta</span>
+                            <span className="font-semibold text-lg">{formatCurrency(vehiculo.precioVenta || 0)}</span>
+                          </div>
+                          <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                            <span className="text-sm text-gray-600">IVA (21%)</span>
+                            <span className="font-semibold text-lg">
+                              {formatCurrency((vehiculo.precioVenta || 0) > 0 ? ((vehiculo.precioVenta || 0) - ((vehiculo.precioCompra || 0) + (vehiculo.gastosTransporte || 0) + (vehiculo.gastosTasas || 0) + (vehiculo.gastosMecanica || 0) + (vehiculo.gastosPintura || 0) + (vehiculo.gastosLimpieza || 0) + (vehiculo.gastosOtros || 0))) * 0.21 : 0)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center py-3 bg-white rounded-lg px-3 mt-4">
+                            <span className="text-lg font-bold text-gray-900">Beneficio Neto</span>
+                            <span className={`text-lg font-bold ${(() => {
+                              const totalInvertido = (vehiculo.precioCompra || 0) + (vehiculo.gastosTransporte || 0) + (vehiculo.gastosTasas || 0) + (vehiculo.gastosMecanica || 0) + (vehiculo.gastosPintura || 0) + (vehiculo.gastosLimpieza || 0) + (vehiculo.gastosOtros || 0)
+                              const precioVenta = vehiculo.precioVenta || 0
+                              const iva = precioVenta > 0 ? (precioVenta - totalInvertido) * 0.21 : 0
+                              const beneficio = precioVenta - iva - totalInvertido
+                              return beneficio >= 0 ? 'text-green-600' : 'text-red-600'
+                            })()}`}>
+                              {(() => {
+                                const totalInvertido = (vehiculo.precioCompra || 0) + (vehiculo.gastosTransporte || 0) + (vehiculo.gastosTasas || 0) + (vehiculo.gastosMecanica || 0) + (vehiculo.gastosPintura || 0) + (vehiculo.gastosLimpieza || 0) + (vehiculo.gastosOtros || 0)
+                                const precioVenta = vehiculo.precioVenta || 0
+                                const iva = precioVenta > 0 ? (precioVenta - totalInvertido) * 0.21 : 0
+                                const beneficio = precioVenta - iva - totalInvertido
+                                return formatCurrency(beneficio)
+                              })()}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
