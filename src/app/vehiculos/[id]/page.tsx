@@ -198,14 +198,14 @@ export default function VehiculoDetailPage() {
       }
     }
 
-    if (vehiculoReferencia) {
-      console.log(`🚀 [VEHICULO PAGE] Iniciando useEffect con referencia: "${vehiculoReferencia}"`)
+    if (vehiculoId) {
+      console.log(`🚀 [VEHICULO PAGE] Iniciando useEffect con ID: "${vehiculoId}"`)
       fetchVehiculo()
     } else {
-      console.log(`⚠️ [VEHICULO PAGE] No hay referencia para buscar`)
+      console.log(`⚠️ [VEHICULO PAGE] No hay ID para buscar`)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vehiculoReferencia])
+  }, [vehiculoId])
 
   useEffect(() => {
     const fetchNotas = async () => {
