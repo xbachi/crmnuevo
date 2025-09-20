@@ -539,6 +539,9 @@ export default function VehiculoDetailPage() {
       if (editingData.seguro !== undefined) camposAGuardar.seguro = editingData.seguro
       if (editingData.segundaLlave !== undefined) camposAGuardar.segundaLlave = editingData.segundaLlave
       if (editingData.documentacion !== undefined) camposAGuardar.documentacion = editingData.documentacion
+      if (editingData.master !== undefined) camposAGuardar.master = editingData.master
+      if (editingData.carpeta !== undefined) camposAGuardar.carpeta = editingData.carpeta
+      if (editingData.hojasA !== undefined) camposAGuardar.hojasA = editingData.hojasA
     }
 
     console.log('🔧 [SAVE] Campos filtrados para guardar:', camposAGuardar)
@@ -1361,6 +1364,105 @@ export default function VehiculoDetailPage() {
                         'bg-gray-100 text-gray-800'
                       }`}>
                         {vehiculo.documentacion || 'N/A'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Master */}
+                <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+                  <div className="flex items-center space-x-2 mb-3">
+                    <div className="w-6 h-6 bg-indigo-500 rounded-full flex items-center justify-center">
+                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <h3 className="font-semibold text-indigo-900">Master</h3>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-indigo-700 mb-1">Estado</label>
+                      {isEditingDocumentacion ? (
+                        <select
+                          value={editingData.master === 'Sí' || editingData.master === 'si' ? 'si' : 'no'}
+                          onChange={(e) => setEditingData(prev => ({ ...prev, master: e.target.value === 'si' ? 'Sí' : 'No' }))}
+                          className="w-full text-indigo-900 bg-white border border-indigo-300 rounded px-2 py-1 text-sm font-medium"
+                        >
+                          <option value="no">No</option>
+                          <option value="si">Sí</option>
+                        </select>
+                    ) : (
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        vehiculo.master === 'Sí' || vehiculo.master === 'si' ? 'bg-green-100 text-green-800' :
+                        vehiculo.master === 'No' || vehiculo.master === 'no' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {vehiculo.master || 'N/A'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Carpeta */}
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                  <div className="flex items-center space-x-2 mb-3">
+                    <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
+                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                      </svg>
+                    </div>
+                    <h3 className="font-semibold text-orange-900">Carpeta</h3>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-orange-700 mb-1">Estado</label>
+                      {isEditingDocumentacion ? (
+                        <select
+                          value={editingData.carpeta === 'Sí' || editingData.carpeta === 'si' ? 'si' : 'no'}
+                          onChange={(e) => setEditingData(prev => ({ ...prev, carpeta: e.target.value === 'si' ? 'Sí' : 'No' }))}
+                          className="w-full text-orange-900 bg-white border border-orange-300 rounded px-2 py-1 text-sm font-medium"
+                        >
+                          <option value="no">No</option>
+                          <option value="si">Sí</option>
+                        </select>
+                    ) : (
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        vehiculo.carpeta === 'Sí' || vehiculo.carpeta === 'si' ? 'bg-green-100 text-green-800' :
+                        vehiculo.carpeta === 'No' || vehiculo.carpeta === 'no' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {vehiculo.carpeta || 'N/A'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Hojas A */}
+                <div className="bg-pink-50 border border-pink-200 rounded-lg p-4">
+                  <div className="flex items-center space-x-2 mb-3">
+                    <div className="w-6 h-6 bg-pink-500 rounded-full flex items-center justify-center">
+                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <h3 className="font-semibold text-pink-900">Hojas A</h3>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-pink-700 mb-1">Estado</label>
+                      {isEditingDocumentacion ? (
+                        <select
+                          value={editingData.hojasA === 'Sí' || editingData.hojasA === 'si' ? 'si' : 'no'}
+                          onChange={(e) => setEditingData(prev => ({ ...prev, hojasA: e.target.value === 'si' ? 'Sí' : 'No' }))}
+                          className="w-full text-pink-900 bg-white border border-pink-300 rounded px-2 py-1 text-sm font-medium"
+                        >
+                          <option value="no">No</option>
+                          <option value="si">Sí</option>
+                        </select>
+                    ) : (
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        vehiculo.hojasA === 'Sí' || vehiculo.hojasA === 'si' ? 'bg-green-100 text-green-800' :
+                        vehiculo.hojasA === 'No' || vehiculo.hojasA === 'no' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {vehiculo.hojasA || 'N/A'}
                       </span>
                     )}
                   </div>
