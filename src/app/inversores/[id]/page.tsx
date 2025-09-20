@@ -301,27 +301,23 @@ export default function InvestorDashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <main className="max-w-7xl mx-auto px-6 py-4">
-        {/* Layout principal con dos columnas */}
-        <div className="flex gap-6">
-          {/* Contenido principal - 70% del ancho */}
-          <div className="w-[70%]">
-            {/* Header */}
-            <div className="mb-6">
-              <div className="flex items-center space-x-4 mb-4">
-                <button
-                  onClick={() => router.push('/inversores')}
-                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-                <div>
-                  <h1 className="text-3xl font-bold text-slate-800">{inversor.nombre}</h1>
-                  <p className="text-slate-600">Dashboard del inversor</p>
-                </div>
-              </div>
+      <main className="w-[90%] mx-auto px-6 py-4">
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex items-center space-x-4 mb-4">
+            <button
+              onClick={() => router.push('/inversores')}
+              className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <div>
+              <h1 className="text-3xl font-bold text-slate-800">{inversor.nombre}</h1>
+              <p className="text-slate-600">Dashboard del inversor</p>
+            </div>
+          </div>
 
           {/* Información del inversor */}
           <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 mb-6">
@@ -577,29 +573,33 @@ export default function InvestorDashboardPage() {
         </div>
 
 
-        {/* Filtros y controles */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0 lg:space-x-4">
-            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
-              <input
-                type="text"
-                placeholder="Buscar vehículos..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              />
-              <div className="flex items-center space-x-2">
-                <select
-                  value={estadoFilter}
-                  onChange={(e) => setEstadoFilter(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                >
-                  {estados.map(estado => (
-                    <option key={estado.value} value={estado.value}>
-                      {estado.label}
-                    </option>
-                  ))}
-                </select>
+        {/* Layout principal con dos columnas */}
+        <div className="flex gap-6">
+          {/* Contenido principal - 70% del ancho */}
+          <div className="w-[70%]">
+            {/* Filtros y controles */}
+            <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-8">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0 lg:space-x-4">
+                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+                  <input
+                    type="text"
+                    placeholder="Buscar vehículos..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  />
+                  <div className="flex items-center space-x-2">
+                    <select
+                      value={estadoFilter}
+                      onChange={(e) => setEstadoFilter(e.target.value)}
+                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    >
+                      {estados.map(estado => (
+                        <option key={estado.value} value={estado.value}>
+                          {estado.label}
+                        </option>
+                      ))}
+                    </select>
                 
                 {/* Controles de Vista */}
                 <div className="flex bg-gray-100 rounded-lg p-1">
