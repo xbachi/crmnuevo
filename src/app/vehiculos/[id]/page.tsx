@@ -122,10 +122,38 @@ export default function VehiculoDetailPage() {
   const [activeTab, setActiveTab] = useState<'general' | 'financiero'>('general')
   const [isAdmin] = useState(true) // TODO: Obtener del contexto de autenticación
 
-  // Estados para nueva nota
+  // Estados para nueva nota (simplificado)
   const [nuevaNota, setNuevaNota] = useState('')
-  const [nuevaNotaTipo, setNuevaNotaTipo] = useState<'general' | 'tecnica' | 'comercial' | 'financiera'>('general')
-  const [nuevaNotaPrioridad, setNuevaNotaPrioridad] = useState<'baja' | 'media' | 'alta'>('media')
+  
+  // Estados para documentos
+  const [documentos, setDocumentos] = useState<Array<{
+    id: string
+    nombre: string
+    tamaño: string
+    fechaSubida: string
+    tipo: string
+  }>>([])
+  
+  // Estados para edición
+  const [isEditingGeneral, setIsEditingGeneral] = useState(false)
+  const [isEditingDocumentacion, setIsEditingDocumentacion] = useState(false)
+  const [editingData, setEditingData] = useState({
+    marca: '',
+    modelo: '',
+    matricula: '',
+    bastidor: '',
+    kms: 0,
+    color: '',
+    fechaMatriculacion: '',
+    año: 0,
+    itv: '',
+    seguro: '',
+    segundaLlave: '',
+    carpeta: '',
+    master: '',
+    hojasA: '',
+    documentacion: ''
+  })
 
   // Estados para nuevo recordatorio
   const [nuevoRecordatorio, setNuevoRecordatorio] = useState({
@@ -249,8 +277,8 @@ export default function VehiculoDetailPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contenido: nuevaNota,
-          tipo: nuevaNotaTipo,
-          prioridad: nuevaNotaPrioridad,
+          tipo: 'general',
+          prioridad: 'media',
           usuario: 'Usuario Actual' // TODO: Obtener del contexto de autenticación
         })
       })
@@ -269,6 +297,130 @@ export default function VehiculoDetailPage() {
       }
     } catch (error) {
       console.error('Error al agregar la nota:', error)
+    }
+  }
+
+  // Funciones para manejar documentos
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files
+    if (!files || files.length === 0 || !vehiculo?.id) return
+
+    for (const file of files) {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('vehiculoId', vehiculo.id.toString())
+
+      try {
+        const response = await fetch('/api/vehiculos/upload-document', {
+          method: 'POST',
+          body: formData
+        })
+
+        if (response.ok) {
+          const newDoc = {
+            id: Date.now().toString(),
+            nombre: file.name,
+            tamaño: formatFileSize(file.size),
+            fechaSubida: new Date().toISOString(),
+            tipo: file.type
+          }
+          setDocumentos(prev => [...prev, newDoc])
+          showToast('Archivo subido exitosamente', 'success')
+        } else {
+          showToast('Error al subir archivo', 'error')
+        }
+      } catch (error) {
+        console.error('Error al subir archivo:', error)
+        showToast('Error al subir archivo', 'error')
+      }
+    }
+  }
+
+  const handleDownloadFile = (docId: string) => {
+    // TODO: Implementar descarga
+    showToast('Descarga no implementada aún', 'info')
+  }
+
+  const handleDeleteFile = (docId: string) => {
+    setDocumentos(prev => prev.filter(doc => doc.id !== docId))
+    showToast('Archivo eliminado', 'success')
+  }
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  }
+
+  // Funciones para edición
+  const startEditingGeneral = () => {
+    if (vehiculo) {
+      setEditingData({
+        marca: vehiculo.marca || '',
+        modelo: vehiculo.modelo || '',
+        matricula: vehiculo.matricula || '',
+        bastidor: vehiculo.bastidor || '',
+        kms: vehiculo.kms || 0,
+        color: vehiculo.color || '',
+        fechaMatriculacion: vehiculo.fechaMatriculacion || '',
+        año: vehiculo.año || 0,
+        itv: vehiculo.itv || '',
+        seguro: vehiculo.seguro || '',
+        segundaLlave: vehiculo.segundaLlave || '',
+        carpeta: vehiculo.carpeta || '',
+        master: vehiculo.master || '',
+        hojasA: vehiculo.hojasA || '',
+        documentacion: vehiculo.documentacion || ''
+      })
+      setIsEditingGeneral(true)
+    }
+  }
+
+  const startEditingDocumentacion = () => {
+    if (vehiculo) {
+      setEditingData(prev => ({
+        ...prev,
+        itv: vehiculo.itv || '',
+        seguro: vehiculo.seguro || '',
+        segundaLlave: vehiculo.segundaLlave || '',
+        carpeta: vehiculo.carpeta || '',
+        master: vehiculo.master || '',
+        hojasA: vehiculo.hojasA || '',
+        documentacion: vehiculo.documentacion || ''
+      }))
+      setIsEditingDocumentacion(true)
+    }
+  }
+
+  const cancelEditing = () => {
+    setIsEditingGeneral(false)
+    setIsEditingDocumentacion(false)
+  }
+
+  const saveEditing = async () => {
+    if (!vehiculo?.id) return
+
+    try {
+      const response = await fetch(`/api/vehiculos/${vehiculo.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editingData)
+      })
+
+      if (response.ok) {
+        // Recargar datos del vehículo
+        await fetchVehiculo()
+        setIsEditingGeneral(false)
+        setIsEditingDocumentacion(false)
+        showToast('Cambios guardados exitosamente', 'success')
+      } else {
+        showToast('Error al guardar cambios', 'error')
+      }
+    } catch (error) {
+      console.error('Error al guardar cambios:', error)
+      showToast('Error al guardar cambios', 'error')
     }
   }
 
@@ -771,35 +923,8 @@ export default function VehiculoDetailPage() {
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Notas ({notas.length})</h2>
               
-              {/* Agregar Nueva Nota */}
+              {/* Agregar Nueva Nota - Simplificado */}
               <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                <div className="grid grid-cols-2 gap-4 mb-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
-                    <select
-                      value={nuevaNotaTipo}
-                      onChange={(e) => setNuevaNotaTipo(e.target.value as any)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    >
-                      <option value="general">General</option>
-                      <option value="tecnica">Técnica</option>
-                      <option value="comercial">Comercial</option>
-                      <option value="financiera">Financiera</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Prioridad</label>
-                    <select
-                      value={nuevaNotaPrioridad}
-                      onChange={(e) => setNuevaNotaPrioridad(e.target.value as any)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    >
-                      <option value="baja">Baja</option>
-                      <option value="media">Media</option>
-                      <option value="alta">Alta</option>
-                    </select>
-                  </div>
-                </div>
                 <div className="mb-3">
                   <textarea
                     value={nuevaNota}
@@ -826,22 +951,15 @@ export default function VehiculoDetailPage() {
                   {notas.map((nota) => (
                     <div key={nota.id} className="border border-gray-200 rounded-lg p-4">
                       <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center space-x-2">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            nota.tipo === 'tecnica' ? 'bg-blue-100 text-blue-800' :
-                            nota.tipo === 'comercial' ? 'bg-green-100 text-green-800' :
-                            nota.tipo === 'financiera' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {nota.tipo}
-                          </span>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPrioridadColor(nota.prioridad)}`}>
-                            {nota.prioridad}
-                          </span>
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          <div>{nota.usuario}</div>
-                          <div>{formatDate(nota.fecha)}</div>
+                        <div className="text-sm text-gray-600">
+                          <div className="font-medium">{nota.usuario}</div>
+                          <div>{new Date(nota.fecha).toLocaleString('es-ES', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}</div>
                         </div>
                       </div>
                       <p className="text-gray-900">{nota.contenido}</p>
@@ -957,75 +1075,69 @@ export default function VehiculoDetailPage() {
                   </div>
                   <h2 className="text-lg font-semibold text-gray-900">Documentos</h2>
                 </div>
-                <button className="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors">
+                <label className="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors cursor-pointer">
                   <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
-                  Subir
-                </button>
+                  Subir Archivo
+                  <input
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={handleFileUpload}
+                  />
+                </label>
               </div>
               
-              {/* Lista de tipos de documentos */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">Documentación Legal</p>
-                      <p className="text-xs text-gray-500">Permisos de circulación, etc.</p>
-                    </div>
+              {/* Lista de archivos - Estilo Google Drive */}
+              <div className="space-y-2">
+                {documentos.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <p>No hay documentos subidos</p>
+                    <p className="text-sm">Sube archivos para organizarlos aquí</p>
                   </div>
-                  <span className="text-xs text-gray-400">0 archivos</span>
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
-                      <svg className="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                      </svg>
+                ) : (
+                  documentos.map((doc) => (
+                    <div key={doc.id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                      <div className="flex items-center space-x-3 flex-1">
+                        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-900 truncate">{doc.nombre}</p>
+                          <p className="text-xs text-gray-500">
+                            {doc.tamaño} • {new Date(doc.fechaSubida).toLocaleDateString('es-ES')}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleDownloadFile(doc.id)}
+                          className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                          title="Descargar"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteFile(doc.id)}
+                          className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                          title="Eliminar"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium text-gray-900">Facturas</p>
-                      <p className="text-xs text-gray-500">Compra, reparaciones, etc.</p>
-                    </div>
-                  </div>
-                  <span className="text-xs text-gray-400">0 archivos</span>
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
-                      <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">Inspecciones</p>
-                      <p className="text-xs text-gray-500">ITV, revisiones técnicas</p>
-                    </div>
-                  </div>
-                  <span className="text-xs text-gray-400">0 archivos</span>
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                      <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">Fotografías</p>
-                      <p className="text-xs text-gray-500">Daños, estado del vehículo</p>
-                    </div>
-                  </div>
-                  <span className="text-xs text-gray-400">0 archivos</span>
-                </div>
+                  ))
+                )}
               </div>
             </div>
 
