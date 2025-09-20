@@ -445,7 +445,10 @@ export default function VehiculoDetailPage() {
         marca: newEditingData.marca,
         modelo: newEditingData.modelo,
         matricula: newEditingData.matricula,
-        bastidor: newEditingData.bastidor
+        bastidor: newEditingData.bastidor,
+        kms: newEditingData.kms,
+        color: newEditingData.color,
+        fechaMatriculacion: newEditingData.fechaMatriculacion
       })
       
       console.log('🔄 [EDIT] Actualizando estado de edición...')
@@ -487,6 +490,17 @@ export default function VehiculoDetailPage() {
     console.log('🔧 [SAVE] ===== INICIANDO GUARDADO =====')
     console.log('🔧 [SAVE] ID del vehículo:', vehiculo?.id)
     console.log('🔧 [SAVE] Datos a guardar:', editingData)
+    console.log('🔧 [SAVE] Campos específicos a guardar:', {
+      marca: editingData.marca,
+      modelo: editingData.modelo,
+      color: editingData.color,
+      kms: editingData.kms,
+      fechaMatriculacion: editingData.fechaMatriculacion,
+      itv: editingData.itv,
+      seguro: editingData.seguro,
+      segundaLlave: editingData.segundaLlave,
+      documentacion: editingData.documentacion
+    })
     console.log('🔧 [SAVE] Modo edición general:', isEditingGeneral)
     console.log('🔧 [SAVE] Modo edición documentación:', isEditingDocumentacion)
     
@@ -1175,23 +1189,27 @@ export default function VehiculoDetailPage() {
                       <label className="block text-xs font-medium text-red-700 mb-1">Estado</label>
                       {isEditingDocumentacion ? (
                         <select
-                          value={editingData.itv}
-                          onChange={(e) => setEditingData(prev => ({ ...prev, itv: e.target.value }))}
+                          value={editingData.itv === null || editingData.itv === undefined || editingData.itv === '' ? 'chequear' : (editingData.itv === 'Sí' || editingData.itv === 'si' ? 'si' : 'no')}
+                          onChange={(e) => {
+                            if (e.target.value === 'chequear') {
+                              setEditingData(prev => ({ ...prev, itv: null }))
+                            } else {
+                              setEditingData(prev => ({ ...prev, itv: e.target.value === 'si' ? 'Sí' : 'No' }))
+                            }
+                          }}
                           className="w-full text-red-900 bg-white border border-red-300 rounded px-2 py-1 text-sm font-medium"
                         >
-                          <option value="">Seleccionar estado</option>
-                          <option value="al dia">Al día</option>
-                          <option value="vencida">Vencida</option>
-                          <option value="proxima a vencer">Próxima a vencer</option>
+                          <option value="chequear">Chequear</option>
+                          <option value="si">Sí</option>
+                          <option value="no">No</option>
                         </select>
                       ) : (
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          vehiculo.itv === 'al dia' ? 'bg-green-100 text-green-800' :
-                          vehiculo.itv === 'vencida' ? 'bg-red-100 text-red-800' :
-                          vehiculo.itv === 'proxima a vencer' ? 'bg-yellow-100 text-yellow-800' :
+                          vehiculo.itv === 'Sí' || vehiculo.itv === 'si' ? 'bg-green-100 text-green-800' :
+                          vehiculo.itv === 'No' || vehiculo.itv === 'no' ? 'bg-red-100 text-red-800' :
                           'bg-gray-100 text-gray-800'
                         }`}>
-                          {vehiculo.itv || 'N/A'}
+                          {vehiculo.itv || 'Chequear'}
                         </span>
                       )}
                     </div>
@@ -1218,17 +1236,15 @@ export default function VehiculoDetailPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-blue-700 mb-1">Estado</label>
-                    {isEditingDocumentacion ? (
-                      <select
-                        value={editingData.seguro}
-                        onChange={(e) => setEditingData(prev => ({ ...prev, seguro: e.target.value }))}
-                        className="w-full text-blue-900 bg-white border border-blue-300 rounded px-2 py-1 text-sm font-medium"
-                      >
-                        <option value="">Seleccionar estado</option>
-                        <option value="al dia">Al día</option>
-                        <option value="vencido">Vencido</option>
-                        <option value="proximo a vencer">Próximo a vencer</option>
-                      </select>
+                      {isEditingDocumentacion ? (
+                        <select
+                          value={editingData.seguro === 'Sí' || editingData.seguro === 'si' ? 'si' : 'no'}
+                          onChange={(e) => setEditingData(prev => ({ ...prev, seguro: e.target.value === 'si' ? 'Sí' : 'No' }))}
+                          className="w-full text-blue-900 bg-white border border-blue-300 rounded px-2 py-1 text-sm font-medium"
+                        >
+                          <option value="no">No</option>
+                          <option value="si">Sí</option>
+                        </select>
                     ) : (
                       <p className="text-blue-900 font-medium">{vehiculo.seguro || 'N/A'}</p>
                     )}
@@ -1247,16 +1263,15 @@ export default function VehiculoDetailPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-yellow-700 mb-1">Disponible</label>
-                    {isEditingDocumentacion ? (
-                      <select
-                        value={editingData.segundaLlave}
-                        onChange={(e) => setEditingData(prev => ({ ...prev, segundaLlave: e.target.value }))}
-                        className="w-full text-yellow-900 bg-white border border-yellow-300 rounded px-2 py-1 text-sm font-medium"
-                      >
-                        <option value="">Seleccionar</option>
-                        <option value="si">Sí</option>
-                        <option value="no">No</option>
-                      </select>
+                      {isEditingDocumentacion ? (
+                        <select
+                          value={editingData.segundaLlave === 'Sí' || editingData.segundaLlave === 'si' ? 'si' : 'no'}
+                          onChange={(e) => setEditingData(prev => ({ ...prev, segundaLlave: e.target.value === 'si' ? 'Sí' : 'No' }))}
+                          className="w-full text-yellow-900 bg-white border border-yellow-300 rounded px-2 py-1 text-sm font-medium"
+                        >
+                          <option value="no">No</option>
+                          <option value="si">Sí</option>
+                        </select>
                     ) : (
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         vehiculo.segundaLlave === 'si' ? 'bg-green-100 text-green-800' :
@@ -1281,21 +1296,19 @@ export default function VehiculoDetailPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-green-700 mb-1">Estado</label>
-                    {isEditingDocumentacion ? (
-                      <select
-                        value={editingData.documentacion}
-                        onChange={(e) => setEditingData(prev => ({ ...prev, documentacion: e.target.value }))}
-                        className="w-full text-green-900 bg-white border border-green-300 rounded px-2 py-1 text-sm font-medium"
-                      >
-                        <option value="">Seleccionar estado</option>
-                        <option value="completa">Completa</option>
-                        <option value="incompleta">Incompleta</option>
-                        <option value="pendiente">Pendiente</option>
-                      </select>
+                      {isEditingDocumentacion ? (
+                        <select
+                          value={editingData.documentacion === 'Sí' || editingData.documentacion === 'si' ? 'si' : 'no'}
+                          onChange={(e) => setEditingData(prev => ({ ...prev, documentacion: e.target.value === 'si' ? 'Sí' : 'No' }))}
+                          className="w-full text-green-900 bg-white border border-green-300 rounded px-2 py-1 text-sm font-medium"
+                        >
+                          <option value="no">No</option>
+                          <option value="si">Sí</option>
+                        </select>
                     ) : (
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        vehiculo.documentacion === 'completa' ? 'bg-green-100 text-green-800' :
-                        vehiculo.documentacion === 'incompleta' ? 'bg-red-100 text-red-800' :
+                        vehiculo.documentacion === 'Sí' || vehiculo.documentacion === 'si' ? 'bg-green-100 text-green-800' :
+                        vehiculo.documentacion === 'No' || vehiculo.documentacion === 'no' ? 'bg-red-100 text-red-800' :
                         'bg-gray-100 text-gray-800'
                       }`}>
                         {vehiculo.documentacion || 'N/A'}
