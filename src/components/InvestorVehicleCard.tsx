@@ -22,6 +22,7 @@ export function InvestorVehicleCard({ vehiculo, inversor, onView, onEdit, onEdit
   const [isUploading, setIsUploading] = useState(false)
   const [localPhotoUrl, setLocalPhotoUrl] = useState<string | null>(null)
   const [imageError, setImageError] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   
   // Determinar si es un vehículo de depósito o inversor
@@ -251,7 +252,7 @@ export function InvestorVehicleCard({ vehiculo, inversor, onView, onEdit, onEdit
           </div>
         </div>
 
-        {/* Información financiera */}
+        {/* Acordeón de Desglose de Gastos */}
         <div className="space-y-4">
           {/* Mensaje informativo si faltan datos financieros */}
           {!tieneDatosFinancieros && (
@@ -267,164 +268,188 @@ export function InvestorVehicleCard({ vehiculo, inversor, onView, onEdit, onEdit
             </div>
           )}
 
-
-            {/* Desglose de gastos */}
-            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-              <h4 className="text-sm font-semibold text-blue-800 mb-3 flex items-center justify-between">
-                <div className="flex items-center">
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                  </svg>
-                  Desglose de Gastos
-                </div>
-                <button
-                  onClick={() => onEditVehiculo(vehiculo)}
-                  className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-full transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                </button>
-              </h4>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="flex justify-between bg-white rounded px-2 py-1">
-                  <span className="text-gray-600">Precio compra:</span>
-                  <span className="font-semibold text-gray-900">
-                    {vehiculo.precioCompra ? formatCurrency(vehiculo.precioCompra) : '-'}
-                  </span>
-                </div>
-                <div className="flex justify-between bg-white rounded px-2 py-1">
-                  <span className="text-gray-600">Transporte:</span>
-                  <span className="font-semibold text-gray-900">
-                    {vehiculo.gastosTransporte ? formatCurrency(vehiculo.gastosTransporte) : '-'}
-                  </span>
-                </div>
-                <div className="flex justify-between bg-white rounded px-2 py-1">
-                  <span className="text-gray-600">Tasas/Gestoría:</span>
-                  <span className="font-semibold text-gray-900">
-                    {vehiculo.gastosTasas ? formatCurrency(vehiculo.gastosTasas) : '-'}
-                  </span>
-                </div>
-                <div className="flex justify-between bg-white rounded px-2 py-1">
-                  <span className="text-gray-600">Mecánica:</span>
-                  <span className="font-semibold text-gray-900">
-                    {vehiculo.gastosMecanica ? formatCurrency(vehiculo.gastosMecanica) : '-'}
-                  </span>
-                </div>
-                <div className="flex justify-between bg-white rounded px-2 py-1">
-                  <span className="text-gray-600">Pintura:</span>
-                  <span className="font-semibold text-gray-900">
-                    {vehiculo.gastosPintura ? formatCurrency(vehiculo.gastosPintura) : '-'}
-                  </span>
-                </div>
-                <div className="flex justify-between bg-white rounded px-2 py-1">
-                  <span className="text-gray-600">Limpieza:</span>
-                  <span className="font-semibold text-gray-900">
-                    {vehiculo.gastosLimpieza ? formatCurrency(vehiculo.gastosLimpieza) : '-'}
-                  </span>
-                </div>
-                <div className="flex justify-between bg-white rounded px-2 py-1">
-                  <span className="text-gray-600">Otros:</span>
-                  <span className="font-semibold text-gray-900">
-                    {vehiculo.gastosOtros ? formatCurrency(vehiculo.gastosOtros) : '-'}
-                  </span>
-                </div>
-                {esVendido && vehiculo.precioVenta && (
-                  <div className="flex justify-between bg-white rounded px-2 py-1">
-                    <span className="text-gray-600">Precio venta:</span>
-                    <span className="font-semibold text-gray-900">
-                      {formatCurrency(vehiculo.precioVenta)}
-                    </span>
-                  </div>
-                )}
-                {esVendido && vehiculo.beneficioNeto !== undefined && (
-                  <div className="flex justify-between bg-white rounded px-2 py-1">
-                    <span className="text-gray-600">Beneficio:</span>
-                    <span className={`font-semibold ${vehiculo.beneficioNeto >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {formatCurrency(vehiculo.beneficioNeto)}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Costo total */}
-            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 border border-green-200">
-              <div className="flex justify-between items-center bg-green-100 rounded-lg px-3 py-2 border border-green-300">
-                <span className="text-sm font-bold text-green-800">COSTO TOTAL:</span>
-                <span className="font-bold text-green-900 text-base">
-                  {(() => {
-                    const totalGastos = (vehiculo.gastosTransporte || 0) + 
-                                      (vehiculo.gastosTasas || 0) + 
-                                      (vehiculo.gastosMecanica || 0) + 
-                                      (vehiculo.gastosPintura || 0) + 
-                                      (vehiculo.gastosLimpieza || 0) + 
-                                      (vehiculo.gastosOtros || 0)
-                    const precioCompra = vehiculo.precioCompra || 0
-                    const costoTotal = precioCompra + totalGastos
-                    return formatCurrency(costoTotal)
-                  })()}
-                </span>
-              </div>
-            </div>
-
-          </div>
-
-        {/* Foto */}
-        <div className="mt-4">
-          {vehiculo.fotoInversor || localPhotoUrl ? (
-            <div 
-              className="cursor-pointer group relative"
-              onClick={handlePhotoClick}
+          {/* Botón del acordeón */}
+          <div className="bg-blue-50 rounded-lg border border-blue-200">
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="w-full p-4 text-left flex items-center justify-between hover:bg-blue-100 transition-colors rounded-lg"
             >
-              <img 
-                src={localPhotoUrl || vehiculo.fotoInversor} 
-                alt={`${vehiculo.marca} ${vehiculo.modelo}`}
-                className="w-full h-32 object-cover rounded-lg shadow-sm group-hover:shadow-md transition-shadow border border-gray-200"
-                onError={(e) => {
-                  console.error('Error al cargar imagen:', e)
-                  setImageError(true)
-                }}
-                onLoad={() => {
-                  console.log('Imagen cargada correctamente')
-                  setImageError(false)
-                }}
-              />
-              <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-                Ver grande
+              <div className="flex items-center">
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                <span className="text-sm font-semibold text-blue-800">Desglose de Gastos</span>
               </div>
-            </div>
-          ) : (
-            <div 
-              className="bg-gray-100 rounded-lg h-32 flex items-center justify-center border-2 border-dashed border-gray-300 cursor-pointer hover:border-gray-400 hover:bg-gray-50 transition-colors"
-              onClick={handlePhotoClick}
-            >
-              <div className="text-center text-gray-500">
-                {isUploading ? (
-                  <div className="flex flex-col items-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-500 mb-2"></div>
-                    <p className="text-sm font-medium">Cargando...</p>
-                  </div>
-                ) : (
-                  <>
-                    <svg className="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              <div className="flex items-center space-x-2">
+                {onEditVehiculo && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onEditVehiculo(vehiculo)
+                    }}
+                    className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-200 rounded-full transition-colors"
+                    title="Editar gastos"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
-                    <p className="text-sm font-medium">Haz clic para cargar foto</p>
-                  </>
+                  </button>
                 )}
+                <svg 
+                  className={`w-5 h-5 text-blue-600 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
               </div>
-            </div>
-          )}
-          
-          {/* Input oculto para carga de archivos */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileUpload}
-            className="hidden"
-          />
+            </button>
+
+            {/* Contenido expandible del acordeón */}
+            {isExpanded && (
+              <div className="px-4 pb-4 space-y-4">
+                {/* Desglose de gastos */}
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="flex justify-between bg-white rounded px-2 py-1">
+                    <span className="text-gray-600">Precio compra:</span>
+                    <span className="font-semibold text-gray-900">
+                      {vehiculo.precioCompra ? formatCurrency(vehiculo.precioCompra) : '-'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between bg-white rounded px-2 py-1">
+                    <span className="text-gray-600">Transporte:</span>
+                    <span className="font-semibold text-gray-900">
+                      {vehiculo.gastosTransporte ? formatCurrency(vehiculo.gastosTransporte) : '-'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between bg-white rounded px-2 py-1">
+                    <span className="text-gray-600">Tasas/Gestoría:</span>
+                    <span className="font-semibold text-gray-900">
+                      {vehiculo.gastosTasas ? formatCurrency(vehiculo.gastosTasas) : '-'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between bg-white rounded px-2 py-1">
+                    <span className="text-gray-600">Mecánica:</span>
+                    <span className="font-semibold text-gray-900">
+                      {vehiculo.gastosMecanica ? formatCurrency(vehiculo.gastosMecanica) : '-'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between bg-white rounded px-2 py-1">
+                    <span className="text-gray-600">Pintura:</span>
+                    <span className="font-semibold text-gray-900">
+                      {vehiculo.gastosPintura ? formatCurrency(vehiculo.gastosPintura) : '-'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between bg-white rounded px-2 py-1">
+                    <span className="text-gray-600">Limpieza:</span>
+                    <span className="font-semibold text-gray-900">
+                      {vehiculo.gastosLimpieza ? formatCurrency(vehiculo.gastosLimpieza) : '-'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between bg-white rounded px-2 py-1">
+                    <span className="text-gray-600">Otros:</span>
+                    <span className="font-semibold text-gray-900">
+                      {vehiculo.gastosOtros ? formatCurrency(vehiculo.gastosOtros) : '-'}
+                    </span>
+                  </div>
+                  {esVendido && vehiculo.precioVenta && (
+                    <div className="flex justify-between bg-white rounded px-2 py-1">
+                      <span className="text-gray-600">Precio venta:</span>
+                      <span className="font-semibold text-gray-900">
+                        {formatCurrency(vehiculo.precioVenta)}
+                      </span>
+                    </div>
+                  )}
+                  {esVendido && vehiculo.beneficioNeto !== undefined && (
+                    <div className="flex justify-between bg-white rounded px-2 py-1">
+                      <span className="text-gray-600">Beneficio:</span>
+                      <span className={`font-semibold ${vehiculo.beneficioNeto >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {formatCurrency(vehiculo.beneficioNeto)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Costo total */}
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 border border-green-200">
+                  <div className="flex justify-between items-center bg-green-100 rounded-lg px-3 py-2 border border-green-300">
+                    <span className="text-sm font-bold text-green-800">COSTO TOTAL:</span>
+                    <span className="font-bold text-green-900 text-base">
+                      {(() => {
+                        const totalGastos = (vehiculo.gastosTransporte || 0) + 
+                                          (vehiculo.gastosTasas || 0) + 
+                                          (vehiculo.gastosMecanica || 0) + 
+                                          (vehiculo.gastosPintura || 0) + 
+                                          (vehiculo.gastosLimpieza || 0) + 
+                                          (vehiculo.gastosOtros || 0)
+                        const precioCompra = vehiculo.precioCompra || 0
+                        const costoTotal = precioCompra + totalGastos
+                        return formatCurrency(costoTotal)
+                      })()}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Foto */}
+                <div className="mt-4">
+                  {vehiculo.fotoInversor || localPhotoUrl ? (
+                    <div 
+                      className="cursor-pointer group relative"
+                      onClick={handlePhotoClick}
+                    >
+                      <img 
+                        src={localPhotoUrl || vehiculo.fotoInversor} 
+                        alt={`${vehiculo.marca} ${vehiculo.modelo}`}
+                        className="w-full h-32 object-cover rounded-lg shadow-sm group-hover:shadow-md transition-shadow border border-gray-200"
+                        onError={(e) => {
+                          console.error('Error al cargar imagen:', e)
+                          setImageError(true)
+                        }}
+                        onLoad={() => {
+                          console.log('Imagen cargada correctamente')
+                          setImageError(false)
+                        }}
+                      />
+                      <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                        Ver grande
+                      </div>
+                    </div>
+                  ) : (
+                    <div 
+                      className="bg-gray-100 rounded-lg h-32 flex items-center justify-center border-2 border-dashed border-gray-300 cursor-pointer hover:border-gray-400 hover:bg-gray-50 transition-colors"
+                      onClick={handlePhotoClick}
+                    >
+                      <div className="text-center text-gray-500">
+                        {isUploading ? (
+                          <div className="flex flex-col items-center">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-500 mb-2"></div>
+                            <p className="text-sm font-medium">Cargando...</p>
+                          </div>
+                        ) : (
+                          <>
+                            <svg className="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <p className="text-sm font-medium">Haz clic para cargar foto</p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Input oculto para carga de archivos */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
       
