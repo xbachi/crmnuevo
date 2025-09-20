@@ -62,7 +62,7 @@ export async function DELETE(
     console.log(`🔍 [DELETE] Archivo encontrado:`, fileToDelete)
     
     // Eliminar archivo físico
-    const filePath = join(process.cwd(), 'public', fileToDelete.ruta)
+    const filePath = join(process.cwd(), 'public', fileToDelete.path)
     try {
       if (existsSync(filePath)) {
         await unlink(filePath)
