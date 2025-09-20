@@ -57,6 +57,22 @@ export async function GET() {
       ORDER BY cr."fechaRecordatorio" ASC
     `)
     
+    // Obtener recordatorios de depósitos
+    const depositosRecordatorios = await client.query(`
+      SELECT 
+        dr.*,
+        'deposito' as tipo_entidad,
+        d.id as entidad_numero,
+        NULL as cliente_nombre,
+        NULL as cliente_apellidos,
+        NULL as vehiculo_marca,
+        NULL as vehiculo_modelo
+      FROM "DepositoRecordatorios" dr
+      LEFT JOIN "depositos" d ON dr.deposito_id = d.id
+      WHERE dr.completado = false
+      ORDER BY dr.fecha_recordatorio ASC
+    `)
+    
     client.release()
     
     // Combinar todos los recordatorios
@@ -75,6 +91,11 @@ export async function GET() {
         ...row,
         fecha_recordatorio: row.fechaRecordatorio,
         created_at: row.createdAt
+      })),
+      ...depositosRecordatorios.rows.map(row => ({
+        ...row,
+        fecha_recordatorio: row.fecha_recordatorio,
+        created_at: row.created_at
       }))
     ]
     

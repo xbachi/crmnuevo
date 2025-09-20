@@ -11,7 +11,7 @@ interface Recordatorio {
   prioridad: string
   fecha_recordatorio: string
   completado: boolean
-  tipo_entidad: 'deal' | 'vehiculo' | 'cliente'
+  tipo_entidad: 'deal' | 'vehiculo' | 'cliente' | 'deposito'
   entidad_numero?: string
   cliente_nombre?: string
   cliente_apellidos?: string
@@ -85,6 +85,8 @@ export default function DashboardRecordatorios() {
         return 'bg-green-100 text-green-800 border-green-200'
       case 'cliente':
         return 'bg-purple-100 text-purple-800 border-purple-200'
+      case 'deposito':
+        return 'bg-orange-100 text-orange-800 border-orange-200'
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200'
     }
@@ -111,6 +113,8 @@ export default function DashboardRecordatorios() {
         return '🚗'
       case 'cliente':
         return '👤'
+      case 'deposito':
+        return '🏪'
       default:
         return '📝'
     }
@@ -134,6 +138,8 @@ export default function DashboardRecordatorios() {
         return `Vehículo ${recordatorio.vehiculo_marca} ${recordatorio.vehiculo_modelo}`
       case 'cliente':
         return `Cliente ${recordatorio.cliente_nombre} ${recordatorio.cliente_apellidos}`
+      case 'deposito':
+        return `Depósito ${recordatorio.entidad_numero}`
       default:
         return 'Sin información'
     }
