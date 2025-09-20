@@ -659,13 +659,27 @@ export default function VehiculoDetailPage() {
     if (!nuevoRecordatorio.titulo.trim() || !nuevoRecordatorio.fechaRecordatorio || !vehiculo?.id) return
 
     try {
+      console.log(`📅 [RECORDATORIO] Agregando recordatorio para vehículo ${vehiculo.id}:`, nuevoRecordatorio)
+      
+      // Mapear fechaRecordatorio a fecha_recordatorio para la API
+      const recordatorioData = {
+        titulo: nuevoRecordatorio.titulo,
+        descripcion: nuevoRecordatorio.descripcion,
+        tipo: nuevoRecordatorio.tipo,
+        prioridad: nuevoRecordatorio.prioridad,
+        fecha_recordatorio: nuevoRecordatorio.fechaRecordatorio
+      }
+
       const response = await fetch(`/api/vehiculos/${vehiculo.id}/recordatorios`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(nuevoRecordatorio)
+        body: JSON.stringify(recordatorioData)
       })
 
       if (response.ok) {
+        const nuevoRecordatorioData = await response.json()
+        console.log(`✅ [RECORDATORIO] Recordatorio agregado exitosamente:`, nuevoRecordatorioData)
+        
         setNuevoRecordatorio({
           titulo: '',
           descripcion: '',
@@ -673,18 +687,24 @@ export default function VehiculoDetailPage() {
           tipo: 'otro',
           prioridad: 'media'
         })
+        
         // Recargar recordatorios
         const recordatoriosResponse = await fetch(`/api/vehiculos/${vehiculo.id}/recordatorios`)
         if (recordatoriosResponse.ok) {
           const recordatoriosData = await recordatoriosResponse.json()
           setRecordatorios(recordatoriosData)
+          console.log(`📅 [RECORDATORIO] Recordatorios recargados:`, recordatoriosData.length)
         }
-        console.log('Recordatorio agregado exitosamente')
+        
+        showToast('Recordatorio agregado correctamente', 'success')
       } else {
-        console.error('Error al agregar el recordatorio')
+        const errorData = await response.json()
+        console.error('❌ [RECORDATORIO] Error al agregar el recordatorio:', errorData)
+        showToast(`Error al agregar el recordatorio: ${errorData.error}`, 'error')
       }
     } catch (error) {
-      console.error('Error al agregar el recordatorio:', error)
+      console.error('❌ [RECORDATORIO] Error al agregar el recordatorio:', error)
+      showToast('Error al agregar el recordatorio', 'error')
     }
   }
 
