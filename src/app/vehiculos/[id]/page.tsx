@@ -409,9 +409,32 @@ export default function VehiculoDetailPage() {
     }
   }
 
-  const handleDeleteFile = (docId: string) => {
-    setDocumentos(prev => prev.filter(doc => doc.id !== docId))
-    showToast('Archivo eliminado', 'success')
+  const handleDeleteFile = async (docId: string) => {
+    try {
+      console.log(`🗑️ [DELETE] Eliminando archivo ${docId} del vehículo ${vehiculo?.id}`)
+      
+      const response = await fetch(`/api/vehiculos/${vehiculo?.id}/files/${docId}`, {
+        method: 'DELETE'
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('❌ [DELETE] Error eliminando archivo:', errorData)
+        showToast(`Error eliminando archivo: ${errorData.error}`, 'error')
+        return
+      }
+      
+      const result = await response.json()
+      console.log('✅ [DELETE] Archivo eliminado exitosamente:', result)
+      
+      // Actualizar lista de documentos
+      await fetchDocumentos()
+      showToast('Archivo eliminado correctamente', 'success')
+      
+    } catch (error) {
+      console.error('❌ [DELETE] Error eliminando archivo:', error)
+      showToast('Error eliminando archivo', 'error')
+    }
   }
 
   const formatFileSize = (bytes: number): string => {
