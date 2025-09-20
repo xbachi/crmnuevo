@@ -69,10 +69,9 @@ interface Deal {
 
 interface Nota {
   id: number
-  fecha: Date
-  tipo: string
   contenido: string
-  autor: string
+  usuario_nombre: string
+  fecha_creacion: string
 }
 
 interface Recordatorio {
@@ -149,16 +148,8 @@ export default function DealDetail() {
         
         setDeal(dealWithDefaults)
         
-        // Simular notas y recordatorios (en el futuro vendrán de la API)
-        setNotas([
-          {
-            id: 1,
-            fecha: new Date(),
-            tipo: 'general',
-            contenido: 'Cliente interesado en financiación',
-            autor: 'Admin'
-          }
-        ])
+        // Cargar notas desde la API
+        await fetchNotas()
         
         setRecordatorios([
           {
@@ -185,6 +176,24 @@ export default function DealDetail() {
       showToast('Error al cargar el deal', 'error')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const fetchNotas = async () => {
+    try {
+      console.log(`📝 [DEAL] Obteniendo notas para deal ${params.id}`)
+      const response = await fetch(`/api/deals/${params.id}/notas`)
+      if (response.ok) {
+        const data = await response.json()
+        setNotas(data)
+        console.log(`✅ [DEAL] Notas cargadas:`, data.length)
+      } else {
+        console.error('Error al obtener notas:', response.statusText)
+        setNotas([])
+      }
+    } catch (error) {
+      console.error('Error al obtener notas:', error)
+      setNotas([])
     }
   }
 
@@ -503,21 +512,35 @@ export default function DealDetail() {
   }
 
   const handleAgregarNota = async () => {
-    if (!nuevaNota.trim()) return
+    if (!nuevaNota.trim() || !params.id) return
     
     try {
-      const nota: Nota = {
-        id: Date.now(),
-        fecha: new Date(),
-        tipo: 'general',
-        contenido: nuevaNota,
-        autor: 'Admin'
+      console.log(`📝 [DEAL NOTA] Agregando nota para deal ${params.id}`)
+      const response = await fetch(`/api/deals/${params.id}/notas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contenido: nuevaNota,
+          usuario_nombre: 'Admin'
+        })
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('❌ [DEAL NOTA] Error agregando nota:', errorData)
+        showToast(`Error al agregar la nota: ${errorData.error}`, 'error')
+        return
       }
       
-      setNotas([...notas, nota])
+      const nuevaNotaData = await response.json()
+      console.log(`✅ [DEAL NOTA] Nota agregada:`, nuevaNotaData)
+      
+      // Recargar notas desde la API
+      await fetchNotas()
       setNuevaNota('')
       showToast('Nota agregada correctamente', 'success')
     } catch (error) {
+      console.error('❌ [DEAL NOTA] Error agregando nota:', error)
       showToast('Error al agregar la nota', 'error')
     }
   }
@@ -1051,7 +1074,7 @@ export default function DealDetail() {
                       <div className="flex-1">
                         <p className="text-gray-900">{nota.contenido}</p>
                         <p className="text-xs text-gray-500 mt-1">
-                          {nota.autor} • {nota.fecha.toLocaleDateString()}
+                          {nota.usuario_nombre} • {new Date(nota.fecha_creacion).toLocaleDateString('es-ES')}
                         </p>
                       </div>
                     </div>
