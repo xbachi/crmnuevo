@@ -119,6 +119,7 @@ export default function VehiculoDetailPage() {
   const [notas, setNotas] = useState<VehiculoNota[]>([])
   const [recordatorios, setRecordatorios] = useState<VehiculoRecordatorio[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'general' | 'financiero'>('general')
   const [isAdmin] = useState(true) // TODO: Obtener del contexto de autenticación
 
@@ -167,75 +168,88 @@ export default function VehiculoDetailPage() {
 
   // Función para obtener datos del vehículo
   const fetchVehiculo = async () => {
+    console.log('🔍 [FETCH] ===== INICIANDO CARGA DE VEHÍCULO =====')
     try {
-      console.log(`🔍 [VEHICULO PAGE] Iniciando búsqueda de vehículo`)
-      console.log(`📝 [VEHICULO PAGE] Slug completo: "${vehiculoSlug}"`)
-      console.log(`🔢 [VEHICULO PAGE] ID extraído: "${vehiculoId}"`)
+      console.log(`🔍 [FETCH] Slug completo: "${vehiculoSlug}"`)
+      console.log(`🔢 [FETCH] ID extraído: "${vehiculoId}"`)
       
       if (!vehiculoId) {
-        console.log(`❌ [VEHICULO PAGE] No se pudo extraer ID del slug`)
+        console.log(`❌ [FETCH] No se pudo extraer ID del slug`)
         setError('ID de vehículo inválido')
         setIsLoading(false)
         return null
       }
       
       setIsLoading(true)
+      setError(null)
       const apiUrl = `/api/vehiculos/${vehiculoId}`
-      console.log(`📞 [VEHICULO PAGE] Llamando API: ${apiUrl}`)
+      console.log(`📞 [FETCH] Llamando API: ${apiUrl}`)
       
       const response = await fetch(apiUrl)
-      console.log(`📡 [VEHICULO PAGE] Response status: ${response.status}`)
+      console.log(`📡 [FETCH] Response status: ${response.status}`)
+      console.log(`📡 [FETCH] Response headers:`, Object.fromEntries(response.headers.entries()))
       
       if (response.ok) {
         const data = await response.json()
-        console.log(`✅ [VEHICULO PAGE] Datos recibidos:`, {
+        console.log(`✅ [FETCH] Datos recibidos del servidor:`, {
           id: data.id,
           referencia: data.referencia,
           marca: data.marca,
           modelo: data.modelo,
-          estado: data.estado
+          estado: data.estado,
+          matricula: data.matricula,
+          bastidor: data.bastidor
         })
-        console.log(`✅ [VEHICULO PAGE] Estado del vehículo:`, {
+        console.log(`✅ [FETCH] Estado del vehículo:`, {
           estado: data.estado,
           tipo: typeof data.estado,
           esNull: data.estado === null,
           esUndefined: data.estado === undefined
         })
-        console.log(`✅ [VEHICULO PAGE] Datos completos del vehículo:`, data)
+        console.log(`✅ [FETCH] Datos completos del vehículo:`, data)
+        
+        // Actualizar estado del vehículo
+        console.log('🔄 [FETCH] Actualizando estado del vehículo...')
         setVehiculo(data)
         setError(null)
+        console.log('✅ [FETCH] Estado del vehículo actualizado')
         
         // Verificar si la URL es correcta y redirigir si es necesario
         const correctSlug = generateVehicleSlug(data)
-        console.log(`🔗 [VEHICULO PAGE] Slug correcto calculado: "${correctSlug}"`)
-        console.log(`🔗 [VEHICULO PAGE] Slug actual: "${vehiculoSlug}"`)
+        console.log(`🔗 [FETCH] Slug correcto calculado: "${correctSlug}"`)
+        console.log(`🔗 [FETCH] Slug actual: "${vehiculoSlug}"`)
         
         if (vehiculoSlug !== correctSlug) {
-          console.log(`🔄 [VEHICULO PAGE] Redirigiendo a slug correcto: /vehiculos/${correctSlug}`)
+          console.log(`🔄 [FETCH] Redirigiendo a slug correcto: /vehiculos/${correctSlug}`)
           router.replace(`/vehiculos/${correctSlug}`)
         } else {
-          console.log(`✅ [VEHICULO PAGE] URL es correcta, mostrando página del vehículo`)
+          console.log(`✅ [FETCH] URL es correcta, mostrando página del vehículo`)
         }
         
+        console.log('✅ [FETCH] ===== CARGA DE VEHÍCULO COMPLETADA EXITOSAMENTE =====')
         return data
       } else {
         const errorData = await response.json().catch(() => ({}))
-        console.error(`❌ [VEHICULO PAGE] Error al cargar el vehículo:`, {
+        console.error(`❌ [FETCH] Error al cargar el vehículo:`, {
           status: response.status,
           statusText: response.statusText,
           error: errorData
         })
-        console.log(`🔄 [VEHICULO PAGE] Redirigiendo a /vehiculos`)
+        console.log(`🔄 [FETCH] Redirigiendo a /vehiculos`)
         router.push('/vehiculos')
         setError('Error al cargar vehículo')
         return null
       }
     } catch (error) {
-      console.error('❌ [VEHICULO PAGE] Error en fetchVehiculo:', error)
+      console.error('❌ [FETCH] Error en fetchVehiculo:', error)
+      console.error('❌ [FETCH] Tipo de error:', typeof error)
+      console.error('❌ [FETCH] Mensaje de error:', error instanceof Error ? error.message : 'Error desconocido')
       setError('Error al cargar vehículo')
       return null
     } finally {
+      console.log('🔧 [FETCH] Finalizando carga, desactivando loading...')
       setIsLoading(false)
+      console.log('✅ [FETCH] Loading desactivado')
     }
   }
 
@@ -402,8 +416,10 @@ export default function VehiculoDetailPage() {
 
   // Funciones para edición
   const startEditingGeneral = () => {
-    console.log('🔧 [EDIT] Iniciando edición general')
+    console.log('🔧 [EDIT] ===== INICIANDO EDICIÓN GENERAL =====')
     console.log('🔧 [EDIT] Vehículo actual:', vehiculo)
+    console.log('🔧 [EDIT] ID del vehículo:', vehiculo?.id)
+    console.log('🔧 [EDIT] Estado actual del vehículo:', vehiculo?.estado)
     
     if (vehiculo) {
       const newEditingData = {
@@ -425,11 +441,21 @@ export default function VehiculoDetailPage() {
       }
       
       console.log('🔧 [EDIT] Datos de edición preparados:', newEditingData)
+      console.log('🔧 [EDIT] Campos específicos:', {
+        marca: newEditingData.marca,
+        modelo: newEditingData.modelo,
+        matricula: newEditingData.matricula,
+        bastidor: newEditingData.bastidor
+      })
+      
+      console.log('🔄 [EDIT] Actualizando estado de edición...')
       setEditingData(newEditingData)
       setIsEditingGeneral(true)
-      console.log('🔧 [EDIT] Modo edición activado')
+      console.log('✅ [EDIT] Modo edición general activado')
+      console.log('✅ [EDIT] ===== EDICIÓN GENERAL INICIADA EXITOSAMENTE =====')
     } else {
       console.error('❌ [EDIT] No hay vehículo para editar')
+      showToast('Error: No hay vehículo para editar', 'error')
     }
   }
 
@@ -458,16 +484,20 @@ export default function VehiculoDetailPage() {
   }
 
   const saveEditing = async () => {
-    console.log('🔧 [SAVE] Iniciando guardado')
+    console.log('🔧 [SAVE] ===== INICIANDO GUARDADO =====')
     console.log('🔧 [SAVE] ID del vehículo:', vehiculo?.id)
     console.log('🔧 [SAVE] Datos a guardar:', editingData)
+    console.log('🔧 [SAVE] Modo edición general:', isEditingGeneral)
+    console.log('🔧 [SAVE] Modo edición documentación:', isEditingDocumentacion)
     
     if (!vehiculo?.id) {
       console.error('❌ [SAVE] No hay ID de vehículo')
+      showToast('Error: No hay ID de vehículo', 'error')
       return
     }
 
     try {
+      console.log('🔧 [SAVE] Enviando petición PUT a /api/vehiculos/' + vehiculo.id)
       const response = await fetch(`/api/vehiculos/${vehiculo.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -475,20 +505,47 @@ export default function VehiculoDetailPage() {
       })
 
       console.log('🔧 [SAVE] Respuesta del servidor:', response.status)
+      console.log('🔧 [SAVE] Headers de respuesta:', Object.fromEntries(response.headers.entries()))
 
       if (response.ok) {
-        console.log('✅ [SAVE] Cambios guardados exitosamente')
+        const responseData = await response.json()
+        console.log('✅ [SAVE] Respuesta exitosa del servidor:', responseData)
+        console.log('✅ [SAVE] Cambios guardados en base de datos')
+        
         // Recargar datos del vehículo
-        await fetchVehiculo()
+        console.log('🔄 [SAVE] Recargando datos del vehículo...')
+        const vehiculoActualizado = await fetchVehiculo()
+        
+        if (vehiculoActualizado) {
+          console.log('✅ [SAVE] Datos del vehículo recargados exitosamente')
+          console.log('✅ [SAVE] Nuevo estado del vehículo:', vehiculoActualizado.estado)
+          console.log('✅ [SAVE] Nueva marca:', vehiculoActualizado.marca)
+          console.log('✅ [SAVE] Nuevo modelo:', vehiculoActualizado.modelo)
+        } else {
+          console.warn('⚠️ [SAVE] No se pudieron recargar los datos del vehículo')
+        }
+        
+        // Desactivar modo edición
+        console.log('🔧 [SAVE] Desactivando modo edición...')
         setIsEditingGeneral(false)
         setIsEditingDocumentacion(false)
+        console.log('✅ [SAVE] Modo edición desactivado')
+        
         showToast('Cambios guardados exitosamente', 'success')
+        console.log('✅ [SAVE] ===== GUARDADO COMPLETADO EXITOSAMENTE =====')
       } else {
-        console.error('❌ [SAVE] Error en respuesta:', response.status)
-        showToast('Error al guardar cambios', 'error')
+        const errorData = await response.json().catch(() => ({}))
+        console.error('❌ [SAVE] Error en respuesta del servidor:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData
+        })
+        showToast(`Error al guardar cambios: ${response.status}`, 'error')
       }
     } catch (error) {
       console.error('❌ [SAVE] Error al guardar:', error)
+      console.error('❌ [SAVE] Tipo de error:', typeof error)
+      console.error('❌ [SAVE] Mensaje de error:', error instanceof Error ? error.message : 'Error desconocido')
       showToast('Error al guardar cambios', 'error')
     }
   }
