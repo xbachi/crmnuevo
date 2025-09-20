@@ -132,6 +132,7 @@ export default function VehiculoDetailPage() {
     tamaño: string
     fechaSubida: string
     tipo: string
+    ruta?: string
   }>>([])
   
   // Estados para edición
@@ -317,12 +318,14 @@ export default function VehiculoDetailPage() {
         })
 
         if (response.ok) {
+          const responseData = await response.json()
           const newDoc = {
-            id: Date.now().toString(),
-            nombre: file.name,
-            tamaño: formatFileSize(file.size),
-            fechaSubida: new Date().toISOString(),
-            tipo: file.type
+            id: responseData.file.id,
+            nombre: responseData.file.nombre,
+            tamaño: formatFileSize(responseData.file.tamaño),
+            fechaSubida: responseData.file.fechaSubida,
+            tipo: responseData.file.tipo,
+            ruta: responseData.file.ruta
           }
           setDocumentos(prev => [...prev, newDoc])
           showToast('Archivo subido exitosamente', 'success')
@@ -337,8 +340,19 @@ export default function VehiculoDetailPage() {
   }
 
   const handleDownloadFile = (docId: string) => {
-    // TODO: Implementar descarga
-    showToast('Descarga no implementada aún', 'info')
+    const documento = documentos.find(doc => doc.id === docId)
+    if (documento) {
+      // Crear un enlace temporal para descargar el archivo
+      const link = document.createElement('a')
+      link.href = documento.ruta || `/uploads/vehiculos/${vehiculoId}/${documento.nombre}`
+      link.download = documento.nombre
+      link.target = '_blank'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      showToast(`Descargando ${documento.nombre}`, 'success')
+    }
   }
 
   const handleDeleteFile = (docId: string) => {
@@ -1160,55 +1174,55 @@ export default function VehiculoDetailPage() {
               </div>
               
               {/* Lista de archivos - Estilo Google Drive */}
-              <div className="space-y-2">
-                {documentos.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <p>No hay documentos subidos</p>
-                    <p className="text-sm">Sube archivos para organizarlos aquí</p>
-                  </div>
-                ) : (
-                  documentos.map((doc) => (
-                    <div key={doc.id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                      <div className="flex items-center space-x-3 flex-1">
-                        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-gray-900 truncate">{doc.nombre}</p>
-                          <p className="text-xs text-gray-500">
-                            {doc.tamaño} • {new Date(doc.fechaSubida).toLocaleDateString('es-ES')}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => handleDownloadFile(doc.id)}
-                          className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
-                          title="Descargar"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => handleDeleteFile(doc.id)}
-                          className="p-1 text-gray-400 hover:text-red-600 transition-colors"
-                          title="Eliminar"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
+       <div className="space-y-2">
+         {documentos.length === 0 ? (
+           <div className="text-center py-8 text-gray-500">
+             <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+             </svg>
+             <p>No hay documentos subidos</p>
+             <p className="text-sm">Sube archivos para organizarlos aquí</p>
+           </div>
+         ) : (
+           documentos.map((doc) => (
+             <div key={doc.id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
+               <div className="flex items-center space-x-3 flex-1 min-w-0">
+                 <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                   <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                   </svg>
+                 </div>
+                 <div className="flex-1 min-w-0">
+                   <p className="font-medium text-gray-900 truncate" title={doc.nombre}>
+                     {doc.nombre.length > 30 ? `${doc.nombre.substring(0, 30)}...` : doc.nombre}
+                   </p>
+                   <p className="text-xs text-gray-500">
+                     {doc.tamaño} • {new Date(doc.fechaSubida).toLocaleDateString('es-ES')}
+                   </p>
+                 </div>
+               </div>
+               <div className="flex items-center space-x-2 flex-shrink-0">
+                 <button
+                   onClick={() => handleDownloadFile(doc.id)}
+                   className="px-3 py-1 bg-green-100 text-green-700 rounded-md text-sm font-medium hover:bg-green-200 transition-colors"
+                   title="Descargar"
+                 >
+                   Descargar
+                 </button>
+                 <button
+                   onClick={() => handleDeleteFile(doc.id)}
+                   className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                   title="Eliminar"
+                 >
+                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                   </svg>
+                 </button>
+               </div>
+             </div>
+           ))
+         )}
+       </div>
             </div>
 
             {/* Recordatorios */}
