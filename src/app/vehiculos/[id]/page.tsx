@@ -722,6 +722,35 @@ export default function VehiculoDetailPage() {
     }
   }
 
+  // Función para determinar la condición del vehículo basada en el deal
+  const getCondicionVehiculo = () => {
+    // Si tiene dealActivoId, significa que está en proceso de venta
+    if (vehiculo?.dealActivoId) {
+      // Aquí podrías hacer una consulta adicional para obtener el estado del deal
+      // Por ahora, asumimos que si tiene deal activo, está "reservado"
+      return 'reservado'
+    }
+    
+    // Si no tiene deal activo, está disponible
+    return 'disponible'
+  }
+
+  // Función para obtener el color de la condición
+  const getCondicionColor = (condicion: string) => {
+    switch (condicion.toLowerCase()) {
+      case 'disponible':
+        return 'bg-green-100 text-green-800'
+      case 'reservado':
+        return 'bg-orange-100 text-orange-800'
+      case 'vendido':
+        return 'bg-red-100 text-red-800'
+      case 'facturado':
+        return 'bg-indigo-100 text-indigo-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
+    }
+  }
+
   const getSubEstado = (estado: string) => {
     switch (estado.toLowerCase()) {
       case 'disponible':
@@ -1565,6 +1594,16 @@ export default function VehiculoDetailPage() {
                   <div className="flex items-center space-x-3">
                     <span className={`px-3 py-2 rounded-lg text-sm font-medium ${getEstadoColor(vehiculo.estado || 'inicial')}`}>
                       {(vehiculo.estado || 'inicial').toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Condición del Vehículo */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Condición</label>
+                  <div className="flex items-center space-x-3">
+                    <span className={`px-3 py-2 rounded-lg text-sm font-medium ${getCondicionColor(getCondicionVehiculo())}`}>
+                      {getCondicionVehiculo().toUpperCase()}
                     </span>
                   </div>
                 </div>
