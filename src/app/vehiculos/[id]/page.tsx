@@ -392,8 +392,11 @@ export default function VehiculoDetailPage() {
 
   // Funciones para edición
   const startEditingGeneral = () => {
+    console.log('🔧 [EDIT] Iniciando edición general')
+    console.log('🔧 [EDIT] Vehículo actual:', vehiculo)
+    
     if (vehiculo) {
-      setEditingData({
+      const newEditingData = {
         marca: vehiculo.marca || '',
         modelo: vehiculo.modelo || '',
         matricula: vehiculo.matricula || '',
@@ -409,8 +412,14 @@ export default function VehiculoDetailPage() {
         master: vehiculo.master || '',
         hojasA: vehiculo.hojasA || '',
         documentacion: vehiculo.documentacion || ''
-      })
+      }
+      
+      console.log('🔧 [EDIT] Datos de edición preparados:', newEditingData)
+      setEditingData(newEditingData)
       setIsEditingGeneral(true)
+      console.log('🔧 [EDIT] Modo edición activado')
+    } else {
+      console.error('❌ [EDIT] No hay vehículo para editar')
     }
   }
 
@@ -431,12 +440,22 @@ export default function VehiculoDetailPage() {
   }
 
   const cancelEditing = () => {
+    console.log('🔧 [EDIT] Cancelando edición')
+    console.log('🔧 [EDIT] Datos actuales antes de cancelar:', editingData)
     setIsEditingGeneral(false)
     setIsEditingDocumentacion(false)
+    console.log('🔧 [EDIT] Modo edición desactivado')
   }
 
   const saveEditing = async () => {
-    if (!vehiculo?.id) return
+    console.log('🔧 [SAVE] Iniciando guardado')
+    console.log('🔧 [SAVE] ID del vehículo:', vehiculo?.id)
+    console.log('🔧 [SAVE] Datos a guardar:', editingData)
+    
+    if (!vehiculo?.id) {
+      console.error('❌ [SAVE] No hay ID de vehículo')
+      return
+    }
 
     try {
       const response = await fetch(`/api/vehiculos/${vehiculo.id}`, {
@@ -445,17 +464,21 @@ export default function VehiculoDetailPage() {
         body: JSON.stringify(editingData)
       })
 
+      console.log('🔧 [SAVE] Respuesta del servidor:', response.status)
+
       if (response.ok) {
+        console.log('✅ [SAVE] Cambios guardados exitosamente')
         // Recargar datos del vehículo
         await fetchVehiculo()
         setIsEditingGeneral(false)
         setIsEditingDocumentacion(false)
         showToast('Cambios guardados exitosamente', 'success')
       } else {
+        console.error('❌ [SAVE] Error en respuesta:', response.status)
         showToast('Error al guardar cambios', 'error')
       }
     } catch (error) {
-      console.error('Error al guardar cambios:', error)
+      console.error('❌ [SAVE] Error al guardar:', error)
       showToast('Error al guardar cambios', 'error')
     }
   }
