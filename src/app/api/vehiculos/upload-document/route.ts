@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { writeFile, mkdir, readFile } from 'fs/promises'
 import { join } from 'path'
 
-const METADATA_FILE = 'vehiculo-files-metadata.json'
+const METADATA_FILE = 'vehiculos-documentos-metadata.json'
 
 async function loadMetadata(vehiculoId: string) {
   try {
