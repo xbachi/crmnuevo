@@ -896,17 +896,46 @@ export default function VehiculoDetailPage() {
                       <div className="space-y-3">
                         <div>
                           <label className="block text-xs font-medium text-orange-700 mb-1">Kilómetros</label>
-                          <p className="text-orange-900 font-semibold">{vehiculo.kms?.toLocaleString() || 'N/A'} km</p>
+                          {isEditingGeneral ? (
+                            <input
+                              type="number"
+                              value={editingData.kms}
+                              onChange={(e) => setEditingData(prev => ({ ...prev, kms: parseInt(e.target.value) || 0 }))}
+                              className="w-full text-orange-900 bg-white border border-orange-300 rounded px-2 py-1 text-sm font-medium"
+                              placeholder="Ingrese kilómetros"
+                            />
+                          ) : (
+                            <p className="text-orange-900 font-semibold">{vehiculo.kms?.toLocaleString() || 'N/A'} km</p>
+                          )}
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-orange-700 mb-1">Fecha Matriculación</label>
-                          <p className="text-orange-900 font-medium">
-                            {vehiculo.fechaMatriculacion ? formatDate(vehiculo.fechaMatriculacion) : 'N/A'}
-                          </p>
+                          {isEditingGeneral ? (
+                            <input
+                              type="date"
+                              value={editingData.fechaMatriculacion}
+                              onChange={(e) => setEditingData(prev => ({ ...prev, fechaMatriculacion: e.target.value }))}
+                              className="w-full text-orange-900 bg-white border border-orange-300 rounded px-2 py-1 text-sm font-medium"
+                            />
+                          ) : (
+                            <p className="text-orange-900 font-medium">
+                              {vehiculo.fechaMatriculacion ? formatDate(vehiculo.fechaMatriculacion) : 'N/A'}
+                            </p>
+                          )}
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-orange-700 mb-1">Color</label>
-                          <p className="text-orange-900 font-medium">{vehiculo.color || 'N/A'}</p>
+                          {isEditingGeneral ? (
+                            <input
+                              type="text"
+                              value={editingData.color}
+                              onChange={(e) => setEditingData(prev => ({ ...prev, color: e.target.value }))}
+                              className="w-full text-orange-900 bg-white border border-orange-300 rounded px-2 py-1 text-sm font-medium"
+                              placeholder="Ingrese color"
+                            />
+                          ) : (
+                            <p className="text-orange-900 font-medium">{vehiculo.color || 'N/A'}</p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1144,14 +1173,27 @@ export default function VehiculoDetailPage() {
                   <div className="space-y-2">
                     <div>
                       <label className="block text-xs font-medium text-red-700 mb-1">Estado</label>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        vehiculo.itv === 'al dia' ? 'bg-green-100 text-green-800' :
-                        vehiculo.itv === 'vencida' ? 'bg-red-100 text-red-800' :
-                        vehiculo.itv === 'proxima a vencer' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {vehiculo.itv || 'N/A'}
-                      </span>
+                      {isEditingDocumentacion ? (
+                        <select
+                          value={editingData.itv}
+                          onChange={(e) => setEditingData(prev => ({ ...prev, itv: e.target.value }))}
+                          className="w-full text-red-900 bg-white border border-red-300 rounded px-2 py-1 text-sm font-medium"
+                        >
+                          <option value="">Seleccionar estado</option>
+                          <option value="al dia">Al día</option>
+                          <option value="vencida">Vencida</option>
+                          <option value="proxima a vencer">Próxima a vencer</option>
+                        </select>
+                      ) : (
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          vehiculo.itv === 'al dia' ? 'bg-green-100 text-green-800' :
+                          vehiculo.itv === 'vencida' ? 'bg-red-100 text-red-800' :
+                          vehiculo.itv === 'proxima a vencer' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {vehiculo.itv || 'N/A'}
+                        </span>
+                      )}
                     </div>
                     {vehiculo.fechaVencimientoItv && (
                       <div>
@@ -1176,7 +1218,20 @@ export default function VehiculoDetailPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-blue-700 mb-1">Estado</label>
-                    <p className="text-blue-900 font-medium">{vehiculo.seguro || 'N/A'}</p>
+                    {isEditingDocumentacion ? (
+                      <select
+                        value={editingData.seguro}
+                        onChange={(e) => setEditingData(prev => ({ ...prev, seguro: e.target.value }))}
+                        className="w-full text-blue-900 bg-white border border-blue-300 rounded px-2 py-1 text-sm font-medium"
+                      >
+                        <option value="">Seleccionar estado</option>
+                        <option value="al dia">Al día</option>
+                        <option value="vencido">Vencido</option>
+                        <option value="proximo a vencer">Próximo a vencer</option>
+                      </select>
+                    ) : (
+                      <p className="text-blue-900 font-medium">{vehiculo.seguro || 'N/A'}</p>
+                    )}
                   </div>
                 </div>
 
@@ -1192,13 +1247,25 @@ export default function VehiculoDetailPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-yellow-700 mb-1">Disponible</label>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      vehiculo.segundaLlave === 'si' ? 'bg-green-100 text-green-800' :
-                      vehiculo.segundaLlave === 'no' ? 'bg-red-100 text-red-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {vehiculo.segundaLlave || 'N/A'}
-                    </span>
+                    {isEditingDocumentacion ? (
+                      <select
+                        value={editingData.segundaLlave}
+                        onChange={(e) => setEditingData(prev => ({ ...prev, segundaLlave: e.target.value }))}
+                        className="w-full text-yellow-900 bg-white border border-yellow-300 rounded px-2 py-1 text-sm font-medium"
+                      >
+                        <option value="">Seleccionar</option>
+                        <option value="si">Sí</option>
+                        <option value="no">No</option>
+                      </select>
+                    ) : (
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        vehiculo.segundaLlave === 'si' ? 'bg-green-100 text-green-800' :
+                        vehiculo.segundaLlave === 'no' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {vehiculo.segundaLlave || 'N/A'}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -1214,13 +1281,26 @@ export default function VehiculoDetailPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-green-700 mb-1">Estado</label>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      vehiculo.documentacion === 'completa' ? 'bg-green-100 text-green-800' :
-                      vehiculo.documentacion === 'incompleta' ? 'bg-red-100 text-red-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {vehiculo.documentacion || 'N/A'}
-                    </span>
+                    {isEditingDocumentacion ? (
+                      <select
+                        value={editingData.documentacion}
+                        onChange={(e) => setEditingData(prev => ({ ...prev, documentacion: e.target.value }))}
+                        className="w-full text-green-900 bg-white border border-green-300 rounded px-2 py-1 text-sm font-medium"
+                      >
+                        <option value="">Seleccionar estado</option>
+                        <option value="completa">Completa</option>
+                        <option value="incompleta">Incompleta</option>
+                        <option value="pendiente">Pendiente</option>
+                      </select>
+                    ) : (
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        vehiculo.documentacion === 'completa' ? 'bg-green-100 text-green-800' :
+                        vehiculo.documentacion === 'incompleta' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {vehiculo.documentacion || 'N/A'}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
