@@ -8,6 +8,7 @@ import { InvestorVehicleCard } from '@/components/InvestorVehicleCard'
 import { useSimpleToast } from '@/hooks/useSimpleToast'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { formatDateTime } from '@/lib/utils'
+import NotasSection from '@/components/NotasSection'
 
 interface InvestorMetrics {
   beneficioAcumulado: number
@@ -46,6 +47,7 @@ export default function InvestorDashboardPage() {
   })
   const [editingVehiculo, setEditingVehiculo] = useState<Vehiculo | null>(null)
   const [isEditingVehiculo, setIsEditingVehiculo] = useState(false)
+  const [notas, setNotas] = useState<any[]>([])
 
   const inversorId = (params.id as string).split('-')[0] // Extraer solo el ID del slug
 
@@ -683,6 +685,24 @@ export default function InvestorDashboardPage() {
             ))}
           </div>
         )}
+
+        {/* Bloque de Notas */}
+        <div className="mt-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Columna izquierda - vacía para mantener el layout */}
+            <div className="lg:col-span-1"></div>
+            
+            {/* Columna derecha - Notas */}
+            <div className="lg:col-span-2">
+              <NotasSection 
+                notas={notas} 
+                onNotasChange={setNotas} 
+                entityId={inversor?.id || 0} 
+                entityType="inversor"
+              />
+            </div>
+          </div>
+        </div>
       </main>
 
       {/* Modal de edición de vehículo */}

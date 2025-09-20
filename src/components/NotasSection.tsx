@@ -13,10 +13,11 @@ interface Nota {
 interface NotasSectionProps {
   notas: Nota[]
   onNotasChange: (notas: Nota[]) => void
-  vehiculoId: number
+  entityId: number
+  entityType?: 'vehiculo' | 'deal' | 'cliente' | 'inversor'
 }
 
-export default function NotasSection({ notas, onNotasChange, vehiculoId }: NotasSectionProps) {
+export default function NotasSection({ notas, onNotasChange, entityId, entityType = 'vehiculo' }: NotasSectionProps) {
   const { showToast } = useToast()
   const [nuevaNota, setNuevaNota] = useState('')
   const [editingNotaId, setEditingNotaId] = useState<number | null>(null)
@@ -26,8 +27,8 @@ export default function NotasSection({ notas, onNotasChange, vehiculoId }: Notas
     if (!nuevaNota.trim()) return
     
     try {
-      console.log(`📝 [NOTA] Agregando nota para vehículo ${vehiculoId}`)
-      const response = await fetch(`/api/vehiculos/${vehiculoId}/notas`, {
+      console.log(`📝 [NOTA] Agregando nota para ${entityType} ${entityId}`)
+      const response = await fetch(`/api/${entityType}s/${entityId}/notas`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -65,8 +66,8 @@ export default function NotasSection({ notas, onNotasChange, vehiculoId }: Notas
     if (!editingNotaTexto.trim() || !editingNotaId) return
     
     try {
-      console.log(`📝 [NOTA] Actualizando nota ${editingNotaId} para vehículo ${vehiculoId}`)
-      const response = await fetch(`/api/vehiculos/${vehiculoId}/notas`, {
+      console.log(`📝 [NOTA] Actualizando nota ${editingNotaId} para ${entityType} ${entityId}`)
+      const response = await fetch(`/api/${entityType}s/${entityId}/notas`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -106,8 +107,8 @@ export default function NotasSection({ notas, onNotasChange, vehiculoId }: Notas
 
   const handleEliminarNota = async (notaId: number) => {
     try {
-      console.log(`🗑️ [NOTA] Eliminando nota ${notaId} del vehículo ${vehiculoId}`)
-      const response = await fetch(`/api/vehiculos/${vehiculoId}/notas?notaId=${notaId}`, {
+      console.log(`🗑️ [NOTA] Eliminando nota ${notaId} del ${entityType} ${entityId}`)
+      const response = await fetch(`/api/${entityType}s/${entityId}/notas?notaId=${notaId}`, {
         method: 'DELETE'
       })
       

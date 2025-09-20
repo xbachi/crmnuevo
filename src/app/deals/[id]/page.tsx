@@ -9,6 +9,7 @@ import { addReminder, createDocumentacionReminder } from '@/lib/reminders'
 import { formatCurrency, formatVehicleReference } from '@/lib/utils'
 import DealVentaInfo from '@/components/DealVentaInfo'
 import FacturaTypeModal from '@/components/FacturaTypeModal'
+import NotasSection from '@/components/NotasSection'
 
 interface Deal {
   id: number
@@ -225,7 +226,7 @@ export default function DealDetail() {
       const fechaReservaDesde = new Date()
       const fechaReservaExpira = new Date()
       fechaReservaExpira.setDate(fechaReservaExpira.getDate() + 7)
-
+      
       // Actualizar el deal para marcar que tiene contrato de reserva
       const updatedDeal = {
         ...deal,
@@ -520,7 +521,7 @@ export default function DealDetail() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contenido: nuevaNota,
+        contenido: nuevaNota,
           usuario_nombre: 'Admin'
         })
       })
@@ -1045,43 +1046,12 @@ export default function DealDetail() {
             </div>
 
             {/* Notas */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Notas</h2>
-              
-              {/* Agregar nueva nota */}
-              <div className="mb-4">
-                <textarea
-                  value={nuevaNota}
-                  onChange={(e) => setNuevaNota(e.target.value)}
-                  placeholder="Agregar una nueva nota..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                  rows={3}
-                />
-                <button
-                  onClick={handleAgregarNota}
-                  disabled={!nuevaNota.trim()}
-                  className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                >
-                  Agregar Nota
-                </button>
-              </div>
-              
-              {/* Lista de notas */}
-              <div className="space-y-3">
-                {notas.map(nota => (
-                  <div key={nota.id} className="border border-gray-200 rounded-lg p-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <p className="text-gray-900">{nota.contenido}</p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {nota.usuario_nombre} • {new Date(nota.fecha_creacion).toLocaleDateString('es-ES')}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <NotasSection 
+              notas={notas} 
+              onNotasChange={setNotas} 
+              entityId={deal?.id || 0} 
+              entityType="deal"
+            />
           </div>
 
           {/* Panel Lateral */}
@@ -1109,7 +1079,7 @@ export default function DealDetail() {
                       </p>
                     </div>
                   </div>
-                  <button
+                <button
                     onClick={handleGenerarContratoReserva}
                     disabled={isUpdating}
                     className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
@@ -1119,9 +1089,9 @@ export default function DealDetail() {
                     }`}
                   >
                     {deal.contratoReserva ? 'Descargar' : 'Generar'}
-                  </button>
-                </div>
-
+                </button>
+              </div>
+              
                 {/* Contrato de Venta */}
                 <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                   <div className="flex items-center space-x-3">
@@ -1136,9 +1106,9 @@ export default function DealDetail() {
                       <p className="font-medium text-gray-900">Contrato de Venta</p>
                       <p className="text-sm text-gray-500">
                         {deal.contratoVenta ? 'Generado' : 'No generado'}
-                      </p>
+                        </p>
+                      </div>
                     </div>
-                  </div>
                   <button
                     onClick={handleGenerarContratoVenta}
                     disabled={isUpdating || !canGenerateContratoVenta}
@@ -1152,7 +1122,7 @@ export default function DealDetail() {
                   >
                     {deal.contratoVenta ? 'Descargar' : 'Generar'}
                   </button>
-                </div>
+                  </div>
 
                 {/* Factura */}
                 <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
@@ -1163,13 +1133,13 @@ export default function DealDetail() {
                       <svg className={`w-4 h-4 ${deal.factura ? 'text-green-600' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                       </svg>
-                    </div>
+              </div>
                     <div>
                       <p className="font-medium text-gray-900">Factura</p>
                       <p className="text-sm text-gray-500">
                         {deal.factura ? 'Generada' : 'No generada'}
                       </p>
-                    </div>
+            </div>
                   </div>
                   <button
                     onClick={handleGenerarFactura}
@@ -1184,7 +1154,7 @@ export default function DealDetail() {
                   >
                     {deal.factura ? 'Descargar' : 'Generar'}
                   </button>
-                </div>
+          </div>
 
                 {/* Mandato Gestoría */}
                 <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
@@ -1322,7 +1292,7 @@ export default function DealDetail() {
                 </div>
               </div>
             </div>
-
+            
             {/* Recordatorios */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Recordatorios</h2>

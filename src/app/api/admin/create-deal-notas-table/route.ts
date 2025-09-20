@@ -7,7 +7,7 @@ export async function POST() {
     
     const client = await pool.connect()
     
-    // Crear tabla DealNotas
+    // Crear tabla para notas de deals
     await client.query(`
       CREATE TABLE IF NOT EXISTS DealNotas (
         id SERIAL PRIMARY KEY,
@@ -19,7 +19,7 @@ export async function POST() {
       )
     `)
     
-    // Crear índices
+    // Crear índices para DealNotas
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_dealnotas_deal_id ON DealNotas (deal_id)
     `)
@@ -31,7 +31,10 @@ export async function POST() {
     client.release()
     
     console.log('✅ Tabla DealNotas creada exitosamente')
-    return NextResponse.json({ message: 'Tabla DealNotas creada exitosamente' })
+    return NextResponse.json({ 
+      message: 'Tabla DealNotas creada exitosamente',
+      table: 'DealNotas'
+    })
   } catch (error) {
     console.error('❌ Error creando tabla DealNotas:', error)
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })

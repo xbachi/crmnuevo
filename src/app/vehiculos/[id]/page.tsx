@@ -1834,7 +1834,8 @@ export default function VehiculoDetailPage() {
             <NotasSection 
               notas={notas} 
               onNotasChange={setNotas} 
-              vehiculoId={vehiculo?.id || 0} 
+              entityId={vehiculo?.id || 0} 
+              entityType="vehiculo"
             />
           </div>
 
