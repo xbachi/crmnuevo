@@ -271,7 +271,10 @@ export function InvestorVehicleCard({ vehiculo, inversor, onView, onEdit, onEdit
           {/* Botón del acordeón */}
           <div className="bg-blue-50 rounded-lg border border-blue-200">
             <button
-              onClick={() => setIsExpanded(!isExpanded)}
+              onClick={() => {
+                console.log(`Toggling acordeón for vehicle ${vehiculo.id}, current state: ${isExpanded}`)
+                setIsExpanded(!isExpanded)
+              }}
               className="w-full p-4 text-left flex items-center justify-between hover:bg-blue-100 transition-colors rounded-lg"
             >
               <div className="flex items-center">
