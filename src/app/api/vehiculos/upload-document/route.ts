@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { existsSync } from 'fs'
+import { pool } from '@/lib/db'
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,14 +30,38 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes)
     await writeFile(filePath, buffer)
 
+    // Guardar información en la base de datos
+    const insertQuery = `
+      INSERT INTO VehiculoDocumentos 
+      (vehiculo_id, nombre_archivo, nombre_original, ruta_archivo, tamaño_bytes, tipo_mime, fecha_subida)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING id, fecha_subida
+    `
+    
+    const insertValues = [
+      parseInt(vehiculoId),
+      fileName,
+      file.name,
+      `/uploads/vehiculos/${vehiculoId}/${fileName}`,
+      file.size,
+      file.type,
+      new Date().toISOString()
+    ]
+    
+    const result = await pool.query(insertQuery, insertValues)
+    const documentId = result.rows[0].id
+    const fechaSubida = result.rows[0].fecha_subida
+
+    console.log(`📁 Documento guardado en BD: ID ${documentId} para vehículo ${vehiculoId}`)
+
     // Retornar información del archivo
     return NextResponse.json({
       success: true,
       file: {
-        id: timestamp.toString(),
+        id: documentId.toString(),
         nombre: file.name,
         tamaño: file.size,
-        fechaSubida: new Date().toISOString(),
+        fechaSubida: fechaSubida,
         tipo: file.type,
         ruta: `/uploads/vehiculos/${vehiculoId}/${fileName}`
       }

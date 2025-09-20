@@ -227,9 +227,33 @@ export default function VehiculoDetailPage() {
       }
     }
 
+    const fetchDocumentos = async () => {
+      try {
+        console.log(`📁 [VEHICULO PAGE] Obteniendo documentos para vehículo ${vehiculoId}`)
+        const response = await fetch(`/api/vehiculos/${vehiculoId}/documentos`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success) {
+            // Convertir tamaño de bytes a formato legible
+            const documentosFormateados = data.documentos.map((doc: any) => ({
+              ...doc,
+              tamaño: formatFileSize(doc.tamaño)
+            }))
+            setDocumentos(documentosFormateados)
+            console.log(`✅ [VEHICULO PAGE] Documentos cargados:`, documentosFormateados)
+          }
+        } else {
+          console.error('Error al obtener documentos:', response.statusText)
+        }
+      } catch (error) {
+        console.error('Error al obtener documentos:', error)
+      }
+    }
+
     if (vehiculoId) {
       console.log(`🚀 [VEHICULO PAGE] Iniciando useEffect con ID: "${vehiculoId}"`)
       fetchVehiculo()
+      fetchDocumentos()
     } else {
       console.log(`⚠️ [VEHICULO PAGE] No hay ID para buscar`)
     }
@@ -319,16 +343,9 @@ export default function VehiculoDetailPage() {
 
         if (response.ok) {
           const responseData = await response.json()
-          const newDoc = {
-            id: responseData.file.id,
-            nombre: responseData.file.nombre,
-            tamaño: formatFileSize(responseData.file.tamaño),
-            fechaSubida: responseData.file.fechaSubida,
-            tipo: responseData.file.tipo,
-            ruta: responseData.file.ruta
-          }
-          setDocumentos(prev => [...prev, newDoc])
           showToast('Archivo subido exitosamente', 'success')
+          // Recargar documentos desde la base de datos
+          await fetchDocumentos()
         } else {
           showToast('Error al subir archivo', 'error')
         }
@@ -599,8 +616,8 @@ export default function VehiculoDetailPage() {
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${getEstadoColor(vehiculo.estado)}`}>
-                {vehiculo.estado.toUpperCase()}
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${getEstadoColor(vehiculo.estado || 'disponible')}`}>
+                {(vehiculo.estado || 'disponible').toUpperCase()}
               </span>
               <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getTipoColor(vehiculo.tipo)}`}>
                 {vehiculo.tipo === 'C' ? 'COMPRA' : 
@@ -1101,8 +1118,8 @@ export default function VehiculoDetailPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Estado Actual</label>
                   <div className="flex items-center space-x-3">
-                    <span className={`px-3 py-2 rounded-lg text-sm font-medium ${getEstadoColor(vehiculo.estado)}`}>
-                      {vehiculo.estado.toUpperCase()}
+                    <span className={`px-3 py-2 rounded-lg text-sm font-medium ${getEstadoColor(vehiculo.estado || 'disponible')}`}>
+                      {(vehiculo.estado || 'disponible').toUpperCase()}
                     </span>
                   </div>
                 </div>
