@@ -117,12 +117,6 @@ export default function VehiculoDetailPage() {
   const { showConfirm, ConfirmModalComponent } = useConfirmModal()
 
   const [vehiculo, setVehiculo] = useState<Vehiculo | null>(null)
-  const [notas, setNotas] = useState<Array<{
-    id: number
-    contenido: string
-    autor: string
-    fecha: Date
-  }>>([])
   const [recordatorios, setRecordatorios] = useState<VehiculoRecordatorio[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
