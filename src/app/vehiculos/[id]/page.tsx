@@ -192,7 +192,14 @@ export default function VehiculoDetailPage() {
             id: data.id,
             referencia: data.referencia,
             marca: data.marca,
-            modelo: data.modelo
+            modelo: data.modelo,
+            estado: data.estado
+          })
+          console.log(`✅ [VEHICULO PAGE] Estado del vehículo:`, {
+            estado: data.estado,
+            tipo: typeof data.estado,
+            esNull: data.estado === null,
+            esUndefined: data.estado === undefined
           })
           console.log(`✅ [VEHICULO PAGE] Datos completos del vehículo:`, data)
           setVehiculo(data)
@@ -230,7 +237,7 @@ export default function VehiculoDetailPage() {
     const fetchDocumentos = async () => {
       try {
         console.log(`📁 [VEHICULO PAGE] Obteniendo documentos para vehículo ${vehiculoId}`)
-        const response = await fetch(`/api/vehiculos/${vehiculoId}/documentos`)
+        const response = await fetch(`/api/vehiculos/${vehiculoId}/documentos-temp`)
         if (response.ok) {
           const data = await response.json()
           if (data.success) {
