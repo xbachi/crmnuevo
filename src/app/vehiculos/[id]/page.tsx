@@ -130,6 +130,8 @@ export default function VehiculoDetailPage() {
 
   // Estados para nueva nota
   const [nuevaNota, setNuevaNota] = useState('')
+  const [editingNotaId, setEditingNotaId] = useState<number | null>(null)
+  const [editingNotaTexto, setEditingNotaTexto] = useState('')
   
   // Estados para documentos
   const [documentos, setDocumentos] = useState<Array<{
@@ -331,6 +333,35 @@ export default function VehiculoDetailPage() {
     } catch (error) {
       showToast('Error al agregar la nota', 'error')
     }
+  }
+
+  const handleEditarNota = (nota: any) => {
+    setEditingNotaId(nota.id)
+    setEditingNotaTexto(nota.contenido)
+  }
+
+  const handleGuardarEdicionNota = () => {
+    if (!editingNotaTexto.trim()) return
+    
+    setNotas(notas.map(nota => 
+      nota.id === editingNotaId 
+        ? { ...nota, contenido: editingNotaTexto }
+        : nota
+    ))
+    
+    setEditingNotaId(null)
+    setEditingNotaTexto('')
+    showToast('Nota actualizada correctamente', 'success')
+  }
+
+  const handleCancelarEdicionNota = () => {
+    setEditingNotaId(null)
+    setEditingNotaTexto('')
+  }
+
+  const handleEliminarNota = (notaId: number) => {
+    setNotas(notas.filter(nota => nota.id !== notaId))
+    showToast('Nota eliminada correctamente', 'success')
   }
 
   // Funciones para manejar documentos
@@ -1680,11 +1711,60 @@ export default function VehiculoDetailPage() {
                   <div key={nota.id} className="border border-gray-200 rounded-lg p-3">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <p className="text-gray-900">{nota.contenido}</p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {nota.autor} • {nota.fecha.toLocaleDateString('es-ES')}
-                        </p>
+                        {editingNotaId === nota.id ? (
+                          <div className="space-y-2">
+                            <textarea
+                              value={editingNotaTexto}
+                              onChange={(e) => setEditingNotaTexto(e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                              rows={3}
+                            />
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={handleGuardarEdicionNota}
+                                className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                              >
+                                Guardar
+                              </button>
+                              <button
+                                onClick={handleCancelarEdicionNota}
+                                className="px-3 py-1 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm"
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="text-gray-900">{nota.contenido}</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {nota.autor} • {nota.fecha.toLocaleDateString('es-ES')}
+                            </p>
+                          </>
+                        )}
                       </div>
+                      {editingNotaId !== nota.id && (
+                        <div className="flex space-x-1 ml-2">
+                          <button
+                            onClick={() => handleEditarNota(nota)}
+                            className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                            title="Editar nota"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleEliminarNota(nota.id)}
+                            className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                            title="Eliminar nota"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
