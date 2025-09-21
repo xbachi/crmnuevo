@@ -3,114 +3,98 @@ import { pool } from '@/lib/direct-database'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const depositoId = parseInt(params.id)
+    const { id: depositoId } = await params
     console.log(`📅 [DEPOSITO RECORDATORIOS] Obteniendo recordatorios para depósito ${depositoId}`)
 
     const client = await pool.connect()
     
     const result = await client.query(`
-      SELECT * FROM "DepositoRecordatorios" 
+      SELECT * FROM DepositoRecordatorios 
       WHERE deposito_id = $1 
-      ORDER BY fecha_recordatorio ASC
+      ORDER BY fecha_recordatorio ASC, created_at DESC
     `, [depositoId])
     
     client.release()
     
-    console.log(`✅ [DEPOSITO RECORDATORIOS] Encontrados ${result.rows.length} recordatorios`)
+    console.log(`📅 [DEPOSITO RECORDATORIOS] Encontrados ${result.rows.length} recordatorios`)
     return NextResponse.json(result.rows)
   } catch (error) {
-    console.error('❌ [DEPOSITO RECORDATORIOS] Error:', error)
+    console.error('❌ [DEPOSITO RECORDATORIOS] Error al obtener recordatorios del depósito:', error)
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
   }
 }
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const depositoId = parseInt(params.id)
-    const body = await request.json()
-    console.log(`📅 [DEPOSITO RECORDATORIOS] Creando recordatorio para depósito ${depositoId}`)
+    const { id: depositoId } = await params
+    const data = await request.json()
+    const { titulo, descripcion, tipo = 'general', prioridad = 'media', fecha_recordatorio } = data
 
-    const { titulo, descripcion, tipo, prioridad, fecha_recordatorio } = body
+    console.log(`📅 [DEPOSITO RECORDATORIOS] Creando recordatorio para depósito ${depositoId}:`, { titulo, descripcion, tipo, prioridad, fecha_recordatorio })
 
-    if (!titulo || !fecha_recordatorio) {
-      return NextResponse.json({ error: 'Título y fecha son requeridos' }, { status: 400 })
+    // Validaciones
+    if (!titulo || titulo.trim() === '') {
+      return NextResponse.json({ error: 'El título del recordatorio es obligatorio' }, { status: 400 })
+    }
+    
+    if (!fecha_recordatorio) {
+      return NextResponse.json({ error: 'La fecha del recordatorio es obligatoria' }, { status: 400 })
     }
 
     const client = await pool.connect()
     
     const result = await client.query(`
-      INSERT INTO "DepositoRecordatorios" 
-      (deposito_id, titulo, descripcion, tipo, prioridad, fecha_recordatorio)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO DepositoRecordatorios (deposito_id, titulo, descripcion, tipo, prioridad, fecha_recordatorio, completado, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
       RETURNING *
-    `, [depositoId, titulo, descripcion || '', tipo || 'general', prioridad || 'media', fecha_recordatorio])
+    `, [depositoId, titulo.trim(), descripcion?.trim() || '', tipo, prioridad, fecha_recordatorio, false])
     
     client.release()
     
-    console.log(`✅ [DEPOSITO RECORDATORIOS] Recordatorio creado:`, result.rows[0])
-    return NextResponse.json(result.rows[0])
+    console.log(`✅ [DEPOSITO RECORDATORIOS] Recordatorio creado exitosamente:`, result.rows[0])
+    return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error) {
-    console.error('❌ [DEPOSITO RECORDATORIOS] Error:', error)
+    console.error('❌ [DEPOSITO RECORDATORIOS] Error al crear recordatorio del depósito:', error)
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
   }
 }
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const depositoId = parseInt(params.id)
-    const body = await request.json()
-    console.log(`📅 [DEPOSITO RECORDATORIOS] Actualizando recordatorio para depósito ${depositoId}`)
+    const { id: depositoId } = await params
+    const data = await request.json()
+    const { id: recordatorioId, titulo, descripcion, tipo, prioridad, fecha_recordatorio, completado } = data
 
-    const { id, titulo, descripcion, tipo, prioridad, fecha_recordatorio, completado } = body
+    console.log(`✏️ [DEPOSITO RECORDATORIOS] Actualizando recordatorio ${recordatorioId} del depósito ${depositoId}`)
 
-    if (!id) {
-      return NextResponse.json({ error: 'ID del recordatorio es requerido' }, { status: 400 })
+    // Validaciones
+    if (!recordatorioId) {
+      return NextResponse.json({ error: 'ID de recordatorio es obligatorio' }, { status: 400 })
     }
 
     const client = await pool.connect()
     
-    let query = 'UPDATE "DepositoRecordatorios" SET '
-    const values = []
-    let paramCount = 1
-
-    if (titulo !== undefined) {
-      query += `titulo = $${paramCount++}, `
-      values.push(titulo)
-    }
-    if (descripcion !== undefined) {
-      query += `descripcion = $${paramCount++}, `
-      values.push(descripcion)
-    }
-    if (tipo !== undefined) {
-      query += `tipo = $${paramCount++}, `
-      values.push(tipo)
-    }
-    if (prioridad !== undefined) {
-      query += `prioridad = $${paramCount++}, `
-      values.push(prioridad)
-    }
-    if (fecha_recordatorio !== undefined) {
-      query += `fecha_recordatorio = $${paramCount++}, `
-      values.push(fecha_recordatorio)
-    }
-    if (completado !== undefined) {
-      query += `completado = $${paramCount++}, `
-      values.push(completado)
-    }
-
-    query += `updated_at = CURRENT_TIMESTAMP WHERE id = $${paramCount++} AND deposito_id = $${paramCount++} RETURNING *`
-    values.push(id, depositoId)
-    
-    const result = await client.query(query, values)
+    const result = await client.query(`
+      UPDATE DepositoRecordatorios 
+      SET titulo = COALESCE($1, titulo),
+          descripcion = COALESCE($2, descripcion),
+          tipo = COALESCE($3, tipo),
+          prioridad = COALESCE($4, prioridad),
+          fecha_recordatorio = COALESCE($5, fecha_recordatorio),
+          completado = COALESCE($6, completado),
+          updated_at = NOW()
+      WHERE id = $7 AND deposito_id = $8
+      RETURNING *
+    `, [titulo, descripcion, tipo, prioridad, fecha_recordatorio, completado, recordatorioId, depositoId])
     
     client.release()
     
@@ -118,35 +102,35 @@ export async function PUT(
       return NextResponse.json({ error: 'Recordatorio no encontrado' }, { status: 404 })
     }
     
-    console.log(`✅ [DEPOSITO RECORDATORIOS] Recordatorio actualizado:`, result.rows[0])
+    console.log(`✅ [DEPOSITO RECORDATORIOS] Recordatorio actualizado exitosamente:`, result.rows[0])
     return NextResponse.json(result.rows[0])
   } catch (error) {
-    console.error('❌ [DEPOSITO RECORDATORIOS] Error:', error)
+    console.error('❌ [DEPOSITO RECORDATORIOS] Error al actualizar recordatorio del depósito:', error)
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
   }
 }
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const depositoId = parseInt(params.id)
+    const { id: depositoId } = await params
     const { searchParams } = new URL(request.url)
     const recordatorioId = searchParams.get('recordatorioId')
-    
-    if (!recordatorioId) {
-      return NextResponse.json({ error: 'ID del recordatorio es requerido' }, { status: 400 })
-    }
 
-    console.log(`📅 [DEPOSITO RECORDATORIOS] Eliminando recordatorio ${recordatorioId} del depósito ${depositoId}`)
+    console.log(`🗑️ [DEPOSITO RECORDATORIOS] Eliminando recordatorio ${recordatorioId} del depósito ${depositoId}`)
+
+    if (!recordatorioId) {
+      return NextResponse.json({ error: 'ID de recordatorio es obligatorio' }, { status: 400 })
+    }
 
     const client = await pool.connect()
     
     const result = await client.query(`
-      DELETE FROM "DepositoRecordatorios" 
+      DELETE FROM DepositoRecordatorios 
       WHERE id = $1 AND deposito_id = $2
-      RETURNING *
+      RETURNING id
     `, [recordatorioId, depositoId])
     
     client.release()
@@ -155,10 +139,10 @@ export async function DELETE(
       return NextResponse.json({ error: 'Recordatorio no encontrado' }, { status: 404 })
     }
     
-    console.log(`✅ [DEPOSITO RECORDATORIOS] Recordatorio eliminado`)
-    return NextResponse.json({ message: 'Recordatorio eliminado correctamente' })
+    console.log(`✅ [DEPOSITO RECORDATORIOS] Recordatorio eliminado exitosamente`)
+    return NextResponse.json({ message: 'Recordatorio eliminado exitosamente' })
   } catch (error) {
-    console.error('❌ [DEPOSITO RECORDATORIOS] Error:', error)
+    console.error('❌ [DEPOSITO RECORDATORIOS] Error al eliminar recordatorio del depósito:', error)
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
   }
 }
