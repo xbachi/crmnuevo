@@ -111,7 +111,7 @@ export default function DepositoReminders({ depositoId, depositoInfo }: Deposito
       setIsDeleting(id)
       console.log(`🗑️ [DEPOSITO REMINDERS] Eliminando recordatorio ${id} del depósito ${depositoId}`)
       
-      const response = await fetch(`/api/depositos/${depositoId}/recordatorios/${id}`, {
+      const response = await fetch(`/api/depositos/${depositoId}/recordatorios?recordatorioId=${id}`, {
         method: 'DELETE'
       })
 
