@@ -237,18 +237,10 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
     }`}>
       
       {/* Links de inversor/depósito por encima del header */}
-      {(esInversor || esDeposito) && (
+      {esDeposito && (
         <div className="px-6 py-2 bg-gray-50 border-b border-gray-200">
           <div className="flex justify-between items-center">
-            {esInversor && vehiculo.inversorId && (
-              <button
-                onClick={handleInvestorClick}
-                className="text-xs text-orange-600 hover:text-orange-800 font-medium"
-              >
-                👤 Ver Inversor
-              </button>
-            )}
-            {esDeposito && vehiculo.deposito_id && (
+            {vehiculo.deposito_id && (
               <Link
                 href={`/depositos/${vehiculo.deposito_id}`}
                 className="text-xs text-blue-600 hover:text-blue-800 font-medium"
@@ -323,11 +315,14 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
                 {getTipoText(vehiculo.tipo)}
               </span>
             </div>
-            {/* Nombre del inversor debajo del badge */}
+            {/* Nombre del inversor debajo del badge - CLICKEABLE CON Z-INDEX ALTO */}
             {vehiculo.esCocheInversor && vehiculo.inversorNombre && (
               <button
-                onClick={handleInvestorClick}
-                className="text-xs text-purple-600 font-medium hover:text-purple-800 hover:underline transition-colors cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation() // Evitar que se propague al click del header
+                  handleInvestorClick()
+                }}
+                className="relative z-10 text-xs text-purple-600 font-medium hover:text-purple-800 hover:underline transition-colors cursor-pointer bg-white px-2 py-1 rounded-md hover:bg-purple-50"
                 title="Ver perfil del inversor"
               >
                 {vehiculo.inversorNombre}
