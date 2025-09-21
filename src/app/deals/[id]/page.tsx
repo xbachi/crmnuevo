@@ -102,6 +102,7 @@ export default function DealDetail() {
     descripcion: '',
     fecha: ''
   })
+  const [showRecordatorioForm, setShowRecordatorioForm] = useState(false)
   
   // Estado para el modal de confirmación
   const [showCancelModal, setShowCancelModal] = useState(false)
@@ -560,6 +561,7 @@ export default function DealDetail() {
       
       setRecordatorios([...recordatorios, recordatorio])
       setNuevoRecordatorio({ titulo: '', descripcion: '', fecha: '' })
+      setShowRecordatorioForm(false) // Ocultar formulario después de agregar
       showToast('Recordatorio agregado correctamente', 'success')
     } catch (error) {
       showToast('Error al agregar el recordatorio', 'error')
@@ -1302,38 +1304,56 @@ export default function DealDetail() {
             
             {/* Recordatorios */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Recordatorios</h2>
-              
-              {/* Agregar nuevo recordatorio */}
-              <div className="mb-4 space-y-3">
-                <input
-                  type="text"
-                  value={nuevoRecordatorio.titulo}
-                  onChange={(e) => setNuevoRecordatorio({...nuevoRecordatorio, titulo: e.target.value})}
-                  placeholder="Título del recordatorio..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <input
-                  type="datetime-local"
-                  value={nuevoRecordatorio.fecha}
-                  onChange={(e) => setNuevoRecordatorio({...nuevoRecordatorio, fecha: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <textarea
-                  value={nuevoRecordatorio.descripcion}
-                  onChange={(e) => setNuevoRecordatorio({...nuevoRecordatorio, descripcion: e.target.value})}
-                  placeholder="Descripción..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                  rows={2}
-                />
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">Recordatorios</h2>
                 <button
-                  onClick={handleAgregarRecordatorio}
-                  disabled={!nuevoRecordatorio.titulo.trim() || !nuevoRecordatorio.fecha}
-                  className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  onClick={() => setShowRecordatorioForm(!showRecordatorioForm)}
+                  className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  Agregar Recordatorio
+                  {showRecordatorioForm ? 'Cancelar' : 'Nuevo'}
                 </button>
               </div>
+              
+              {/* Formulario para agregar nuevo recordatorio */}
+              {showRecordatorioForm && (
+                <div className="mb-4 space-y-3 p-4 bg-gray-50 rounded-lg border">
+                  <input
+                    type="text"
+                    value={nuevoRecordatorio.titulo}
+                    onChange={(e) => setNuevoRecordatorio({...nuevoRecordatorio, titulo: e.target.value})}
+                    placeholder="Título del recordatorio..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <input
+                    type="datetime-local"
+                    value={nuevoRecordatorio.fecha}
+                    onChange={(e) => setNuevoRecordatorio({...nuevoRecordatorio, fecha: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <textarea
+                    value={nuevoRecordatorio.descripcion}
+                    onChange={(e) => setNuevoRecordatorio({...nuevoRecordatorio, descripcion: e.target.value})}
+                    placeholder="Descripción..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    rows={2}
+                  />
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={handleAgregarRecordatorio}
+                      disabled={!nuevoRecordatorio.titulo.trim() || !nuevoRecordatorio.fecha}
+                      className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                    >
+                      Agregar Recordatorio
+                    </button>
+                    <button
+                      onClick={() => setShowRecordatorioForm(false)}
+                      className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
               
               {/* Lista de recordatorios */}
               <div className="space-y-3">
