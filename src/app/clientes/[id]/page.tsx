@@ -403,8 +403,8 @@ export default function ClienteDetailPage() {
 
   const startEditing = (nota: NotaCliente) => {
     setEditingNotaId(nota.id)
-    setEditingContent(nota.contenido)
-    setEditingTitulo(nota.titulo)
+    setEditingContent(nota.contenido || '')
+    setEditingTitulo(nota.titulo || '')
   }
 
   const cancelEditing = () => {
@@ -1341,13 +1341,13 @@ export default function ClienteDetailPage() {
                         <div className="space-y-3">
                           <input
                             type="text"
-                            value={editingTitulo}
+                            value={editingTitulo || ''}
                             onChange={(e) => setEditingTitulo(e.target.value)}
                             placeholder="Título (opcional): General, Llamada, etc."
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           />
                           <textarea
-                            value={editingContent}
+                            value={editingContent || ''}
                             onChange={(e) => setEditingContent(e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             rows={3}
