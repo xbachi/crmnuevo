@@ -1,19 +1,19 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useToast } from '@/hooks/useToast'
+import { useSimpleToast } from '@/hooks/useSimpleToast'
 
 export interface DepositoReminder {
   id: number
-  deposito_id: number
+  depositoId: number
   titulo: string
   descripcion: string
-  tipo: 'itv' | 'seguro' | 'revision' | 'documentacion' | 'otro'
+  tipo: 'llamada' | 'visita' | 'email' | 'seguimiento' | 'otro'
   prioridad: 'alta' | 'media' | 'baja'
-  fecha_recordatorio: string
+  fechaRecordatorio: string
   completado: boolean
-  created_at: string
-  updated_at: string
+  createdAt: string
+  updatedAt: string
 }
 
 interface DepositoRemindersProps {
@@ -22,7 +22,7 @@ interface DepositoRemindersProps {
 }
 
 export default function DepositoReminders({ depositoId, depositoInfo }: DepositoRemindersProps) {
-  const { showToast, ToastContainer } = useToast()
+  const { showToast, ToastContainer } = useSimpleToast()
   const [reminders, setReminders] = useState<DepositoReminder[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -32,7 +32,7 @@ export default function DepositoReminders({ depositoId, depositoInfo }: Deposito
   const [formData, setFormData] = useState({
     titulo: '',
     descripcion: '',
-    tipo: 'otro' as const,
+    tipo: 'llamada' as const,
     prioridad: 'media' as const,
     fechaRecordatorio: ''
   })
@@ -40,13 +40,21 @@ export default function DepositoReminders({ depositoId, depositoInfo }: Deposito
   const fetchReminders = async () => {
     try {
       setIsLoading(true)
+      console.log(`📅 [DEPOSITO REMINDERS] Cargando recordatorios para depósito ${depositoId}`)
       const response = await fetch(`/api/depositos/${depositoId}/recordatorios`)
+      console.log(`📊 [DEPOSITO REMINDERS] Response status:`, response.status)
+      
       if (response.ok) {
         const data = await response.json()
+        console.log(`✅ [DEPOSITO REMINDERS] Recordatorios cargados:`, data)
         setReminders(data)
+      } else {
+        const error = await response.json()
+        console.error(`❌ [DEPOSITO REMINDERS] Error response:`, error)
+        showToast('Error al cargar recordatorios', 'error')
       }
     } catch (error) {
-      console.error('Error fetching reminders:', error)
+      console.error('❌ [DEPOSITO REMINDERS] Error fetching reminders:', error)
       showToast('Error al cargar recordatorios', 'error')
     } finally {
       setIsLoading(false)
@@ -59,39 +67,41 @@ export default function DepositoReminders({ depositoId, depositoInfo }: Deposito
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.titulo.trim() || !formData.fechaRecordatorio) return
-
+    
     try {
       setIsSaving(true)
+      console.log(`📅 [DEPOSITO REMINDERS] Creando recordatorio para depósito ${depositoId}:`, formData)
+      
       const response = await fetch(`/api/depositos/${depositoId}/recordatorios`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          titulo: formData.titulo,
-          descripcion: formData.descripcion,
-          tipo: formData.tipo,
-          prioridad: formData.prioridad,
-          fecha_recordatorio: formData.fechaRecordatorio
-        })
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
       })
 
+      console.log(`📊 [DEPOSITO REMINDERS] Response status:`, response.status)
+
       if (response.ok) {
-        showToast('Recordatorio creado correctamente', 'success')
+        const newReminder = await response.json()
+        console.log(`✅ [DEPOSITO REMINDERS] Recordatorio creado:`, newReminder)
+        await fetchReminders()
         setFormData({
           titulo: '',
           descripcion: '',
-          tipo: 'otro',
+          tipo: 'llamada',
           prioridad: 'media',
           fechaRecordatorio: ''
         })
         setShowForm(false)
-        fetchReminders()
+        showToast('Recordatorio creado correctamente', 'success')
       } else {
         const error = await response.json()
-        showToast(`Error: ${error.error}`, 'error')
+        console.error(`❌ [DEPOSITO REMINDERS] Error response:`, error)
+        showToast(error.error || 'Error al crear recordatorio', 'error')
       }
     } catch (error) {
-      console.error('Error creating reminder:', error)
+      console.error('❌ [DEPOSITO REMINDERS] Error:', error)
       showToast('Error al crear recordatorio', 'error')
     } finally {
       setIsSaving(false)
@@ -101,19 +111,25 @@ export default function DepositoReminders({ depositoId, depositoInfo }: Deposito
   const handleDelete = async (id: number) => {
     try {
       setIsDeleting(id)
-      const response = await fetch(`/api/depositos/${depositoId}/recordatorios?recordatorioId=${id}`, {
+      console.log(`🗑️ [DEPOSITO REMINDERS] Eliminando recordatorio ${id} del depósito ${depositoId}`)
+      
+      const response = await fetch(`/api/depositos/${depositoId}/recordatorios/${id}`, {
         method: 'DELETE'
       })
 
+      console.log(`📊 [DEPOSITO REMINDERS] Delete response status:`, response.status)
+
       if (response.ok) {
+        console.log(`✅ [DEPOSITO REMINDERS] Recordatorio eliminado`)
         showToast('Recordatorio eliminado correctamente', 'success')
         fetchReminders()
       } else {
         const error = await response.json()
-        showToast(`Error: ${error.error}`, 'error')
+        console.error(`❌ [DEPOSITO REMINDERS] Error response:`, error)
+        showToast(error.error || 'Error al eliminar recordatorio', 'error')
       }
     } catch (error) {
-      console.error('Error deleting reminder:', error)
+      console.error('❌ [DEPOSITO REMINDERS] Error deleting reminder:', error)
       showToast('Error al eliminar recordatorio', 'error')
     } finally {
       setIsDeleting(null)
@@ -122,6 +138,8 @@ export default function DepositoReminders({ depositoId, depositoInfo }: Deposito
 
   const handleToggleComplete = async (id: number, completado: boolean) => {
     try {
+      console.log(`✅ [DEPOSITO REMINDERS] Toggle completado ${id}: ${!completado}`)
+      
       const response = await fetch(`/api/depositos/${depositoId}/recordatorios`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -131,25 +149,30 @@ export default function DepositoReminders({ depositoId, depositoInfo }: Deposito
         })
       })
 
+      console.log(`📊 [DEPOSITO REMINDERS] Toggle response status:`, response.status)
+
       if (response.ok) {
+        console.log(`✅ [DEPOSITO REMINDERS] Recordatorio actualizado`)
         showToast(`Recordatorio ${!completado ? 'completado' : 'pendiente'}`, 'success')
         fetchReminders()
       } else {
         const error = await response.json()
-        showToast(`Error: ${error.error}`, 'error')
+        console.error(`❌ [DEPOSITO REMINDERS] Error response:`, error)
+        showToast(error.error || 'Error al actualizar recordatorio', 'error')
       }
     } catch (error) {
-      console.error('Error toggling reminder:', error)
+      console.error('❌ [DEPOSITO REMINDERS] Error toggling reminder:', error)
       showToast('Error al actualizar recordatorio', 'error')
     }
   }
 
   const getTipoColor = (tipo: string) => {
     switch (tipo) {
-      case 'itv': return 'bg-blue-100 text-blue-800'
-      case 'seguro': return 'bg-purple-100 text-purple-800'
-      case 'revision': return 'bg-orange-100 text-orange-800'
-      case 'documentacion': return 'bg-indigo-100 text-indigo-800'
+      case 'llamada': return 'bg-blue-100 text-blue-800'
+      case 'visita': return 'bg-green-100 text-green-800'
+      case 'email': return 'bg-purple-100 text-purple-800'
+      case 'seguimiento': return 'bg-orange-100 text-orange-800'
+      case 'otro': return 'bg-gray-100 text-gray-800'
       default: return 'bg-gray-100 text-gray-800'
     }
   }
@@ -218,10 +241,10 @@ export default function DepositoReminders({ depositoId, depositoInfo }: Deposito
               onChange={(e) => setFormData({ ...formData, tipo: e.target.value as any })}
               className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="itv">ITV</option>
-              <option value="seguro">Seguro</option>
-              <option value="revision">Revisión</option>
-              <option value="documentacion">Documentación</option>
+              <option value="llamada">Llamada</option>
+              <option value="visita">Visita</option>
+              <option value="email">Email</option>
+              <option value="seguimiento">Seguimiento</option>
               <option value="otro">Otro</option>
             </select>
             
@@ -295,7 +318,7 @@ export default function DepositoReminders({ depositoId, depositoInfo }: Deposito
                   )}
                   
                   <p className="text-xs text-gray-500">
-                    {new Date(reminder.fecha_recordatorio).toLocaleString('es-ES')}
+                    {new Date(reminder.fechaRecordatorio).toLocaleString('es-ES')}
                   </p>
                 </div>
                 
