@@ -240,7 +240,7 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
 
       {/* Header con gradiente - CLICKEABLE COMPLETO */}
       <div 
-        className={`px-6 py-4 min-h-[120px] border-b cursor-pointer hover:opacity-90 transition-opacity ${
+        className={`px-6 py-4 min-h-[105px] border-b cursor-pointer hover:opacity-90 transition-opacity ${
           esDeposito 
             ? 'bg-gradient-to-r from-cyan-200 to-blue-200 border-cyan-300' 
             : esInversor
