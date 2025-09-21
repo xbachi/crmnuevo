@@ -19,8 +19,10 @@ export default function RootLayout({
         <ToastProvider>
           <div className="flex min-h-screen">
             <Navigation />
-            <main className="flex-1">
-              {children}
+            <main className="flex-1 min-w-0 lg:ml-0">
+              <div className="h-full">
+                {children}
+              </div>
             </main>
           </div>
         </ToastProvider>

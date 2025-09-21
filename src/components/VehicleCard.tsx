@@ -231,7 +231,7 @@ const VehicleCard = memo(function VehicleCard({ vehiculo, onEdit, onDelete, onVi
 
       {/* Header con gradiente - CLICKEABLE COMPLETO */}
       <div 
-        className={`px-6 py-4 min-h-[105px] border-b cursor-pointer hover:opacity-90 transition-opacity ${
+        className={`px-3 sm:px-6 py-3 sm:py-4 min-h-[90px] sm:min-h-[105px] border-b cursor-pointer hover:opacity-90 transition-opacity ${
           esDeposito 
             ? 'bg-gradient-to-r from-cyan-200 to-blue-200 border-cyan-300' 
             : esInversor
@@ -252,26 +252,26 @@ const VehicleCard = memo(function VehicleCard({ vehiculo, onEdit, onDelete, onVi
       >
         <div className="flex items-start justify-between">
           {/* Logo del vehículo */}
-          <div className="flex items-start space-x-4">
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-sm ${
+          <div className="flex items-start space-x-2 sm:space-x-4">
+            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0 ${
               esDeposito 
                 ? 'bg-gradient-to-br from-cyan-500 to-blue-600' 
                 : esInversor
                 ? 'bg-gradient-to-br from-orange-500 to-amber-600'
                 : 'bg-gradient-to-br from-purple-500 to-blue-600'
             }`}>
-              <span className="text-white font-bold text-sm">
+              <span className="text-white font-bold text-xs sm:text-sm">
                 {formatVehicleReference(vehiculo.referencia, vehiculo.tipo)}
               </span>
             </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-bold text-gray-900">
+            <div className="flex-1 min-w-0">
+              <h3 className="text-sm sm:text-lg font-bold text-gray-900 truncate">
                 {vehiculo.marca} {vehiculo.modelo}
               </h3>
               {/* Alerta de ITV vencida */}
               {vehiculo.itv !== null && vehiculo.itv !== undefined && vehiculo.itv !== '' && !isPositive(vehiculo.itv) ? (
-                <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 bg-red-600 rounded-full">
-                  <svg className="w-3.5 h-3.5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                <div className="inline-flex items-center space-x-1 px-2 py-0.5 bg-red-600 rounded-full mt-1">
+                  <svg className="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                   </svg>
                   <span className="text-xs text-white font-semibold">ITV VENCIDA</span>
@@ -281,7 +281,7 @@ const VehicleCard = memo(function VehicleCard({ vehiculo, onEdit, onDelete, onVi
               {vehiculo.enDeposito && vehiculo.depositoId && (
                 <Link
                   href={`/depositos/${vehiculo.depositoId}`}
-                  className="text-xs text-orange-600 font-medium hover:text-orange-800 hover:underline transition-colors cursor-pointer"
+                  className="text-xs text-orange-600 font-medium hover:text-orange-800 hover:underline transition-colors cursor-pointer block mt-1"
                   title="Ver depósito"
                 >
                   En depósito
@@ -292,9 +292,9 @@ const VehicleCard = memo(function VehicleCard({ vehiculo, onEdit, onDelete, onVi
           
           {/* Badge de tipo con nombre del inversor */}
           <div className="flex flex-col items-end space-y-1">
-            <div className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg border ${getTipoColor(vehiculo.tipo)}`}>
+            <div className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border ${getTipoColor(vehiculo.tipo)}`}>
               {getTipoIcon(vehiculo.tipo)}
-              <span className="text-sm font-medium">
+              <span className="text-xs sm:text-sm font-medium">
                 {getTipoText(vehiculo.tipo)}
               </span>
             </div>
@@ -317,33 +317,33 @@ const VehicleCard = memo(function VehicleCard({ vehiculo, onEdit, onDelete, onVi
       </div>
 
       {/* Información principal */}
-      <div className="px-6 py-4">
+      <div className="px-3 sm:px-6 py-3 sm:py-4">
         {/* Información del vehículo en formato limpio */}
-        <div className="space-y-3">
+        <div className="space-y-2 sm:space-y-3">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Matrícula</span>
-            <span className="text-sm font-semibold text-gray-900 font-mono">
+            <span className="text-xs sm:text-sm text-gray-600">Matrícula</span>
+            <span className="text-xs sm:text-sm font-semibold text-gray-900 font-mono">
               {vehiculo.matricula}
             </span>
           </div>
           
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Bastidor</span>
-            <span className="text-sm font-semibold text-gray-900 font-mono">
-              {truncateText(vehiculo.bastidor, 16)}
+            <span className="text-xs sm:text-sm text-gray-600">Bastidor</span>
+            <span className="text-xs sm:text-sm font-semibold text-gray-900 font-mono">
+              {truncateText(vehiculo.bastidor, 12)}
             </span>
           </div>
           
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Kilómetros</span>
-            <span className="text-sm font-semibold text-gray-900">
+            <span className="text-xs sm:text-sm text-gray-600">Kilómetros</span>
+            <span className="text-xs sm:text-sm font-semibold text-gray-900">
               {vehiculo.kms.toLocaleString()}
             </span>
           </div>
           
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Fecha Matric</span>
-            <span className="text-sm font-semibold text-gray-900">
+            <span className="text-xs sm:text-sm text-gray-600">Fecha Matric</span>
+            <span className="text-xs sm:text-sm font-semibold text-gray-900">
               {vehiculo.fechaMatriculacion ? (() => {
                 try {
                   const fecha = new Date(vehiculo.fechaMatriculacion)
@@ -366,8 +366,8 @@ const VehicleCard = memo(function VehicleCard({ vehiculo, onEdit, onDelete, onVi
           </div>
           
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Color</span>
-            <span className="text-sm font-semibold text-gray-900">
+            <span className="text-xs sm:text-sm text-gray-600">Color</span>
+            <span className="text-xs sm:text-sm font-semibold text-gray-900">
               {vehiculo.color || 'N/A'}
             </span>
           </div>
@@ -375,15 +375,15 @@ const VehicleCard = memo(function VehicleCard({ vehiculo, onEdit, onDelete, onVi
 
 
         {/* Información adicional colapsable */}
-        <div className="border-t border-gray-100 pt-4">
+        <div className="border-t border-gray-100 pt-3 sm:pt-4">
           <div className="flex items-center justify-between">
             <button
               onClick={() => setIsExpanded(!isExpanded)}
-              className="flex items-center space-x-2 text-left text-sm font-semibold text-blue-700 hover:text-blue-800 hover:bg-blue-50 px-3 py-2 rounded-lg border border-blue-200 bg-blue-50/50 transition-all duration-200 shadow-sm hover:shadow-md"
+              className="flex items-center space-x-1 sm:space-x-2 text-left text-xs sm:text-sm font-semibold text-blue-700 hover:text-blue-800 hover:bg-blue-50 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-blue-200 bg-blue-50/50 transition-all duration-200 shadow-sm hover:shadow-md"
             >
               <span>Información adicional</span>
               <svg 
-                className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} 
+                className={`w-3 h-3 sm:w-4 sm:h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} 
                 fill="none" 
                 stroke="currentColor" 
                 viewBox="0 0 24 24"

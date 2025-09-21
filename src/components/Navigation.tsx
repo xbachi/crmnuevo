@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -68,7 +68,24 @@ const DepositosIcon = () => (
 
 export default function Navigation() {
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const pathname = usePathname()
+
+  // Detectar si es móvil
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+      if (window.innerWidth >= 768) {
+        setIsMobileMenuOpen(false)
+      }
+    }
+
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   const navItems = [
     { href: '/', label: 'Dashboard', icon: DashboardIcon },
@@ -88,79 +105,121 @@ export default function Navigation() {
     return pathname.startsWith(href)
   }
 
+  // En móvil, siempre mostrar el menú colapsado o como overlay
+  const shouldShowCollapsed = isMobile ? !isMobileMenuOpen : isCollapsed
+
   return (
-    <div className={`bg-gray-50 border-r border-gray-200 transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-56'} flex flex-col h-screen sticky top-0`}>
-      {/* Header con Logo */}
-      <div className="p-6 border-b border-gray-200">
-        <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-          <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-            <span className="text-white font-bold text-lg">SC</span>
-          </div>
-          {!isCollapsed && (
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">SevenCars</h1>
-              <p className="text-sm text-gray-500">CRM Platform</p>
-            </div>
-          )}
-        </Link>
-      </div>
+    <>
+      {/* Mobile Menu Button */}
+      {isMobile && (
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-lg border border-gray-200 lg:hidden"
+          aria-label="Toggle menu"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      )}
 
-      {/* Navigation Links */}
-      <nav className="flex-1 px-4 py-6">
-        <div className="space-y-2">
-          {navItems.map((item) => {
-            const Icon = item.icon
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center space-x-3 px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  isActive(item.href)
-                    ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-white hover:shadow-sm'
-                }`}
-                title={isCollapsed ? item.label : undefined}
-              >
-                <Icon />
-                {!isCollapsed && <span>{item.label}</span>}
-              </Link>
-            )
-          })}
-        </div>
-      </nav>
+      {/* Mobile Overlay */}
+      {isMobile && isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
 
-      {/* User Profile Section */}
-      <div className="p-4 border-t border-gray-200">
-        <div className="bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg p-4 text-white">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
-              <UserIcon />
+      {/* Navigation */}
+      <div className={`
+        bg-gray-50 border-r border-gray-200 transition-all duration-300 flex flex-col h-screen sticky top-0 z-30
+        ${isMobile 
+          ? `fixed left-0 top-0 transform transition-transform duration-300 ${
+              isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+            } w-64` 
+          : shouldShowCollapsed ? 'w-16' : 'w-56'
+        }
+      `}>
+        {/* Header con Logo */}
+        <div className="p-4 sm:p-6 border-b border-gray-200">
+          <Link 
+            href="/" 
+            className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
+            onClick={() => isMobile && setIsMobileMenuOpen(false)}
+          >
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+              <span className="text-white font-bold text-sm sm:text-lg">SC</span>
             </div>
-            {!isCollapsed && (
+            {!shouldShowCollapsed && (
               <div>
-                <p className="font-medium text-sm">Admin User</p>
-                <p className="text-xs text-white/80">Administrador</p>
+                <h1 className="text-lg sm:text-xl font-bold text-gray-900">SevenCars</h1>
+                <p className="text-xs sm:text-sm text-gray-500">CRM Platform</p>
               </div>
             )}
+          </Link>
+        </div>
+
+        {/* Navigation Links */}
+        <nav className="flex-1 px-2 sm:px-4 py-4 sm:py-6">
+          <div className="space-y-1 sm:space-y-2">
+            {navItems.map((item) => {
+              const Icon = item.icon
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center space-x-2 sm:space-x-3 px-2 sm:px-3 py-2 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 ${
+                    isActive(item.href)
+                      ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-white hover:shadow-sm'
+                  }`}
+                  title={shouldShowCollapsed ? item.label : undefined}
+                  onClick={() => isMobile && setIsMobileMenuOpen(false)}
+                >
+                  <Icon />
+                  {!shouldShowCollapsed && <span className="truncate">{item.label}</span>}
+                </Link>
+              )
+            })}
+          </div>
+        </nav>
+
+        {/* User Profile Section */}
+        <div className="p-2 sm:p-4 border-t border-gray-200">
+          <div className="bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg p-3 sm:p-4 text-white">
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <div className="w-6 h-6 sm:w-8 sm:h-8 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                <UserIcon />
+              </div>
+              {!shouldShowCollapsed && (
+                <div className="min-w-0">
+                  <p className="font-medium text-xs sm:text-sm truncate">Admin User</p>
+                  <p className="text-xs text-white/80 truncate">Administrador</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Collapse Button */}
-      <button
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute top-1/2 -right-3 w-6 h-6 bg-white border border-gray-200 rounded-full flex items-center justify-center shadow-sm hover:shadow-md transition-shadow"
-        title={isCollapsed ? 'Expandir' : 'Contraer'}
-      >
-        <svg 
-          className={`w-4 h-4 text-gray-500 transition-transform ${isCollapsed ? 'rotate-180' : ''}`} 
-          fill="none" 
-          stroke="currentColor" 
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
-      </button>
-    </div>
+        {/* Collapse Button - Solo en desktop */}
+        {!isMobile && (
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="absolute top-1/2 -right-3 w-6 h-6 bg-white border border-gray-200 rounded-full flex items-center justify-center shadow-sm hover:shadow-md transition-shadow"
+            title={isCollapsed ? 'Expandir' : 'Contraer'}
+          >
+            <svg 
+              className={`w-4 h-4 text-gray-500 transition-transform ${isCollapsed ? 'rotate-180' : ''}`} 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+        )}
+      </div>
+    </>
   )
 }
