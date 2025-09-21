@@ -972,12 +972,6 @@ export default function DepositoDetail() {
           {/* Sidebar */}
           <div className="w-[30%] space-y-6">
             
-            {/* Recordatorios */}
-            <DepositoReminders 
-              depositoId={deposito.id} 
-              depositoInfo={`Depósito #${deposito.id} - ${deposito.cliente.nombre} ${deposito.cliente.apellidos}`}
-            />
-            
             {/* Documentación */}
             <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Documentación</h3>
@@ -1101,36 +1095,10 @@ export default function DepositoDetail() {
             </div>
 
             {/* Recordatorios */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Recordatorios</h3>
-              <div className="space-y-3">
-                <input
-                  type="text"
-                  placeholder="Título del recordatorio..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                />
-                <div className="flex space-x-2">
-                  <input
-                    type="text"
-                    placeholder="dd/mm/aaaa --:--"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                  />
-                  <button className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </button>
-                </div>
-                <textarea
-                  placeholder="Descripción..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                  rows={3}
-                />
-                <button className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 text-sm">
-                  Agregar Recordatorio
-                </button>
-              </div>
-            </div>
+            <DepositoReminders 
+              depositoId={deposito.id} 
+              depositoInfo={`Depósito #${deposito.id} - ${deposito.cliente.nombre} ${deposito.cliente.apellidos}`}
+            />
           </div>
         </div>
       </div>

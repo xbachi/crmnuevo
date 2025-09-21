@@ -25,7 +25,6 @@ export default function DepositoReminders({ depositoId, depositoInfo }: Deposito
   const { showToast, ToastContainer } = useSimpleToast()
   const [reminders, setReminders] = useState<DepositoReminder[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState<number | null>(null)
 
@@ -93,7 +92,6 @@ export default function DepositoReminders({ depositoId, depositoInfo }: Deposito
           prioridad: 'media',
           fechaRecordatorio: ''
         })
-        setShowForm(false)
         showToast('Recordatorio creado correctamente', 'success')
       } else {
         const error = await response.json()
@@ -202,18 +200,11 @@ export default function DepositoReminders({ depositoId, depositoInfo }: Deposito
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-      <div className="flex items-center justify-between mb-4">
+      <div className="mb-4">
         <h3 className="text-lg font-semibold text-gray-900">Recordatorios</h3>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          {showForm ? 'Cancelar' : 'Nuevo'}
-        </button>
       </div>
 
-      {showForm && (
-        <form onSubmit={handleSubmit} className="mb-6 p-4 bg-gray-50 rounded-lg space-y-3">
+      <form onSubmit={handleSubmit} className="mb-6 p-4 bg-gray-50 rounded-lg space-y-3">
           <div>
             <input
               type="text"
@@ -277,16 +268,8 @@ export default function DepositoReminders({ depositoId, depositoInfo }: Deposito
             >
               {isSaving ? 'Guardando...' : 'Crear'}
             </button>
-            <button
-              type="button"
-              onClick={() => setShowForm(false)}
-              className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
-            >
-              Cancelar
-            </button>
           </div>
         </form>
-      )}
 
       <div className="space-y-3">
         {reminders.length === 0 ? (
