@@ -53,7 +53,22 @@ export default function DashboardRecordatorios() {
     try {
       console.log(`✅ [DASHBOARD] Completando recordatorio ${recordatorio.id} de ${recordatorio.tipo_entidad}`)
       
-      const response = await fetch(`/api/${recordatorio.tipo_entidad}s/${recordatorio.tipo_entidad === 'cliente' ? recordatorio.cliente_nombre : recordatorio.id}/recordatorios`, {
+      // Construir URL correcta según el tipo de entidad
+      let url = ''
+      if (recordatorio.tipo_entidad === 'cliente') {
+        // Para clientes necesitamos el ID del cliente, no el nombre
+        url = `/api/clientes/${recordatorio.id}/recordatorios`
+      } else if (recordatorio.tipo_entidad === 'deposito') {
+        // Para depósitos usar el ID del depósito
+        url = `/api/depositos/${recordatorio.id}/recordatorios`
+      } else {
+        // Para deals, vehículos e inversores
+        url = `/api/${recordatorio.tipo_entidad}s/${recordatorio.id}/recordatorios`
+      }
+      
+      console.log(`📊 [DASHBOARD] URL: ${url}`)
+      
+      const response = await fetch(url, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -61,6 +76,8 @@ export default function DashboardRecordatorios() {
           completado: true
         })
       })
+
+      console.log(`📊 [DASHBOARD] Response status: ${response.status}`)
 
       if (response.ok) {
         console.log(`✅ [DASHBOARD] Recordatorio completado`)
