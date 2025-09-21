@@ -258,14 +258,18 @@ export default function DepositoReminders({ depositoId, depositoInfo }: Deposito
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-1">
-                    <h4 className="font-medium text-gray-900">{reminder.titulo}</h4>
+                    <h4 className={`font-medium text-gray-900 ${reminder.completado ? 'line-through' : ''}`}>
+                      {reminder.titulo}
+                    </h4>
                   </div>
                   
                   {reminder.descripcion && (
-                    <p className="text-sm text-gray-600 mb-2">{reminder.descripcion}</p>
+                    <p className={`text-sm text-gray-600 mb-2 ${reminder.completado ? 'line-through' : ''}`}>
+                      {reminder.descripcion}
+                    </p>
                   )}
                   
-                  <p className="text-xs text-gray-500">
+                  <p className={`text-xs text-gray-500 ${reminder.completado ? 'line-through' : ''}`}>
                     {new Date(reminder.fechaRecordatorio).toLocaleString('es-ES')}
                   </p>
                 </div>
