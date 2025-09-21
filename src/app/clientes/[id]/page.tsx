@@ -287,7 +287,6 @@ export default function ClienteDetailPage() {
       setIsUpdating(true)
       console.log(`📝 Agregando nota para cliente ${cliente.id}`)
       console.log(`📊 Contenido:`, nuevaNota.trim())
-      console.log(`📊 Título:`, nuevoTitulo.trim() || 'General')
       
       const response = await fetch(`/api/clientes/${cliente.id}/notas`, {
         method: 'POST',
@@ -297,8 +296,8 @@ export default function ClienteDetailPage() {
         body: JSON.stringify({
           contenido: nuevaNota.trim(),
           tipo: 'general',
-          titulo: nuevoTitulo.trim() || 'General',
-          usuario: 'Usuario' // TODO: Obtener usuario actual del sistema de auth
+          titulo: 'Nota general',
+          usuario: 'Admin'
         })
       })
       
@@ -308,9 +307,8 @@ export default function ClienteDetailPage() {
         const notaCreada = await response.json()
         console.log(`✅ Nota creada:`, notaCreada)
         setNuevaNota('')
-        setNuevoTitulo('')
         fetchNotas() // Recargar todas las notas
-        showToast('Nota agregada exitosamente', 'success')
+        showToast('Nota agregada correctamente', 'success')
       } else {
         const errorData = await response.json()
         console.error(`❌ Error response:`, errorData)
@@ -318,7 +316,7 @@ export default function ClienteDetailPage() {
       }
     } catch (error) {
       console.error('❌ Error agregando nota:', error)
-      showToast('Error de conexión al agregar la nota', 'error')
+      showToast('Error al agregar la nota', 'error')
     } finally {
       setIsUpdating(false)
     }
@@ -340,8 +338,8 @@ export default function ClienteDetailPage() {
           notaId: notaId,
           contenido: editingContent.trim(),
           tipo: 'general',
-          titulo: editingTitulo.trim() || 'General',
-          usuario: 'Usuario'
+          titulo: 'Nota general',
+          usuario: 'Admin'
         })
       })
       
@@ -352,9 +350,8 @@ export default function ClienteDetailPage() {
         console.log(`✅ Nota editada:`, notaEditada)
         setEditingNotaId(null)
         setEditingContent('')
-        setEditingTitulo('')
         fetchNotas() // Recargar todas las notas
-        showToast('Nota editada exitosamente', 'success')
+        showToast('Nota editada correctamente', 'success')
       } else {
         const errorData = await response.json()
         console.error(`❌ Error response:`, errorData)
@@ -362,60 +359,51 @@ export default function ClienteDetailPage() {
       }
     } catch (error) {
       console.error('❌ Error editando nota:', error)
-      showToast('Error de conexión al editar la nota', 'error')
+      showToast('Error al editar la nota', 'error')
     } finally {
       setIsUpdating(false)
     }
   }
 
-  const handleEliminarNota = (notaId: number) => {
+  const handleEliminarNota = async (notaId: number) => {
     if (!cliente) return
     
-    showConfirm(
-      'Eliminar Nota', 
-      '¿Estás seguro de que deseas eliminar esta nota? Esta acción no se puede deshacer.',
-      async () => {
-        try {
-          console.log(`🗑️ Eliminando nota ${notaId}`)
-          setIsUpdating(true)
-          
-          const response = await fetch(`/api/clientes/${cliente.id}/notas?notaId=${notaId}`, {
-            method: 'DELETE'
-          })
-          
-          console.log(`📊 Response status:`, response.status)
-          
-          if (response.ok) {
-            const result = await response.json()
-            console.log(`✅ Nota eliminada:`, result)
-            fetchNotas() // Recargar todas las notas
-            showToast('Nota eliminada exitosamente', 'success')
-          } else {
-            const errorData = await response.json()
-            console.error(`❌ Error response:`, errorData)
-            showToast(`Error al eliminar la nota: ${errorData.details || errorData.error}`, 'error')
-          }
-        } catch (error) {
-          console.error('❌ Error eliminando nota:', error)
-          showToast('Error de conexión al eliminar la nota', 'error')
-        } finally {
-          setIsUpdating(false)
-        }
-      },
-      'danger'
-    )
+    try {
+      console.log(`🗑️ Eliminando nota ${notaId}`)
+      setIsUpdating(true)
+      
+      const response = await fetch(`/api/clientes/${cliente.id}/notas?notaId=${notaId}`, {
+        method: 'DELETE'
+      })
+      
+      console.log(`📊 Response status:`, response.status)
+      
+      if (response.ok) {
+        const result = await response.json()
+        console.log(`✅ Nota eliminada:`, result)
+        fetchNotas() // Recargar todas las notas
+        showToast('Nota eliminada correctamente', 'success')
+      } else {
+        const errorData = await response.json()
+        console.error(`❌ Error response:`, errorData)
+        showToast(`Error al eliminar la nota: ${errorData.details || errorData.error}`, 'error')
+      }
+    } catch (error) {
+      console.error('❌ Error eliminando nota:', error)
+      showToast('Error al eliminar la nota', 'error')
+    } finally {
+      setIsUpdating(false)
+    }
   }
 
   const startEditing = (nota: NotaCliente) => {
     setEditingNotaId(nota.id)
     setEditingContent(nota.contenido || '')
-    setEditingTitulo(nota.titulo || '')
   }
 
   const cancelEditing = () => {
     setEditingNotaId(null)
     setEditingContent('')
-    setEditingTitulo('')
   }
 
   useEffect(() => {
@@ -1300,38 +1288,78 @@ export default function ClienteDetailPage() {
 
             {/* Notas */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Notas del Cliente</h3>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Notas</h2>
               
-              {/* Historial de notas */}
-              <div className="space-y-3 mb-6 max-h-64 overflow-y-auto">
-                {notasCliente.length > 0 ? (
-                  notasCliente.map((nota) => (
-                    <div key={nota.id} className="p-3 bg-gray-50 rounded-lg border-l-4 border-blue-500">
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-xs text-gray-500">
-                            {new Date(nota.fecha).toLocaleDateString('es-ES', {
-                              day: '2-digit',
-                              month: '2-digit', 
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </span>
-                        </div>
-                        <div className="flex space-x-1">
+              {/* Formulario para agregar nota */}
+              <div className="mb-4">
+                <textarea
+                  value={nuevaNota}
+                  onChange={(e) => setNuevaNota(e.target.value)}
+                  placeholder="Agregar una nueva nota..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  rows={3}
+                />
+                <button
+                  onClick={handleAgregarNota}
+                  disabled={!nuevaNota.trim()}
+                  className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                >
+                  Agregar Nota
+                </button>
+              </div>
+              
+              {/* Lista de notas */}
+              <div className="space-y-3">
+                {notasCliente.map(nota => (
+                  <div key={nota.id} className="border border-gray-200 rounded-lg p-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        {editingNotaId === nota.id ? (
+                          <div className="space-y-2">
+                            <textarea
+                              value={editingContent || ''}
+                              onChange={(e) => setEditingContent(e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                              rows={3}
+                            />
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => handleEditarNota(nota.id)}
+                                className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                              >
+                                Guardar
+                              </button>
+                              <button
+                                onClick={cancelEditing}
+                                className="px-3 py-1 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm"
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="text-gray-900">{nota.contenido}</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {nota.usuario} • {new Date(nota.fecha).toLocaleDateString('es-ES')}
+                            </p>
+                          </>
+                        )}
+                      </div>
+                      {editingNotaId !== nota.id && (
+                        <div className="flex space-x-1 ml-2">
                           <button
                             onClick={() => startEditing(nota)}
-                            className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"
+                            className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
                             title="Editar nota"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" />
                             </svg>
                           </button>
                           <button
                             onClick={() => handleEliminarNota(nota.id)}
-                            className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
+                            className="p-1 text-gray-400 hover:text-red-600 transition-colors"
                             title="Eliminar nota"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1339,83 +1367,10 @@ export default function ClienteDetailPage() {
                             </svg>
                           </button>
                         </div>
-                      </div>
-                      
-                      {editingNotaId === nota.id ? (
-                        <div className="space-y-3">
-                          <input
-                            type="text"
-                            value={editingTitulo || ''}
-                            onChange={(e) => setEditingTitulo(e.target.value)}
-                            placeholder="Título (opcional): General, Llamada, etc."
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          />
-                          <textarea
-                            value={editingContent || ''}
-                            onChange={(e) => setEditingContent(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            rows={3}
-                          />
-                          <div className="flex justify-end space-x-2">
-                            <button
-                              onClick={cancelEditing}
-                              className="px-3 py-1 text-sm text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
-                            >
-                              Cancelar
-                            </button>
-                            <button
-                              onClick={() => handleEditarNota(nota.id)}
-                              disabled={isUpdating}
-                              className="px-3 py-1 text-sm text-white bg-blue-500 rounded hover:bg-blue-600 disabled:opacity-50"
-                            >
-                              {isUpdating ? 'Guardando...' : 'Guardar'}
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div>
-                          <p className="text-sm font-medium text-gray-900 mb-1">{nota.titulo}</p>
-                          <p className="text-sm text-gray-600 mb-2">{nota.contenido}</p>
-                          
-                          <div className="text-xs text-gray-500">
-                            Por: {nota.usuario}
-                            {nota.updatedAt !== nota.createdAt && (
-                              <span className="ml-2 italic">(editado)</span>
-                            )}
-                          </div>
-                        </div>
                       )}
                     </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-gray-500 italic">No hay notas registradas para este cliente.</p>
-                )}
-              </div>
-              
-              {/* Agregar nueva nota */}
-              <div className="space-y-4 border-t pt-4">
-                <h4 className="text-sm font-medium text-gray-700">Agregar nueva nota:</h4>
-                <input
-                  type="text"
-                  value={nuevoTitulo}
-                  onChange={(e) => setNuevoTitulo(e.target.value)}
-                  placeholder="Título (opcional): General, Llamada, etc."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <textarea
-                  value={nuevaNota}
-                  onChange={(e) => setNuevaNota(e.target.value)}
-                  placeholder="Escribir nota sobre el cliente..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  rows={3}
-                />
-                <button
-                  onClick={handleAgregarNota}
-                  disabled={!nuevaNota.trim() || isUpdating}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isUpdating ? 'Agregando...' : 'Agregar Nota'}
-                </button>
+                  </div>
+                ))}
               </div>
             </div>
 
