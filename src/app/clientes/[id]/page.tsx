@@ -1477,7 +1477,7 @@ export default function ClienteDetailPage() {
       </main>
 
       <ToastContainer />
-      {ConfirmModalComponent}
+      <ConfirmModalComponent />
     </div>
   )
 }
