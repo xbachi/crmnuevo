@@ -1418,7 +1418,7 @@ export default function ClienteDetailPage() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Total de interacciones</p>
-                  <p className="font-medium text-gray-900">{notas.length}</p>
+                  <p className="font-medium text-gray-900">{notasCliente.length}</p>
                 </div>
               </div>
             </div>
