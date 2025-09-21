@@ -2,11 +2,23 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Cliente, NotaCliente } from '@/lib/database'
+import { Cliente } from '@/lib/database'
+
+interface NotaCliente {
+  id: number
+  clienteId: number
+  tipo: string
+  titulo: string
+  contenido: string
+  prioridad: string
+  completada: boolean
+  fecha: string
+  usuario: string
+  createdAt: string
+}
 import { useSimpleToast } from '@/hooks/useSimpleToast'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import ClientReminders from '@/components/ClientReminders'
-import NotasSection from '@/components/NotasSection'
 
 export default function ClienteDetailPage() {
   const router = useRouter()
@@ -14,8 +26,12 @@ export default function ClienteDetailPage() {
   const { showToast, ToastContainer } = useSimpleToast()
   
   const [cliente, setCliente] = useState<Cliente | null>(null)
-  const [notas, setNotas] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isUpdating, setIsUpdating] = useState(false)
+  const [nuevaNota, setNuevaNota] = useState('')
+  const [notasCliente, setNotasCliente] = useState<NotaCliente[]>([])
+  const [editingNotaId, setEditingNotaId] = useState<number | null>(null)
+  const [editingContent, setEditingContent] = useState('')
   const [isEditingPersonal, setIsEditingPersonal] = useState(false)
   const [isEditingIntereses, setIsEditingIntereses] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -232,8 +248,167 @@ export default function ClienteDetailPage() {
     }
   }
 
+  const fetchNotas = async () => {
+    try {
+      console.log(`🔍 Cargando notas para cliente ${clienteId}`)
+      const response = await fetch(`/api/clientes/${clienteId}/notas`)
+      console.log(`📊 Response status:`, response.status)
+      
+      if (response.ok) {
+        const notas = await response.json()
+        console.log(`✅ Notas cargadas:`, notas)
+        setNotasCliente(notas)
+      } else {
+        const errorData = await response.json()
+        console.error(`❌ Error response:`, errorData)
+        
+        // Si el error es por tabla que no existe, mostrar mensaje informativo pero no error
+        if (errorData.code === '42P01') {
+          console.log(`💡 Tabla NotaCliente no existe, usando sistema básico de notas`)
+          showToast('Sistema de notas actualizándose, por favor ejecuta el script de BD', 'warning')
+        } else {
+          showToast(`Error cargando notas: ${errorData.details || errorData.error}`, 'error')
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error cargando notas:', error)
+      showToast('Error de conexión al cargar notas', 'error')
+    }
+  }
+
+  const handleAgregarNota = async () => {
+    if (!cliente || !nuevaNota.trim()) return
+    
+    try {
+      setIsUpdating(true)
+      console.log(`📝 Agregando nota para cliente ${cliente.id}`)
+      console.log(`📊 Contenido:`, nuevaNota.trim())
+      
+      const response = await fetch(`/api/clientes/${cliente.id}/notas`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contenido: nuevaNota.trim(),
+          tipo: 'general',
+          titulo: 'Nota general',
+          usuario: 'Usuario' // TODO: Obtener usuario actual del sistema de auth
+        })
+      })
+      
+      console.log(`📊 Response status:`, response.status)
+      
+      if (response.ok) {
+        const notaCreada = await response.json()
+        console.log(`✅ Nota creada:`, notaCreada)
+        setNuevaNota('')
+        fetchNotas() // Recargar todas las notas
+        showToast('Nota agregada exitosamente', 'success')
+      } else {
+        const errorData = await response.json()
+        console.error(`❌ Error response:`, errorData)
+        showToast(`Error al agregar la nota: ${errorData.details || errorData.error}`, 'error')
+      }
+    } catch (error) {
+      console.error('❌ Error agregando nota:', error)
+      showToast('Error de conexión al agregar la nota', 'error')
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  const handleEditarNota = async (notaId: number) => {
+    if (!cliente) return
+    
+    try {
+      console.log(`✏️ Editando nota ${notaId}`)
+      setIsUpdating(true)
+      
+      const response = await fetch(`/api/clientes/${cliente.id}/notas`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          notaId: notaId,
+          contenido: editingContent.trim(),
+          tipo: 'general',
+          titulo: 'Nota general',
+          usuario: 'Usuario'
+        })
+      })
+      
+      console.log(`📊 Response status:`, response.status)
+      
+      if (response.ok) {
+        const notaEditada = await response.json()
+        console.log(`✅ Nota editada:`, notaEditada)
+        setEditingNotaId(null)
+        setEditingContent('')
+        fetchNotas() // Recargar todas las notas
+        showToast('Nota editada exitosamente', 'success')
+      } else {
+        const errorData = await response.json()
+        console.error(`❌ Error response:`, errorData)
+        showToast(`Error al editar la nota: ${errorData.details || errorData.error}`, 'error')
+      }
+    } catch (error) {
+      console.error('❌ Error editando nota:', error)
+      showToast('Error de conexión al editar la nota', 'error')
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  const handleEliminarNota = (notaId: number) => {
+    if (!cliente) return
+    
+    showToast('¿Estás seguro de que quieres eliminar esta nota?', 'warning', 
+      async () => {
+        try {
+          console.log(`🗑️ Eliminando nota ${notaId}`)
+          setIsUpdating(true)
+          
+          const response = await fetch(`/api/clientes/${cliente.id}/notas?notaId=${notaId}`, {
+            method: 'DELETE'
+          })
+          
+          console.log(`📊 Response status:`, response.status)
+          
+          if (response.ok) {
+            const result = await response.json()
+            console.log(`✅ Nota eliminada:`, result)
+            fetchNotas() // Recargar todas las notas
+            showToast('Nota eliminada exitosamente', 'success')
+          } else {
+            const errorData = await response.json()
+            console.error(`❌ Error response:`, errorData)
+            showToast(`Error al eliminar la nota: ${errorData.details || errorData.error}`, 'error')
+          }
+        } catch (error) {
+          console.error('❌ Error eliminando nota:', error)
+          showToast('Error de conexión al eliminar la nota', 'error')
+        } finally {
+          setIsUpdating(false)
+        }
+      }
+    )
+  }
+
+  const startEditing = (nota: NotaCliente) => {
+    setEditingNotaId(nota.id)
+    setEditingContent(nota.contenido)
+  }
+
+  const cancelEditing = () => {
+    setEditingNotaId(null)
+    setEditingContent('')
+  }
+
   useEffect(() => {
     fetchCliente()
+    fetchNotas()
   }, [clienteId])
 
   const addVehiculoInteres = () => {
@@ -1112,19 +1287,114 @@ export default function ClienteDetailPage() {
             )}
 
             {/* Notas */}
-            {cliente?.id ? (
-              <NotasSection 
-                notas={notas} 
-                onNotasChange={setNotas} 
-                entityId={cliente.id} 
-                entityType="cliente"
-              />
-            ) : (
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Notas</h2>
-                <p className="text-gray-500 text-center py-4">Cargando...</p>
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Notas del Cliente</h3>
+              
+              {/* Historial de notas */}
+              <div className="space-y-3 mb-6 max-h-64 overflow-y-auto">
+                {notasCliente.length > 0 ? (
+                  notasCliente.map((nota) => (
+                    <div key={nota.id} className="p-3 bg-gray-50 rounded-lg border-l-4 border-blue-500">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-xs font-medium text-blue-600">{nota.tipo.toUpperCase()}</span>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs text-gray-500">
+                            {new Date(nota.fecha).toLocaleDateString('es-ES', {
+                              day: '2-digit',
+                              month: '2-digit', 
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                          <div className="flex space-x-1">
+                            <button
+                              onClick={() => startEditing(nota)}
+                              className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"
+                              title="Editar nota"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => handleEliminarNota(nota.id)}
+                              className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
+                              title="Eliminar nota"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {editingNotaId === nota.id ? (
+                        <div className="space-y-3">
+                          <textarea
+                            value={editingContent}
+                            onChange={(e) => setEditingContent(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            rows={3}
+                          />
+                          <div className="flex justify-end space-x-2">
+                            <button
+                              onClick={cancelEditing}
+                              className="px-3 py-1 text-sm text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
+                            >
+                              Cancelar
+                            </button>
+                            <button
+                              onClick={() => handleEditarNota(nota.id)}
+                              disabled={isUpdating}
+                              className="px-3 py-1 text-sm text-white bg-blue-500 rounded hover:bg-blue-600 disabled:opacity-50"
+                            >
+                              {isUpdating ? 'Guardando...' : 'Guardar'}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <p className="text-sm text-gray-700 mb-1">{nota.titulo}</p>
+                          <p className="text-sm text-gray-600">{nota.contenido}</p>
+                          {nota.prioridad && (
+                            <span className={`inline-block mt-2 px-2 py-1 text-xs rounded-full ${
+                              nota.prioridad === 'alta' ? 'bg-red-100 text-red-800' :
+                              nota.prioridad === 'media' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-green-100 text-green-800'
+                            }`}>
+                              {nota.prioridad.toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-500 italic">No hay notas registradas para este cliente.</p>
+                )}
               </div>
-            )}
+              
+              {/* Agregar nueva nota */}
+              <div className="space-y-4 border-t pt-4">
+                <h4 className="text-sm font-medium text-gray-700">Agregar nueva nota:</h4>
+                <textarea
+                  value={nuevaNota}
+                  onChange={(e) => setNuevaNota(e.target.value)}
+                  placeholder="Escribir nota sobre el cliente..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  rows={3}
+                />
+                <button
+                  onClick={handleAgregarNota}
+                  disabled={!nuevaNota.trim() || isUpdating}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isUpdating ? 'Agregando...' : 'Agregar Nota'}
+                </button>
+              </div>
+            </div>
 
           </div>
 
