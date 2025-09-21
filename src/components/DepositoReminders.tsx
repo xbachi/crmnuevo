@@ -31,8 +31,6 @@ export default function DepositoReminders({ depositoId, depositoInfo }: Deposito
   const [formData, setFormData] = useState({
     titulo: '',
     descripcion: '',
-    tipo: 'llamada' as const,
-    prioridad: 'media' as const,
     fechaRecordatorio: ''
   })
 
@@ -76,7 +74,11 @@ export default function DepositoReminders({ depositoId, depositoInfo }: Deposito
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...formData,
+          tipo: 'general',
+          prioridad: 'media'
+        })
       })
 
       console.log(`📊 [DEPOSITO REMINDERS] Response status:`, response.status)
@@ -88,8 +90,6 @@ export default function DepositoReminders({ depositoId, depositoInfo }: Deposito
         setFormData({
           titulo: '',
           descripcion: '',
-          tipo: 'llamada',
-          prioridad: 'media',
           fechaRecordatorio: ''
         })
         showToast('Recordatorio creado correctamente', 'success')
@@ -138,11 +138,24 @@ export default function DepositoReminders({ depositoId, depositoInfo }: Deposito
     try {
       console.log(`✅ [DEPOSITO REMINDERS] Toggle completado ${id}: ${!completado}`)
       
+      // Buscar el recordatorio actual para obtener todos los campos
+      const recordatorio = reminders.find(r => r.id === id)
+      if (!recordatorio) {
+        console.error(`❌ [DEPOSITO REMINDERS] Recordatorio no encontrado:`, id)
+        showToast('Recordatorio no encontrado', 'error')
+        return
+      }
+      
       const response = await fetch(`/api/depositos/${depositoId}/recordatorios`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: id,
+          titulo: recordatorio.titulo,
+          descripcion: recordatorio.descripcion,
+          tipo: recordatorio.tipo,
+          prioridad: recordatorio.prioridad,
+          fechaRecordatorio: recordatorio.fechaRecordatorio,
           completado: !completado
         })
       })
@@ -164,25 +177,6 @@ export default function DepositoReminders({ depositoId, depositoInfo }: Deposito
     }
   }
 
-  const getTipoColor = (tipo: string) => {
-    switch (tipo) {
-      case 'llamada': return 'bg-blue-100 text-blue-800'
-      case 'visita': return 'bg-green-100 text-green-800'
-      case 'email': return 'bg-purple-100 text-purple-800'
-      case 'seguimiento': return 'bg-orange-100 text-orange-800'
-      case 'otro': return 'bg-gray-100 text-gray-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  const getPrioridadColor = (prioridad: string) => {
-    switch (prioridad) {
-      case 'alta': return 'bg-red-100 text-red-800'
-      case 'media': return 'bg-yellow-100 text-yellow-800'
-      case 'baja': return 'bg-green-100 text-green-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
-  }
 
   if (isLoading) {
     return (
@@ -226,29 +220,6 @@ export default function DepositoReminders({ depositoId, depositoInfo }: Deposito
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <select
-              value={formData.tipo}
-              onChange={(e) => setFormData({ ...formData, tipo: e.target.value as any })}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="llamada">Llamada</option>
-              <option value="visita">Visita</option>
-              <option value="email">Email</option>
-              <option value="seguimiento">Seguimiento</option>
-              <option value="otro">Otro</option>
-            </select>
-            
-            <select
-              value={formData.prioridad}
-              onChange={(e) => setFormData({ ...formData, prioridad: e.target.value as any })}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="baja">Baja</option>
-              <option value="media">Media</option>
-              <option value="alta">Alta</option>
-            </select>
-          </div>
 
           <div>
             <textarea
@@ -288,12 +259,6 @@ export default function DepositoReminders({ depositoId, depositoInfo }: Deposito
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-1">
                     <h4 className="font-medium text-gray-900">{reminder.titulo}</h4>
-                    <span className={`px-2 py-1 text-xs rounded-full ${getTipoColor(reminder.tipo)}`}>
-                      {reminder.tipo}
-                    </span>
-                    <span className={`px-2 py-1 text-xs rounded-full ${getPrioridadColor(reminder.prioridad)}`}>
-                      {reminder.prioridad}
-                    </span>
                   </div>
                   
                   {reminder.descripcion && (
