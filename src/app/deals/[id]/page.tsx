@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useToast } from '@/components/Toast'
+import { useConfirmModal } from '@/components/ConfirmModal'
 import { generarContratoReserva, generarContratoVenta, generarFactura } from '@/lib/contractGenerator'
 import { addReminder, createDocumentacionReminder } from '@/lib/reminders'
 import { formatCurrency, formatVehicleReference } from '@/lib/utils'
@@ -87,6 +88,7 @@ export default function DealDetail() {
   const params = useParams()
   const router = useRouter()
   const { showToast, ToastContainer } = useToast()
+  const { showConfirm, ConfirmModalComponent } = useConfirmModal()
   
   const [deal, setDeal] = useState<Deal | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -575,8 +577,41 @@ export default function DealDetail() {
   }
 
   const handleEliminarRecordatorio = (id: number) => {
-    setRecordatorios(recordatorios.filter(r => r.id !== id))
-    showToast('Recordatorio eliminado', 'success')
+    if (!deal) return
+    
+    showConfirm(
+      'Eliminar Recordatorio', 
+      '¿Estás seguro de que deseas eliminar este recordatorio? Esta acción no se puede deshacer.',
+      async () => {
+        try {
+          console.log(`🗑️ [DEAL RECORDATORIO] Eliminando recordatorio ${id} del deal ${deal.id}`)
+          setIsUpdating(true)
+          
+          const response = await fetch(`/api/deals/${deal.id}/recordatorios/${id}`, {
+            method: 'DELETE'
+          })
+          
+          console.log(`📊 [DEAL RECORDATORIO] Response status:`, response.status)
+          
+          if (response.ok) {
+            const result = await response.json()
+            console.log(`✅ [DEAL RECORDATORIO] Recordatorio eliminado:`, result)
+            setRecordatorios(recordatorios.filter(r => r.id !== id))
+            showToast('Recordatorio eliminado correctamente', 'success')
+          } else {
+            const errorData = await response.json()
+            console.error(`❌ [DEAL RECORDATORIO] Error response:`, errorData)
+            showToast(`Error al eliminar recordatorio: ${errorData.details || errorData.error}`, 'error')
+          }
+        } catch (error) {
+          console.error('❌ [DEAL RECORDATORIO] Error eliminando recordatorio:', error)
+          showToast('Error de conexión al eliminar recordatorio', 'error')
+        } finally {
+          setIsUpdating(false)
+        }
+      },
+      'danger'
+    )
   }
 
   if (isLoading) {
@@ -1473,6 +1508,7 @@ export default function DealDetail() {
         onClose={() => setShowFacturaModal(false)}
         onConfirm={handleConfirmFactura}
       />
+      <ConfirmModalComponent />
     </div>
   )
 }
