@@ -862,108 +862,89 @@ export default function DepositoDetail() {
 
             {/* Notas */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Notas del Depósito</h3>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Notas</h2>
               
-              {/* Historial de notas */}
-              <div className="space-y-3 mb-6 max-h-64 overflow-y-auto">
-                {notasDeposito.length > 0 ? (
-                  notasDeposito.map((nota) => (
-                    <div key={nota.id} className="p-3 bg-gray-50 rounded-lg border-l-4 border-blue-500">
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="text-xs font-medium text-blue-600">{nota.tipo.toUpperCase()}</span>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-xs text-gray-500">
-                            {new Date(nota.fecha).toLocaleDateString('es-ES', {
-                              day: '2-digit',
-                              month: '2-digit', 
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </span>
-                          <div className="flex space-x-1">
-                            <button
-                              onClick={() => startEditing(nota)}
-                              disabled={editingNotaId === nota.id}
-                              className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded"
-                              title="Editar nota"
-                            >
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                            </button>
-                            <button
-                              onClick={() => handleEliminarNota(nota.id)}
-                              disabled={isUpdating}
-                              className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded"
-                              title="Eliminar nota"
-                            >
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {editingNotaId === nota.id ? (
-                        <div className="space-y-2">
-                          <textarea
-                            value={editingContent}
-                            onChange={(e) => setEditingContent(e.target.value)}
-                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            rows={3}
-                          />
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => handleEditarNota(nota.id)}
-                              disabled={isUpdating || !editingContent.trim()}
-                              className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:opacity-50"
-                            >
-                              {isUpdating ? 'Guardando...' : 'Guardar'}
-                            </button>
-                            <button
-                              onClick={cancelEditing}
-                              className="px-3 py-1 bg-gray-300 text-gray-700 text-xs rounded hover:bg-gray-400"
-                            >
-                              Cancelar
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-gray-700 whitespace-pre-wrap">{nota.contenido}</p>
-                      )}
-                      
-                      <div className="mt-2 text-xs text-gray-500">
-                        Por: {nota.usuario}
-                        {nota.updatedAt !== nota.createdAt && (
-                          <span className="ml-2 italic">(editado)</span>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-gray-500 italic">No hay notas registradas para este depósito.</p>
-                )}
-              </div>
-              
-              {/* Agregar nueva nota */}
-              <div className="space-y-4 border-t pt-4">
-                <h4 className="text-sm font-medium text-gray-700">Agregar nueva nota:</h4>
+              {/* Formulario para agregar nota */}
+              <div className="mb-4">
                 <textarea
                   value={nuevaNota}
                   onChange={(e) => setNuevaNota(e.target.value)}
-                  placeholder="Escribir nota sobre el depósito..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Agregar una nueva nota..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                   rows={3}
                 />
                 <button
                   onClick={handleAgregarNota}
-                  disabled={isUpdating || !nuevaNota.trim()}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  disabled={!nuevaNota.trim()}
+                  className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
                 >
-                  {isUpdating ? 'Agregando...' : 'Agregar Nota'}
+                  Agregar Nota
                 </button>
+              </div>
+              
+              {/* Lista de notas */}
+              <div className="space-y-3">
+                {notasDeposito.map(nota => (
+                  <div key={nota.id} className="border border-gray-200 rounded-lg p-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        {editingNotaId === nota.id ? (
+                          <div className="space-y-2">
+                            <textarea
+                              value={editingContent || ''}
+                              onChange={(e) => setEditingContent(e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                              rows={3}
+                            />
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => handleEditarNota(nota.id)}
+                                className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                              >
+                                Guardar
+                              </button>
+                              <button
+                                onClick={cancelEditing}
+                                className="px-3 py-1 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm"
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="text-gray-900">{nota.contenido}</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {nota.usuario} • {new Date(nota.fecha).toLocaleDateString('es-ES')}
+                            </p>
+                          </>
+                        )}
+                      </div>
+                      {editingNotaId !== nota.id && (
+                        <div className="flex space-x-1 ml-2">
+                          <button
+                            onClick={() => startEditing(nota)}
+                            className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                            title="Editar nota"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleEliminarNota(nota.id)}
+                            className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                            title="Eliminar nota"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
