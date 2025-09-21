@@ -202,7 +202,7 @@ export default function DepositoReminders({ depositoId, depositoInfo }: Deposito
           onClick={() => setShowForm(!showForm)}
           className="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
         >
-          {showForm ? 'Cancelar' : 'Nuevo'}
+          {showForm ? 'Cancelar' : 'Agregar recordatorio'}
         </button>
       </div>
 

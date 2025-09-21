@@ -193,7 +193,7 @@ export default function ClientReminders({ clienteId, clienteNombre }: ClientRemi
           onClick={() => setShowForm(!showForm)}
           className="px-3 py-1 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600 transition-colors"
         >
-          {showForm ? 'Cancelar' : 'Nuevo'}
+          {showForm ? 'Cancelar' : 'Agregar recordatorio'}
         </button>
       </div>
 
