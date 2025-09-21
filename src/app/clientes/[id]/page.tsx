@@ -19,11 +19,13 @@ interface NotaCliente {
 import { useSimpleToast } from '@/hooks/useSimpleToast'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import ClientReminders from '@/components/ClientReminders'
+import { useConfirmModal } from '@/components/ConfirmModal'
 
 export default function ClienteDetailPage() {
   const router = useRouter()
   const params = useParams()
   const { showToast, ToastContainer } = useSimpleToast()
+  const { showConfirm, ConfirmModalComponent } = useConfirmModal()
   
   const [cliente, setCliente] = useState<Cliente | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -369,7 +371,9 @@ export default function ClienteDetailPage() {
   const handleEliminarNota = (notaId: number) => {
     if (!cliente) return
     
-    showToast('¿Estás seguro de que quieres eliminar esta nota?', 'warning', 
+    showConfirm(
+      'Eliminar Nota', 
+      '¿Estás seguro de que deseas eliminar esta nota? Esta acción no se puede deshacer.',
       async () => {
         try {
           console.log(`🗑️ Eliminando nota ${notaId}`)
@@ -397,7 +401,8 @@ export default function ClienteDetailPage() {
         } finally {
           setIsUpdating(false)
         }
-      }
+      },
+      'danger'
     )
   }
 
@@ -1303,7 +1308,6 @@ export default function ClienteDetailPage() {
                   notasCliente.map((nota) => (
                     <div key={nota.id} className="p-3 bg-gray-50 rounded-lg border-l-4 border-blue-500">
                       <div className="flex justify-between items-start mb-2">
-                        <span className="text-xs font-medium text-blue-600">{nota.tipo.toUpperCase()}</span>
                         <div className="flex items-center space-x-2">
                           <span className="text-xs text-gray-500">
                             {new Date(nota.fecha).toLocaleDateString('es-ES', {
@@ -1314,26 +1318,26 @@ export default function ClienteDetailPage() {
                               minute: '2-digit'
                             })}
                           </span>
-                          <div className="flex space-x-1">
-                            <button
-                              onClick={() => startEditing(nota)}
-                              className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"
-                              title="Editar nota"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                            </button>
-                            <button
-                              onClick={() => handleEliminarNota(nota.id)}
-                              className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
-                              title="Eliminar nota"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          </div>
+                        </div>
+                        <div className="flex space-x-1">
+                          <button
+                            onClick={() => startEditing(nota)}
+                            className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"
+                            title="Editar nota"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleEliminarNota(nota.id)}
+                            className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
+                            title="Eliminar nota"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
                         </div>
                       </div>
                       
@@ -1370,19 +1374,10 @@ export default function ClienteDetailPage() {
                         </div>
                       ) : (
                         <div>
-                          <p className="text-sm text-gray-700 mb-1">{nota.titulo}</p>
-                          <p className="text-sm text-gray-600">{nota.contenido}</p>
-                          {nota.prioridad && (
-                            <span className={`inline-block mt-2 px-2 py-1 text-xs rounded-full ${
-                              nota.prioridad === 'alta' ? 'bg-red-100 text-red-800' :
-                              nota.prioridad === 'media' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-green-100 text-green-800'
-                            }`}>
-                              {nota.prioridad.toUpperCase()}
-                            </span>
-                          )}
+                          <p className="text-sm font-medium text-gray-900 mb-1">{nota.titulo}</p>
+                          <p className="text-sm text-gray-600 mb-2">{nota.contenido}</p>
                           
-                          <div className="mt-2 text-xs text-gray-500">
+                          <div className="text-xs text-gray-500">
                             Por: {nota.usuario}
                             {nota.updatedAt !== nota.createdAt && (
                               <span className="ml-2 italic">(editado)</span>
@@ -1482,6 +1477,7 @@ export default function ClienteDetailPage() {
       </main>
 
       <ToastContainer />
+      {ConfirmModalComponent}
     </div>
   )
 }
