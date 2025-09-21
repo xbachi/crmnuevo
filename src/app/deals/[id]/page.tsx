@@ -155,22 +155,8 @@ export default function DealDetail() {
         // Cargar notas desde la API
         await fetchNotas()
         
-        setRecordatorios([
-          {
-            id: 1,
-            fecha: new Date(Date.now() + 24 * 60 * 60 * 1000), // Mañana
-            titulo: 'Llamar al cliente',
-            descripcion: 'Confirmar datos para el contrato de reserva',
-            completado: false
-          },
-          {
-            id: 2,
-            fecha: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // En 3 días
-            titulo: 'Revisar documentación',
-            descripcion: 'Verificar que toda la documentación del vehículo esté en orden',
-            completado: false
-          }
-        ])
+        // Cargar recordatorios desde la API
+        await fetchRecordatorios()
       } else {
         showToast('Error al cargar el deal', 'error')
         router.push('/deals')
@@ -198,6 +184,32 @@ export default function DealDetail() {
     } catch (error) {
       console.error('Error al obtener notas:', error)
       setNotas([])
+    }
+  }
+
+  const fetchRecordatorios = async () => {
+    try {
+      console.log(`🔍 [DEAL RECORDATORIO] Cargando recordatorios para deal ${params.id}`)
+      const response = await fetch(`/api/deals/${params.id}/recordatorios`)
+      console.log(`📊 [DEAL RECORDATORIO] Response status:`, response.status)
+      
+      if (response.ok) {
+        const recordatorios = await response.json()
+        console.log(`✅ [DEAL RECORDATORIO] Recordatorios cargados:`, recordatorios)
+        // Convertir las fechas de string a Date
+        const recordatoriosWithDates = recordatorios.map((r: any) => ({
+          ...r,
+          fecha: new Date(r.fecha_recordatorio)
+        }))
+        setRecordatorios(recordatoriosWithDates)
+      } else {
+        const errorData = await response.json()
+        console.error(`❌ [DEAL RECORDATORIO] Error response:`, errorData)
+        showToast(`Error cargando recordatorios: ${errorData.details || errorData.error}`, 'error')
+      }
+    } catch (error) {
+      console.error('❌ [DEAL RECORDATORIO] Error cargando recordatorios:', error)
+      showToast('Error de conexión al cargar recordatorios', 'error')
     }
   }
 
@@ -553,27 +565,90 @@ export default function DealDetail() {
     if (!nuevoRecordatorio.titulo.trim() || !nuevoRecordatorio.fecha) return
     
     try {
-      const recordatorio: Recordatorio = {
-        id: Date.now(),
-        fecha: new Date(nuevoRecordatorio.fecha),
-        titulo: nuevoRecordatorio.titulo,
-        descripcion: nuevoRecordatorio.descripcion,
-        completado: false
-      }
+      console.log(`📝 [DEAL RECORDATORIO] Agregando recordatorio para deal ${params.id}`)
+      setIsUpdating(true)
       
-      setRecordatorios([...recordatorios, recordatorio])
-      setNuevoRecordatorio({ titulo: '', descripcion: '', fecha: '' })
-      setShowRecordatorioForm(false) // Ocultar formulario después de agregar
-      showToast('Recordatorio agregado correctamente', 'success')
+      const response = await fetch(`/api/deals/${params.id}/recordatorios`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          titulo: nuevoRecordatorio.titulo.trim(),
+          descripcion: nuevoRecordatorio.descripcion.trim(),
+          tipo: 'general',
+          prioridad: 'media',
+          fecha_recordatorio: nuevoRecordatorio.fecha
+        })
+      })
+      
+      console.log(`📊 [DEAL RECORDATORIO] Response status:`, response.status)
+      
+      if (response.ok) {
+        const nuevoRecordatorioData = await response.json()
+        console.log(`✅ [DEAL RECORDATORIO] Recordatorio agregado:`, nuevoRecordatorioData)
+        
+        // Recargar recordatorios desde la API
+        await fetchRecordatorios()
+        setNuevoRecordatorio({ titulo: '', descripcion: '', fecha: '' })
+        setShowRecordatorioForm(false) // Ocultar formulario después de agregar
+        showToast('Recordatorio agregado correctamente', 'success')
+      } else {
+        const errorData = await response.json()
+        console.error(`❌ [DEAL RECORDATORIO] Error response:`, errorData)
+        showToast(`Error al agregar recordatorio: ${errorData.details || errorData.error}`, 'error')
+      }
     } catch (error) {
-      showToast('Error al agregar el recordatorio', 'error')
+      console.error('❌ [DEAL RECORDATORIO] Error agregando recordatorio:', error)
+      showToast('Error de conexión al agregar recordatorio', 'error')
+    } finally {
+      setIsUpdating(false)
     }
   }
 
-  const handleCompletarRecordatorio = (id: number) => {
-    setRecordatorios(recordatorios.map(r => 
-      r.id === id ? { ...r, completado: !r.completado } : r
-    ))
+  const handleCompletarRecordatorio = async (id: number) => {
+    try {
+      console.log(`✅ [DEAL RECORDATORIO] Completando recordatorio ${id} del deal ${params.id}`)
+      setIsUpdating(true)
+      
+      // Encontrar el recordatorio actual
+      const recordatorio = recordatorios.find(r => r.id === id)
+      if (!recordatorio) return
+      
+      const response = await fetch(`/api/deals/${params.id}/recordatorios`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: id,
+          titulo: recordatorio.titulo,
+          descripcion: recordatorio.descripcion,
+          tipo: 'general',
+          prioridad: 'media',
+          fecha_recordatorio: recordatorio.fecha.toISOString(),
+          completado: !recordatorio.completado
+        })
+      })
+      
+      console.log(`📊 [DEAL RECORDATORIO] Response status:`, response.status)
+      
+      if (response.ok) {
+        console.log(`✅ [DEAL RECORDATORIO] Recordatorio completado`)
+        // Recargar recordatorios desde la API
+        await fetchRecordatorios()
+        showToast('Recordatorio actualizado', 'success')
+      } else {
+        const errorData = await response.json()
+        console.error(`❌ [DEAL RECORDATORIO] Error response:`, errorData)
+        showToast(`Error al actualizar recordatorio: ${errorData.details || errorData.error}`, 'error')
+      }
+    } catch (error) {
+      console.error('❌ [DEAL RECORDATORIO] Error completando recordatorio:', error)
+      showToast('Error de conexión al actualizar recordatorio', 'error')
+    } finally {
+      setIsUpdating(false)
+    }
   }
 
   const handleEliminarRecordatorio = (id: number) => {
@@ -596,7 +671,8 @@ export default function DealDetail() {
           if (response.ok) {
             const result = await response.json()
             console.log(`✅ [DEAL RECORDATORIO] Recordatorio eliminado:`, result)
-            setRecordatorios(recordatorios.filter(r => r.id !== id))
+            // Recargar recordatorios desde la API
+            await fetchRecordatorios()
             showToast('Recordatorio eliminado correctamente', 'success')
           } else {
             let errorMessage = 'Error al eliminar recordatorio'
