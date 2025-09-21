@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useToast } from '@/hooks/useToast'
 import { useConfirmModal } from '@/components/ConfirmModal'
 import { generarContratoDeposito } from '@/lib/contractGenerator'
+import DepositoReminders from '@/components/DepositoReminders'
 
 interface Deposito {
   id: number
@@ -64,18 +65,6 @@ interface NotaDeposito {
   updatedAt: string
 }
 
-interface DepositoRecordatorio {
-  id: number
-  deposito_id: number
-  titulo: string
-  descripcion: string
-  fecha_recordatorio: string
-  tipo: string
-  prioridad: string
-  completado: boolean
-  created_at: string
-  updated_at: string
-}
 
 export default function DepositoDetail() {
   const params = useParams()
@@ -91,23 +80,6 @@ export default function DepositoDetail() {
   const [editingNotaId, setEditingNotaId] = useState<number | null>(null)
   const [editingContent, setEditingContent] = useState('')
   
-  // Estados para recordatorios
-  const [recordatorios, setRecordatorios] = useState<DepositoRecordatorio[]>([])
-  const [nuevoRecordatorio, setNuevoRecordatorio] = useState({
-    titulo: '',
-    descripcion: '',
-    fechaRecordatorio: '',
-    tipo: 'otro' as 'itv' | 'seguro' | 'revision' | 'documentacion' | 'otro',
-    prioridad: 'media' as 'baja' | 'media' | 'alta'
-  })
-  const [editingRecordatorioId, setEditingRecordatorioId] = useState<number | null>(null)
-  const [editingRecordatorioData, setEditingRecordatorioData] = useState({
-    titulo: '',
-    descripcion: '',
-    tipo: 'otro' as 'itv' | 'seguro' | 'revision' | 'documentacion' | 'otro',
-    prioridad: 'media' as 'baja' | 'media' | 'alta',
-    fechaRecordatorio: ''
-  })
   const [isEditingDeposito, setIsEditingDeposito] = useState(false)
   const [depositoEditData, setDepositoEditData] = useState({
     monto_recibir: 0,
@@ -121,7 +93,6 @@ export default function DepositoDetail() {
     if (params.id) {
       fetchDeposito()
       fetchNotas()
-      fetchRecordatorios()
     }
   }, [params.id])
 
@@ -187,24 +158,6 @@ export default function DepositoDetail() {
     }
   }
 
-  // Función para obtener recordatorios desde la API
-  const fetchRecordatorios = async () => {
-    try {
-      console.log(`📅 [DEPOSITO PAGE] Obteniendo recordatorios para depósito ${params.id}`)
-      const response = await fetch(`/api/depositos/${params.id}/recordatorios`)
-      if (response.ok) {
-        const data = await response.json()
-        setRecordatorios(data)
-        console.log(`✅ [DEPOSITO PAGE] Recordatorios cargados:`, data.length)
-      } else {
-        console.error('Error al obtener recordatorios:', response.statusText)
-        setRecordatorios([])
-      }
-    } catch (error) {
-      console.error('Error al obtener recordatorios:', error)
-      setRecordatorios([])
-    }
-  }
 
   const handleAgregarNota = async () => {
     if (!deposito || !nuevaNota.trim()) return
@@ -339,184 +292,6 @@ export default function DepositoDetail() {
     setEditingContent('')
   }
 
-  // Funciones para manejar recordatorios
-  const handleAgregarRecordatorio = async () => {
-    if (!nuevoRecordatorio.titulo.trim() || !nuevoRecordatorio.fechaRecordatorio || !deposito?.id) return
-
-    try {
-      console.log(`📅 [RECORDATORIO] Agregando recordatorio para depósito ${deposito.id}:`, nuevoRecordatorio)
-      
-      // Mapear fechaRecordatorio a fecha_recordatorio para la API
-      const recordatorioData = {
-        titulo: nuevoRecordatorio.titulo,
-        descripcion: nuevoRecordatorio.descripcion,
-        tipo: nuevoRecordatorio.tipo,
-        prioridad: nuevoRecordatorio.prioridad,
-        fecha_recordatorio: nuevoRecordatorio.fechaRecordatorio
-      }
-
-      const response = await fetch(`/api/depositos/${deposito.id}/recordatorios`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(recordatorioData)
-      })
-
-      if (response.ok) {
-        const nuevoRecordatorioData = await response.json()
-        console.log(`✅ [RECORDATORIO] Recordatorio agregado exitosamente:`, nuevoRecordatorioData)
-        
-        setNuevoRecordatorio({
-          titulo: '',
-          descripcion: '',
-          fechaRecordatorio: '',
-          tipo: 'otro',
-          prioridad: 'media'
-        })
-        
-        // Recargar recordatorios
-        await fetchRecordatorios()
-        
-        showToast('Recordatorio agregado correctamente', 'success')
-      } else {
-        const errorData = await response.json()
-        console.error('❌ [RECORDATORIO] Error al agregar el recordatorio:', errorData)
-        showToast(`Error al agregar el recordatorio: ${errorData.error}`, 'error')
-      }
-    } catch (error) {
-      console.error('❌ [RECORDATORIO] Error al agregar el recordatorio:', error)
-      showToast('Error al agregar el recordatorio', 'error')
-    }
-  }
-
-  // Función para editar recordatorio
-  const handleEditarRecordatorio = (recordatorio: DepositoRecordatorio) => {
-    setEditingRecordatorioId(recordatorio.id)
-    setEditingRecordatorioData({
-      titulo: recordatorio.titulo,
-      descripcion: recordatorio.descripcion,
-      tipo: recordatorio.tipo as 'itv' | 'seguro' | 'revision' | 'documentacion' | 'otro',
-      prioridad: recordatorio.prioridad as 'baja' | 'media' | 'alta',
-      fechaRecordatorio: recordatorio.fecha_recordatorio.split('T')[0] // Solo la fecha
-    })
-  }
-
-  // Función para guardar edición de recordatorio
-  const handleGuardarEdicionRecordatorio = async () => {
-    if (!editingRecordatorioData.titulo.trim() || !editingRecordatorioData.fechaRecordatorio || !deposito?.id || !editingRecordatorioId) return
-
-    try {
-      console.log(`✏️ [RECORDATORIO] Actualizando recordatorio ${editingRecordatorioId} para depósito ${deposito.id}`)
-      
-      const recordatorioData = {
-        id: editingRecordatorioId,
-        titulo: editingRecordatorioData.titulo,
-        descripcion: editingRecordatorioData.descripcion,
-        tipo: editingRecordatorioData.tipo,
-        prioridad: editingRecordatorioData.prioridad,
-        fecha_recordatorio: editingRecordatorioData.fechaRecordatorio
-      }
-
-      const response = await fetch(`/api/depositos/${deposito.id}/recordatorios`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(recordatorioData)
-      })
-
-      if (response.ok) {
-        console.log(`✅ [RECORDATORIO] Recordatorio actualizado exitosamente`)
-        
-        await fetchRecordatorios()
-        setEditingRecordatorioId(null)
-        setEditingRecordatorioData({
-          titulo: '',
-          descripcion: '',
-          tipo: 'otro',
-          prioridad: 'media',
-          fechaRecordatorio: ''
-        })
-        
-        showToast('Recordatorio actualizado correctamente', 'success')
-      } else {
-        const errorData = await response.json()
-        console.error('❌ [RECORDATORIO] Error actualizando recordatorio:', errorData)
-        showToast(`Error al actualizar el recordatorio: ${errorData.error}`, 'error')
-      }
-    } catch (error) {
-      console.error('❌ [RECORDATORIO] Error actualizando recordatorio:', error)
-      showToast('Error al actualizar el recordatorio', 'error')
-    }
-  }
-
-  // Función para cancelar edición de recordatorio
-  const handleCancelarEdicionRecordatorio = () => {
-    setEditingRecordatorioId(null)
-    setEditingRecordatorioData({
-      titulo: '',
-      descripcion: '',
-      tipo: 'otro',
-      prioridad: 'media',
-      fechaRecordatorio: ''
-    })
-  }
-
-  // Función para eliminar recordatorio
-  const handleEliminarRecordatorio = async (recordatorioId: number) => {
-    if (!deposito?.id) return
-
-    try {
-      console.log(`🗑️ [RECORDATORIO] Eliminando recordatorio ${recordatorioId} del depósito ${deposito.id}`)
-      
-      const response = await fetch(`/api/depositos/${deposito.id}/recordatorios?recordatorioId=${recordatorioId}`, {
-        method: 'DELETE'
-      })
-
-      if (response.ok) {
-        console.log(`✅ [RECORDATORIO] Recordatorio eliminado exitosamente`)
-        
-        await fetchRecordatorios()
-        showToast('Recordatorio eliminado correctamente', 'success')
-      } else {
-        const errorData = await response.json()
-        console.error('❌ [RECORDATORIO] Error eliminando recordatorio:', errorData)
-        showToast(`Error al eliminar el recordatorio: ${errorData.error}`, 'error')
-      }
-    } catch (error) {
-      console.error('❌ [RECORDATORIO] Error eliminando recordatorio:', error)
-      showToast('Error al eliminar el recordatorio', 'error')
-    }
-  }
-
-  // Función para marcar recordatorio como completado
-  const handleCompletarRecordatorio = async (recordatorio: DepositoRecordatorio) => {
-    if (!deposito?.id) return
-
-    try {
-      console.log(`✅ [RECORDATORIO] Completando recordatorio ${recordatorio.id}`)
-      
-      const response = await fetch(`/api/depositos/${deposito.id}/recordatorios`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: recordatorio.id,
-          completado: !recordatorio.completado
-        })
-      })
-
-      if (response.ok) {
-        console.log(`✅ [RECORDATORIO] Recordatorio completado`)
-        
-        await fetchRecordatorios()
-        showToast(`Recordatorio ${!recordatorio.completado ? 'completado' : 'pendiente'}`, 'success')
-      } else {
-        const errorData = await response.json()
-        console.error('❌ [RECORDATORIO] Error completando recordatorio:', errorData)
-        showToast(`Error al completar el recordatorio: ${errorData.error}`, 'error')
-      }
-    } catch (error) {
-      console.error('❌ [RECORDATORIO] Error completando recordatorio:', error)
-      showToast('Error al completar el recordatorio', 'error')
-    }
-  }
 
   const handleEditDeposito = () => {
     console.log(`📝 Iniciando edición de depósito`)
@@ -1192,218 +967,16 @@ export default function DepositoDetail() {
               </div>
             </div>
 
-            {/* Recordatorios */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Recordatorios ({recordatorios.length})</h2>
-              
-              {/* Agregar Nuevo Recordatorio */}
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                <div className="space-y-3">
-                  <div>
-                    <input
-                      type="text"
-                      value={nuevoRecordatorio.titulo}
-                      onChange={(e) => setNuevoRecordatorio({ ...nuevoRecordatorio, titulo: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      placeholder="Título del recordatorio..."
-                    />
-                  </div>
-                  <div>
-                    <input
-                      type="datetime-local"
-                      value={nuevoRecordatorio.fechaRecordatorio}
-                      onChange={(e) => setNuevoRecordatorio({ ...nuevoRecordatorio, fechaRecordatorio: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <select
-                      value={nuevoRecordatorio.tipo}
-                      onChange={(e) => setNuevoRecordatorio({ ...nuevoRecordatorio, tipo: e.target.value as any })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    >
-                      <option value="itv">ITV</option>
-                      <option value="seguro">Seguro</option>
-                      <option value="revision">Revisión</option>
-                      <option value="documentacion">Documentación</option>
-                      <option value="otro">Otro</option>
-                    </select>
-                    <select
-                      value={nuevoRecordatorio.prioridad}
-                      onChange={(e) => setNuevoRecordatorio({ ...nuevoRecordatorio, prioridad: e.target.value as any })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    >
-                      <option value="baja">Baja</option>
-                      <option value="media">Media</option>
-                      <option value="alta">Alta</option>
-                    </select>
-                  </div>
-                  <div>
-                    <textarea
-                      value={nuevoRecordatorio.descripcion}
-                      onChange={(e) => setNuevoRecordatorio({ ...nuevoRecordatorio, descripcion: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      placeholder="Descripción del recordatorio..."
-                      rows={2}
-                    />
-                  </div>
-                  <button
-                    onClick={handleAgregarRecordatorio}
-                    disabled={!nuevoRecordatorio.titulo.trim() || !nuevoRecordatorio.fechaRecordatorio}
-                    className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                  >
-                    Agregar Recordatorio
-                  </button>
-                </div>
-              </div>
-
-              {/* Lista de Recordatorios */}
-              {recordatorios.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">No hay recordatorios</p>
-              ) : (
-                <div className="space-y-3">
-                  {recordatorios.map((recordatorio) => (
-                    <div key={recordatorio.id} className={`border rounded-lg p-3 ${
-                      recordatorio.completado ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'
-                    }`}>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          {editingRecordatorioId === recordatorio.id ? (
-                            <div className="space-y-2">
-                              <input
-                                type="text"
-                                value={editingRecordatorioData.titulo}
-                                onChange={(e) => setEditingRecordatorioData({ ...editingRecordatorioData, titulo: e.target.value })}
-                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                                placeholder="Título del recordatorio..."
-                              />
-                              <input
-                                type="datetime-local"
-                                value={editingRecordatorioData.fechaRecordatorio}
-                                onChange={(e) => setEditingRecordatorioData({ ...editingRecordatorioData, fechaRecordatorio: e.target.value })}
-                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                              />
-                              <div className="grid grid-cols-2 gap-2">
-                                <select
-                                  value={editingRecordatorioData.tipo}
-                                  onChange={(e) => setEditingRecordatorioData({ ...editingRecordatorioData, tipo: e.target.value as any })}
-                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                                >
-                                  <option value="itv">ITV</option>
-                                  <option value="seguro">Seguro</option>
-                                  <option value="revision">Revisión</option>
-                                  <option value="documentacion">Documentación</option>
-                                  <option value="otro">Otro</option>
-                                </select>
-                                <select
-                                  value={editingRecordatorioData.prioridad}
-                                  onChange={(e) => setEditingRecordatorioData({ ...editingRecordatorioData, prioridad: e.target.value as any })}
-                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                                >
-                                  <option value="baja">Baja</option>
-                                  <option value="media">Media</option>
-                                  <option value="alta">Alta</option>
-                                </select>
-                              </div>
-                              <textarea
-                                value={editingRecordatorioData.descripcion}
-                                onChange={(e) => setEditingRecordatorioData({ ...editingRecordatorioData, descripcion: e.target.value })}
-                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                                placeholder="Descripción del recordatorio..."
-                                rows={2}
-                              />
-                              <div className="flex space-x-2">
-                                <button
-                                  onClick={handleGuardarEdicionRecordatorio}
-                                  className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700"
-                                >
-                                  Guardar
-                                </button>
-                                <button
-                                  onClick={handleCancelarEdicionRecordatorio}
-                                  className="px-3 py-1 bg-gray-500 text-white text-sm rounded hover:bg-gray-600"
-                                >
-                                  Cancelar
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <>
-                              <div className="flex items-center justify-between mb-1">
-                                <h4 className="font-medium text-gray-900">{recordatorio.titulo}</h4>
-                                <div className="flex items-center space-x-2">
-                                  <span className={`px-2 py-1 text-xs rounded-full ${
-                                    recordatorio.prioridad === 'alta' ? 'bg-red-100 text-red-800' :
-                                    recordatorio.prioridad === 'media' ? 'bg-yellow-100 text-yellow-800' :
-                                    'bg-green-100 text-green-800'
-                                  }`}>
-                                    {recordatorio.prioridad}
-                                  </span>
-                                  <span className={`px-2 py-1 text-xs rounded-full ${
-                                    recordatorio.tipo === 'itv' ? 'bg-blue-100 text-blue-800' :
-                                    recordatorio.tipo === 'seguro' ? 'bg-purple-100 text-purple-800' :
-                                    recordatorio.tipo === 'revision' ? 'bg-orange-100 text-orange-800' :
-                                    recordatorio.tipo === 'documentacion' ? 'bg-indigo-100 text-indigo-800' :
-                                    'bg-gray-100 text-gray-800'
-                                  }`}>
-                                    {recordatorio.tipo}
-                                  </span>
-                                </div>
-                              </div>
-                              {recordatorio.descripcion && (
-                                <p className="text-sm text-gray-600 mb-2">{recordatorio.descripcion}</p>
-                              )}
-                              <p className="text-xs text-gray-500">
-                                {new Date(recordatorio.fecha_recordatorio).toLocaleString('es-ES')}
-                              </p>
-                            </>
-                          )}
-                        </div>
-                        {editingRecordatorioId !== recordatorio.id && (
-                          <div className="flex space-x-1 ml-2">
-                            <button
-                              onClick={() => handleCompletarRecordatorio(recordatorio)}
-                              className={`p-1 rounded ${
-                                recordatorio.completado 
-                                  ? 'text-green-600 hover:text-green-800 hover:bg-green-100' 
-                                  : 'text-gray-400 hover:text-green-600 hover:bg-green-100'
-                              }`}
-                              title={recordatorio.completado ? 'Marcar como pendiente' : 'Marcar como completado'}
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                            </button>
-                            <button
-                              onClick={() => handleEditarRecordatorio(recordatorio)}
-                              className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded"
-                              title="Editar recordatorio"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" />
-                              </svg>
-                            </button>
-                            <button
-                              onClick={() => handleEliminarRecordatorio(recordatorio.id)}
-                              className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-100 rounded"
-                              title="Eliminar recordatorio"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
           </div>
 
           {/* Sidebar */}
           <div className="w-[30%] space-y-6">
+            
+            {/* Recordatorios */}
+            <DepositoReminders 
+              depositoId={deposito.id} 
+              depositoInfo={`Depósito #${deposito.id} - ${deposito.cliente.nombre} ${deposito.cliente.apellidos}`}
+            />
             
             {/* Documentación */}
             <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-6">
