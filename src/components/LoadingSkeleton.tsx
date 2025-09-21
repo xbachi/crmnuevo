@@ -41,7 +41,7 @@ export const LoadingSkeleton = memo(function LoadingSkeleton() {
       </div>
     </div>
   )
-}))
+})
 
 export const TableLoadingSkeleton = memo(function TableLoadingSkeleton() {
   return (
@@ -81,7 +81,7 @@ export const TableLoadingSkeleton = memo(function TableLoadingSkeleton() {
       </div>
     </div>
   )
-}))
+})
 
 export const KanbanLoadingSkeleton = memo(function KanbanLoadingSkeleton() {
   return (
