@@ -1658,10 +1658,18 @@ export default function VehiculoDetailPage() {
                     <label className="block text-xs font-medium text-blue-700 mb-1">Estado</label>
                       {isEditingDocumentacion ? (
                         <select
-                          value={editingData.seguro === 'Sí' || editingData.seguro === 'si' ? 'si' : 'no'}
-                          onChange={(e) => setEditingData(prev => ({ ...prev, seguro: e.target.value === 'si' ? 'Sí' : 'No' }))}
+                          value={editingData.seguro === 'Sí' || editingData.seguro === 'si' ? 'si' : 
+                                 editingData.seguro === 'No' || editingData.seguro === 'no' ? 'no' : 'chequear'}
+                          onChange={(e) => {
+                            if (e.target.value === 'chequear') {
+                              setEditingData(prev => ({ ...prev, seguro: null }))
+                            } else {
+                              setEditingData(prev => ({ ...prev, seguro: e.target.value === 'si' ? 'Sí' : 'No' }))
+                            }
+                          }}
                           className="w-full text-blue-900 bg-white border border-blue-300 rounded px-2 py-1 text-sm font-medium"
                         >
+                          <option value="chequear">Chequear</option>
                           <option value="no">No</option>
                           <option value="si">Sí</option>
                         </select>
@@ -1691,10 +1699,18 @@ export default function VehiculoDetailPage() {
                     <label className="block text-xs font-medium text-yellow-700 mb-1">Disponible</label>
                       {isEditingDocumentacion ? (
                         <select
-                          value={editingData.segundaLlave === 'Sí' || editingData.segundaLlave === 'si' ? 'si' : 'no'}
-                          onChange={(e) => setEditingData(prev => ({ ...prev, segundaLlave: e.target.value === 'si' ? 'Sí' : 'No' }))}
+                          value={editingData.segundaLlave === 'Sí' || editingData.segundaLlave === 'si' ? 'si' : 
+                                 editingData.segundaLlave === 'No' || editingData.segundaLlave === 'no' ? 'no' : 'chequear'}
+                          onChange={(e) => {
+                            if (e.target.value === 'chequear') {
+                              setEditingData(prev => ({ ...prev, segundaLlave: null }))
+                            } else {
+                              setEditingData(prev => ({ ...prev, segundaLlave: e.target.value === 'si' ? 'Sí' : 'No' }))
+                            }
+                          }}
                           className="w-full text-yellow-900 bg-white border border-yellow-300 rounded px-2 py-1 text-sm font-medium"
                         >
+                          <option value="chequear">Chequear</option>
                           <option value="no">No</option>
                           <option value="si">Sí</option>
                         </select>
@@ -1724,10 +1740,18 @@ export default function VehiculoDetailPage() {
                     <label className="block text-xs font-medium text-green-700 mb-1">Estado</label>
                       {isEditingDocumentacion ? (
                         <select
-                          value={editingData.documentacion === 'Sí' || editingData.documentacion === 'si' ? 'si' : 'no'}
-                          onChange={(e) => setEditingData(prev => ({ ...prev, documentacion: e.target.value === 'si' ? 'Sí' : 'No' }))}
+                          value={editingData.documentacion === 'Sí' || editingData.documentacion === 'si' ? 'si' : 
+                                 editingData.documentacion === 'No' || editingData.documentacion === 'no' ? 'no' : 'chequear'}
+                          onChange={(e) => {
+                            if (e.target.value === 'chequear') {
+                              setEditingData(prev => ({ ...prev, documentacion: null }))
+                            } else {
+                              setEditingData(prev => ({ ...prev, documentacion: e.target.value === 'si' ? 'Sí' : 'No' }))
+                            }
+                          }}
                           className="w-full text-green-900 bg-white border border-green-300 rounded px-2 py-1 text-sm font-medium"
                         >
+                          <option value="chequear">Chequear</option>
                           <option value="no">No</option>
                           <option value="si">Sí</option>
                         </select>
@@ -1757,10 +1781,18 @@ export default function VehiculoDetailPage() {
                     <label className="block text-xs font-medium text-indigo-700 mb-1">Estado</label>
                       {isEditingDocumentacion ? (
                         <select
-                          value={editingData.master === 'Sí' || editingData.master === 'si' ? 'si' : 'no'}
-                          onChange={(e) => setEditingData(prev => ({ ...prev, master: e.target.value === 'si' ? 'Sí' : 'No' }))}
+                          value={editingData.master === 'Sí' || editingData.master === 'si' ? 'si' : 
+                                 editingData.master === 'No' || editingData.master === 'no' ? 'no' : 'chequear'}
+                          onChange={(e) => {
+                            if (e.target.value === 'chequear') {
+                              setEditingData(prev => ({ ...prev, master: null }))
+                            } else {
+                              setEditingData(prev => ({ ...prev, master: e.target.value === 'si' ? 'Sí' : 'No' }))
+                            }
+                          }}
                           className="w-full text-indigo-900 bg-white border border-indigo-300 rounded px-2 py-1 text-sm font-medium"
                         >
+                          <option value="chequear">Chequear</option>
                           <option value="no">No</option>
                           <option value="si">Sí</option>
                         </select>
@@ -1790,10 +1822,18 @@ export default function VehiculoDetailPage() {
                     <label className="block text-xs font-medium text-orange-700 mb-1">Estado</label>
                       {isEditingDocumentacion ? (
                         <select
-                          value={editingData.carpeta === 'Sí' || editingData.carpeta === 'si' ? 'si' : 'no'}
-                          onChange={(e) => setEditingData(prev => ({ ...prev, carpeta: e.target.value === 'si' ? 'Sí' : 'No' }))}
+                          value={editingData.carpeta === 'Sí' || editingData.carpeta === 'si' ? 'si' : 
+                                 editingData.carpeta === 'No' || editingData.carpeta === 'no' ? 'no' : 'chequear'}
+                          onChange={(e) => {
+                            if (e.target.value === 'chequear') {
+                              setEditingData(prev => ({ ...prev, carpeta: null }))
+                            } else {
+                              setEditingData(prev => ({ ...prev, carpeta: e.target.value === 'si' ? 'Sí' : 'No' }))
+                            }
+                          }}
                           className="w-full text-orange-900 bg-white border border-orange-300 rounded px-2 py-1 text-sm font-medium"
                         >
+                          <option value="chequear">Chequear</option>
                           <option value="no">No</option>
                           <option value="si">Sí</option>
                         </select>
@@ -1823,10 +1863,18 @@ export default function VehiculoDetailPage() {
                     <label className="block text-xs font-medium text-pink-700 mb-1">Estado</label>
                       {isEditingDocumentacion ? (
                         <select
-                          value={editingData.hojasA === 'Sí' || editingData.hojasA === 'si' ? 'si' : 'no'}
-                          onChange={(e) => setEditingData(prev => ({ ...prev, hojasA: e.target.value === 'si' ? 'Sí' : 'No' }))}
+                          value={editingData.hojasA === 'Sí' || editingData.hojasA === 'si' ? 'si' : 
+                                 editingData.hojasA === 'No' || editingData.hojasA === 'no' ? 'no' : 'chequear'}
+                          onChange={(e) => {
+                            if (e.target.value === 'chequear') {
+                              setEditingData(prev => ({ ...prev, hojasA: null }))
+                            } else {
+                              setEditingData(prev => ({ ...prev, hojasA: e.target.value === 'si' ? 'Sí' : 'No' }))
+                            }
+                          }}
                           className="w-full text-pink-900 bg-white border border-pink-300 rounded px-2 py-1 text-sm font-medium"
                         >
+                          <option value="chequear">Chequear</option>
                           <option value="no">No</option>
                           <option value="si">Sí</option>
                         </select>
