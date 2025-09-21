@@ -587,7 +587,7 @@ export default function DealDetail() {
           console.log(`🗑️ [DEAL RECORDATORIO] Eliminando recordatorio ${id} del deal ${deal.id}`)
           setIsUpdating(true)
           
-          const response = await fetch(`/api/deals/${deal.id}/recordatorios/${id}`, {
+          const response = await fetch(`/api/deals/${deal.id}/recordatorios?recordatorioId=${id}`, {
             method: 'DELETE'
           })
           
