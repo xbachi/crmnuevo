@@ -599,9 +599,20 @@ export default function DealDetail() {
             setRecordatorios(recordatorios.filter(r => r.id !== id))
             showToast('Recordatorio eliminado correctamente', 'success')
           } else {
-            const errorData = await response.json()
-            console.error(`❌ [DEAL RECORDATORIO] Error response:`, errorData)
-            showToast(`Error al eliminar recordatorio: ${errorData.details || errorData.error}`, 'error')
+            let errorMessage = 'Error al eliminar recordatorio'
+            try {
+              const errorData = await response.json()
+              console.error(`❌ [DEAL RECORDATORIO] Error response:`, errorData)
+              if (errorData && (errorData.details || errorData.error)) {
+                errorMessage = `Error al eliminar recordatorio: ${errorData.details || errorData.error}`
+              } else {
+                errorMessage = `Error al eliminar recordatorio (${response.status}): ${response.statusText}`
+              }
+            } catch (parseError) {
+              console.error(`❌ [DEAL RECORDATORIO] Error parsing response:`, parseError)
+              errorMessage = `Error al eliminar recordatorio (${response.status}): ${response.statusText}`
+            }
+            showToast(errorMessage, 'error')
           }
         } catch (error) {
           console.error('❌ [DEAL RECORDATORIO] Error eliminando recordatorio:', error)
