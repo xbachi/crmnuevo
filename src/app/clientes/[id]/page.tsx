@@ -29,9 +29,11 @@ export default function ClienteDetailPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isUpdating, setIsUpdating] = useState(false)
   const [nuevaNota, setNuevaNota] = useState('')
+  const [nuevoTitulo, setNuevoTitulo] = useState('')
   const [notasCliente, setNotasCliente] = useState<NotaCliente[]>([])
   const [editingNotaId, setEditingNotaId] = useState<number | null>(null)
   const [editingContent, setEditingContent] = useState('')
+  const [editingTitulo, setEditingTitulo] = useState('')
   const [isEditingPersonal, setIsEditingPersonal] = useState(false)
   const [isEditingIntereses, setIsEditingIntereses] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -283,6 +285,7 @@ export default function ClienteDetailPage() {
       setIsUpdating(true)
       console.log(`📝 Agregando nota para cliente ${cliente.id}`)
       console.log(`📊 Contenido:`, nuevaNota.trim())
+      console.log(`📊 Título:`, nuevoTitulo.trim() || 'General')
       
       const response = await fetch(`/api/clientes/${cliente.id}/notas`, {
         method: 'POST',
@@ -292,7 +295,7 @@ export default function ClienteDetailPage() {
         body: JSON.stringify({
           contenido: nuevaNota.trim(),
           tipo: 'general',
-          titulo: 'Nota general',
+          titulo: nuevoTitulo.trim() || 'General',
           usuario: 'Usuario' // TODO: Obtener usuario actual del sistema de auth
         })
       })
@@ -303,6 +306,7 @@ export default function ClienteDetailPage() {
         const notaCreada = await response.json()
         console.log(`✅ Nota creada:`, notaCreada)
         setNuevaNota('')
+        setNuevoTitulo('')
         fetchNotas() // Recargar todas las notas
         showToast('Nota agregada exitosamente', 'success')
       } else {
@@ -334,7 +338,7 @@ export default function ClienteDetailPage() {
           notaId: notaId,
           contenido: editingContent.trim(),
           tipo: 'general',
-          titulo: 'Nota general',
+          titulo: editingTitulo.trim() || 'General',
           usuario: 'Usuario'
         })
       })
@@ -346,6 +350,7 @@ export default function ClienteDetailPage() {
         console.log(`✅ Nota editada:`, notaEditada)
         setEditingNotaId(null)
         setEditingContent('')
+        setEditingTitulo('')
         fetchNotas() // Recargar todas las notas
         showToast('Nota editada exitosamente', 'success')
       } else {
@@ -399,11 +404,13 @@ export default function ClienteDetailPage() {
   const startEditing = (nota: NotaCliente) => {
     setEditingNotaId(nota.id)
     setEditingContent(nota.contenido)
+    setEditingTitulo(nota.titulo)
   }
 
   const cancelEditing = () => {
     setEditingNotaId(null)
     setEditingContent('')
+    setEditingTitulo('')
   }
 
   useEffect(() => {
@@ -1332,6 +1339,13 @@ export default function ClienteDetailPage() {
                       
                       {editingNotaId === nota.id ? (
                         <div className="space-y-3">
+                          <input
+                            type="text"
+                            value={editingTitulo}
+                            onChange={(e) => setEditingTitulo(e.target.value)}
+                            placeholder="Título (opcional): General, Llamada, etc."
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
                           <textarea
                             value={editingContent}
                             onChange={(e) => setEditingContent(e.target.value)}
@@ -1367,6 +1381,13 @@ export default function ClienteDetailPage() {
                               {nota.prioridad.toUpperCase()}
                             </span>
                           )}
+                          
+                          <div className="mt-2 text-xs text-gray-500">
+                            Por: {nota.usuario}
+                            {nota.updatedAt !== nota.createdAt && (
+                              <span className="ml-2 italic">(editado)</span>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1379,6 +1400,13 @@ export default function ClienteDetailPage() {
               {/* Agregar nueva nota */}
               <div className="space-y-4 border-t pt-4">
                 <h4 className="text-sm font-medium text-gray-700">Agregar nueva nota:</h4>
+                <input
+                  type="text"
+                  value={nuevoTitulo}
+                  onChange={(e) => setNuevoTitulo(e.target.value)}
+                  placeholder="Título (opcional): General, Llamada, etc."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
                 <textarea
                   value={nuevaNota}
                   onChange={(e) => setNuevaNota(e.target.value)}
