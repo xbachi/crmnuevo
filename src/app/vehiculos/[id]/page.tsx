@@ -191,6 +191,14 @@ export default function VehiculoDetailPage() {
     fechaRecordatorio: ''
   })
 
+  // Helper function para mostrar valores de documentación legal
+  const getDocumentacionValue = (value: string | null | undefined): string => {
+    if (!value || value === '' || value === 'null' || value === 'undefined') {
+      return 'Chequear'
+    }
+    return value
+  }
+
   // Función para obtener datos del vehículo
   const fetchVehiculo = async () => {
     console.log('🔍 [FETCH] ===== INICIANDO CARGA DE VEHÍCULO =====')
@@ -1658,7 +1666,13 @@ export default function VehiculoDetailPage() {
                           <option value="si">Sí</option>
                         </select>
                     ) : (
-                      <p className="text-blue-900 font-medium">{vehiculo.seguro || 'N/A'}</p>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        vehiculo.seguro === 'Sí' || vehiculo.seguro === 'si' ? 'bg-green-100 text-green-800' :
+                        vehiculo.seguro === 'No' || vehiculo.seguro === 'no' ? 'bg-red-100 text-red-800' :
+                        'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {getDocumentacionValue(vehiculo.seguro)}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -1686,11 +1700,11 @@ export default function VehiculoDetailPage() {
                         </select>
                     ) : (
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        vehiculo.segundaLlave === 'si' ? 'bg-green-100 text-green-800' :
-                        vehiculo.segundaLlave === 'no' ? 'bg-red-100 text-red-800' :
-                        'bg-gray-100 text-gray-800'
+                        vehiculo.segundaLlave === 'si' || vehiculo.segundaLlave === 'Sí' ? 'bg-green-100 text-green-800' :
+                        vehiculo.segundaLlave === 'no' || vehiculo.segundaLlave === 'No' ? 'bg-red-100 text-red-800' :
+                        'bg-yellow-100 text-yellow-800'
                       }`}>
-                        {vehiculo.segundaLlave || 'N/A'}
+                        {getDocumentacionValue(vehiculo.segundaLlave)}
                       </span>
                     )}
                   </div>
@@ -1721,9 +1735,9 @@ export default function VehiculoDetailPage() {
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         vehiculo.documentacion === 'Sí' || vehiculo.documentacion === 'si' ? 'bg-green-100 text-green-800' :
                         vehiculo.documentacion === 'No' || vehiculo.documentacion === 'no' ? 'bg-red-100 text-red-800' :
-                        'bg-gray-100 text-gray-800'
+                        'bg-yellow-100 text-yellow-800'
                       }`}>
-                        {vehiculo.documentacion || 'N/A'}
+                        {getDocumentacionValue(vehiculo.documentacion)}
                       </span>
                     )}
                   </div>
@@ -1754,9 +1768,9 @@ export default function VehiculoDetailPage() {
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         vehiculo.master === 'Sí' || vehiculo.master === 'si' ? 'bg-green-100 text-green-800' :
                         vehiculo.master === 'No' || vehiculo.master === 'no' ? 'bg-red-100 text-red-800' :
-                        'bg-gray-100 text-gray-800'
+                        'bg-yellow-100 text-yellow-800'
                       }`}>
-                        {vehiculo.master || 'N/A'}
+                        {getDocumentacionValue(vehiculo.master)}
                       </span>
                     )}
                   </div>
@@ -1787,9 +1801,9 @@ export default function VehiculoDetailPage() {
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         vehiculo.carpeta === 'Sí' || vehiculo.carpeta === 'si' ? 'bg-green-100 text-green-800' :
                         vehiculo.carpeta === 'No' || vehiculo.carpeta === 'no' ? 'bg-red-100 text-red-800' :
-                        'bg-gray-100 text-gray-800'
+                        'bg-yellow-100 text-yellow-800'
                       }`}>
-                        {vehiculo.carpeta || 'N/A'}
+                        {getDocumentacionValue(vehiculo.carpeta)}
                       </span>
                     )}
                   </div>
@@ -1820,9 +1834,9 @@ export default function VehiculoDetailPage() {
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         vehiculo.hojasA === 'Sí' || vehiculo.hojasA === 'si' ? 'bg-green-100 text-green-800' :
                         vehiculo.hojasA === 'No' || vehiculo.hojasA === 'no' ? 'bg-red-100 text-red-800' :
-                        'bg-gray-100 text-gray-800'
+                        'bg-yellow-100 text-yellow-800'
                       }`}>
-                        {vehiculo.hojasA || 'N/A'}
+                        {getDocumentacionValue(vehiculo.hojasA)}
                       </span>
                     )}
                   </div>
