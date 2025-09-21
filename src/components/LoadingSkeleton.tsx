@@ -1,4 +1,6 @@
-export function LoadingSkeleton() {
+import { memo } from 'react'
+
+export const LoadingSkeleton = memo(function LoadingSkeleton() {
   return (
     <div className="animate-pulse">
       <div className="space-y-4">
@@ -39,9 +41,9 @@ export function LoadingSkeleton() {
       </div>
     </div>
   )
-}
+}))
 
-export function TableLoadingSkeleton() {
+export const TableLoadingSkeleton = memo(function TableLoadingSkeleton() {
   return (
     <div className="animate-pulse">
       <div className="bg-white rounded-lg border overflow-hidden">
@@ -79,9 +81,9 @@ export function TableLoadingSkeleton() {
       </div>
     </div>
   )
-}
+}))
 
-export function KanbanLoadingSkeleton() {
+export const KanbanLoadingSkeleton = memo(function KanbanLoadingSkeleton() {
   return (
     <div className="animate-pulse h-full">
       <div className="flex gap-4 h-full">
@@ -110,4 +112,4 @@ export function KanbanLoadingSkeleton() {
       </div>
     </div>
   )
-}
+})

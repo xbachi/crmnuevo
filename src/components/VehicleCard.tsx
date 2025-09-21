@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, memo, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { formatVehicleReference, generateVehicleSlug } from '@/lib/utils'
@@ -55,27 +55,27 @@ interface VehicleCardProps {
   onView?: (id: number) => void
 }
 
-export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: VehicleCardProps) {
+const VehicleCard = memo(function VehicleCard({ vehiculo, onEdit, onDelete, onView }: VehicleCardProps) {
   const router = useRouter()
   const [isExpanded, setIsExpanded] = useState(false)
   const [isEditingAdditional, setIsEditingAdditional] = useState(false)
 
-  // Helper function para normalizar valores booleanos
-  const isPositive = (value: string | boolean | null | undefined): boolean => {
+  // Helper function para normalizar valores booleanos - memoizada
+  const isPositive = useCallback((value: string | boolean | null | undefined): boolean => {
     if (typeof value === 'boolean') return value
     if (!value) return false
     const normalized = value.toString().toLowerCase().trim()
     return normalized === 'si' || normalized === 'sí' || normalized === 'yes' || 
            normalized === 'true' || normalized === '1' || 
            (normalized !== 'no' && normalized !== 'false' && normalized !== '0' && normalized.length > 0)
-  }
+  }, [])
 
-  // Helper function para normalizar estado vendido
-  const isVendido = (estado: string | null | undefined): boolean => {
+  // Helper function para normalizar estado vendido - memoizada
+  const isVendido = useCallback((estado: string | null | undefined): boolean => {
     if (!estado) return false
     const normalized = estado.toString().toLowerCase().trim()
     return normalized === 'vendido'
-  }
+  }, [])
   const [editableFields, setEditableFields] = useState({
     segundaLlave: isPositive(vehiculo.segundaLlave),
     carpeta: isPositive(vehiculo.carpeta),
@@ -86,92 +86,84 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
     seguro: isPositive(vehiculo.seguro),
   })
 
-  const getTipoColor = (tipo: string) => {
-    switch (tipo) {
-      case 'Compra':
-        return 'bg-green-100 text-green-700 border-green-200'
-      case 'Coche R':
-        return 'bg-blue-100 text-blue-700 border-blue-200'
-      case 'Deposito Venta':
-        return 'bg-orange-100 text-orange-700 border-orange-200'
-      case 'D':
-        return 'bg-orange-100 text-orange-700 border-orange-200'
-      default:
-        return 'bg-gray-100 text-gray-700 border-gray-200'
-    }
-  }
+  // Constantes para colores de tipo - optimización
+  const TIPO_COLORS = {
+    'Compra': 'bg-green-100 text-green-700 border-green-200',
+    'Coche R': 'bg-blue-100 text-blue-700 border-blue-200',
+    'Deposito Venta': 'bg-orange-100 text-orange-700 border-orange-200',
+    'D': 'bg-orange-100 text-orange-700 border-orange-200',
+  } as const
 
-  const getTipoText = (tipo: string) => {
-    switch (tipo) {
-      case 'Compra':
-        return 'Compra'
-      case 'Coche R':
-        return 'Coche R'
-      case 'Deposito Venta':
-        return 'Depósito'
-      case 'D':
-        return 'Depósito'
-      default:
-        return tipo
-    }
-  }
+  const TIPO_TEXTS = {
+    'Compra': 'Compra',
+    'Coche R': 'Coche R',
+    'Deposito Venta': 'Depósito',
+    'D': 'Depósito',
+  } as const
 
-  const getTipoIcon = (tipo: string) => {
-    switch (tipo) {
-      case 'Compra':
-        return (
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V8zm8 0a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1h-4a1 1 0 01-1-1V8z" clipRule="evenodd" />
-          </svg>
-        )
-      case 'Coche R':
-        return (
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        )
-      case 'Deposito Venta':
-        return (
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-          </svg>
-        )
-      case 'D':
-        return (
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-          </svg>
-        )
-      default:
-        return (
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V8zm8 0a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1h-4a1 1 0 01-1-1V8z" clipRule="evenodd" />
-          </svg>
-        )
-    }
-  }
+  const getTipoColor = useCallback((tipo: string) => {
+    return TIPO_COLORS[tipo as keyof typeof TIPO_COLORS] || 'bg-gray-100 text-gray-700 border-gray-200'
+  }, [])
 
-  const formatDate = (dateString: string) => {
+  const getTipoText = useCallback((tipo: string) => {
+    return TIPO_TEXTS[tipo as keyof typeof TIPO_TEXTS] || tipo
+  }, [])
+
+  // Iconos de tipo - memoizados
+  const TIPO_ICONS = {
+    'Compra': (
+      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+        <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V8zm8 0a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1h-4a1 1 0 01-1-1V8z" clipRule="evenodd" />
+      </svg>
+    ),
+    'Coche R': (
+      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+    'Deposito Venta': (
+      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+        <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+      </svg>
+    ),
+    'D': (
+      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+        <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+      </svg>
+    ),
+  } as const
+
+  const DEFAULT_ICON = (
+    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+      <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V8zm8 0a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1h-4a1 1 0 01-1-1V8z" clipRule="evenodd" />
+    </svg>
+  )
+
+  const getTipoIcon = useCallback((tipo: string) => {
+    return TIPO_ICONS[tipo as keyof typeof TIPO_ICONS] || DEFAULT_ICON
+  }, [])
+
+  const formatDate = useCallback((dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-ES', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
     })
-  }
+  }, [])
 
-  const truncateText = (text: string, maxLength: number) => {
+  const truncateText = useCallback((text: string, maxLength: number) => {
     if (text.length <= maxLength) return text
     return `${text.substring(0, maxLength)}...`
-  }
+  }, [])
 
-  const handleFieldChange = (field: string, value: boolean) => {
+  const handleFieldChange = useCallback((field: string, value: boolean) => {
     setEditableFields(prev => ({
       ...prev,
       [field]: value
     }))
-  }
+  }, [])
 
-  const handleSaveAdditional = async () => {
+  const handleSaveAdditional = useCallback(async () => {
     try {
       // Convertir los valores booleanos a strings para la API
       const fieldsToUpdate = {
@@ -203,9 +195,9 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
     } catch (error) {
       console.error('Error al guardar los cambios:', error)
     }
-  }
+  }, [vehiculo.id, editableFields])
 
-  const handleCancelEdit = () => {
+  const handleCancelEdit = useCallback(() => {
     // Restaurar valores originales
     setEditableFields({
       segundaLlave: isPositive(vehiculo.segundaLlave),
@@ -217,19 +209,18 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
       seguro: isPositive(vehiculo.seguro),
     })
     setIsEditingAdditional(false)
-  }
+  }, [vehiculo, isPositive])
 
-  const handleInvestorClick = () => {
+  const handleInvestorClick = useCallback(() => {
     if (vehiculo.esCocheInversor && vehiculo.inversorId) {
       router.push(`/inversores/${vehiculo.inversorId}`)
     }
-  }
+  }, [vehiculo.esCocheInversor, vehiculo.inversorId, router])
 
-  const vehiculoVendido = isVendido(vehiculo.estado)
-
-  // Determinar si es un vehículo de depósito o inversor
-  const esDeposito = vehiculo.tipo === 'D' || vehiculo.tipo === 'Deposito Venta'
-  const esInversor = vehiculo.tipo === 'I' || vehiculo.tipo === 'Inversor'
+  // Variables calculadas - memoizadas
+  const vehiculoVendido = useMemo(() => isVendido(vehiculo.estado), [vehiculo.estado, isVendido])
+  const esDeposito = useMemo(() => vehiculo.tipo === 'D' || vehiculo.tipo === 'Deposito Venta', [vehiculo.tipo])
+  const esInversor = useMemo(() => vehiculo.tipo === 'I' || vehiculo.tipo === 'Inversor', [vehiculo.tipo])
   
   return (
     <div className={`rounded-xl border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group bg-white border-gray-200 ${
@@ -629,4 +620,6 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
       </div>
     </div>
   )
-}
+})
+
+export default VehicleCard

@@ -1,12 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import Link from 'next/link'
-import RemindersList from '@/components/RemindersList'
-import DashboardReminders from '@/components/DashboardReminders'
-import DashboardRecordatorios from '@/components/DashboardRecordatorios'
-import VentasPorMes from '@/components/VentasPorMes'
-import InteractiveMetricsChart from '@/components/InteractiveMetricsChart'
+import { LoadingSkeleton } from '@/components/LoadingSkeleton'
+
+// Lazy loading para componentes pesados
+const RemindersList = lazy(() => import('@/components/RemindersList'))
+const DashboardReminders = lazy(() => import('@/components/DashboardReminders'))
+const DashboardRecordatorios = lazy(() => import('@/components/DashboardRecordatorios'))
+const VentasPorMes = lazy(() => import('@/components/VentasPorMes'))
+const InteractiveMetricsChart = lazy(() => import('@/components/InteractiveMetricsChart'))
 
 interface DashboardStats {
   totalActivos: number
@@ -53,8 +56,12 @@ export default function Home() {
 
   const fetchDashboardData = async () => {
     try {
-      // Cargar estadísticas reales de vehículos
-      const vehiculoStatsResponse = await fetch('/api/vehiculos/stats')
+      // Cargar estadísticas reales de vehículos con caché
+      const vehiculoStatsResponse = await fetch('/api/vehiculos/stats', {
+        headers: {
+          'Cache-Control': 'max-age=300' // 5 minutos de caché
+        }
+      })
       if (vehiculoStatsResponse.ok) {
         const vehiculoStats = await vehiculoStatsResponse.json()
         setStats({
@@ -73,8 +80,12 @@ export default function Home() {
         })
       }
 
-      // Cargar estadísticas de depósitos
-      const depositoStatsResponse = await fetch('/api/depositos/stats')
+      // Cargar estadísticas de depósitos con caché
+      const depositoStatsResponse = await fetch('/api/depositos/stats', {
+        headers: {
+          'Cache-Control': 'max-age=300' // 5 minutos de caché
+        }
+      })
       if (depositoStatsResponse.ok) {
         const depositoStats = await depositoStatsResponse.json()
         setDepositoStats(depositoStats)
@@ -206,14 +217,18 @@ export default function Home() {
               </div>
               
               {/* Recordatorios específicos del dashboard */}
-              <DashboardReminders />
+              <Suspense fallback={<LoadingSkeleton />}>
+                <DashboardReminders />
+              </Suspense>
               
               {/* Separador */}
               <div className="border-t border-gray-200 my-6"></div>
               
               {/* Recordatorios manuales (del sistema de recordatorios) */}
               <div className="mb-4">
-                <DashboardRecordatorios />
+                <Suspense fallback={<LoadingSkeleton />}>
+                  <DashboardRecordatorios />
+                </Suspense>
               </div>
               
               {/* Últimas Operaciones */}
@@ -281,14 +296,16 @@ export default function Home() {
               
               {/* Gráfico Interactivo de Métricas */}
               <div className="mt-6">
-                <InteractiveMetricsChart 
-                  data={{
-                    vehiculosVendidos: stats.totalActivos - stats.enProceso - stats.publicados,
-                    enStock: stats.totalActivos,
-                    depositos: depositoStats.totalDepositos,
-                    enProceso: stats.enProceso + depositoStats.enProceso
-                  }}
-                />
+                <Suspense fallback={<div className="h-64 bg-gray-100 rounded-lg animate-pulse" />}>
+                  <InteractiveMetricsChart 
+                    data={{
+                      vehiculosVendidos: stats.totalActivos - stats.enProceso - stats.publicados,
+                      enStock: stats.totalActivos,
+                      depositos: depositoStats.totalDepositos,
+                      enProceso: stats.enProceso + depositoStats.enProceso
+                    }}
+                  />
+                </Suspense>
               </div>
               
             </div>
@@ -430,7 +447,9 @@ export default function Home() {
 
 
             {/* Ventas por Mes */}
-            <VentasPorMes />
+            <Suspense fallback={<LoadingSkeleton />}>
+              <VentasPorMes />
+            </Suspense>
           </div>
         </div>
       </div>

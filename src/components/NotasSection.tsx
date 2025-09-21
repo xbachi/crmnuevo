@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, memo, useCallback } from 'react'
 import { useToast } from '@/components/Toast'
 
 interface Nota {
@@ -17,14 +17,14 @@ interface NotasSectionProps {
   entityType?: 'vehiculo' | 'deal' | 'cliente' | 'inversor'
 }
 
-export default function NotasSection({ notas, onNotasChange, entityId, entityType = 'vehiculo' }: NotasSectionProps) {
+const NotasSection = memo(function NotasSection({ notas, onNotasChange, entityId, entityType = 'vehiculo' }: NotasSectionProps) {
   const { showToast } = useToast()
   const [nuevaNota, setNuevaNota] = useState('')
   const [editingNotaId, setEditingNotaId] = useState<number | null>(null)
   const [editingNotaTexto, setEditingNotaTexto] = useState('')
 
-  // Cargar notas al montar el componente
-  const fetchNotas = async () => {
+  // Cargar notas al montar el componente - memoizada
+  const fetchNotas = useCallback(async () => {
     if (!entityId || entityId === 0) {
       console.log(`⚠️ [NOTA] EntityId no válido: ${entityId}`)
       return
@@ -53,13 +53,13 @@ export default function NotasSection({ notas, onNotasChange, entityId, entityTyp
       console.error('❌ [NOTA] Error al cargar notas:', error)
       showToast('Error al cargar las notas', 'error')
     }
-  }
+  }, [entityId, entityType, onNotasChange, showToast])
 
   useEffect(() => {
     fetchNotas()
   }, [entityId, entityType])
 
-  const handleAgregarNota = async () => {
+  const handleAgregarNota = useCallback(async () => {
     if (!nuevaNota.trim()) return
     
     try {
@@ -92,14 +92,14 @@ export default function NotasSection({ notas, onNotasChange, entityId, entityTyp
       console.error('❌ [NOTA] Error agregando nota:', error)
       showToast('Error al agregar la nota', 'error')
     }
-  }
+  }, [nuevaNota, entityType, entityId, fetchNotas, showToast])
 
-  const handleEditarNota = (nota: Nota) => {
+  const handleEditarNota = useCallback((nota: Nota) => {
     setEditingNotaId(nota.id)
     setEditingNotaTexto(nota.contenido)
-  }
+  }, [])
 
-  const handleGuardarEdicionNota = async () => {
+  const handleGuardarEdicionNota = useCallback(async () => {
     if (!editingNotaTexto.trim() || !editingNotaId) return
     
     try {
@@ -134,14 +134,14 @@ export default function NotasSection({ notas, onNotasChange, entityId, entityTyp
       console.error('❌ [NOTA] Error actualizando nota:', error)
       showToast('Error al actualizar la nota', 'error')
     }
-  }
+  }, [editingNotaTexto, editingNotaId, entityType, entityId, fetchNotas, showToast])
 
-  const handleCancelarEdicionNota = () => {
+  const handleCancelarEdicionNota = useCallback(() => {
     setEditingNotaId(null)
     setEditingNotaTexto('')
-  }
+  }, [])
 
-  const handleEliminarNota = async (notaId: number) => {
+  const handleEliminarNota = useCallback(async (notaId: number) => {
     try {
       console.log(`🗑️ [NOTA] Eliminando nota ${notaId} del ${entityType} ${entityId}`)
       const apiUrl = entityType === 'inversores' ? `/api/inversores/${entityId}/notas?notaId=${notaId}` : `/api/${entityType}s/${entityId}/notas?notaId=${notaId}`
@@ -165,7 +165,7 @@ export default function NotasSection({ notas, onNotasChange, entityId, entityTyp
       console.error('❌ [NOTA] Error eliminando nota:', error)
       showToast('Error al eliminar la nota', 'error')
     }
-  }
+  }, [entityType, entityId, fetchNotas, showToast])
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
@@ -255,4 +255,6 @@ export default function NotasSection({ notas, onNotasChange, entityId, entityTyp
       </div>
     </div>
   )
-}
+})
+
+export default NotasSection
