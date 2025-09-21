@@ -237,20 +237,6 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
     }`}>
       
       {/* Links de inversor/depósito por encima del header */}
-      {esDeposito && (
-        <div className="px-6 py-2 bg-gray-50 border-b border-gray-200">
-          <div className="flex justify-between items-center">
-            {vehiculo.deposito_id && (
-              <Link
-                href={`/depositos/${vehiculo.deposito_id}`}
-                className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-              >
-                📦 Ver Depósito
-              </Link>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Header con gradiente - CLICKEABLE COMPLETO */}
       <div 
@@ -291,7 +277,7 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
               <h3 className="text-lg font-bold text-gray-900">
                 {vehiculo.marca} {vehiculo.modelo}
               </h3>
-              {/* Alerta de ITV vencida o info básica */}
+              {/* Alerta de ITV vencida */}
               {vehiculo.itv !== null && vehiculo.itv !== undefined && vehiculo.itv !== '' && !isPositive(vehiculo.itv) ? (
                 <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 bg-red-600 rounded-full">
                   <svg className="w-3.5 h-3.5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
@@ -299,10 +285,16 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
                   </svg>
                   <span className="text-xs text-white font-semibold">ITV VENCIDA</span>
                 </div>
-              ) : (
-                <p className="text-sm text-gray-600">
-                  Vehículo
-                </p>
+              ) : null}
+              {/* En depósito debajo del nombre del vehículo */}
+              {vehiculo.enDeposito && vehiculo.depositoId && (
+                <Link
+                  href={`/depositos/${vehiculo.depositoId}`}
+                  className="text-xs text-orange-600 font-medium hover:text-orange-800 hover:underline transition-colors cursor-pointer"
+                  title="Ver depósito"
+                >
+                  En depósito
+                </Link>
               )}
             </div>
           </div>
@@ -329,16 +321,6 @@ export default function VehicleCard({ vehiculo, onEdit, onDelete, onView }: Vehi
               </button>
             )}
             
-            {/* Badge En depósito */}
-            {vehiculo.enDeposito && vehiculo.depositoId && (
-              <Link
-                href={`/depositos/${vehiculo.depositoId}`}
-                className="text-xs text-orange-600 font-medium hover:text-orange-800 hover:underline transition-colors cursor-pointer"
-                title="Ver depósito"
-              >
-                En depósito
-              </Link>
-            )}
           </div>
         </div>
       </div>
