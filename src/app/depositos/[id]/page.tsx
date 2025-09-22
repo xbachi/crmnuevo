@@ -5,7 +5,15 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useToast } from '@/hooks/useToast'
 import { useConfirmModal } from '@/components/ConfirmModal'
-import { generarContratoDeposito } from '@/lib/contractGenerator'
+import {
+  generarContratoDeposito,
+  generarContratoCompraventa,
+} from '@/lib/contractGenerator'
+import {
+  generateVehicleSlug,
+  generateClienteSlug,
+  formatCurrency,
+} from '@/lib/utils'
 import DepositoReminders from '@/components/DepositoReminders'
 
 interface Deposito {
@@ -25,7 +33,7 @@ interface Deposito {
   contrato_deposito?: string
   contrato_compra?: string
   created_at: string
-  updated_at: string
+  updated_at?: string
   cliente: {
     id: number
     nombre: string
@@ -65,13 +73,12 @@ interface NotaDeposito {
   updatedAt: string
 }
 
-
 export default function DepositoDetail() {
   const params = useParams()
   const router = useRouter()
   const { showToast, ToastContainer } = useToast()
   const { showConfirm, ConfirmModalComponent } = useConfirmModal()
-  
+
   const [deposito, setDeposito] = useState<Deposito | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isUpdating, setIsUpdating] = useState(false)
@@ -79,13 +86,13 @@ export default function DepositoDetail() {
   const [notasDeposito, setNotasDeposito] = useState<NotaDeposito[]>([])
   const [editingNotaId, setEditingNotaId] = useState<number | null>(null)
   const [editingContent, setEditingContent] = useState('')
-  
+
   const [isEditingDeposito, setIsEditingDeposito] = useState(false)
   const [depositoEditData, setDepositoEditData] = useState({
     monto_recibir: 0,
     dias_gestion: 0,
     multa_retiro_anticipado: 0,
-    numero_cuenta: ''
+    numero_cuenta: '',
   })
   const [isGeneratingContrato, setIsGeneratingContrato] = useState(false)
 
@@ -103,19 +110,19 @@ export default function DepositoDetail() {
         const data = await response.json()
         console.log(`✅ Depósito cargado:`, data)
         setDeposito(data)
-        
+
         // Inicializar datos de edición
         setDepositoEditData({
           monto_recibir: data.monto_recibir || 0,
           dias_gestion: data.dias_gestion || 0,
           multa_retiro_anticipado: data.multa_retiro_anticipado || 0,
-          numero_cuenta: data.numero_cuenta || ''
+          numero_cuenta: data.numero_cuenta || '',
         })
         console.log(`📝 Datos de edición inicializados:`, {
           monto_recibir: data.monto_recibir,
           dias_gestion: data.dias_gestion,
           multa_retiro_anticipado: data.multa_retiro_anticipado,
-          numero_cuenta: data.numero_cuenta
+          numero_cuenta: data.numero_cuenta,
         })
       } else {
         const errorText = await response.text()
@@ -135,7 +142,7 @@ export default function DepositoDetail() {
       console.log(`🔍 Cargando notas para depósito ${params.id}`)
       const response = await fetch(`/api/depositos/${params.id}/notas`)
       console.log(`📊 Response status:`, response.status)
-      
+
       if (response.ok) {
         const notas = await response.json()
         console.log(`✅ Notas cargadas:`, notas)
@@ -143,13 +150,21 @@ export default function DepositoDetail() {
       } else {
         const errorData = await response.json()
         console.error(`❌ Error response:`, errorData)
-        
+
         // Si el error es por tabla que no existe, mostrar mensaje informativo pero no error
         if (errorData.code === '42P01') {
-          console.log(`💡 Tabla NotaDeposito no existe, usando sistema básico de notas`)
-          showToast('Sistema de notas actualizándose, por favor ejecuta el script de BD', 'warning')
+          console.log(
+            `💡 Tabla NotaDeposito no existe, usando sistema básico de notas`
+          )
+          showToast(
+            'Sistema de notas actualizándose, por favor ejecuta el script de BD',
+            'warning'
+          )
         } else {
-          showToast(`Error cargando notas: ${errorData.details || errorData.error}`, 'error')
+          showToast(
+            `Error cargando notas: ${errorData.details || errorData.error}`,
+            'error'
+          )
         }
       }
     } catch (error) {
@@ -158,15 +173,14 @@ export default function DepositoDetail() {
     }
   }
 
-
   const handleAgregarNota = async () => {
     if (!deposito || !nuevaNota.trim()) return
-    
+
     try {
       setIsUpdating(true)
       console.log(`📝 Agregando nota para depósito ${deposito.id}`)
       console.log(`📊 Contenido:`, nuevaNota.trim())
-      
+
       const response = await fetch(`/api/depositos/${deposito.id}/notas`, {
         method: 'POST',
         headers: {
@@ -176,12 +190,12 @@ export default function DepositoDetail() {
           contenido: nuevaNota.trim(),
           tipo: 'general',
           titulo: 'Nota general',
-          usuario: 'Usuario' // TODO: Obtener usuario actual del sistema de auth
-        })
+          usuario: 'Usuario', // TODO: Obtener usuario actual del sistema de auth
+        }),
       })
-      
+
       console.log(`📊 Response status:`, response.status)
-      
+
       if (response.ok) {
         const notaCreada = await response.json()
         console.log(`✅ Nota creada:`, notaCreada)
@@ -191,7 +205,10 @@ export default function DepositoDetail() {
       } else {
         const errorData = await response.json()
         console.error(`❌ Error response:`, errorData)
-        showToast(`Error al agregar la nota: ${errorData.details || errorData.error}`, 'error')
+        showToast(
+          `Error al agregar la nota: ${errorData.details || errorData.error}`,
+          'error'
+        )
       }
     } catch (error) {
       console.error('❌ Error agregando nota:', error)
@@ -203,11 +220,11 @@ export default function DepositoDetail() {
 
   const handleEditarNota = async (notaId: number) => {
     if (!deposito || !editingContent.trim()) return
-    
+
     try {
       console.log(`✏️ Editando nota ${notaId}`)
       setIsUpdating(true)
-      
+
       const response = await fetch(`/api/depositos/${deposito.id}/notas`, {
         method: 'PUT',
         headers: {
@@ -218,12 +235,12 @@ export default function DepositoDetail() {
           contenido: editingContent.trim(),
           tipo: 'general',
           titulo: 'Nota general',
-          usuario: 'Usuario'
-        })
+          usuario: 'Usuario',
+        }),
       })
-      
+
       console.log(`📊 Response status:`, response.status)
-      
+
       if (response.ok) {
         const notaEditada = await response.json()
         console.log(`✅ Nota editada:`, notaEditada)
@@ -234,7 +251,10 @@ export default function DepositoDetail() {
       } else {
         const errorData = await response.json()
         console.error(`❌ Error response:`, errorData)
-        showToast(`Error al editar la nota: ${errorData.details || errorData.error}`, 'error')
+        showToast(
+          `Error al editar la nota: ${errorData.details || errorData.error}`,
+          'error'
+        )
       }
     } catch (error) {
       console.error('❌ Error editando nota:', error)
@@ -246,21 +266,24 @@ export default function DepositoDetail() {
 
   const handleEliminarNota = async (notaId: number) => {
     if (!deposito) return
-    
+
     showConfirm(
-      'Eliminar Nota', 
+      'Eliminar Nota',
       '¿Estás seguro de que deseas eliminar esta nota? Esta acción no se puede deshacer.',
       async () => {
         try {
           console.log(`🗑️ Eliminando nota ${notaId}`)
           setIsUpdating(true)
-          
-          const response = await fetch(`/api/depositos/${deposito.id}/notas?notaId=${notaId}`, {
-            method: 'DELETE'
-          })
-          
+
+          const response = await fetch(
+            `/api/depositos/${deposito.id}/notas?notaId=${notaId}`,
+            {
+              method: 'DELETE',
+            }
+          )
+
           console.log(`📊 Response status:`, response.status)
-          
+
           if (response.ok) {
             const result = await response.json()
             console.log(`✅ Nota eliminada:`, result)
@@ -269,7 +292,10 @@ export default function DepositoDetail() {
           } else {
             const errorData = await response.json()
             console.error(`❌ Error response:`, errorData)
-            showToast(`Error al eliminar la nota: ${errorData.details || errorData.error}`, 'error')
+            showToast(
+              `Error al eliminar la nota: ${errorData.details || errorData.error}`,
+              'error'
+            )
           }
         } catch (error) {
           console.error('❌ Error eliminando nota:', error)
@@ -292,7 +318,6 @@ export default function DepositoDetail() {
     setEditingContent('')
   }
 
-
   const handleEditDeposito = () => {
     console.log(`📝 Iniciando edición de depósito`)
     setIsEditingDeposito(true)
@@ -301,14 +326,14 @@ export default function DepositoDetail() {
   const handleCancelEditDeposito = () => {
     console.log(`🚫 Cancelando edición de depósito`)
     setIsEditingDeposito(false)
-    
+
     // Restaurar datos originales
     if (deposito) {
       setDepositoEditData({
         monto_recibir: deposito.monto_recibir || 0,
         dias_gestion: deposito.dias_gestion || 0,
         multa_retiro_anticipado: deposito.multa_retiro_anticipado || 0,
-        numero_cuenta: deposito.numero_cuenta || ''
+        numero_cuenta: deposito.numero_cuenta || '',
       })
     }
   }
@@ -323,9 +348,9 @@ export default function DepositoDetail() {
     try {
       console.log(`💾 Guardando edición de depósito ${deposito.id}`)
       console.log(`📊 Datos a guardar:`, depositoEditData)
-      
+
       setIsUpdating(true)
-      
+
       const response = await fetch(`/api/depositos/${deposito.id}`, {
         method: 'PUT',
         headers: {
@@ -340,22 +365,44 @@ export default function DepositoDetail() {
           numero_cuenta: depositoEditData.numero_cuenta,
           notas: deposito.notas,
           contrato_deposito: deposito.contrato_deposito,
-          contrato_compra: deposito.contrato_compra
-        })
+          contrato_compra: deposito.contrato_compra,
+        }),
       })
-      
+
       console.log(`📊 Response status:`, response.status)
-      
+
       if (response.ok) {
-        const updatedDeposito = await response.json()
-        console.log(`✅ Depósito actualizado:`, updatedDeposito)
+        const updatedDepositoData = await response.json()
+        console.log(`✅ Depósito actualizado:`, updatedDepositoData)
+
+        // Mantener los datos de cliente y vehiculo existentes y actualizar solo los campos del depósito
+        const updatedDeposito = {
+          ...deposito,
+          ...updatedDepositoData,
+          cliente: deposito.cliente, // Mantener datos del cliente
+          vehiculo: deposito.vehiculo, // Mantener datos del vehículo
+        }
+
+        console.log(`📅 updated_at recibido:`, updatedDepositoData.updated_at)
+        console.log(`📅 updated_at final:`, updatedDeposito.updated_at)
+        console.log(
+          `📅 formatDate result:`,
+          formatDate(updatedDeposito.updated_at)
+        )
+
         setDeposito(updatedDeposito)
         setIsEditingDeposito(false)
-        showToast('Información del depósito actualizada exitosamente', 'success')
+        showToast(
+          'Información del depósito actualizada exitosamente',
+          'success'
+        )
       } else {
         const errorData = await response.json()
         console.error(`❌ Error response:`, errorData)
-        showToast(`Error al actualizar el depósito: ${errorData.error || 'Error desconocido'}`, 'error')
+        showToast(
+          `Error al actualizar el depósito: ${errorData.error || 'Error desconocido'}`,
+          'error'
+        )
       }
     } catch (error) {
       console.error('❌ Error actualizando depósito:', error)
@@ -365,56 +412,57 @@ export default function DepositoDetail() {
     }
   }
 
-  const handleGenerarContrato = async () => {
+  const handleGenerarContratoDeposito = async () => {
     if (!deposito) {
       showToast('No hay datos del depósito disponibles', 'error')
       return
     }
-    
+
     try {
       setIsGeneratingContrato(true)
-      // Preparar datos para el contrato
+      // Preparar datos para el contrato de depósito
       const contratoData = {
         id: deposito.id,
         cliente: {
-          nombre: deposito.cliente?.nombre,
-          apellidos: deposito.cliente?.apellidos,
-          dni: deposito.cliente?.dni,
-          direccion: deposito.cliente?.direccion,
-          ciudad: deposito.cliente?.ciudad,
-          provincia: deposito.cliente?.provincia,
-          codPostal: deposito.cliente?.codPostal
+          nombre: deposito.cliente?.nombre || '',
+          apellidos: deposito.cliente?.apellidos || '',
+          dni: deposito.cliente?.dni || '',
+          direccion: deposito.cliente?.direccion || '',
+          ciudad: deposito.cliente?.ciudad || '',
+          provincia: deposito.cliente?.provincia || '',
+          codPostal: deposito.cliente?.codPostal || '',
         },
         vehiculo: {
-          marca: deposito.vehiculo?.marca,
-          modelo: deposito.vehiculo?.modelo,
-          bastidor: deposito.vehiculo?.bastidor,
-          matricula: deposito.vehiculo?.matricula,
-          fechaMatriculacion: deposito.vehiculo?.fechaMatriculacion,
-          kms: deposito.vehiculo?.kms
+          marca: deposito.vehiculo?.marca || '',
+          modelo: deposito.vehiculo?.modelo || '',
+          bastidor: deposito.vehiculo?.bastidor || '',
+          matricula: deposito.vehiculo?.matricula || '',
+          fechaMatriculacion: deposito.vehiculo?.fechaMatriculacion || '',
+          kms: deposito.vehiculo?.kms || 0,
         },
         deposito: {
-          monto_recibir: deposito.monto_recibir,
-          dias_gestion: deposito.dias_gestion,
-          multa_retiro_anticipado: deposito.multa_retiro_anticipado,
-          numero_cuenta: deposito.numero_cuenta
-        }
+          monto_recibir: deposito.monto_recibir || 0,
+          dias_gestion: deposito.dias_gestion || 0,
+          multa_retiro_anticipado: deposito.multa_retiro_anticipado || 0,
+          numero_cuenta: deposito.numero_cuenta || '',
+        },
       }
-      
-      // Generar el contrato en PDF
+
+      // Generar el contrato de depósito en PDF
       await generarContratoDeposito(contratoData)
-      
-      // Actualizar el depósito con el nombre del contrato (como en deals)
+
+      // Actualizar el depósito con el nombre del contrato de depósito
       const contratoFilename = `contrato-deposito-${deposito.id}.pdf`
-      const newEstado = deposito.estado === 'BORRADOR' ? 'ACTIVO' : deposito.estado
-      
+      const newEstado =
+        deposito.estado === 'BORRADOR' ? 'ACTIVO' : deposito.estado
+
       const updatedDeposito = {
         ...deposito,
         contrato_deposito: contratoFilename,
-        estado: newEstado
+        estado: newEstado,
       }
       setDeposito(updatedDeposito)
-      
+
       // Actualizar en la base de datos
       const updateResponse = await fetch(`/api/depositos/${deposito.id}`, {
         method: 'PUT',
@@ -422,26 +470,168 @@ export default function DepositoDetail() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          estado: newEstado,
-          fecha_fin: deposito.fecha_fin,
-          monto_recibir: deposito.monto_recibir,
-          dias_gestion: deposito.dias_gestion,
-          multa_retiro_anticipado: deposito.multa_retiro_anticipado,
-          numero_cuenta: deposito.numero_cuenta,
-          notas: deposito.notas,
           contrato_deposito: contratoFilename,
-          contrato_compra: deposito.contrato_compra
-        })
+          estado: newEstado,
+        }),
       })
-      
+
       if (updateResponse.ok) {
-        showToast('Contrato generado exitosamente', 'success')
+        showToast('Contrato de depósito generado exitosamente', 'success')
       } else {
         const errorData = await updateResponse.json()
         console.error('Error updating deposito:', errorData)
-        showToast('Contrato generado, pero error al actualizar el depósito', 'warning')
+        showToast(
+          'Contrato generado, pero error al actualizar el depósito',
+          'warning'
+        )
       }
-      
+    } catch (error) {
+      console.error('Error generando contrato de depósito:', error)
+      showToast('Error al generar el contrato de depósito', 'error')
+    } finally {
+      setIsGeneratingContrato(false)
+    }
+  }
+
+  const handleDescargarContratoCompra = async () => {
+    if (!deposito || !deposito.contrato_compra) {
+      showToast('No hay contrato de compra disponible para descargar', 'error')
+      return
+    }
+
+    try {
+      // Preparar datos para el contrato de compraventa
+      const contratoData = {
+        id: deposito.id,
+        cliente: {
+          nombre: deposito.cliente?.nombre || '',
+          apellidos: deposito.cliente?.apellidos || '',
+          dni: deposito.cliente?.dni || '',
+          direccion: deposito.cliente?.direccion || '',
+          ciudad: deposito.cliente?.ciudad || '',
+          provincia: deposito.cliente?.provincia || '',
+          codPostal: deposito.cliente?.codPostal || '',
+        },
+        vehiculo: {
+          marca: deposito.vehiculo?.marca || '',
+          modelo: deposito.vehiculo?.modelo || '',
+          bastidor: deposito.vehiculo?.bastidor || '',
+          matricula: deposito.vehiculo?.matricula || '',
+          fechaMatriculacion: deposito.vehiculo?.fechaMatriculacion || '',
+          kms: deposito.vehiculo?.kms || 0,
+        },
+        deposito: {
+          monto_recibir: deposito.monto_recibir || 0,
+          dias_gestion: deposito.dias_gestion || 0,
+          multa_retiro_anticipado: deposito.multa_retiro_anticipado || 0,
+          numero_cuenta: deposito.numero_cuenta || '',
+        },
+      }
+
+      // Generar y descargar el contrato de compraventa
+      await generarContratoCompraventa(contratoData)
+      showToast('Contrato de compraventa descargado correctamente', 'success')
+    } catch (error) {
+      console.error('Error descargando contrato de compraventa:', error)
+      showToast('Error al descargar el contrato de compraventa', 'error')
+    }
+  }
+
+  const handleGenerarContrato = async () => {
+    if (!deposito) {
+      showToast('No hay datos del depósito disponibles', 'error')
+      return
+    }
+
+    // Solo permitir generar contrato si está vendido
+    if (deposito.estado !== 'VENDIDO') {
+      showToast(
+        'Solo se puede generar el contrato de compra cuando el depósito está vendido',
+        'error'
+      )
+      return
+    }
+
+    try {
+      setIsGeneratingContrato(true)
+      // Preparar datos para el contrato de compraventa
+      const contratoData = {
+        id: deposito.id,
+        cliente: {
+          nombre: deposito.cliente?.nombre || '',
+          apellidos: deposito.cliente?.apellidos || '',
+          dni: deposito.cliente?.dni || '',
+          direccion: deposito.cliente?.direccion || '',
+          ciudad: deposito.cliente?.ciudad || '',
+          provincia: deposito.cliente?.provincia || '',
+          codPostal: deposito.cliente?.codPostal || '',
+        },
+        vehiculo: {
+          marca: deposito.vehiculo?.marca || '',
+          modelo: deposito.vehiculo?.modelo || '',
+          bastidor: deposito.vehiculo?.bastidor || '',
+          matricula: deposito.vehiculo?.matricula || '',
+          fechaMatriculacion: deposito.vehiculo?.fechaMatriculacion || '',
+          kms: deposito.vehiculo?.kms || 0,
+        },
+        deposito: {
+          monto_recibir: deposito.monto_recibir || 0,
+          dias_gestion: deposito.dias_gestion || 0,
+          multa_retiro_anticipado: deposito.multa_retiro_anticipado || 0,
+          numero_cuenta: deposito.numero_cuenta || '',
+        },
+      }
+
+      // Generar el contrato de compraventa en PDF
+      await generarContratoCompraventa(contratoData)
+
+      // Actualizar el depósito con el nombre del contrato de compraventa
+      const contratoFilename = `contrato-compraventa-${deposito.id}.pdf`
+
+      const updatedDeposito = {
+        ...deposito,
+        contrato_compra: contratoFilename,
+      }
+      setDeposito(updatedDeposito)
+
+      // Actualizar en la base de datos
+      const updateData = {
+        estado: deposito.estado,
+        fecha_fin: deposito.fecha_fin,
+        monto_recibir: deposito.monto_recibir,
+        dias_gestion: deposito.dias_gestion,
+        multa_retiro_anticipado: deposito.multa_retiro_anticipado,
+        numero_cuenta: deposito.numero_cuenta,
+        notas: deposito.notas,
+        contrato_deposito: deposito.contrato_deposito,
+        contrato_compra: contratoFilename,
+      }
+
+      console.log(
+        '🔄 Actualizando depósito con contrato de compra:',
+        updateData
+      )
+
+      const updateResponse = await fetch(`/api/depositos/${deposito.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      })
+
+      if (updateResponse.ok) {
+        const updatedDeposito = await updateResponse.json()
+        console.log('✅ Depósito actualizado exitosamente:', updatedDeposito)
+        showToast('Contrato de compraventa generado exitosamente', 'success')
+      } else {
+        const errorData = await updateResponse.json()
+        console.error('❌ Error updating deposito:', errorData)
+        showToast(
+          'Contrato generado, pero error al actualizar el depósito',
+          'warning'
+        )
+      }
     } catch (error) {
       console.error('Error generando contrato:', error)
       showToast('Error al generar el contrato', 'error')
@@ -455,10 +645,10 @@ export default function DepositoDetail() {
       showToast('No hay datos del depósito disponibles', 'error')
       return
     }
-    
+
     try {
       setIsUpdating(true)
-      
+
       // Simplemente cambiar el estado a VENDIDO
       const response = await fetch(`/api/depositos/${deposito.id}`, {
         method: 'PUT',
@@ -466,13 +656,13 @@ export default function DepositoDetail() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          estado: 'VENDIDO'
-        })
+          estado: 'VENDIDO',
+        }),
       })
-      
+
       if (response.ok) {
         // Actualizar solo el estado localmente
-        setDeposito(prev => prev ? { ...prev, estado: 'VENDIDO' } : null)
+        setDeposito((prev) => (prev ? { ...prev, estado: 'VENDIDO' } : null))
         showToast('Depósito marcado como vendido exitosamente', 'success')
       } else {
         const errorText = await response.text()
@@ -489,35 +679,54 @@ export default function DepositoDetail() {
 
   const getEstadoColor = (estado: string) => {
     switch (estado) {
-      case 'BORRADOR': return 'bg-gray-100 text-gray-800'
-      case 'ACTIVO': return 'bg-green-100 text-green-800'
-      case 'VENDIDO': return 'bg-purple-100 text-purple-800'
-      case 'FINALIZADO': return 'bg-blue-100 text-blue-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'BORRADOR':
+        return 'bg-gray-100 text-gray-800'
+      case 'ACTIVO':
+        return 'bg-green-100 text-green-800'
+      case 'VENDIDO':
+        return 'bg-purple-100 text-purple-800'
+      case 'FINALIZADO':
+        return 'bg-blue-100 text-blue-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
     }
   }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-ES', {
-      style: 'currency',
-      currency: 'EUR'
-    }).format(amount)
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return 'No disponible'
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) return 'Fecha inválida'
+
+    const day = date.getDate().toString().padStart(2, '0')
+    const month = (date.getMonth() + 1).toString().padStart(2, '0')
+    const year = date.getFullYear()
+    const hours = date.getHours().toString().padStart(2, '0')
+    const minutes = date.getMinutes().toString().padStart(2, '0')
+
+    return `${day}/${month}/${year} a las ${hours}:${minutes}`
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
+  const formatDateOnly = (dateString: string | null | undefined) => {
+    if (!dateString) return 'No disponible'
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) return 'Fecha inválida'
+
+    const day = date.getDate().toString().padStart(2, '0')
+    const month = (date.getMonth() + 1).toString().padStart(2, '0')
+    const year = date.getFullYear()
+
+    return `${day}/${month}/${year}`
   }
 
   const calculateDaysRemaining = () => {
     if (!deposito) return 0
     const createdDate = new Date(deposito.created_at)
     const now = new Date()
-    const daysSinceCreation = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24))
-    const daysRemaining = Math.max(0, 90 - daysSinceCreation)
+    const daysSinceCreation = Math.floor(
+      (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24)
+    )
+    const totalDays = deposito.dias_gestion || 90 // Usar días_gestion o 90 por defecto
+    const daysRemaining = Math.max(0, totalDays - daysSinceCreation)
     return daysRemaining
   }
 
@@ -532,11 +741,13 @@ export default function DepositoDetail() {
     )
   }
 
-  if (!deposito) {
+  if (!deposito || !deposito.cliente) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Depósito no encontrado</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+            Depósito no encontrado
+          </h1>
           <button
             onClick={() => router.push('/depositos')}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -561,55 +772,79 @@ export default function DepositoDetail() {
                     onClick={() => router.push('/depositos')}
                     className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
                   >
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    <svg
+                      className="w-6 h-6 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 19l-7-7 7-7"
+                      />
                     </svg>
                   </button>
                   <div>
-                    <h1 className="text-xl font-bold text-white">Depósito #{deposito.id}</h1>
+                    <h1 className="text-xl font-bold text-white">
+                      Depósito #{deposito.id}
+                    </h1>
                     <p className="text-slate-300 text-sm">
-                      {deposito.cliente?.nombre} {deposito.cliente?.apellidos} • {deposito.vehiculo?.marca} {deposito.vehiculo?.modelo}
+                      {deposito.cliente?.nombre} {deposito.cliente?.apellidos} •{' '}
+                      {deposito.vehiculo?.marca} {deposito.vehiculo?.modelo}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">
-                  <div className={`px-3 py-1 rounded-full text-sm font-medium ${getEstadoColor(deposito.estado)}`}>
+                  <div
+                    className={`px-3 py-1 rounded-full text-sm font-medium ${getEstadoColor(deposito.estado)}`}
+                  >
                     {deposito.estado}
                   </div>
                 </div>
               </div>
             </div>
           </div>
-
-
         </div>
 
         {/* Content */}
         <div className="flex gap-6">
           {/* Main Content */}
           <div className="w-[70%] space-y-4">
-            
             {/* Documentos */}
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Documentos</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Documentos
+              </h3>
               <div className="flex space-x-3">
                 <button
-                  onClick={handleGenerarContrato}
+                  onClick={handleGenerarContratoDeposito}
                   disabled={isGeneratingContrato || deposito.contrato_deposito}
                   className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-colors ${
                     deposito.contrato_deposito
                       ? 'bg-green-100 text-green-700 cursor-not-allowed'
                       : isGeneratingContrato
-                      ? 'bg-yellow-100 text-yellow-700 cursor-not-allowed'
-                      : 'bg-green-600 text-white hover:bg-green-700'
+                        ? 'bg-yellow-100 text-yellow-700 cursor-not-allowed'
+                        : 'bg-green-600 text-white hover:bg-green-700'
                   }`}
                 >
                   {deposito.contrato_deposito ? (
                     <div className="flex items-center space-x-2">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
                       </svg>
-                      <span>Contrato Generado</span>
+                      <span>Contrato de Depósito Generado</span>
                     </div>
                   ) : isGeneratingContrato ? (
                     <div className="flex items-center space-x-2">
@@ -618,72 +853,157 @@ export default function DepositoDetail() {
                     </div>
                   ) : (
                     <div className="flex items-center space-x-2">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
                       </svg>
                       <span>Generar Contrato de Depósito</span>
                     </div>
                   )}
                 </button>
                 <button
-                  disabled={deposito.estado !== 'VENDIDO' || deposito.contrato_compra}
+                  onClick={handleGenerarContrato}
+                  disabled={
+                    deposito.estado !== 'VENDIDO' || deposito.contrato_compra
+                  }
                   className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-colors ${
                     deposito.contrato_compra
                       ? 'bg-green-100 text-green-700 cursor-not-allowed'
                       : deposito.estado === 'VENDIDO'
-                      ? 'bg-green-600 text-white hover:bg-green-700'
-                      : 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                        ? 'bg-green-600 text-white hover:bg-green-700'
+                        : 'bg-gray-100 text-gray-500 cursor-not-allowed'
                   }`}
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <span>Generar Contrato de Compra</span>
-              </button>
+                  {deposito.contrato_compra ? (
+                    <div className="flex items-center space-x-2">
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <span>Contrato de Compra Generado</span>
+                    </div>
+                  ) : deposito.estado === 'VENDIDO' ? (
+                    <div className="flex items-center space-x-2">
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      <span>Generar Contrato de Compra</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-2">
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      <span>Generar Contrato de Compra</span>
+                    </div>
+                  )}
+                </button>
+              </div>
             </div>
-          </div>
 
-          {/* Bloque 1: Información del Depósito (Blanco) */}
+            {/* Bloque 1: Información del Depósito (Blanco) */}
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <svg
+                      className="w-5 h-5 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
                     </svg>
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center space-x-3">
-                      <h3 className="text-lg font-semibold text-gray-800">Depósito de Venta</h3>
+                      <h3 className="text-lg font-semibold text-gray-800">
+                        Depósito de Venta
+                      </h3>
                       {deposito.estado === 'ACTIVO' && (
                         <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium">
                           {calculateDaysRemaining()} días restantes
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-gray-600">Información del depósito</p>
+                    <p className="text-sm text-gray-600">
+                      Información del depósito
+                    </p>
                   </div>
                 </div>
                 {!isEditingDeposito ? (
-                  <button 
+                  <button
                     onClick={handleEditDeposito}
                     className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-200 rounded-lg transition-colors"
                     title="Editar información del depósito"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                      />
                     </svg>
                   </button>
                 ) : (
                   <div className="flex space-x-2">
-                    <button 
+                    <button
                       onClick={handleSaveDepositoEdit}
                       disabled={isUpdating}
                       className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50"
                     >
                       {isUpdating ? 'Guardando...' : 'Guardar'}
                     </button>
-                    <button 
+                    <button
                       onClick={handleCancelEditDeposito}
                       className="px-3 py-1 bg-gray-300 text-gray-700 text-sm rounded hover:bg-gray-400"
                     >
@@ -694,125 +1014,202 @@ export default function DepositoDetail() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Estado</label>
-                  <p className="text-gray-900 font-medium text-sm">{deposito.estado}</p>
+                  <label className="text-sm font-medium text-gray-600">
+                    Estado
+                  </label>
+                  <p className="text-gray-900 font-medium text-sm">
+                    {deposito.estado}
+                  </p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Fecha de Inicio</label>
-                  <p className="text-gray-900 text-sm">{formatDate(deposito.fecha_inicio)}</p>
+                  <label className="text-sm font-medium text-gray-600">
+                    Fecha de Inicio
+                  </label>
+                  <p className="text-gray-900 text-sm">
+                    {formatDate(deposito.fecha_inicio)}
+                  </p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Días Restantes</label>
-                  <p className="text-gray-900 text-sm">{calculateDaysRemaining()} días</p>
+                  <label className="text-sm font-medium text-gray-600">
+                    Días Restantes
+                  </label>
+                  <p className="text-gray-900 text-sm">
+                    {calculateDaysRemaining()} días
+                  </p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Monto al Comprador</label>
+                  <label className="text-sm font-medium text-gray-600">
+                    Monto al Comprador
+                  </label>
                   {isEditingDeposito ? (
                     <input
                       type="number"
                       step="0.01"
                       value={depositoEditData.monto_recibir}
-                      onChange={(e) => setDepositoEditData(prev => ({
-                        ...prev,
-                        monto_recibir: parseFloat(e.target.value) || 0
-                      }))}
+                      onChange={(e) =>
+                        setDepositoEditData((prev) => ({
+                          ...prev,
+                          monto_recibir: parseFloat(e.target.value) || 0,
+                        }))
+                      }
                       className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   ) : (
-                    <p className="text-gray-900 text-sm font-semibold">{formatCurrency(deposito.monto_recibir || 0)}</p>
+                    <p className="text-gray-900 text-sm font-semibold">
+                      {formatCurrency(deposito.monto_recibir || 0)}
+                    </p>
                   )}
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Días de Gestión</label>
+                  <label className="text-sm font-medium text-gray-600">
+                    Días de Gestión
+                  </label>
                   {isEditingDeposito ? (
                     <input
                       type="number"
                       value={depositoEditData.dias_gestion}
-                      onChange={(e) => setDepositoEditData(prev => ({
-                        ...prev,
-                        dias_gestion: parseInt(e.target.value) || 0
-                      }))}
+                      onChange={(e) =>
+                        setDepositoEditData((prev) => ({
+                          ...prev,
+                          dias_gestion: parseInt(e.target.value) || 0,
+                        }))
+                      }
                       className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   ) : (
-                    <p className="text-gray-900 text-sm">{deposito.dias_gestion || 0} días</p>
+                    <p className="text-gray-900 text-sm">
+                      {deposito.dias_gestion || 0} días
+                    </p>
                   )}
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Multa Retiro Anticipado</label>
+                  <label className="text-sm font-medium text-gray-600">
+                    Multa Retiro Anticipado
+                  </label>
                   {isEditingDeposito ? (
                     <input
                       type="number"
                       step="0.01"
                       value={depositoEditData.multa_retiro_anticipado}
-                      onChange={(e) => setDepositoEditData(prev => ({
-                        ...prev,
-                        multa_retiro_anticipado: parseFloat(e.target.value) || 0
-                      }))}
+                      onChange={(e) =>
+                        setDepositoEditData((prev) => ({
+                          ...prev,
+                          multa_retiro_anticipado:
+                            parseFloat(e.target.value) || 0,
+                        }))
+                      }
                       className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   ) : (
-                    <p className="text-gray-900 text-sm">{formatCurrency(deposito.multa_retiro_anticipado || 0)}</p>
+                    <p className="text-gray-900 text-sm font-medium">
+                      {formatCurrency(
+                        parseFloat(deposito.multa_retiro_anticipado) || 0
+                      )}
+                    </p>
                   )}
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Número de Cuenta</label>
+                  <label className="text-sm font-medium text-gray-600">
+                    Número de Cuenta
+                  </label>
                   {isEditingDeposito ? (
                     <input
                       type="text"
                       value={depositoEditData.numero_cuenta}
-                      onChange={(e) => setDepositoEditData(prev => ({
-                        ...prev,
-                        numero_cuenta: e.target.value
-                      }))}
+                      onChange={(e) =>
+                        setDepositoEditData((prev) => ({
+                          ...prev,
+                          numero_cuenta: e.target.value,
+                        }))
+                      }
                       placeholder="Número de cuenta bancaria"
                       className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
                     />
                   ) : (
-                    <p className="text-gray-900 font-mono text-sm">{deposito.numero_cuenta || 'No especificado'}</p>
+                    <p className="text-gray-900 font-mono text-sm">
+                      {deposito.numero_cuenta || 'No especificado'}
+                    </p>
                   )}
                 </div>
               </div>
             </div>
 
-          {/* Cliente y Vehículo lado a lado */}
+            {/* Cliente y Vehículo lado a lado */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
               {/* Cliente */}
               <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl shadow-lg border border-blue-200 p-4">
                 <div className="flex items-center space-x-3 mb-3">
                   <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    <svg
+                      className="w-5 h-5 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
                     </svg>
                   </div>
                   <div>
-                    <h4 className="text-base font-semibold text-blue-800">Cliente</h4>
+                    <h4 className="text-base font-semibold text-blue-800">
+                      Cliente
+                    </h4>
                     <p className="text-sm text-blue-600">Ver perfil completo</p>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <div>
-                    <label className="text-sm font-medium text-blue-600">Nombre</label>
-                    <p className="text-blue-900 font-medium text-sm">{deposito.cliente?.nombre} {deposito.cliente?.apellidos}</p>
+                    <label className="text-sm font-medium text-blue-600">
+                      Nombre
+                    </label>
+                    <p className="text-blue-900 font-medium text-sm">
+                      {deposito.cliente?.nombre} {deposito.cliente?.apellidos}
+                    </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-blue-600">Email</label>
-                    <p className="text-blue-900 text-sm">{deposito.cliente?.email || 'No especificado'}</p>
+                    <label className="text-sm font-medium text-blue-600">
+                      Email
+                    </label>
+                    <p className="text-blue-900 text-sm">
+                      {deposito.cliente?.email || 'No especificado'}
+                    </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-blue-600">Teléfono</label>
-                    <p className="text-blue-900 text-sm">{deposito.cliente?.telefono || 'No especificado'}</p>
+                    <label className="text-sm font-medium text-blue-600">
+                      Teléfono
+                    </label>
+                    <p className="text-blue-900 text-sm">
+                      {deposito.cliente?.telefono || 'No especificado'}
+                    </p>
                   </div>
                 </div>
                 <div className="mt-3 flex justify-end">
                   <Link
-                    href={`/clientes/${deposito.cliente?.id}`}
+                    href={`/clientes/${generateClienteSlug(deposito.cliente)}`}
                     className="inline-flex items-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                      />
                     </svg>
                     <span>Ver cliente</span>
                   </Link>
@@ -823,36 +1220,70 @@ export default function DepositoDetail() {
               <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-xl shadow-lg border border-green-200 p-4">
                 <div className="flex items-center space-x-3 mb-3">
                   <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" />
+                    <svg
+                      className="w-5 h-5 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
+                      />
                     </svg>
                   </div>
                   <div>
-                    <h4 className="text-base font-semibold text-green-800">Vehículo</h4>
+                    <h4 className="text-base font-semibold text-green-800">
+                      Vehículo
+                    </h4>
                     <p className="text-sm text-green-600">Ver en inventario</p>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <div>
-                    <label className="text-sm font-medium text-green-600">Modelo</label>
-                    <p className="text-green-900 font-medium text-sm">{deposito.vehiculo?.marca} {deposito.vehiculo?.modelo}</p>
+                    <label className="text-sm font-medium text-green-600">
+                      Modelo
+                    </label>
+                    <p className="text-green-900 font-medium text-sm">
+                      {deposito.vehiculo?.marca} {deposito.vehiculo?.modelo}
+                    </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-green-600">Matrícula</label>
-                    <p className="text-green-900 text-sm">{deposito.vehiculo?.matricula}</p>
+                    <label className="text-sm font-medium text-green-600">
+                      Matrícula
+                    </label>
+                    <p className="text-green-900 text-sm">
+                      {deposito.vehiculo?.matricula}
+                    </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-green-600">Referencia</label>
-                    <p className="text-green-900 text-sm">#{deposito.vehiculo?.referencia}</p>
+                    <label className="text-sm font-medium text-green-600">
+                      Referencia
+                    </label>
+                    <p className="text-green-900 text-sm">
+                      #{deposito.vehiculo?.referencia}
+                    </p>
                   </div>
                 </div>
                 <div className="mt-3 flex justify-end">
                   <Link
-                    href={`/vehiculos`}
+                    href={`/vehiculos/${generateVehicleSlug(deposito.vehiculo)}`}
                     className="inline-flex items-center space-x-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" />
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
+                      />
                     </svg>
                     <span>Ver vehículo</span>
                   </Link>
@@ -862,8 +1293,10 @@ export default function DepositoDetail() {
 
             {/* Notas */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Notas</h2>
-              
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                Notas
+              </h2>
+
               {/* Formulario para agregar nota */}
               <div className="mb-4">
                 <textarea
@@ -881,18 +1314,23 @@ export default function DepositoDetail() {
                   Agregar Nota
                 </button>
               </div>
-              
+
               {/* Lista de notas */}
               <div className="space-y-3">
-                {notasDeposito.map(nota => (
-                  <div key={nota.id} className="border border-gray-200 rounded-lg p-3">
+                {notasDeposito.map((nota) => (
+                  <div
+                    key={nota.id}
+                    className="border border-gray-200 rounded-lg p-3"
+                  >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         {editingNotaId === nota.id ? (
                           <div className="space-y-2">
                             <textarea
                               value={editingContent || ''}
-                              onChange={(e) => setEditingContent(e.target.value)}
+                              onChange={(e) =>
+                                setEditingContent(e.target.value)
+                              }
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                               rows={3}
                             />
@@ -915,7 +1353,8 @@ export default function DepositoDetail() {
                           <>
                             <p className="text-gray-900">{nota.contenido}</p>
                             <p className="text-xs text-gray-500 mt-1">
-                              {nota.usuario} • {new Date(nota.fecha).toLocaleDateString('es-ES')}
+                              {nota.usuario} •{' '}
+                              {new Date(nota.fecha).toLocaleDateString('es-ES')}
                             </p>
                           </>
                         )}
@@ -927,8 +1366,18 @@ export default function DepositoDetail() {
                             className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
                             title="Editar nota"
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" />
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z"
+                              />
                             </svg>
                           </button>
                           <button
@@ -936,8 +1385,18 @@ export default function DepositoDetail() {
                             className="p-1 text-gray-400 hover:text-red-600 transition-colors"
                             title="Eliminar nota"
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
                             </svg>
                           </button>
                         </div>
@@ -947,36 +1406,54 @@ export default function DepositoDetail() {
                 ))}
               </div>
             </div>
-
           </div>
 
           {/* Sidebar */}
           <div className="w-[30%] space-y-6">
-            
             {/* Documentación */}
             <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Documentación</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Documentación
+              </h3>
               <div className="space-y-3">
-                <div className={`flex items-center justify-between p-3 rounded-lg border ${
-                  deposito.contrato_deposito 
-                    ? 'bg-green-50 border-green-200' 
-                    : 'bg-gray-50 border-gray-200'
-                }`}>
+                <div
+                  className={`flex items-center justify-between p-3 rounded-lg border ${
+                    deposito.contrato_deposito
+                      ? 'bg-green-50 border-green-200'
+                      : 'bg-gray-50 border-gray-200'
+                  }`}
+                >
                   <div className="flex items-center space-x-3">
-                    <svg className={`w-5 h-5 ${
-                      deposito.contrato_deposito ? 'text-green-600' : 'text-gray-400'
-                    }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <svg
+                      className={`w-5 h-5 ${
+                        deposito.contrato_deposito
+                          ? 'text-green-600'
+                          : 'text-gray-400'
+                      }`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
                     </svg>
-                    <span className={`text-sm font-medium ${
-                      deposito.contrato_deposito ? 'text-green-800' : 'text-gray-500'
-                    }`}>
+                    <span
+                      className={`text-sm font-medium ${
+                        deposito.contrato_deposito
+                          ? 'text-green-800'
+                          : 'text-gray-500'
+                      }`}
+                    >
                       Contrato de Depósito
                     </span>
                   </div>
                   {deposito.contrato_deposito ? (
                     <button
-                      onClick={handleGenerarContrato}
+                      onClick={handleGenerarContratoDeposito}
                       className="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-lg hover:bg-blue-200"
                     >
                       Descargar
@@ -985,28 +1462,46 @@ export default function DepositoDetail() {
                     <span className="text-xs text-gray-400">No generado</span>
                   )}
                 </div>
-                
+
                 {/* Contrato de Compra */}
-                <div className={`flex items-center justify-between p-3 rounded-lg border ${
-                  deposito.contrato_compra 
-                    ? 'bg-green-50 border-green-200' 
-                    : 'bg-gray-50 border-gray-200'
-                }`}>
+                <div
+                  className={`flex items-center justify-between p-3 rounded-lg border ${
+                    deposito.contrato_compra
+                      ? 'bg-green-50 border-green-200'
+                      : 'bg-gray-50 border-gray-200'
+                  }`}
+                >
                   <div className="flex items-center space-x-3">
-                    <svg className={`w-5 h-5 ${
-                      deposito.contrato_compra ? 'text-green-600' : 'text-gray-400'
-                    }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <svg
+                      className={`w-5 h-5 ${
+                        deposito.contrato_compra
+                          ? 'text-green-600'
+                          : 'text-gray-400'
+                      }`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
                     </svg>
-                    <span className={`text-sm font-medium ${
-                      deposito.contrato_compra ? 'text-green-800' : 'text-gray-500'
-                    }`}>
+                    <span
+                      className={`text-sm font-medium ${
+                        deposito.contrato_compra
+                          ? 'text-green-800'
+                          : 'text-gray-500'
+                      }`}
+                    >
                       Contrato de Compra
                     </span>
                   </div>
                   {deposito.contrato_compra ? (
                     <button
-                      onClick={() => {/* TODO: Implementar descarga contrato compra */}}
+                      onClick={handleDescargarContratoCompra}
                       className="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-lg hover:bg-blue-200"
                     >
                       Descargar
@@ -1020,65 +1515,85 @@ export default function DepositoDetail() {
 
             {/* Información del Depósito */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Información del Depósito</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Información del Depósito
+              </h3>
               <div className="space-y-4">
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-500">Estado:</span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEstadoColor(deposito.estado)}`}>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${getEstadoColor(deposito.estado)}`}
+                    >
                       {deposito.estado}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">Creado:</span>
-                    <span className="text-gray-900">{formatDate(deposito.created_at)}</span>
+                    <span className="text-gray-900">
+                      {formatDate(deposito.created_at)}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">Última actualización:</span>
-                    <span className="text-gray-900">{formatDate(deposito.updated_at)}</span>
+                    <span className="text-gray-900">
+                      {formatDate(deposito.updated_at)}
+                    </span>
                   </div>
                 </div>
-                
+
                 {/* Toggle para marcar como vendido */}
                 {deposito.estado === 'ACTIVO' && (
                   <div className="pt-4 border-t border-gray-200">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">Marcar como vendido</span>
+                      <span className="text-sm font-medium text-gray-700">
+                        Marcar como vendido
+                      </span>
                       <button
                         onClick={handleMarcarVendido}
                         className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 hover:bg-gray-300"
                       >
                         <span
                           className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                            deposito.estado === 'VENDIDO' ? 'translate-x-6' : 'translate-x-1'
+                            deposito.estado === 'VENDIDO'
+                              ? 'translate-x-6'
+                              : 'translate-x-1'
                           }`}
                         />
                       </button>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">Activa para marcar el depósito como vendido</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Activa para marcar el depósito como vendido
+                    </p>
                   </div>
                 )}
-                
+
                 {/* Mostrar estado vendido si ya está vendido */}
                 {deposito.estado === 'VENDIDO' && (
                   <div className="pt-4 border-t border-gray-200">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">Estado: Vendido</span>
+                      <span className="text-sm font-medium text-gray-700">
+                        Estado: Vendido
+                      </span>
                       <div className="flex items-center space-x-2">
                         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span className="text-xs text-green-600 font-medium">VENDIDO</span>
+                        <span className="text-xs text-green-600 font-medium">
+                          VENDIDO
+                        </span>
                       </div>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">Este depósito ha sido marcado como vendido</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Este depósito ha sido marcado como vendido
+                    </p>
                   </div>
                 )}
               </div>
             </div>
 
             {/* Recordatorios */}
-            <DepositoReminders 
-              depositoId={deposito.id} 
-              depositoInfo={`Depósito #${deposito.id} - ${deposito.cliente.nombre} ${deposito.cliente.apellidos}`}
+            <DepositoReminders
+              depositoId={deposito.id}
+              depositoInfo={`Depósito #${deposito.id} - ${deposito.cliente?.nombre || 'Cliente'} ${deposito.cliente?.apellidos || 'No especificado'}`}
             />
           </div>
         </div>

@@ -5,9 +5,17 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useToast } from '@/components/Toast'
 import { useConfirmModal } from '@/components/ConfirmModal'
-import { generarContratoReserva, generarContratoVenta, generarFactura } from '@/lib/contractGenerator'
+import {
+  generarContratoReserva,
+  generarContratoVenta,
+  generarFactura,
+} from '@/lib/contractGenerator'
 import { addReminder, createDocumentacionReminder } from '@/lib/reminders'
-import { formatCurrency, formatVehicleReference } from '@/lib/utils'
+import {
+  formatCurrency,
+  formatVehicleReference,
+  generateClienteSlug,
+} from '@/lib/utils'
 import DealVentaInfo from '@/components/DealVentaInfo'
 import FacturaTypeModal from '@/components/FacturaTypeModal'
 import NotasSection from '@/components/NotasSection'
@@ -89,23 +97,23 @@ export default function DealDetail() {
   const router = useRouter()
   const { showToast, ToastContainer } = useToast()
   const { showConfirm, ConfirmModalComponent } = useConfirmModal()
-  
+
   const [deal, setDeal] = useState<Deal | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isUpdating, setIsUpdating] = useState(false)
   const [notas, setNotas] = useState<Nota[]>([])
   const [recordatorios, setRecordatorios] = useState<Recordatorio[]>([])
   const [documentacionFiles, setDocumentacionFiles] = useState<any[]>([])
-  
+
   // Estados para los formularios
   const [nuevaNota, setNuevaNota] = useState('')
   const [nuevoRecordatorio, setNuevoRecordatorio] = useState({
     titulo: '',
     descripcion: '',
-    fecha: ''
+    fecha: '',
   })
   const [showRecordatorioForm, setShowRecordatorioForm] = useState(false)
-  
+
   // Estado para el modal de confirmación
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [showFacturaModal, setShowFacturaModal] = useState(false)
@@ -130,9 +138,8 @@ export default function DealDetail() {
   }
 
   const getDocumentFile = (type: string) => {
-    return documentacionFiles.find(file => file.type === type)
+    return documentacionFiles.find((file) => file.type === type)
   }
-
 
   const fetchDeal = async () => {
     try {
@@ -140,21 +147,21 @@ export default function DealDetail() {
       const response = await fetch(`/api/deals/${params.id}`)
       if (response.ok) {
         const dealData = await response.json()
-        
+
         // Asegurar que los campos de cambio de nombre tengan valores por defecto
         const dealWithDefaults = {
           ...dealData,
           cambioNombreSolicitado: dealData.cambioNombreSolicitado ?? false,
           documentacionRecibida: dealData.documentacionRecibida ?? false,
           clienteAvisado: dealData.clienteAvisado ?? false,
-          documentacionRetirada: dealData.documentacionRetirada ?? false
+          documentacionRetirada: dealData.documentacionRetirada ?? false,
         }
-        
+
         setDeal(dealWithDefaults)
-        
+
         // Cargar notas desde la API
         await fetchNotas()
-        
+
         // Cargar recordatorios desde la API
         await fetchRecordatorios()
       } else {
@@ -189,26 +196,37 @@ export default function DealDetail() {
 
   const fetchRecordatorios = async () => {
     try {
-      console.log(`🔍 [DEAL RECORDATORIO] Cargando recordatorios para deal ${params.id}`)
+      console.log(
+        `🔍 [DEAL RECORDATORIO] Cargando recordatorios para deal ${params.id}`
+      )
       const response = await fetch(`/api/deals/${params.id}/recordatorios`)
       console.log(`📊 [DEAL RECORDATORIO] Response status:`, response.status)
-      
+
       if (response.ok) {
         const recordatorios = await response.json()
-        console.log(`✅ [DEAL RECORDATORIO] Recordatorios cargados:`, recordatorios)
+        console.log(
+          `✅ [DEAL RECORDATORIO] Recordatorios cargados:`,
+          recordatorios
+        )
         // Convertir las fechas de string a Date
         const recordatoriosWithDates = recordatorios.map((r: any) => ({
           ...r,
-          fecha: new Date(r.fecha_recordatorio)
+          fecha: new Date(r.fecha_recordatorio),
         }))
         setRecordatorios(recordatoriosWithDates)
       } else {
         const errorData = await response.json()
         console.error(`❌ [DEAL RECORDATORIO] Error response:`, errorData)
-        showToast(`Error cargando recordatorios: ${errorData.details || errorData.error}`, 'error')
+        showToast(
+          `Error cargando recordatorios: ${errorData.details || errorData.error}`,
+          'error'
+        )
       }
     } catch (error) {
-      console.error('❌ [DEAL RECORDATORIO] Error cargando recordatorios:', error)
+      console.error(
+        '❌ [DEAL RECORDATORIO] Error cargando recordatorios:',
+        error
+      )
       showToast('Error de conexión al cargar recordatorios', 'error')
     }
   }
@@ -216,12 +234,12 @@ export default function DealDetail() {
   const handleGenerarContratoReserva = async () => {
     try {
       setIsUpdating(true)
-      
+
       if (!deal) {
         showToast('No hay datos del deal disponibles', 'error')
         return
       }
-      
+
       // Generar el contrato en PDF
       await generarContratoReserva({
         numero: deal.numero,
@@ -232,26 +250,26 @@ export default function DealDetail() {
         importeSena: deal.importeSena,
         formaPagoSena: deal.formaPagoSena,
         fechaReservaDesde: deal.fechaReservaDesde,
-        fechaReservaExpira: deal.fechaReservaExpira
+        fechaReservaExpira: deal.fechaReservaExpira,
       })
-      
+
       showToast('Contrato de reserva generado y descargado', 'success')
-      
+
       // Calcular fecha de expiración (7 días desde hoy)
       const fechaReservaDesde = new Date()
       const fechaReservaExpira = new Date()
       fechaReservaExpira.setDate(fechaReservaExpira.getDate() + 7)
-      
+
       // Actualizar el deal para marcar que tiene contrato de reserva
       const updatedDeal = {
         ...deal,
         contratoReserva: `contrato-reserva-${deal.numero}.pdf`,
         estado: 'reservado',
         fechaReservaDesde: fechaReservaDesde,
-        fechaReservaExpira: fechaReservaExpira
+        fechaReservaExpira: fechaReservaExpira,
       }
       setDeal(updatedDeal)
-      
+
       // Actualizar en la base de datos
       try {
         await fetch(`/api/deals/${deal.id}`, {
@@ -261,10 +279,10 @@ export default function DealDetail() {
             estado: 'reservado',
             contratoReserva: `contrato-reserva-${deal.numero}.pdf`,
             fechaReservaDesde: fechaReservaDesde.toISOString(),
-            fechaReservaExpira: fechaReservaExpira.toISOString()
-          })
+            fechaReservaExpira: fechaReservaExpira.toISOString(),
+          }),
         })
-        
+
         showToast('Estado actualizado a Reservado', 'success')
       } catch (error) {
         console.error('Error actualizando estado:', error)
@@ -280,12 +298,12 @@ export default function DealDetail() {
   const handleGenerarContratoVenta = async () => {
     try {
       setIsUpdating(true)
-      
+
       if (!deal) {
         showToast('No hay datos del deal disponibles', 'error')
         return
       }
-      
+
       // Generar el contrato de venta en PDF
       await generarContratoVenta({
         numero: deal.numero,
@@ -296,20 +314,20 @@ export default function DealDetail() {
         importeSena: deal.importeSena,
         formaPagoSena: deal.formaPagoSena,
         fechaReservaDesde: deal.fechaReservaDesde,
-        fechaReservaExpira: deal.fechaReservaExpira
+        fechaReservaExpira: deal.fechaReservaExpira,
       })
-      
+
       showToast('Contrato de venta generado y descargado', 'success')
-      
+
       // Actualizar el deal
       const updatedDeal = {
         ...deal,
         contratoVenta: `contrato-venta-${deal.numero}.pdf`,
         estado: 'vendido',
-        fechaVentaFirmada: new Date()
+        fechaVentaFirmada: new Date(),
       }
       setDeal(updatedDeal)
-      
+
       // Actualizar en la base de datos
       try {
         await fetch(`/api/deals/${deal.id}`, {
@@ -318,10 +336,10 @@ export default function DealDetail() {
           body: JSON.stringify({
             estado: 'vendido',
             contratoVenta: `contrato-venta-${deal.numero}.pdf`,
-            fechaVentaFirmada: new Date().toISOString()
-          })
+            fechaVentaFirmada: new Date().toISOString(),
+          }),
         })
-        
+
         showToast('Estado actualizado a Vendido', 'success')
       } catch (error) {
         console.error('Error actualizando estado:', error)
@@ -338,39 +356,46 @@ export default function DealDetail() {
     setShowFacturaModal(true)
   }
 
-  const handleConfirmFactura = async (tipoFactura: 'IVA' | 'REBU', numeroFactura?: string) => {
+  const handleConfirmFactura = async (
+    tipoFactura: 'IVA' | 'REBU',
+    numeroFactura?: string
+  ) => {
     try {
       setIsUpdating(true)
-      
+
       if (!deal) {
         showToast('No hay datos del deal disponibles', 'error')
         return
       }
-      
+
       // Generar la factura en PDF
-      await generarFactura({
-        numero: deal.numero,
-        fechaCreacion: deal.fechaCreacion,
-        cliente: deal.cliente,
-        vehiculo: deal.vehiculo,
-        importeTotal: deal.importeTotal,
-        importeSena: deal.importeSena,
-        formaPagoSena: deal.formaPagoSena,
-        fechaReservaDesde: deal.fechaReservaDesde,
-        fechaReservaExpira: deal.fechaReservaExpira
-      }, tipoFactura, numeroFactura)
-      
+      await generarFactura(
+        {
+          numero: deal.numero,
+          fechaCreacion: deal.fechaCreacion,
+          cliente: deal.cliente,
+          vehiculo: deal.vehiculo,
+          importeTotal: deal.importeTotal,
+          importeSena: deal.importeSena,
+          formaPagoSena: deal.formaPagoSena,
+          fechaReservaDesde: deal.fechaReservaDesde,
+          fechaReservaExpira: deal.fechaReservaExpira,
+        },
+        tipoFactura,
+        numeroFactura
+      )
+
       showToast(`Factura ${tipoFactura} generada y descargada`, 'success')
-      
+
       // Actualizar el deal
       const updatedDeal = {
         ...deal,
         factura: `factura-${tipoFactura.toLowerCase()}-${numeroFactura || deal.numero}.pdf`,
         estado: 'facturado',
-        fechaFacturada: new Date()
+        fechaFacturada: new Date(),
       }
       setDeal(updatedDeal)
-      
+
       // Actualizar en la base de datos
       try {
         await fetch(`/api/deals/${deal.id}`, {
@@ -379,33 +404,43 @@ export default function DealDetail() {
           body: JSON.stringify({
             estado: 'facturado',
             factura: `factura-${tipoFactura.toLowerCase()}-${numeroFactura || deal.numero}.pdf`,
-            fechaFacturada: new Date().toISOString()
-          })
+            fechaFacturada: new Date().toISOString(),
+          }),
         })
-        
+
         showToast('Estado actualizado a Facturado', 'success')
-        
+
         // Crear recordatorio para documentación de cambio de nombre en la base de datos
         if (deal.cliente && deal.vehiculo) {
           try {
-            const response = await fetch(`/api/clientes/${deal.clienteId}/recordatorios`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                clienteId: deal.clienteId,
-                titulo: 'Solicitar cambio de nombre',
-                descripcion: `Solicitar documentación para cambio de nombre del vehículo ${formatVehicleReference(deal.vehiculo.referencia, deal.vehiculo.tipo)} al cliente ${deal.cliente.nombre} ${deal.cliente.apellidos}`,
-                tipo: 'otro',
-                prioridad: 'alta',
-                fechaRecordatorio: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 días desde ahora
-                dealId: deal.id
-              })
-            })
-            
+            const response = await fetch(
+              `/api/clientes/${deal.clienteId}/recordatorios`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  clienteId: deal.clienteId,
+                  titulo: 'Solicitar cambio de nombre',
+                  descripcion: `Solicitar documentación para cambio de nombre del vehículo ${formatVehicleReference(deal.vehiculo.referencia, deal.vehiculo.tipo)} al cliente ${deal.cliente.nombre} ${deal.cliente.apellidos}`,
+                  tipo: 'otro',
+                  prioridad: 'alta',
+                  fechaRecordatorio: new Date(
+                    Date.now() + 7 * 24 * 60 * 60 * 1000
+                  ).toISOString(), // 7 días desde ahora
+                  dealId: deal.id,
+                }),
+              }
+            )
+
             if (response.ok) {
-              console.log('📝 Recordatorio de cambio de nombre creado en la base de datos')
+              console.log(
+                '📝 Recordatorio de cambio de nombre creado en la base de datos'
+              )
             } else {
-              console.error('Error creando recordatorio:', await response.text())
+              console.error(
+                'Error creando recordatorio:',
+                await response.text()
+              )
             }
           } catch (error) {
             console.error('Error creando recordatorio:', error)
@@ -422,10 +457,18 @@ export default function DealDetail() {
     }
   }
 
-  const handleCambioNombreChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCambioNombreChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     if (!deal) return
 
-    const field = e.target.id as keyof Pick<Deal, 'cambioNombreSolicitado' | 'documentacionRecibida' | 'clienteAvisado' | 'documentacionRetirada'>
+    const field = e.target.id as keyof Pick<
+      Deal,
+      | 'cambioNombreSolicitado'
+      | 'documentacionRecibida'
+      | 'clienteAvisado'
+      | 'documentacionRetirada'
+    >
     const value = e.target.checked
 
     try {
@@ -434,7 +477,7 @@ export default function DealDetail() {
       // Actualizar el estado local
       const updatedDeal = {
         ...deal,
-        [field]: value
+        [field]: value,
       }
       setDeal(updatedDeal)
 
@@ -443,49 +486,54 @@ export default function DealDetail() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          [field]: value
-        })
+          [field]: value,
+        }),
       })
 
-        // Si se marca "cambio de nombre solicitado", eliminar el recordatorio del dashboard
-        if (field === 'cambioNombreSolicitado' && value) {
-          try {
-            // Eliminar recordatorio de la base de datos
-            await fetch(`/api/recordatorios/eliminar-cambio-nombre/${deal.id}`, {
-              method: 'DELETE'
-            })
-            
-            // Eliminar recordatorio del dashboard directamente
-            if (typeof window !== 'undefined') {
-              // Buscar y eliminar el recordatorio "Cambio de Nombre Pendiente" que contenga este deal
-              const dashboardReminder = document.querySelector('[data-reminder-type="cambio_nombre_pendiente"]')
-              if (dashboardReminder) {
-                // Buscar el item específico del deal dentro del recordatorio
-                const dealItem = dashboardReminder.querySelector(`[data-deal-id="${deal.id}"]`)
-                if (dealItem) {
-                  dealItem.remove()
-                  
-                  // Actualizar el contador si existe
-                  const countElement = dashboardReminder.querySelector('[data-count]')
-                  if (countElement) {
-                    const currentCount = parseInt(countElement.textContent || '0')
-                    const newCount = Math.max(0, currentCount - 1)
-                    countElement.textContent = newCount.toString()
-                    
-                    // Si no quedan items, ocultar o actualizar el recordatorio
-                    if (newCount === 0) {
-                      dashboardReminder.style.display = 'none'
-                    }
+      // Si se marca "cambio de nombre solicitado", eliminar el recordatorio del dashboard
+      if (field === 'cambioNombreSolicitado' && value) {
+        try {
+          // Eliminar recordatorio de la base de datos
+          await fetch(`/api/recordatorios/eliminar-cambio-nombre/${deal.id}`, {
+            method: 'DELETE',
+          })
+
+          // Eliminar recordatorio del dashboard directamente
+          if (typeof window !== 'undefined') {
+            // Buscar y eliminar el recordatorio "Cambio de Nombre Pendiente" que contenga este deal
+            const dashboardReminder = document.querySelector(
+              '[data-reminder-type="cambio_nombre_pendiente"]'
+            )
+            if (dashboardReminder) {
+              // Buscar el item específico del deal dentro del recordatorio
+              const dealItem = dashboardReminder.querySelector(
+                `[data-deal-id="${deal.id}"]`
+              )
+              if (dealItem) {
+                dealItem.remove()
+
+                // Actualizar el contador si existe
+                const countElement =
+                  dashboardReminder.querySelector('[data-count]')
+                if (countElement) {
+                  const currentCount = parseInt(countElement.textContent || '0')
+                  const newCount = Math.max(0, currentCount - 1)
+                  countElement.textContent = newCount.toString()
+
+                  // Si no quedan items, ocultar o actualizar el recordatorio
+                  if (newCount === 0) {
+                    dashboardReminder.style.display = 'none'
                   }
                 }
               }
             }
-            
-            showToast('Recordatorio de cambio de nombre eliminado', 'success')
-          } catch (error) {
-            console.error('Error eliminando recordatorio:', error)
           }
+
+          showToast('Recordatorio de cambio de nombre eliminado', 'success')
+        } catch (error) {
+          console.error('Error eliminando recordatorio:', error)
         }
+      }
 
       showToast('Cambio de nombre actualizado', 'success')
     } catch (error) {
@@ -498,18 +546,18 @@ export default function DealDetail() {
 
   const handleAnularReserva = async () => {
     if (!deal) return
-    
+
     try {
       setIsUpdating(true)
-      
+
       // Eliminar el deal (esto también liberará el vehículo automáticamente)
       const response = await fetch(`/api/deals/${deal.id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       })
-      
+
       if (response.ok) {
         showToast('Reserva anulada y vehículo liberado', 'success')
-        
+
         // Redirigir a la lista de deals
         setTimeout(() => {
           router.push('/deals')
@@ -517,7 +565,6 @@ export default function DealDetail() {
       } else {
         throw new Error('Error al anular la reserva')
       }
-      
     } catch (error) {
       console.error('Error anulando reserva:', error)
       showToast('Error anulando la reserva', 'error')
@@ -529,28 +576,28 @@ export default function DealDetail() {
 
   const handleAgregarNota = async () => {
     if (!nuevaNota.trim() || !params.id) return
-    
+
     try {
       console.log(`📝 [DEAL NOTA] Agregando nota para deal ${params.id}`)
       const response = await fetch(`/api/deals/${params.id}/notas`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-        contenido: nuevaNota,
-          usuario_nombre: 'Admin'
-        })
+          contenido: nuevaNota,
+          usuario_nombre: 'Admin',
+        }),
       })
-      
+
       if (!response.ok) {
         const errorData = await response.json()
         console.error('❌ [DEAL NOTA] Error agregando nota:', errorData)
         showToast(`Error al agregar la nota: ${errorData.error}`, 'error')
         return
       }
-      
+
       const nuevaNotaData = await response.json()
       console.log(`✅ [DEAL NOTA] Nota agregada:`, nuevaNotaData)
-      
+
       // Recargar notas desde la API
       await fetchNotas()
       setNuevaNota('')
@@ -563,11 +610,13 @@ export default function DealDetail() {
 
   const handleAgregarRecordatorio = async () => {
     if (!nuevoRecordatorio.titulo.trim() || !nuevoRecordatorio.fecha) return
-    
+
     try {
-      console.log(`📝 [DEAL RECORDATORIO] Agregando recordatorio para deal ${params.id}`)
+      console.log(
+        `📝 [DEAL RECORDATORIO] Agregando recordatorio para deal ${params.id}`
+      )
       setIsUpdating(true)
-      
+
       const response = await fetch(`/api/deals/${params.id}/recordatorios`, {
         method: 'POST',
         headers: {
@@ -578,28 +627,37 @@ export default function DealDetail() {
           descripcion: nuevoRecordatorio.descripcion.trim(),
           tipo: 'general',
           prioridad: 'media',
-          fecha_recordatorio: nuevoRecordatorio.fecha
-        })
+          fecha_recordatorio: nuevoRecordatorio.fecha,
+        }),
       })
-      
+
       console.log(`📊 [DEAL RECORDATORIO] Response status:`, response.status)
-      
+
       if (response.ok) {
         const nuevoRecordatorioData = await response.json()
-        console.log(`✅ [DEAL RECORDATORIO] Recordatorio agregado:`, nuevoRecordatorioData)
-        
+        console.log(
+          `✅ [DEAL RECORDATORIO] Recordatorio agregado:`,
+          nuevoRecordatorioData
+        )
+
         // Recargar recordatorios desde la API
         await fetchRecordatorios()
-      setNuevoRecordatorio({ titulo: '', descripcion: '', fecha: '' })
+        setNuevoRecordatorio({ titulo: '', descripcion: '', fecha: '' })
         setShowRecordatorioForm(false) // Ocultar formulario después de agregar
-      showToast('Recordatorio agregado correctamente', 'success')
+        showToast('Recordatorio agregado correctamente', 'success')
       } else {
         const errorData = await response.json()
         console.error(`❌ [DEAL RECORDATORIO] Error response:`, errorData)
-        showToast(`Error al agregar recordatorio: ${errorData.details || errorData.error}`, 'error')
+        showToast(
+          `Error al agregar recordatorio: ${errorData.details || errorData.error}`,
+          'error'
+        )
       }
     } catch (error) {
-      console.error('❌ [DEAL RECORDATORIO] Error agregando recordatorio:', error)
+      console.error(
+        '❌ [DEAL RECORDATORIO] Error agregando recordatorio:',
+        error
+      )
       showToast('Error de conexión al agregar recordatorio', 'error')
     } finally {
       setIsUpdating(false)
@@ -608,13 +666,15 @@ export default function DealDetail() {
 
   const handleCompletarRecordatorio = async (id: number) => {
     try {
-      console.log(`✅ [DEAL RECORDATORIO] Completando recordatorio ${id} del deal ${params.id}`)
+      console.log(
+        `✅ [DEAL RECORDATORIO] Completando recordatorio ${id} del deal ${params.id}`
+      )
       setIsUpdating(true)
-      
+
       // Encontrar el recordatorio actual
-      const recordatorio = recordatorios.find(r => r.id === id)
+      const recordatorio = recordatorios.find((r) => r.id === id)
       if (!recordatorio) return
-      
+
       const response = await fetch(`/api/deals/${params.id}/recordatorios`, {
         method: 'PUT',
         headers: {
@@ -627,12 +687,12 @@ export default function DealDetail() {
           tipo: 'general',
           prioridad: 'media',
           fecha_recordatorio: recordatorio.fecha.toISOString(),
-          completado: !recordatorio.completado
-        })
+          completado: !recordatorio.completado,
+        }),
       })
-      
+
       console.log(`📊 [DEAL RECORDATORIO] Response status:`, response.status)
-      
+
       if (response.ok) {
         console.log(`✅ [DEAL RECORDATORIO] Recordatorio completado`)
         // Recargar recordatorios desde la API
@@ -641,10 +701,16 @@ export default function DealDetail() {
       } else {
         const errorData = await response.json()
         console.error(`❌ [DEAL RECORDATORIO] Error response:`, errorData)
-        showToast(`Error al actualizar recordatorio: ${errorData.details || errorData.error}`, 'error')
+        showToast(
+          `Error al actualizar recordatorio: ${errorData.details || errorData.error}`,
+          'error'
+        )
       }
     } catch (error) {
-      console.error('❌ [DEAL RECORDATORIO] Error completando recordatorio:', error)
+      console.error(
+        '❌ [DEAL RECORDATORIO] Error completando recordatorio:',
+        error
+      )
       showToast('Error de conexión al actualizar recordatorio', 'error')
     } finally {
       setIsUpdating(false)
@@ -653,24 +719,35 @@ export default function DealDetail() {
 
   const handleEliminarRecordatorio = (id: number) => {
     if (!deal) return
-    
+
     showConfirm(
-      'Eliminar Recordatorio', 
+      'Eliminar Recordatorio',
       '¿Estás seguro de que deseas eliminar este recordatorio? Esta acción no se puede deshacer.',
       async () => {
         try {
-          console.log(`🗑️ [DEAL RECORDATORIO] Eliminando recordatorio ${id} del deal ${deal.id}`)
+          console.log(
+            `🗑️ [DEAL RECORDATORIO] Eliminando recordatorio ${id} del deal ${deal.id}`
+          )
           setIsUpdating(true)
-          
-          const response = await fetch(`/api/deals/${deal.id}/recordatorios?recordatorioId=${id}`, {
-            method: 'DELETE'
-          })
-          
-          console.log(`📊 [DEAL RECORDATORIO] Response status:`, response.status)
-          
+
+          const response = await fetch(
+            `/api/deals/${deal.id}/recordatorios?recordatorioId=${id}`,
+            {
+              method: 'DELETE',
+            }
+          )
+
+          console.log(
+            `📊 [DEAL RECORDATORIO] Response status:`,
+            response.status
+          )
+
           if (response.ok) {
             const result = await response.json()
-            console.log(`✅ [DEAL RECORDATORIO] Recordatorio eliminado:`, result)
+            console.log(
+              `✅ [DEAL RECORDATORIO] Recordatorio eliminado:`,
+              result
+            )
             // Recargar recordatorios desde la API
             await fetchRecordatorios()
             showToast('Recordatorio eliminado correctamente', 'success')
@@ -685,13 +762,19 @@ export default function DealDetail() {
                 errorMessage = `Error al eliminar recordatorio (${response.status}): ${response.statusText}`
               }
             } catch (parseError) {
-              console.error(`❌ [DEAL RECORDATORIO] Error parsing response:`, parseError)
+              console.error(
+                `❌ [DEAL RECORDATORIO] Error parsing response:`,
+                parseError
+              )
               errorMessage = `Error al eliminar recordatorio (${response.status}): ${response.statusText}`
             }
             showToast(errorMessage, 'error')
           }
         } catch (error) {
-          console.error('❌ [DEAL RECORDATORIO] Error eliminando recordatorio:', error)
+          console.error(
+            '❌ [DEAL RECORDATORIO] Error eliminando recordatorio:',
+            error
+          )
           showToast('Error de conexión al eliminar recordatorio', 'error')
         } finally {
           setIsUpdating(false)
@@ -716,7 +799,9 @@ export default function DealDetail() {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Deal no encontrado</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+            Deal no encontrado
+          </h1>
           <button
             onClick={() => router.push('/deals')}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -730,21 +815,27 @@ export default function DealDetail() {
 
   const getEstadoColor = (estado: string) => {
     switch (estado) {
-      case 'nuevo': return 'bg-blue-100 text-blue-800'
-      case 'reservado': return 'bg-yellow-100 text-yellow-800'
-      case 'vendido': return 'bg-green-100 text-green-800'
-      case 'facturado': return 'bg-purple-100 text-purple-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'nuevo':
+        return 'bg-blue-100 text-blue-800'
+      case 'reservado':
+        return 'bg-yellow-100 text-yellow-800'
+      case 'vendido':
+        return 'bg-green-100 text-green-800'
+      case 'facturado':
+        return 'bg-purple-100 text-purple-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
     }
   }
 
-  const canGenerateContratoVenta = deal.contratoReserva && deal.estado === 'reservado'
+  const canGenerateContratoVenta =
+    deal.contratoReserva && deal.estado === 'reservado'
   const canGenerateFactura = deal.contratoVenta && deal.estado === 'vendido'
 
   return (
     <div className="min-h-screen bg-slate-50">
       <ToastContainer />
-      
+
       {/* Header */}
       <div className="bg-white shadow-sm border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -754,18 +845,33 @@ export default function DealDetail() {
                 onClick={() => router.push('/deals')}
                 className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
                 </svg>
               </button>
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">{deal.numero}</h1>
+                <h1 className="text-xl font-semibold text-gray-900">
+                  {deal.numero}
+                </h1>
                 <p className="text-sm text-gray-500">
-                  {deal.cliente?.nombre} {deal.cliente?.apellidos} • {deal.vehiculo?.marca} {deal.vehiculo?.modelo}
+                  {deal.cliente?.nombre} {deal.cliente?.apellidos} •{' '}
+                  {deal.vehiculo?.marca} {deal.vehiculo?.modelo}
                 </p>
               </div>
             </div>
-            <div className={`px-3 py-1 rounded-full text-sm font-medium ${getEstadoColor(deal.estado)}`}>
+            <div
+              className={`px-3 py-1 rounded-full text-sm font-medium ${getEstadoColor(deal.estado)}`}
+            >
               {deal.estado.toUpperCase()}
             </div>
           </div>
@@ -774,16 +880,15 @@ export default function DealDetail() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
           {/* Panel Principal */}
           <div className="lg:col-span-2 space-y-6">
-            
             {/* Documentos */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Documentos</h2>
-              
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                Documentos
+              </h2>
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                
                 {/* Generar Contrato de Reserva */}
                 <div className="text-center">
                   <button
@@ -797,15 +902,35 @@ export default function DealDetail() {
                   >
                     {deal.contratoReserva ? (
                       <div className="flex items-center justify-center space-x-2">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
                         </svg>
                         <span>Contrato Generado</span>
                       </div>
                     ) : (
                       <div className="flex items-center justify-center space-x-2">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
                         </svg>
                         <span>Generar Contrato de Reserva</span>
                       </div>
@@ -817,26 +942,50 @@ export default function DealDetail() {
                 <div className="text-center">
                   <button
                     onClick={handleGenerarContratoVenta}
-                    disabled={isUpdating || !canGenerateContratoVenta || deal.contratoVenta}
+                    disabled={
+                      isUpdating ||
+                      !canGenerateContratoVenta ||
+                      deal.contratoVenta
+                    }
                     className={`w-full px-4 py-3 rounded-lg font-medium transition-colors ${
                       deal.contratoVenta
                         ? 'bg-green-100 text-green-700 cursor-not-allowed'
                         : !canGenerateContratoVenta
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                     }`}
                   >
                     {deal.contratoVenta ? (
                       <div className="flex items-center justify-center space-x-2">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
                         </svg>
                         <span>Contrato Generado</span>
                       </div>
                     ) : (
                       <div className="flex items-center justify-center space-x-2">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
                         </svg>
                         <span>Generar Contrato de Venta</span>
                       </div>
@@ -853,21 +1002,41 @@ export default function DealDetail() {
                       deal.factura
                         ? 'bg-green-100 text-green-700 cursor-not-allowed'
                         : !canGenerateFactura
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
                     }`}
                   >
                     {deal.factura ? (
                       <div className="flex items-center justify-center space-x-2">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
                         </svg>
                         <span>Factura Generada</span>
                       </div>
                     ) : (
                       <div className="flex items-center justify-center space-x-2">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                          />
                         </svg>
                         <span>Generar Factura</span>
                       </div>
@@ -879,35 +1048,66 @@ export default function DealDetail() {
 
             {/* Información de Reserva */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Información de Reserva</h2>
-              
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                Información de Reserva
+              </h2>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Cliente */}
-                <Link href={`/clientes/${deal.cliente?.id}`} className="group">
+                <Link
+                  href={`/clientes/${generateClienteSlug(deal.cliente)}`}
+                  className="group"
+                >
                   <div className="bg-blue-50 rounded-lg p-3 border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer">
                     <div className="flex items-center space-x-2 mb-2">
                       <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        <svg
+                          className="w-4 h-4 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                          />
                         </svg>
                       </div>
                       <div>
-                        <h3 className="font-semibold text-gray-900 text-base">Cliente</h3>
-                        <p className="text-sm text-gray-600">Ver perfil completo</p>
+                        <h3 className="font-semibold text-gray-900 text-base">
+                          Cliente
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          Ver perfil completo
+                        </p>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div>
-                        <span className="font-medium text-gray-700">Nombre:</span>
-                        <p className="text-gray-900 font-semibold group-hover:text-blue-700 truncate">{deal.cliente?.nombre} {deal.cliente?.apellidos}</p>
+                        <span className="font-medium text-gray-700">
+                          Nombre:
+                        </span>
+                        <p className="text-gray-900 font-semibold group-hover:text-blue-700 truncate">
+                          {deal.cliente?.nombre} {deal.cliente?.apellidos}
+                        </p>
                       </div>
                       <div>
-                        <span className="font-medium text-gray-700">Teléfono:</span>
-                        <p className="text-gray-900 truncate">{deal.cliente?.telefono || 'No especificado'}</p>
+                        <span className="font-medium text-gray-700">
+                          Teléfono:
+                        </span>
+                        <p className="text-gray-900 truncate">
+                          {deal.cliente?.telefono || 'No especificado'}
+                        </p>
                       </div>
                       <div className="col-span-2">
-                        <span className="font-medium text-gray-700">Email:</span>
-                        <p className="text-gray-900 truncate">{deal.cliente?.email || 'No especificado'}</p>
+                        <span className="font-medium text-gray-700">
+                          Email:
+                        </span>
+                        <p className="text-gray-900 truncate">
+                          {deal.cliente?.email || 'No especificado'}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -918,28 +1118,59 @@ export default function DealDetail() {
                   <div className="bg-green-50 rounded-lg p-3 border border-green-200 hover:bg-green-100 transition-colors cursor-pointer">
                     <div className="flex items-center space-x-2 mb-2">
                       <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
-                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+                        <svg
+                          className="w-4 h-4 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"
+                          />
                         </svg>
                       </div>
                       <div>
-                        <h3 className="font-semibold text-gray-900 text-base">Vehículo</h3>
-                        <p className="text-sm text-gray-600">Ver en inventario</p>
+                        <h3 className="font-semibold text-gray-900 text-base">
+                          Vehículo
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          Ver en inventario
+                        </p>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div>
-                        <span className="font-medium text-gray-700">Modelo:</span>
-                        <p className="text-gray-900 font-semibold group-hover:text-green-700 truncate">{deal.vehiculo?.marca} {deal.vehiculo?.modelo}</p>
+                        <span className="font-medium text-gray-700">
+                          Modelo:
+                        </span>
+                        <p className="text-gray-900 font-semibold group-hover:text-green-700 truncate">
+                          {deal.vehiculo?.marca} {deal.vehiculo?.modelo}
+                        </p>
                       </div>
                       <div>
-                        <span className="font-medium text-gray-700">Matrícula:</span>
-                        <p className="text-gray-900 font-mono truncate">{deal.vehiculo?.matricula}</p>
+                        <span className="font-medium text-gray-700">
+                          Matrícula:
+                        </span>
+                        <p className="text-gray-900 font-mono truncate">
+                          {deal.vehiculo?.matricula}
+                        </p>
                       </div>
                       <div className="col-span-2">
-                        <span className="font-medium text-gray-700">Referencia:</span>
-                        <p className="text-gray-900 font-mono truncate">{deal.vehiculo?.referencia}</p>
+                        <span className="font-medium text-gray-700">
+                          Referencia:
+                        </span>
+                        <p className="text-gray-900 font-mono truncate">
+                          {deal.vehiculo?.referencia}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -952,68 +1183,109 @@ export default function DealDetail() {
                       <span className="text-white font-bold text-lg">€</span>
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900 text-base">Financiero</h3>
+                      <h3 className="font-semibold text-gray-900 text-base">
+                        Financiero
+                      </h3>
                       <p className="text-sm text-gray-600">Detalles de pago</p>
                     </div>
                   </div>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <span className="font-medium text-gray-700">Total:</span>
-                        <p className="text-gray-900 font-semibold">{deal.importeTotal ? formatCurrency(deal.importeTotal) : 'No especificado'}</p>
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-700">Seña:</span>
-                        <p className="text-gray-900 font-semibold">{deal.importeSena ? formatCurrency(deal.importeSena) : 'No especificado'}</p>
-                      </div>
-                      <div className="col-span-2">
-                        <span className="font-medium text-gray-700">Falta abonar:</span>
-                        <p className="text-gray-900 font-semibold">
-                          {deal.importeTotal && deal.importeSena 
-                            ? formatCurrency(deal.importeTotal - deal.importeSena)
-                            : deal.restoAPagar 
-                              ? formatCurrency(deal.restoAPagar) 
-                              : 'No especificado'
-                          }
-                        </p>
-                      </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="font-medium text-gray-700">Total:</span>
+                      <p className="text-gray-900 font-semibold">
+                        {deal.importeTotal
+                          ? formatCurrency(deal.importeTotal)
+                          : 'No especificado'}
+                      </p>
                     </div>
+                    <div>
+                      <span className="font-medium text-gray-700">Seña:</span>
+                      <p className="text-gray-900 font-semibold">
+                        {deal.importeSena
+                          ? formatCurrency(deal.importeSena)
+                          : 'No especificado'}
+                      </p>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="font-medium text-gray-700">
+                        Falta abonar:
+                      </span>
+                      <p className="text-gray-900 font-semibold">
+                        {deal.importeTotal && deal.importeSena
+                          ? formatCurrency(deal.importeTotal - deal.importeSena)
+                          : deal.restoAPagar
+                            ? formatCurrency(deal.restoAPagar)
+                            : 'No especificado'}
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Fechas */}
                 <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
                   <div className="flex items-center space-x-2 mb-2">
                     <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
-                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      <svg
+                        className="w-4 h-4 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
                       </svg>
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900 text-base">Fechas</h3>
-                      <p className="text-sm text-gray-600">Cronología del deal</p>
+                      <h3 className="font-semibold text-gray-900 text-base">
+                        Fechas
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        Cronología del deal
+                      </p>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>
-                      <span className="font-medium text-gray-700">Reserva:</span>
+                      <span className="font-medium text-gray-700">
+                        Reserva:
+                      </span>
                       <p className="text-gray-900 font-semibold">
-                        {deal.fechaReservaDesde ? new Date(deal.fechaReservaDesde).toLocaleDateString('es-ES') : 'No especificada'}
+                        {deal.fechaReservaDesde
+                          ? new Date(deal.fechaReservaDesde).toLocaleDateString(
+                              'es-ES'
+                            )
+                          : 'No especificada'}
                       </p>
                     </div>
                     <div>
                       <span className="font-medium text-gray-700">Expira:</span>
                       <p className="text-gray-900 font-semibold">
-                        {deal.fechaReservaExpira ? new Date(deal.fechaReservaExpira).toLocaleDateString('es-ES') : 'No especificada'}
+                        {deal.fechaReservaExpira
+                          ? new Date(
+                              deal.fechaReservaExpira
+                            ).toLocaleDateString('es-ES')
+                          : 'No especificada'}
                       </p>
                     </div>
                     <div className="col-span-2">
                       <span className="font-medium text-gray-700">Estado:</span>
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        deal.estado === 'nuevo' ? 'bg-blue-100 text-blue-800' :
-                        deal.estado === 'reservado' ? 'bg-yellow-100 text-yellow-800' :
-                        deal.estado === 'vendido' ? 'bg-green-100 text-green-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {deal.estado?.charAt(0).toUpperCase() + deal.estado?.slice(1) || 'Nuevo'}
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          deal.estado === 'nuevo'
+                            ? 'bg-blue-100 text-blue-800'
+                            : deal.estado === 'reservado'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : deal.estado === 'vendido'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {deal.estado?.charAt(0).toUpperCase() +
+                          deal.estado?.slice(1) || 'Nuevo'}
                       </span>
                     </div>
                   </div>
@@ -1022,13 +1294,15 @@ export default function DealDetail() {
             </div>
 
             {/* Información de Venta */}
-            <DealVentaInfo 
+            <DealVentaInfo
               dealId={deal.id}
               initialData={{
                 montoVenta: deal.importeTotal,
-                formaPago: deal.formaPagoSena as 'contado' | 'financiado' | 'mixto' || 'contado',
+                formaPago:
+                  (deal.formaPagoSena as 'contado' | 'financiado' | 'mixto') ||
+                  'contado',
                 garantia: 'standard' as 'premium' | 'standard',
-                entidadFinanciera: deal.entidadFinanciera
+                entidadFinanciera: deal.entidadFinanciera,
               }}
               onUpdate={(data) => {
                 // Aquí podrías actualizar el estado del deal si es necesario
@@ -1037,16 +1311,20 @@ export default function DealDetail() {
             />
 
             {/* Cambio de Nombre */}
-            <div className={`rounded-xl shadow-sm border p-6 ${
-              deal.estado === 'facturado' 
-                ? 'bg-white border-slate-200' 
-                : 'bg-gray-100 border-gray-300'
-            }`}>
-              <h2 className={`text-lg font-semibold mb-4 ${
-                deal.estado === 'facturado' 
-                  ? 'text-gray-900' 
-                  : 'text-gray-500'
-              }`}>
+            <div
+              className={`rounded-xl shadow-sm border p-6 ${
+                deal.estado === 'facturado'
+                  ? 'bg-white border-slate-200'
+                  : 'bg-gray-100 border-gray-300'
+              }`}
+            >
+              <h2
+                className={`text-lg font-semibold mb-4 ${
+                  deal.estado === 'facturado'
+                    ? 'text-gray-900'
+                    : 'text-gray-500'
+                }`}
+              >
                 Cambio de Nombre
                 {deal.estado !== 'facturado' && (
                   <span className="text-sm font-normal text-gray-400 ml-2">
@@ -1054,14 +1332,16 @@ export default function DealDetail() {
                   </span>
                 )}
               </h2>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Cambio de nombre solicitado */}
-                <div className={`rounded-lg p-4 border ${
-                  deal.estado === 'facturado' 
-                    ? 'bg-orange-50 border-orange-200' 
-                    : 'bg-gray-50 border-gray-200'
-                }`}>
+                <div
+                  className={`rounded-lg p-4 border ${
+                    deal.estado === 'facturado'
+                      ? 'bg-orange-50 border-orange-200'
+                      : 'bg-gray-50 border-gray-200'
+                  }`}
+                >
                   <div className="flex items-center space-x-3">
                     <input
                       type="checkbox"
@@ -1075,22 +1355,27 @@ export default function DealDetail() {
                           : 'text-gray-400 bg-gray-200 border-gray-300 cursor-not-allowed'
                       }`}
                     />
-                    <label htmlFor="cambioNombreSolicitado" className={`text-sm font-medium cursor-pointer ${
-                      deal.estado === 'facturado' 
-                        ? 'text-orange-800' 
-                        : 'text-gray-500 cursor-not-allowed'
-                    }`}>
+                    <label
+                      htmlFor="cambioNombreSolicitado"
+                      className={`text-sm font-medium cursor-pointer ${
+                        deal.estado === 'facturado'
+                          ? 'text-orange-800'
+                          : 'text-gray-500 cursor-not-allowed'
+                      }`}
+                    >
                       Cambio de nombre solicitado
                     </label>
                   </div>
                 </div>
 
                 {/* Documentación recibida */}
-                <div className={`rounded-lg p-4 border ${
-                  deal.estado === 'facturado' 
-                    ? 'bg-green-50 border-green-200' 
-                    : 'bg-gray-50 border-gray-200'
-                }`}>
+                <div
+                  className={`rounded-lg p-4 border ${
+                    deal.estado === 'facturado'
+                      ? 'bg-green-50 border-green-200'
+                      : 'bg-gray-50 border-gray-200'
+                  }`}
+                >
                   <div className="flex items-center space-x-3">
                     <input
                       type="checkbox"
@@ -1104,22 +1389,27 @@ export default function DealDetail() {
                           : 'text-gray-400 bg-gray-200 border-gray-300 cursor-not-allowed'
                       }`}
                     />
-                    <label htmlFor="documentacionRecibida" className={`text-sm font-medium cursor-pointer ${
-                      deal.estado === 'facturado' 
-                        ? 'text-green-800' 
-                        : 'text-gray-500 cursor-not-allowed'
-                    }`}>
+                    <label
+                      htmlFor="documentacionRecibida"
+                      className={`text-sm font-medium cursor-pointer ${
+                        deal.estado === 'facturado'
+                          ? 'text-green-800'
+                          : 'text-gray-500 cursor-not-allowed'
+                      }`}
+                    >
                       Documentación recibida
                     </label>
                   </div>
                 </div>
 
                 {/* Cliente avisado */}
-                <div className={`rounded-lg p-4 border ${
-                  deal.estado === 'facturado' 
-                    ? 'bg-blue-50 border-blue-200' 
-                    : 'bg-gray-50 border-gray-200'
-                }`}>
+                <div
+                  className={`rounded-lg p-4 border ${
+                    deal.estado === 'facturado'
+                      ? 'bg-blue-50 border-blue-200'
+                      : 'bg-gray-50 border-gray-200'
+                  }`}
+                >
                   <div className="flex items-center space-x-3">
                     <input
                       type="checkbox"
@@ -1133,22 +1423,27 @@ export default function DealDetail() {
                           : 'text-gray-400 bg-gray-200 border-gray-300 cursor-not-allowed'
                       }`}
                     />
-                    <label htmlFor="clienteAvisado" className={`text-sm font-medium cursor-pointer ${
-                      deal.estado === 'facturado' 
-                        ? 'text-blue-800' 
-                        : 'text-gray-500 cursor-not-allowed'
-                    }`}>
+                    <label
+                      htmlFor="clienteAvisado"
+                      className={`text-sm font-medium cursor-pointer ${
+                        deal.estado === 'facturado'
+                          ? 'text-blue-800'
+                          : 'text-gray-500 cursor-not-allowed'
+                      }`}
+                    >
                       Cliente avisado
                     </label>
                   </div>
                 </div>
 
                 {/* Documentación retirada */}
-                <div className={`rounded-lg p-4 border ${
-                  deal.estado === 'facturado' 
-                    ? 'bg-purple-50 border-purple-200' 
-                    : 'bg-gray-50 border-gray-200'
-                }`}>
+                <div
+                  className={`rounded-lg p-4 border ${
+                    deal.estado === 'facturado'
+                      ? 'bg-purple-50 border-purple-200'
+                      : 'bg-gray-50 border-gray-200'
+                  }`}
+                >
                   <div className="flex items-center space-x-3">
                     <input
                       type="checkbox"
@@ -1162,11 +1457,14 @@ export default function DealDetail() {
                           : 'text-gray-400 bg-gray-200 border-gray-300 cursor-not-allowed'
                       }`}
                     />
-                    <label htmlFor="documentacionRetirada" className={`text-sm font-medium cursor-pointer ${
-                      deal.estado === 'facturado' 
-                        ? 'text-purple-800' 
-                        : 'text-gray-500 cursor-not-allowed'
-                    }`}>
+                    <label
+                      htmlFor="documentacionRetirada"
+                      className={`text-sm font-medium cursor-pointer ${
+                        deal.estado === 'facturado'
+                          ? 'text-purple-800'
+                          : 'text-gray-500 cursor-not-allowed'
+                      }`}
+                    >
                       Documentación retirada
                     </label>
                   </div>
@@ -1176,15 +1474,17 @@ export default function DealDetail() {
 
             {/* Notas */}
             {deal?.id ? (
-              <NotasSection 
-                notas={notas} 
-                onNotasChange={setNotas} 
-                entityId={deal.id} 
+              <NotasSection
+                notas={notas}
+                onNotasChange={setNotas}
+                entityId={deal.id}
                 entityType="deal"
               />
             ) : (
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Notas</h2>
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Notas
+                </h2>
                 <p className="text-gray-500 text-center py-4">Cargando...</p>
               </div>
             )}
@@ -1192,30 +1492,45 @@ export default function DealDetail() {
 
           {/* Panel Lateral */}
           <div className="space-y-6">
-            
             {/* Documentación */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Documentación</h2>
-              
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                Documentación
+              </h2>
+
               <div className="space-y-3">
                 {/* Contrato de Reserva */}
                 <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      deal.contratoReserva ? 'bg-green-100' : 'bg-gray-100'
-                    }`}>
-                      <svg className={`w-4 h-4 ${deal.contratoReserva ? 'text-green-600' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        deal.contratoReserva ? 'bg-green-100' : 'bg-gray-100'
+                      }`}
+                    >
+                      <svg
+                        className={`w-4 h-4 ${deal.contratoReserva ? 'text-green-600' : 'text-gray-400'}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
                       </svg>
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">Contrato de Reserva</p>
+                      <p className="font-medium text-gray-900">
+                        Contrato de Reserva
+                      </p>
                       <p className="text-sm text-gray-500">
                         {deal.contratoReserva ? 'Generado' : 'No generado'}
                       </p>
                     </div>
                   </div>
-                <button
+                  <button
                     onClick={handleGenerarContratoReserva}
                     disabled={isUpdating}
                     className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
@@ -1225,26 +1540,40 @@ export default function DealDetail() {
                     }`}
                   >
                     {deal.contratoReserva ? 'Descargar' : 'Generar'}
-                </button>
-              </div>
-              
+                  </button>
+                </div>
+
                 {/* Contrato de Venta */}
                 <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      deal.contratoVenta ? 'bg-green-100' : 'bg-gray-100'
-                    }`}>
-                      <svg className={`w-4 h-4 ${deal.contratoVenta ? 'text-green-600' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        deal.contratoVenta ? 'bg-green-100' : 'bg-gray-100'
+                      }`}
+                    >
+                      <svg
+                        className={`w-4 h-4 ${deal.contratoVenta ? 'text-green-600' : 'text-gray-400'}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
                       </svg>
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">Contrato de Venta</p>
+                      <p className="font-medium text-gray-900">
+                        Contrato de Venta
+                      </p>
                       <p className="text-sm text-gray-500">
                         {deal.contratoVenta ? 'Generado' : 'No generado'}
-                        </p>
-                      </div>
+                      </p>
                     </div>
+                  </div>
                   <button
                     onClick={handleGenerarContratoVenta}
                     disabled={isUpdating || !canGenerateContratoVenta}
@@ -1252,30 +1581,42 @@ export default function DealDetail() {
                       deal.contratoVenta
                         ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                         : !canGenerateContratoVenta
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                     }`}
                   >
                     {deal.contratoVenta ? 'Descargar' : 'Generar'}
                   </button>
-                  </div>
+                </div>
 
                 {/* Factura */}
                 <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      deal.factura ? 'bg-green-100' : 'bg-gray-100'
-                    }`}>
-                      <svg className={`w-4 h-4 ${deal.factura ? 'text-green-600' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        deal.factura ? 'bg-green-100' : 'bg-gray-100'
+                      }`}
+                    >
+                      <svg
+                        className={`w-4 h-4 ${deal.factura ? 'text-green-600' : 'text-gray-400'}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                        />
                       </svg>
-              </div>
+                    </div>
                     <div>
                       <p className="font-medium text-gray-900">Factura</p>
                       <p className="text-sm text-gray-500">
                         {deal.factura ? 'Generada' : 'No generada'}
                       </p>
-            </div>
+                    </div>
                   </div>
                   <button
                     onClick={handleGenerarFactura}
@@ -1284,30 +1625,50 @@ export default function DealDetail() {
                       deal.factura
                         ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                         : !canGenerateFactura
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
                     }`}
                   >
                     {deal.factura ? 'Descargar' : 'Generar'}
                   </button>
-          </div>
+                </div>
 
                 {/* Mandato Gestoría */}
                 <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      getDocumentFile('mandato_gestoria') ? 'bg-green-100' : 'bg-gray-100'
-                    }`}>
-                      <svg className={`w-4 h-4 ${
-                        getDocumentFile('mandato_gestoria') ? 'text-green-600' : 'text-gray-400'
-                      }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        getDocumentFile('mandato_gestoria')
+                          ? 'bg-green-100'
+                          : 'bg-gray-100'
+                      }`}
+                    >
+                      <svg
+                        className={`w-4 h-4 ${
+                          getDocumentFile('mandato_gestoria')
+                            ? 'text-green-600'
+                            : 'text-gray-400'
+                        }`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
                       </svg>
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">Mandato Gestoría</p>
+                      <p className="font-medium text-gray-900">
+                        Mandato Gestoría
+                      </p>
                       <p className="text-sm text-gray-500">
-                        {getDocumentFile('mandato_gestoria') ? 'Archivo disponible' : 'No hay archivo subido'}
+                        {getDocumentFile('mandato_gestoria')
+                          ? 'Archivo disponible'
+                          : 'No hay archivo subido'}
                       </p>
                     </div>
                   </div>
@@ -1333,19 +1694,39 @@ export default function DealDetail() {
                 {/* Contrato Parte 2 */}
                 <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      getDocumentFile('contrato_parte2') ? 'bg-green-100' : 'bg-gray-100'
-                    }`}>
-                      <svg className={`w-4 h-4 ${
-                        getDocumentFile('contrato_parte2') ? 'text-green-600' : 'text-gray-400'
-                      }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        getDocumentFile('contrato_parte2')
+                          ? 'bg-green-100'
+                          : 'bg-gray-100'
+                      }`}
+                    >
+                      <svg
+                        className={`w-4 h-4 ${
+                          getDocumentFile('contrato_parte2')
+                            ? 'text-green-600'
+                            : 'text-gray-400'
+                        }`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
                       </svg>
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">Contrato Parte 2</p>
+                      <p className="font-medium text-gray-900">
+                        Contrato Parte 2
+                      </p>
                       <p className="text-sm text-gray-500">
-                        {getDocumentFile('contrato_parte2') ? 'Archivo disponible' : 'No hay archivo subido'}
+                        {getDocumentFile('contrato_parte2')
+                          ? 'Archivo disponible'
+                          : 'No hay archivo subido'}
                       </p>
                     </div>
                   </div>
@@ -1371,19 +1752,39 @@ export default function DealDetail() {
                 {/* Hoja de Garantía */}
                 <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      getDocumentFile('hoja_garantia') ? 'bg-green-100' : 'bg-gray-100'
-                    }`}>
-                      <svg className={`w-4 h-4 ${
-                        getDocumentFile('hoja_garantia') ? 'text-green-600' : 'text-gray-400'
-                      }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        getDocumentFile('hoja_garantia')
+                          ? 'bg-green-100'
+                          : 'bg-gray-100'
+                      }`}
+                    >
+                      <svg
+                        className={`w-4 h-4 ${
+                          getDocumentFile('hoja_garantia')
+                            ? 'text-green-600'
+                            : 'text-gray-400'
+                        }`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                        />
                       </svg>
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">Hoja de Garantía</p>
+                      <p className="font-medium text-gray-900">
+                        Hoja de Garantía
+                      </p>
                       <p className="text-sm text-gray-500">
-                        {getDocumentFile('hoja_garantia') ? 'Archivo disponible' : 'No hay archivo subido'}
+                        {getDocumentFile('hoja_garantia')
+                          ? 'Archivo disponible'
+                          : 'No hay archivo subido'}
                       </p>
                     </div>
                   </div>
@@ -1408,31 +1809,48 @@ export default function DealDetail() {
               </div>
             </div>
 
-
             {/* Información Adicional Compacta */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-              <h2 className="text-sm font-semibold text-gray-900 mb-3">Información del Deal</h2>
-              
+              <h2 className="text-sm font-semibold text-gray-900 mb-3">
+                Información del Deal
+              </h2>
+
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
                   <span className="font-medium text-gray-700">Creado por:</span>
-                  <p className="text-gray-900">{deal.responsableComercial || 'No asignado'}</p>
+                  <p className="text-gray-900">
+                    {deal.responsableComercial || 'No asignado'}
+                  </p>
                 </div>
                 <div>
-                  <span className="font-medium text-gray-700">Fecha creación:</span>
-                  <p className="text-gray-900">{new Date(deal.fechaCreacion).toLocaleDateString('es-ES')}</p>
+                  <span className="font-medium text-gray-700">
+                    Fecha creación:
+                  </span>
+                  <p className="text-gray-900">
+                    {new Date(deal.fechaCreacion).toLocaleDateString('es-ES')}
+                  </p>
                 </div>
                 <div className="col-span-2">
-                  <span className="font-medium text-gray-700">Última actualización:</span>
-                  <p className="text-gray-900">{new Date(deal.updatedAt).toLocaleDateString('es-ES')} {new Date(deal.updatedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</p>
+                  <span className="font-medium text-gray-700">
+                    Última actualización:
+                  </span>
+                  <p className="text-gray-900">
+                    {new Date(deal.updatedAt).toLocaleDateString('es-ES')}{' '}
+                    {new Date(deal.updatedAt).toLocaleTimeString('es-ES', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </p>
                 </div>
               </div>
             </div>
-            
+
             {/* Recordatorios */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Recordatorios</h2>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Recordatorios
+                </h2>
                 <button
                   onClick={() => setShowRecordatorioForm(!showRecordatorioForm)}
                   className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
@@ -1440,86 +1858,132 @@ export default function DealDetail() {
                   {showRecordatorioForm ? 'Cancelar' : 'Agregar recordatorio'}
                 </button>
               </div>
-              
+
               {/* Formulario para agregar nuevo recordatorio */}
               {showRecordatorioForm && (
                 <div className="mb-4 space-y-3 p-4 bg-gray-50 rounded-lg border">
-                <input
-                  type="text"
-                  value={nuevoRecordatorio.titulo}
-                  onChange={(e) => setNuevoRecordatorio({...nuevoRecordatorio, titulo: e.target.value})}
-                  placeholder="Título del recordatorio..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <input
-                  type="datetime-local"
-                  value={nuevoRecordatorio.fecha}
-                  onChange={(e) => setNuevoRecordatorio({...nuevoRecordatorio, fecha: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <textarea
-                  value={nuevoRecordatorio.descripcion}
-                  onChange={(e) => setNuevoRecordatorio({...nuevoRecordatorio, descripcion: e.target.value})}
-                  placeholder="Descripción..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                  rows={2}
-                />
+                  <input
+                    type="text"
+                    value={nuevoRecordatorio.titulo}
+                    onChange={(e) =>
+                      setNuevoRecordatorio({
+                        ...nuevoRecordatorio,
+                        titulo: e.target.value,
+                      })
+                    }
+                    placeholder="Título del recordatorio..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <input
+                    type="datetime-local"
+                    value={nuevoRecordatorio.fecha}
+                    onChange={(e) =>
+                      setNuevoRecordatorio({
+                        ...nuevoRecordatorio,
+                        fecha: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <textarea
+                    value={nuevoRecordatorio.descripcion}
+                    onChange={(e) =>
+                      setNuevoRecordatorio({
+                        ...nuevoRecordatorio,
+                        descripcion: e.target.value,
+                      })
+                    }
+                    placeholder="Descripción..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    rows={2}
+                  />
                   <div className="flex space-x-2">
-                <button
-                  onClick={handleAgregarRecordatorio}
-                  disabled={!nuevoRecordatorio.titulo.trim() || !nuevoRecordatorio.fecha}
+                    <button
+                      onClick={handleAgregarRecordatorio}
+                      disabled={
+                        !nuevoRecordatorio.titulo.trim() ||
+                        !nuevoRecordatorio.fecha
+                      }
                       className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                >
-                  Agregar Recordatorio
-                </button>
+                    >
+                      Agregar Recordatorio
+                    </button>
                     <button
                       onClick={() => setShowRecordatorioForm(false)}
                       className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
                     >
                       Cancelar
                     </button>
-              </div>
+                  </div>
                 </div>
               )}
-              
+
               {/* Lista de recordatorios */}
               <div className="space-y-3">
-                {recordatorios.map(recordatorio => (
-                  <div key={recordatorio.id} className={`border rounded-lg p-3 ${
-                    recordatorio.completado ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'
-                  }`}>
+                {recordatorios.map((recordatorio) => (
+                  <div
+                    key={recordatorio.id}
+                    className={`border rounded-lg p-3 ${
+                      recordatorio.completado
+                        ? 'bg-green-50 border-green-200'
+                        : 'bg-yellow-50 border-yellow-200'
+                    }`}
+                  >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center space-x-2">
                           <input
                             type="checkbox"
                             checked={recordatorio.completado}
-                            onChange={() => handleCompletarRecordatorio(recordatorio.id)}
+                            onChange={() =>
+                              handleCompletarRecordatorio(recordatorio.id)
+                            }
                             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                           />
-                          <h4 className={`font-medium ${
-                            recordatorio.completado ? 'text-green-700 line-through' : 'text-gray-900'
-                          }`}>
+                          <h4
+                            className={`font-medium ${
+                              recordatorio.completado
+                                ? 'text-green-700 line-through'
+                                : 'text-gray-900'
+                            }`}
+                          >
                             {recordatorio.titulo}
                           </h4>
                         </div>
-                        <p className={`text-sm mt-1 ${
-                          recordatorio.completado ? 'text-green-600' : 'text-gray-600'
-                        }`}>
+                        <p
+                          className={`text-sm mt-1 ${
+                            recordatorio.completado
+                              ? 'text-green-600'
+                              : 'text-gray-600'
+                          }`}
+                        >
                           {recordatorio.descripcion}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
-                          {recordatorio.fecha.toLocaleDateString()} {recordatorio.fecha.toLocaleTimeString()}
+                          {recordatorio.fecha.toLocaleDateString()}{' '}
+                          {recordatorio.fecha.toLocaleTimeString()}
                         </p>
                       </div>
-                      
+
                       <button
-                        onClick={() => handleEliminarRecordatorio(recordatorio.id)}
+                        onClick={() =>
+                          handleEliminarRecordatorio(recordatorio.id)
+                        }
                         className="ml-4 p-2 text-gray-400 hover:text-red-600 transition-colors"
                         title="Eliminar recordatorio"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
                         </svg>
                       </button>
                     </div>
@@ -1537,8 +2001,18 @@ export default function DealDetail() {
                     disabled={isUpdating}
                     className="px-6 py-3 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    <svg
+                      className="w-5 h-5 inline mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
                     </svg>
                     Anular Reserva
                   </button>
@@ -1558,16 +2032,32 @@ export default function DealDetail() {
           <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
             <div className="text-center">
               <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
-                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 19.5c-.77.833.192 2.5 1.732 2.5z" />
+                <svg
+                  className="h-6 w-6 text-red-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 19.5c-.77.833.192 2.5 1.732 2.5z"
+                  />
                 </svg>
               </div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">
                 ¿Anular Reserva?
               </h3>
               <p className="text-sm text-gray-500 mb-6">
-                ¿Estás seguro de que quieres anular la reserva del deal <strong>{deal?.numero}</strong>?<br/><br/>
-                Esto liberará el vehículo <strong>{deal?.vehiculo?.marca} {deal?.vehiculo?.modelo}</strong> y eliminará el deal permanentemente.
+                ¿Estás seguro de que quieres anular la reserva del deal{' '}
+                <strong>{deal?.numero}</strong>?<br />
+                <br />
+                Esto liberará el vehículo{' '}
+                <strong>
+                  {deal?.vehiculo?.marca} {deal?.vehiculo?.modelo}
+                </strong>{' '}
+                y eliminará el deal permanentemente.
               </p>
               <div className="flex space-x-3">
                 <button

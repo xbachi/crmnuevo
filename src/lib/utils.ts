@@ -1,10 +1,12 @@
 export function formatDate(dateString: string): string {
   const date = new Date(dateString)
-  return date.toLocaleDateString('es-ES', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  })
+  if (isNaN(date.getTime())) return 'Fecha inválida'
+
+  const day = date.getDate().toString().padStart(2, '0')
+  const month = (date.getMonth() + 1).toString().padStart(2, '0')
+  const year = date.getFullYear()
+
+  return `${day}/${month}/${year}`
 }
 
 export function formatDateTime(dateString: string): string {
@@ -14,7 +16,7 @@ export function formatDateTime(dateString: string): string {
     month: 'long',
     day: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
   })
 }
 
@@ -32,31 +34,47 @@ export function formatCurrency(amount: number): string {
     // Para números con decimales: separador de miles con punto, decimales con coma (máximo 2)
     const parts = roundedAmount.toString().split('.')
     const integerPart = formatNumberWithThousands(parseInt(parts[0]))
-    const decimalPart = parts[1] ? ',' + parts[1].padEnd(2, '0').substring(0, 2) : ''
+    const decimalPart = parts[1]
+      ? ',' + parts[1].padEnd(2, '0').substring(0, 2)
+      : ''
     return `${integerPart}${decimalPart}€`
   }
 }
 
-export function formatVehicleReference(referencia: string, tipo: string): string {
+export function formatVehicleReference(
+  referencia: string,
+  tipo: string
+): string {
   if (!referencia) return ''
-  
+
   // Limpiar la referencia de espacios y caracteres especiales, mantener solo alfanuméricos y guiones
-  const cleanRef = referencia.trim().replace(/[^a-zA-Z0-9-]/g, '').toUpperCase()
-  
+  const cleanRef = referencia
+    .trim()
+    .replace(/[^a-zA-Z0-9-]/g, '')
+    .toUpperCase()
+
   // Normalizar el tipo para manejar tanto letras como texto completo
   const normalizedTipo = tipo?.toUpperCase()
-  
+
   // Determinar el tipo real basado en el tipo normalizado
   let tipoReal = 'C' // Por defecto compra
-  
+
   if (normalizedTipo === 'I' || normalizedTipo === 'INVERSOR') {
     tipoReal = 'I'
-  } else if (normalizedTipo === 'D' || normalizedTipo === 'DEPOSITO VENTA' || normalizedTipo === 'DEPOSITO') {
+  } else if (
+    normalizedTipo === 'D' ||
+    normalizedTipo === 'DEPOSITO VENTA' ||
+    normalizedTipo === 'DEPOSITO'
+  ) {
     tipoReal = 'D'
-  } else if (normalizedTipo === 'R' || normalizedTipo === 'COCHE R' || normalizedTipo === 'RENTING') {
+  } else if (
+    normalizedTipo === 'R' ||
+    normalizedTipo === 'COCHE R' ||
+    normalizedTipo === 'RENTING'
+  ) {
     tipoReal = 'R'
   }
-  
+
   switch (tipoReal) {
     case 'I': // Inversores: I-XXXX
       // Si ya tiene I- al inicio, mantenerlo
@@ -70,7 +88,7 @@ export function formatVehicleReference(referencia: string, tipo: string): string
       }
       // Si es solo número, agregar I-
       return `I-${cleanRef}`
-      
+
     case 'D': // Depósitos: D-XXXX
       // Si ya tiene D- al inicio, mantenerlo
       if (cleanRef.startsWith('D-')) {
@@ -83,7 +101,7 @@ export function formatVehicleReference(referencia: string, tipo: string): string
       }
       // Si es solo número, agregar D-
       return `D-${cleanRef}`
-      
+
     case 'R': // Renting: R-XXXX
       // Si ya tiene R- al inicio, mantenerlo
       if (cleanRef.startsWith('R-')) {
@@ -96,7 +114,7 @@ export function formatVehicleReference(referencia: string, tipo: string): string
       }
       // Si es solo número, agregar R-
       return `R-${cleanRef}`
-      
+
     default: // Compras: #XXXX
       // Si ya tiene # al inicio, mantenerlo sin duplicar
       if (cleanRef.startsWith('#')) {
@@ -108,14 +126,21 @@ export function formatVehicleReference(referencia: string, tipo: string): string
 }
 
 // Función para referencias cortas en dashboard y espacios reducidos
-export function formatVehicleReferenceShort(referencia: string, tipo: string): string {
+export function formatVehicleReferenceShort(
+  referencia: string,
+  tipo: string
+): string {
   const fullRef = formatVehicleReference(referencia, tipo)
   if (!fullRef) return ''
-  
+
   const normalizedTipo = tipo?.toUpperCase()
-  
+
   // Para compras: solo # + últimos 2 dígitos
-  if (normalizedTipo === 'C' || normalizedTipo === 'COMPRA' || !normalizedTipo) {
+  if (
+    normalizedTipo === 'C' ||
+    normalizedTipo === 'COMPRA' ||
+    !normalizedTipo
+  ) {
     // Extraer números del final
     const numbers = fullRef.replace(/[^0-9]/g, '')
     if (numbers.length >= 2) {
@@ -123,7 +148,7 @@ export function formatVehicleReferenceShort(referencia: string, tipo: string): s
     }
     return fullRef
   }
-  
+
   // Para otros tipos: LETRA-últimos dígitos (máximo 5 caracteres)
   if (fullRef.includes('-')) {
     const [prefix, suffix] = fullRef.split('-')
@@ -132,7 +157,7 @@ export function formatVehicleReferenceShort(referencia: string, tipo: string): s
     }
     return fullRef
   }
-  
+
   return fullRef
 }
 
@@ -146,9 +171,41 @@ export function formatPercentage(value: number): string {
 }
 
 // Función para generar el slug del vehículo
-export function generateVehicleSlug(vehiculo: { id: number; marca: string; modelo: string }): string {
+export function generateVehicleSlug(vehiculo: {
+  id: number
+  marca: string
+  modelo: string
+}): string {
   // Usar ID + marca + modelo (formato simple)
   const cleanMarca = vehiculo.marca.toLowerCase().replace(/[^a-z0-9]/g, '')
   const cleanModelo = vehiculo.modelo.toLowerCase().replace(/[^a-z0-9]/g, '')
   return `${vehiculo.id}-${cleanMarca}-${cleanModelo}`
+}
+
+// Función para generar el slug del cliente
+export function generateClienteSlug(cliente: {
+  id: number
+  nombre: string
+  apellidos: string
+}): string {
+  const cleanNombre = cliente.nombre.toLowerCase().replace(/[^a-z0-9]/g, '')
+  const cleanApellidos = cliente.apellidos
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+
+  return `${cliente.id}-${cleanNombre}-${cleanApellidos}`
+}
+
+// Función para generar el slug del inversor
+export function generateInversorSlug(inversor: {
+  id: number
+  nombre: string
+  apellidos: string
+}): string {
+  const cleanNombre = inversor.nombre.toLowerCase().replace(/[^a-z0-9]/g, '')
+  const cleanApellidos = inversor.apellidos
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+
+  return `${inversor.id}-${cleanNombre}-${cleanApellidos}`
 }

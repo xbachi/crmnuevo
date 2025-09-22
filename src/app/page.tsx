@@ -3,13 +3,18 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
 import Link from 'next/link'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
+import ProtectedRoute from '@/components/ProtectedRoute'
 
 // Lazy loading para componentes pesados
 const RemindersList = lazy(() => import('@/components/RemindersList'))
 const DashboardReminders = lazy(() => import('@/components/DashboardReminders'))
-const DashboardRecordatorios = lazy(() => import('@/components/DashboardRecordatorios'))
+const DashboardRecordatorios = lazy(
+  () => import('@/components/DashboardRecordatorios')
+)
 const VentasPorMes = lazy(() => import('@/components/VentasPorMes'))
-const InteractiveMetricsChart = lazy(() => import('@/components/InteractiveMetricsChart'))
+const InteractiveMetricsChart = lazy(
+  () => import('@/components/InteractiveMetricsChart')
+)
 
 interface DashboardStats {
   totalActivos: number
@@ -34,20 +39,21 @@ interface UltimaOperacion {
   precio: number
 }
 
-
 export default function Home() {
   const [stats, setStats] = useState<DashboardStats>({
     totalActivos: 0,
     publicados: 0,
     enProceso: 0,
-    vehiculosItvVencida: 0
+    vehiculosItvVencida: 0,
   })
   const [depositoStats, setDepositoStats] = useState<DepositoStats>({
     totalDepositos: 0,
     enProceso: 0,
-    publicados: 0
+    publicados: 0,
   })
-  const [ultimasOperaciones, setUltimasOperaciones] = useState<UltimaOperacion[]>([])
+  const [ultimasOperaciones, setUltimasOperaciones] = useState<
+    UltimaOperacion[]
+  >([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -59,8 +65,8 @@ export default function Home() {
       // Cargar estadísticas reales de vehículos con caché
       const vehiculoStatsResponse = await fetch('/api/vehiculos/stats', {
         headers: {
-          'Cache-Control': 'max-age=300' // 5 minutos de caché
-        }
+          'Cache-Control': 'max-age=300', // 5 minutos de caché
+        },
       })
       if (vehiculoStatsResponse.ok) {
         const vehiculoStats = await vehiculoStatsResponse.json()
@@ -68,7 +74,7 @@ export default function Home() {
           totalActivos: vehiculoStats.totalActivos,
           publicados: vehiculoStats.publicados,
           enProceso: vehiculoStats.enProceso,
-          vehiculosItvVencida: 3 // Mantener por ahora, se puede implementar después
+          vehiculosItvVencida: 3, // Mantener por ahora, se puede implementar después
         })
       } else {
         // Fallback a datos simulados si hay error
@@ -76,15 +82,15 @@ export default function Home() {
           totalActivos: 47,
           publicados: 23,
           enProceso: 24,
-          vehiculosItvVencida: 3
+          vehiculosItvVencida: 3,
         })
       }
 
       // Cargar estadísticas de depósitos con caché
       const depositoStatsResponse = await fetch('/api/depositos/stats', {
         headers: {
-          'Cache-Control': 'max-age=300' // 5 minutos de caché
-        }
+          'Cache-Control': 'max-age=300', // 5 minutos de caché
+        },
       })
       if (depositoStatsResponse.ok) {
         const depositoStats = await depositoStatsResponse.json()
@@ -93,7 +99,7 @@ export default function Home() {
         setDepositoStats({
           totalDepositos: 0,
           enProceso: 0,
-          publicados: 0
+          publicados: 0,
         })
       }
 
@@ -112,12 +118,12 @@ export default function Home() {
         totalActivos: 47,
         publicados: 23,
         enProceso: 24,
-        vehiculosItvVencida: 3
+        vehiculosItvVencida: 3,
       })
       setDepositoStats({
         totalDepositos: 0,
         enProceso: 0,
-        publicados: 0
+        publicados: 0,
       })
       setUltimasOperaciones([])
       setIsLoading(false)
@@ -126,17 +132,19 @@ export default function Home() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
-    return date.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    })
+    if (isNaN(date.getTime())) return 'Fecha inválida'
+
+    const day = date.getDate().toString().padStart(2, '0')
+    const month = (date.getMonth() + 1).toString().padStart(2, '0')
+    const year = date.getFullYear()
+
+    return `${day}/${month}/${year}`
   }
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-ES', {
       style: 'currency',
-      currency: 'EUR'
+      currency: 'EUR',
     }).format(amount)
   }
 
@@ -180,281 +188,375 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-full bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
-        {/* Header */}
-        <div className="mb-6 sm:mb-8">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
-              <p className="text-sm sm:text-base text-gray-600">Bienvenido a SevenCars CRM - Resumen del día</p>
-            </div>
-            <Link 
-              href="/importar-csv"
-              className="flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm text-sm sm:text-base"
-            >
-              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-              </svg>
-              <span>Importar CSV</span>
-            </Link>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-          {/* Recordatorios - Columna Principal */}
-          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-            {/* Recordatorios Importantes */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-2">
-                <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Recordatorios Importantes</h2>
-                <div className="flex items-center gap-4">
-                  <Link 
-                    href="/deals" 
-                    className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 font-medium"
-                  >
-                    Ver todos los deals →
-                  </Link>
-                </div>
+    <ProtectedRoute>
+      <div className="min-h-full bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+          {/* Header */}
+          <div className="mb-6 sm:mb-8">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+                  Dashboard
+                </h1>
+                <p className="text-sm sm:text-base text-gray-600">
+                  Bienvenido a SevenCars CRM - Resumen del día
+                </p>
               </div>
-              
-              {/* Recordatorios específicos del dashboard */}
-              <Suspense fallback={<LoadingSkeleton />}>
-                <DashboardReminders />
-              </Suspense>
-              
-              {/* Separador */}
-              <div className="border-t border-gray-200 my-6"></div>
-              
-              {/* Recordatorios manuales (del sistema de recordatorios) */}
-              <div className="mb-4">
-                <Suspense fallback={<LoadingSkeleton />}>
-                  <DashboardRecordatorios />
-                </Suspense>
-              </div>
-              
-              {/* Últimas Operaciones */}
-              <div className="mt-4 sm:mt-6">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
-                  <h3 className="text-base sm:text-lg font-semibold text-gray-900">Últimas Operaciones</h3>
-                  <Link 
-                    href="/deals" 
-                    className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 font-medium"
-                  >
-                    Ver todas →
-                  </Link>
-                </div>
-                
-                {ultimasOperaciones.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                    {ultimasOperaciones.slice(0, 3).map((operacion) => (
-                      <div key={operacion.id} className="bg-white border border-gray-200 rounded-xl p-3 sm:p-4 shadow-sm hover:shadow-md transition-shadow">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1 min-w-0">
-                            <h4 className="text-xs sm:text-sm font-semibold text-gray-900 mb-1 truncate">
-                              Deal #{operacion.referencia}
-                            </h4>
-                            <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getEstadoColor(operacion.estado)}`}>
-                              {operacion.estado}
-                            </span>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <div>
-                            <p className="text-xs text-gray-500">Cliente</p>
-                            <p className="text-xs sm:text-sm text-gray-900 font-medium truncate">{operacion.cliente}</p>
-                          </div>
-                          
-                          <div>
-                            <p className="text-xs text-gray-500">Vehículo</p>
-                            <p className="text-xs sm:text-sm text-gray-900 truncate">{operacion.vehiculo}</p>
-                          </div>
-                          
-                          <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                            <div className="min-w-0 flex-1">
-                              <p className="text-xs text-gray-500">Precio</p>
-                              <p className="text-xs sm:text-sm font-semibold text-gray-900 truncate">{formatCurrency(operacion.precio)}</p>
-                            </div>
-                            <div className="text-right ml-2">
-                              <p className="text-xs text-gray-500">Fecha</p>
-                              <p className="text-xs text-gray-600">{formatDate(operacion.fecha)}</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-8 text-center">
-                    <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <span className="text-gray-400 text-xl">📋</span>
-                    </div>
-                    <p className="text-sm text-gray-500">No hay operaciones recientes</p>
-                    <p className="text-xs text-gray-400 mt-1">Las operaciones aparecerán aquí cuando se creen deals</p>
-                  </div>
-                )}
-              </div>
-              
-              {/* Gráfico Interactivo de Métricas */}
-              <div className="mt-6">
-                <Suspense fallback={<div className="h-64 bg-gray-100 rounded-lg animate-pulse" />}>
-                  <InteractiveMetricsChart 
-                    data={{
-                      vehiculosVendidos: stats.totalActivos - stats.enProceso - stats.publicados,
-                      enStock: stats.totalActivos,
-                      depositos: depositoStats.totalDepositos,
-                      enProceso: stats.enProceso + depositoStats.enProceso
-                    }}
+              <Link
+                href="/importar-csv"
+                className="flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm text-sm sm:text-base"
+              >
+                <svg
+                  className="w-4 h-4 sm:w-5 sm:h-5"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                    clipRule="evenodd"
                   />
-                </Suspense>
-              </div>
-              
-            </div>
-
-            {/* Acciones Rápidas */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6">Acciones Rápidas</h2>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                <Link
-                  href="/cargar-vehiculo"
-                  className="group bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg p-3 sm:p-4 hover:from-blue-600 hover:to-blue-700 transition-all duration-200 transform hover:scale-105"
-                >
-                  <div className="flex items-center space-x-2 sm:space-x-3">
-                    <span className="text-xl sm:text-2xl">➕</span>
-                    <div className="min-w-0">
-                      <h3 className="font-medium text-sm sm:text-base">Cargar Vehículo</h3>
-                      <p className="text-blue-100 text-xs sm:text-sm">Nuevo registro</p>
-                    </div>
-                  </div>
-                </Link>
-
-                <Link
-                  href="/vehiculos"
-                  className="group bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg p-3 sm:p-4 hover:from-green-600 hover:to-green-700 transition-all duration-200 transform hover:scale-105"
-                >
-                  <div className="flex items-center space-x-2 sm:space-x-3">
-                    <span className="text-xl sm:text-2xl">📋</span>
-                    <div className="min-w-0">
-                      <h3 className="font-medium text-sm sm:text-base">Ver Vehículos</h3>
-                      <p className="text-green-100 text-xs sm:text-sm">Gestionar inventario</p>
-                    </div>
-                  </div>
-                </Link>
-
-                <Link
-                  href="/kanban"
-                  className="group bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg p-3 sm:p-4 hover:from-purple-600 hover:to-purple-700 transition-all duration-200 transform hover:scale-105 sm:col-span-2 lg:col-span-1"
-                >
-                  <div className="flex items-center space-x-2 sm:space-x-3">
-                    <span className="text-xl sm:text-2xl">📊</span>
-                    <div className="min-w-0">
-                      <h3 className="font-medium text-sm sm:text-base">Proceso</h3>
-                      <p className="text-purple-100 text-xs sm:text-sm">Flujo de trabajo</p>
-                    </div>
-                  </div>
-                </Link>
-              </div>
+                </svg>
+                <span>Importar CSV</span>
+              </Link>
             </div>
           </div>
 
-          {/* Estadísticas - Sidebar */}
-          <div className="space-y-4 sm:space-y-6">
-            {/* Resumen de Vehículos */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
-              <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Resumen de Vehículos</h2>
-              
-              <div className="space-y-3 sm:space-y-4">
-                <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                  <div className="flex items-center space-x-2 sm:space-x-3">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <span className="text-white font-bold text-sm sm:text-base">📊</span>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs sm:text-sm text-gray-600">Total Activos</p>
-                      <p className="text-lg sm:text-xl font-bold text-gray-900">{stats.totalActivos}</p>
-                    </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+            {/* Recordatorios - Columna Principal */}
+            <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+              {/* Recordatorios Importantes */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-2">
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
+                    Recordatorios Importantes
+                  </h2>
+                  <div className="flex items-center gap-4">
+                    <Link
+                      href="/deals"
+                      className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      Ver todos los deals →
+                    </Link>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                  <div className="flex items-center space-x-2 sm:space-x-3">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <span className="text-white font-bold text-sm sm:text-base">✅</span>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs sm:text-sm text-gray-600">Publicados</p>
-                      <p className="text-lg sm:text-xl font-bold text-gray-900">{stats.publicados}</p>
-                    </div>
-                  </div>
+                {/* Recordatorios específicos del dashboard */}
+                <Suspense fallback={<LoadingSkeleton />}>
+                  <DashboardReminders />
+                </Suspense>
+
+                {/* Separador */}
+                <div className="border-t border-gray-200 my-6"></div>
+
+                {/* Recordatorios manuales (del sistema de recordatorios) */}
+                <div className="mb-4">
+                  <Suspense fallback={<LoadingSkeleton />}>
+                    <DashboardRecordatorios />
+                  </Suspense>
                 </div>
 
-                <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
-                  <div className="flex items-center space-x-2 sm:space-x-3">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <span className="text-white font-bold text-sm sm:text-base">🔧</span>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs sm:text-sm text-gray-600">En Proceso</p>
-                      <p className="text-lg sm:text-xl font-bold text-gray-900">{stats.enProceso}</p>
-                    </div>
+                {/* Últimas Operaciones */}
+                <div className="mt-4 sm:mt-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900">
+                      Últimas Operaciones
+                    </h3>
+                    <Link
+                      href="/deals"
+                      className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      Ver todas →
+                    </Link>
                   </div>
+
+                  {ultimasOperaciones.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                      {ultimasOperaciones.slice(0, 3).map((operacion) => (
+                        <div
+                          key={operacion.id}
+                          className="bg-white border border-gray-200 rounded-xl p-3 sm:p-4 shadow-sm hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-xs sm:text-sm font-semibold text-gray-900 mb-1 truncate">
+                                Deal #{operacion.referencia}
+                              </h4>
+                              <span
+                                className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getEstadoColor(operacion.estado)}`}
+                              >
+                                {operacion.estado}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div>
+                              <p className="text-xs text-gray-500">Cliente</p>
+                              <p className="text-xs sm:text-sm text-gray-900 font-medium truncate">
+                                {operacion.cliente}
+                              </p>
+                            </div>
+
+                            <div>
+                              <p className="text-xs text-gray-500">Vehículo</p>
+                              <p className="text-xs sm:text-sm text-gray-900 truncate">
+                                {operacion.vehiculo}
+                              </p>
+                            </div>
+
+                            <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs text-gray-500">Precio</p>
+                                <p className="text-xs sm:text-sm font-semibold text-gray-900 truncate">
+                                  {formatCurrency(operacion.precio)}
+                                </p>
+                              </div>
+                              <div className="text-right ml-2">
+                                <p className="text-xs text-gray-500">Fecha</p>
+                                <p className="text-xs text-gray-600">
+                                  {formatDate(operacion.fecha)}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-8 text-center">
+                      <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <span className="text-gray-400 text-xl">📋</span>
+                      </div>
+                      <p className="text-sm text-gray-500">
+                        No hay operaciones recientes
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Las operaciones aparecerán aquí cuando se creen deals
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Gráfico Interactivo de Métricas */}
+                <div className="mt-6">
+                  <Suspense
+                    fallback={
+                      <div className="h-64 bg-gray-100 rounded-lg animate-pulse" />
+                    }
+                  >
+                    <InteractiveMetricsChart
+                      data={{
+                        vehiculosVendidos:
+                          stats.totalActivos -
+                          stats.enProceso -
+                          stats.publicados,
+                        enStock: stats.totalActivos,
+                        depositos: depositoStats.totalDepositos,
+                        enProceso: stats.enProceso + depositoStats.enProceso,
+                      }}
+                    />
+                  </Suspense>
+                </div>
+              </div>
+
+              {/* Acciones Rápidas */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6">
+                  Acciones Rápidas
+                </h2>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                  <Link
+                    href="/cargar-vehiculo"
+                    className="group bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg p-3 sm:p-4 hover:from-blue-600 hover:to-blue-700 transition-all duration-200 transform hover:scale-105"
+                  >
+                    <div className="flex items-center space-x-2 sm:space-x-3">
+                      <span className="text-xl sm:text-2xl">➕</span>
+                      <div className="min-w-0">
+                        <h3 className="font-medium text-sm sm:text-base">
+                          Cargar Vehículo
+                        </h3>
+                        <p className="text-blue-100 text-xs sm:text-sm">
+                          Nuevo registro
+                        </p>
+                      </div>
+                    </div>
+                  </Link>
+
+                  <Link
+                    href="/vehiculos"
+                    className="group bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg p-3 sm:p-4 hover:from-green-600 hover:to-green-700 transition-all duration-200 transform hover:scale-105"
+                  >
+                    <div className="flex items-center space-x-2 sm:space-x-3">
+                      <span className="text-xl sm:text-2xl">📋</span>
+                      <div className="min-w-0">
+                        <h3 className="font-medium text-sm sm:text-base">
+                          Ver Vehículos
+                        </h3>
+                        <p className="text-green-100 text-xs sm:text-sm">
+                          Gestionar inventario
+                        </p>
+                      </div>
+                    </div>
+                  </Link>
+
+                  <Link
+                    href="/kanban"
+                    className="group bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg p-3 sm:p-4 hover:from-purple-600 hover:to-purple-700 transition-all duration-200 transform hover:scale-105 sm:col-span-2 lg:col-span-1"
+                  >
+                    <div className="flex items-center space-x-2 sm:space-x-3">
+                      <span className="text-xl sm:text-2xl">📊</span>
+                      <div className="min-w-0">
+                        <h3 className="font-medium text-sm sm:text-base">
+                          Proceso
+                        </h3>
+                        <p className="text-purple-100 text-xs sm:text-sm">
+                          Flujo de trabajo
+                        </p>
+                      </div>
+                    </div>
+                  </Link>
                 </div>
               </div>
             </div>
 
-            {/* Resumen de Vehículos Depósito Venta */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
-              <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Resumen Vehículos Depósito Venta</h2>
-              
-              <div className="space-y-3 sm:space-y-4">
-                <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-                  <div className="flex items-center space-x-2 sm:space-x-3">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <span className="text-white font-bold text-sm sm:text-base">📦</span>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs sm:text-sm text-gray-600">Total Vehículos en Depósito</p>
-                      <p className="text-lg sm:text-xl font-bold text-gray-900">{depositoStats.totalDepositos}</p>
+            {/* Estadísticas - Sidebar */}
+            <div className="space-y-4 sm:space-y-6">
+              {/* Resumen de Vehículos */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
+                  Resumen de Vehículos
+                </h2>
+
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                    <div className="flex items-center space-x-2 sm:space-x-3">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <span className="text-white font-bold text-sm sm:text-base">
+                          📊
+                        </span>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs sm:text-sm text-gray-600">
+                          Total Activos
+                        </p>
+                        <p className="text-lg sm:text-xl font-bold text-gray-900">
+                          {stats.totalActivos}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
-                  <div className="flex items-center space-x-2 sm:space-x-3">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <span className="text-white font-bold text-sm sm:text-base">🔧</span>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs sm:text-sm text-gray-600">En Proceso</p>
-                      <p className="text-lg sm:text-xl font-bold text-gray-900">{depositoStats.enProceso}</p>
+                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                    <div className="flex items-center space-x-2 sm:space-x-3">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <span className="text-white font-bold text-sm sm:text-base">
+                          ✅
+                        </span>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs sm:text-sm text-gray-600">
+                          Publicados
+                        </p>
+                        <p className="text-lg sm:text-xl font-bold text-gray-900">
+                          {stats.publicados}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                  <div className="flex items-center space-x-2 sm:space-x-3">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <span className="text-white font-bold text-sm sm:text-base">✅</span>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs sm:text-sm text-gray-600">Publicados</p>
-                      <p className="text-lg sm:text-xl font-bold text-gray-900">{depositoStats.publicados}</p>
+                  <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                    <div className="flex items-center space-x-2 sm:space-x-3">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <span className="text-white font-bold text-sm sm:text-base">
+                          🔧
+                        </span>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs sm:text-sm text-gray-600">
+                          En Proceso
+                        </p>
+                        <p className="text-lg sm:text-xl font-bold text-gray-900">
+                          {stats.enProceso}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
+
+              {/* Resumen de Vehículos Depósito Venta */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
+                  Resumen Vehículos Depósito Venta
+                </h2>
+
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                    <div className="flex items-center space-x-2 sm:space-x-3">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <span className="text-white font-bold text-sm sm:text-base">
+                          📦
+                        </span>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs sm:text-sm text-gray-600">
+                          Total Vehículos en Depósito
+                        </p>
+                        <p className="text-lg sm:text-xl font-bold text-gray-900">
+                          {depositoStats.totalDepositos}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                    <div className="flex items-center space-x-2 sm:space-x-3">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <span className="text-white font-bold text-sm sm:text-base">
+                          🔧
+                        </span>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs sm:text-sm text-gray-600">
+                          En Proceso
+                        </p>
+                        <p className="text-lg sm:text-xl font-bold text-gray-900">
+                          {depositoStats.enProceso}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                    <div className="flex items-center space-x-2 sm:space-x-3">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <span className="text-white font-bold text-sm sm:text-base">
+                          ✅
+                        </span>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs sm:text-sm text-gray-600">
+                          Publicados
+                        </p>
+                        <p className="text-lg sm:text-xl font-bold text-gray-900">
+                          {depositoStats.publicados}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Ventas por Mes */}
+              <Suspense fallback={<LoadingSkeleton />}>
+                <VentasPorMes />
+              </Suspense>
             </div>
-
-
-            {/* Ventas por Mes */}
-            <Suspense fallback={<LoadingSkeleton />}>
-              <VentasPorMes />
-            </Suspense>
           </div>
         </div>
       </div>
-    </div>
+    </ProtectedRoute>
   )
 }
