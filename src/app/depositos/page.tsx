@@ -144,7 +144,11 @@ export default function DepositosPage() {
     
     // Solo si NO hay búsqueda, aplicar filtro de estado
     if (activeTab !== 'todos') {
-      filtered = filtered.filter(deposito => deposito.estado === activeTab)
+      const estadoMap = {
+        'activo': 'ACTIVO',
+        'finalizado': 'FINALIZADO'
+      } as const
+      filtered = filtered.filter(deposito => deposito.estado === estadoMap[activeTab])
     }
     
     return getFilteredDepositosByTime(filtered)
