@@ -112,11 +112,8 @@ const KanbanBoard = memo(function KanbanBoard({
   const { showToast, ToastContainer } = useToast()
   const { showConfirm, ConfirmModalComponent } = useConfirmModal()
 
-  // Hook para la zona de drop de PUBLICADO
-  const { setNodeRef: setPublicadoNodeRef, isOver: isPublicadoOver } =
-    useDroppable({ id: 'PUBLICADO' })
-
-  console.log('🔍 [DEBUG] PUBLICADO isOver:', isPublicadoOver)
+  // Ya no necesitamos useDroppable personalizado para PUBLICADO
+  // Ahora usa KanbanColumn como las otras columnas
 
   const sensors = useSensors(useSensor(PointerSensor))
 
@@ -363,50 +360,17 @@ const KanbanBoard = memo(function KanbanBoard({
       >
         {console.log('🎭 [DND] DndContext rendered')}
         <div className="flex flex-col gap-4 h-full">
-          {/* Columna Publicado PRIMERO para tener prioridad */}
-          <div className="w-full flex justify-center mb-8 relative z-20">
-            <div className="flex flex-col h-full w-full max-w-6xl">
-              {/* Header de la columna Publicado */}
-              <div className="bg-green-600 px-3 py-2 rounded-t-md flex items-center justify-center flex-shrink-0">
-                <h3 className="text-sm font-semibold text-white">Publicado</h3>
-                <div className="text-xs text-white/80 bg-white/20 px-2 py-1 rounded-full flex-shrink-0 ml-2">
-                  {(vehiculosPorEstado['PUBLICADO'] || []).length}
-                </div>
-              </div>
-
-              {/* Área de drop SIMPLE sin SortableContext */}
-              <div
-                ref={setPublicadoNodeRef}
-                className={`flex-1 p-4 rounded-b-md min-h-[300px] max-h-[500px] overflow-y-auto transition-colors ${
-                  isPublicadoOver
-                    ? 'bg-green-100 border-2 border-green-400 border-dashed'
-                    : 'bg-slate-100'
-                }`}
-              >
-                <div className="text-center py-6 text-slate-500">
-                  <div className="text-2xl mb-1">🎯</div>
-                  <p className="text-xs">
-                    ZONA DE DROP VACÍA - SOLO PARA DEBUG
-                  </p>
-                  <p className="text-xs mt-2">Arrastra aquí para probar</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Columnas principales abajo */}
-          <div className="grid grid-cols-7 gap-3 flex-1 relative z-0">
-            {ESTADOS.filter((estado) => estado.id !== 'PUBLICADO').map(
-              (estado) => (
-                <KanbanColumn
-                  key={estado.id}
-                  id={estado.id}
-                  title={estado.title}
-                  vehiculos={vehiculosPorEstado[estado.id] || []}
-                  color={estado.color}
-                />
-              )
-            )}
+          {/* Todas las columnas juntas incluyendo Publicado */}
+          <div className="grid grid-cols-8 gap-3 flex-1">
+            {ESTADOS.map((estado) => (
+              <KanbanColumn
+                key={estado.id}
+                id={estado.id}
+                title={estado.title}
+                vehiculos={vehiculosPorEstado[estado.id] || []}
+                color={estado.color}
+              />
+            ))}
           </div>
         </div>
 
