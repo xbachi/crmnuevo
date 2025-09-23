@@ -239,7 +239,9 @@ const KanbanBoard = memo(function KanbanBoard({
 
           // Actualizar solo el vehículo que cambió
           onUpdateVehiculos((prevVehiculos) => {
-            const updatedMap = new Map(updatedVehiculos.map((v) => [v.id, v]))
+            const updatedMap = new Map(
+              updatedVehiculos.map((v: Vehiculo) => [v.id, v])
+            )
             return prevVehiculos.map((v) => updatedMap.get(v.id) || v)
           })
           showToast(
@@ -290,7 +292,7 @@ const KanbanBoard = memo(function KanbanBoard({
               // Actualizar solo los vehículos que cambiaron
               onUpdateVehiculos((prevVehiculos) => {
                 const updatedMap = new Map(
-                  updatedVehiculos.map((v) => [v.id, v])
+                  updatedVehiculos.map((v: Vehiculo) => [v.id, v])
                 )
                 return prevVehiculos.map((v) => updatedMap.get(v.id) || v)
               })
@@ -328,7 +330,9 @@ const KanbanBoard = memo(function KanbanBoard({
             const updatedVehiculos = await response.json()
             // Actualizar solo el vehículo que cambió
             onUpdateVehiculos((prevVehiculos) => {
-              const updatedMap = new Map(updatedVehiculos.map((v) => [v.id, v]))
+              const updatedMap = new Map(
+                updatedVehiculos.map((v: Vehiculo) => [v.id, v])
+              )
               return prevVehiculos.map((v) => updatedMap.get(v.id) || v)
             })
             showToast(
@@ -358,7 +362,6 @@ const KanbanBoard = memo(function KanbanBoard({
         onDragEnd={handleDragEnd}
         collisionDetection={rectIntersection}
       >
-        {console.log('🎭 [DND] DndContext rendered')}
         <div className="flex flex-col gap-4 h-full">
           {/* Todas las columnas juntas incluyendo Publicado */}
           <div className="grid grid-cols-8 gap-3 flex-1">

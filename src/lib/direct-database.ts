@@ -54,13 +54,13 @@ export interface Vehiculo {
   color?: string | null
   fechaMatriculacion?: string | null
   año?: number | null
-  itv?: string | null
-  seguro?: string | null
-  segundaLlave?: string | null
-  documentacion?: string | null
-  carpeta?: string | null
-  master?: string | null
-  hojasA?: string | null
+  itv?: boolean | null
+  seguro?: boolean | null
+  segundaLlave?: boolean | null
+  documentacion?: boolean | null
+  carpeta?: boolean | null
+  master?: boolean | null
+  hojasA?: boolean | null
   esCocheInversor?: boolean
   inversorId?: number | null
   inversor?: {
@@ -80,13 +80,6 @@ export interface Vehiculo {
   beneficioNeto?: number | null
   notasInversor?: string | null
   fotoInversor?: string | null
-  itv?: string | null
-  seguro?: string | null
-  segundaLlave?: string | null
-  carpeta?: string | null
-  master?: string | null
-  hojasA?: string | null
-  documentacion?: string | null
 }
 
 export async function getVehiculos(

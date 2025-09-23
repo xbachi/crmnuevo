@@ -46,7 +46,12 @@ export interface Inversor {
   id: number
   nombre: string
   email?: string
+  documento?: string
+  telefono?: string
+  fechaAlta?: string
   capitalAportado: number
+  capitalAportadoHistorico?: number
+  capitalComprometido?: number
   fechaAporte: string
   capitalInvertido?: number
   capitalDisponible?: number

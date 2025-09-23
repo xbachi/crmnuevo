@@ -2260,7 +2260,7 @@ export default function VehiculoDetailPage() {
                               } else {
                                 setEditingData((prev) => ({
                                   ...prev,
-                                  itv: e.target.value === 'si' ? 'Sí' : 'No',
+                                  itv: e.target.value === 'si',
                                 }))
                               }
                             }}
@@ -2705,7 +2705,7 @@ export default function VehiculoDetailPage() {
                             } else {
                               setEditingData((prev) => ({
                                 ...prev,
-                                hojasA: e.target.value === 'si' ? 'Sí' : 'No',
+                                hojasA: e.target.value === 'si',
                               }))
                             }
                           }}
