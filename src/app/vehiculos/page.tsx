@@ -128,19 +128,45 @@ export default function ListaVehiculos() {
     return tipos[tipo as keyof typeof tipos] || tipo
   }
 
-  const getTipoColor = (tipo: string) => {
-    switch (tipo) {
+  // Función helper para detectar tipo de vehículo basado en la referencia
+  const detectVehicleType = (referencia: string) => {
+    if (!referencia) return 'Compra'
+
+    const refUpper = referencia.toUpperCase().trim()
+
+    // Detectar tipo R - referencia que empieza con "R-"
+    if (refUpper.startsWith('R-')) {
+      return 'R'
+    }
+
+    // Detectar tipo Depósito - referencia que empieza con "D-"
+    if (refUpper.startsWith('D-')) {
+      return 'Depósito'
+    }
+
+    // Detectar tipo Inversor - referencia que empieza con "I-"
+    if (refUpper.startsWith('I-')) {
+      return 'Inversor'
+    }
+
+    // Por defecto, tipo Compra (referencias que empiezan con "#" o solo números)
+    return 'Compra'
+  }
+
+  const getTipoColor = (referencia: string) => {
+    const detectedType = detectVehicleType(referencia)
+    console.log(
+      `🎨 [LISTA VEHICULOS] Referencia: "${referencia}" -> Detectado: "${detectedType}"`
+    )
+
+    switch (detectedType) {
       case 'Compra':
-      case 'C':
-        return 'bg-blue-100 text-blue-800'
-      case 'Coche R':
+        return 'bg-green-100 text-green-800'
       case 'R':
+        return 'bg-red-100 text-red-800'
+      case 'Depósito':
         return 'bg-orange-100 text-orange-800'
-      case 'Deposito Venta':
-      case 'D':
-        return 'bg-cyan-100 text-cyan-800'
       case 'Inversor':
-      case 'I':
         return 'bg-purple-100 text-purple-800'
       default:
         return 'bg-gray-100 text-gray-800'
@@ -855,7 +881,7 @@ export default function ListaVehiculos() {
                       onClick={() => setTypeFilter('R')}
                       className={`px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
                         typeFilter === 'R'
-                          ? 'bg-blue-50 text-blue-700 shadow-sm border border-blue-200'
+                          ? 'bg-red-50 text-red-700 shadow-sm border border-red-200'
                           : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                       }`}
                     >
@@ -865,7 +891,7 @@ export default function ListaVehiculos() {
                       onClick={() => setTypeFilter('Depósito')}
                       className={`px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
                         typeFilter === 'Depósito'
-                          ? 'bg-purple-50 text-purple-700 shadow-sm border border-purple-200'
+                          ? 'bg-orange-50 text-orange-700 shadow-sm border border-orange-200'
                           : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                       }`}
                     >
@@ -1224,7 +1250,7 @@ export default function ListaVehiculos() {
                               className={`inline-flex px-2 py-1 text-xs font-semibold rounded ${
                                 vehiculoVendido
                                   ? 'bg-red-600 text-white'
-                                  : getTipoColor(vehiculo.tipo)
+                                  : getTipoColor(vehiculo.referencia)
                               }`}
                             >
                               {vehiculoVendido

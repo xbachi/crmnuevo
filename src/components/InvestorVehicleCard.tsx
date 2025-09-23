@@ -38,38 +38,35 @@ export function InvestorVehicleCard({
   const [isExpanded, setIsExpanded] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Función helper para detectar tipo de vehículo de manera flexible
-  const detectVehicleType = (tipo: string) => {
-    const tipoLower = tipo.toLowerCase().trim()
+  // Función helper para detectar tipo de vehículo basado en la referencia
+  const detectVehicleType = (referencia: string) => {
+    if (!referencia) return 'Compra'
 
-    // Detectar tipo R
-    if (tipoLower.includes('r') || tipoLower === 'r') {
+    const refUpper = referencia.toUpperCase().trim()
+
+    // Detectar tipo R - referencia que empieza con "R-"
+    if (refUpper.startsWith('R-')) {
       return 'R'
     }
 
-    // Detectar tipo Depósito
-    if (
-      tipoLower.includes('depósito') ||
-      tipoLower.includes('deposito') ||
-      tipoLower.includes('dep') ||
-      tipoLower === 'd'
-    ) {
+    // Detectar tipo Depósito - referencia que empieza con "D-"
+    if (refUpper.startsWith('D-')) {
       return 'Depósito'
     }
 
-    // Detectar tipo Inversor
-    if (tipoLower.includes('inversor') || tipoLower === 'i') {
+    // Detectar tipo Inversor - referencia que empieza con "I-"
+    if (refUpper.startsWith('I-')) {
       return 'Inversor'
     }
 
-    // Por defecto, tipo Compra
+    // Por defecto, tipo Compra (referencias que empiezan con "#" o solo números)
     return 'Compra'
   }
 
   // Determinar si es un vehículo de depósito o inversor
-  const esDeposito = detectVehicleType(vehiculo.tipo) === 'Depósito'
-  const esInversor = detectVehicleType(vehiculo.tipo) === 'Inversor'
-  const esTipoR = detectVehicleType(vehiculo.tipo) === 'R'
+  const esDeposito = detectVehicleType(vehiculo.referencia) === 'Depósito'
+  const esInversor = detectVehicleType(vehiculo.referencia) === 'Inversor'
+  const esTipoR = detectVehicleType(vehiculo.referencia) === 'R'
 
   // Helper function para normalizar valores booleanos
   const isPositive = (value: string | boolean | null | undefined): boolean => {
@@ -185,11 +182,11 @@ export function InvestorVehicleCard({
       <div
         className={`px-6 py-4 border-b ${
           esDeposito
-            ? 'bg-gradient-to-r from-purple-200 to-purple-300 border-purple-300'
+            ? 'bg-gradient-to-r from-orange-200 to-orange-300 border-orange-300'
             : esTipoR
-              ? 'bg-gradient-to-r from-blue-200 to-blue-300 border-blue-300'
+              ? 'bg-gradient-to-r from-red-200 to-red-300 border-red-300'
               : esInversor
-                ? 'bg-gradient-to-r from-orange-200 to-amber-200 border-orange-300'
+                ? 'bg-gradient-to-r from-purple-200 to-purple-300 border-purple-300'
                 : 'bg-gradient-to-r from-green-200 to-green-300 border-green-300'
         }`}
       >
@@ -198,11 +195,11 @@ export function InvestorVehicleCard({
             <div
               className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-sm ${
                 esDeposito
-                  ? 'bg-gradient-to-br from-purple-500 to-purple-600'
+                  ? 'bg-gradient-to-br from-orange-500 to-orange-600'
                   : esTipoR
-                    ? 'bg-gradient-to-br from-blue-500 to-blue-600'
+                    ? 'bg-gradient-to-br from-red-500 to-red-600'
                     : esInversor
-                      ? 'bg-gradient-to-br from-orange-500 to-amber-600'
+                      ? 'bg-gradient-to-br from-purple-500 to-purple-600'
                       : 'bg-gradient-to-br from-green-500 to-green-600'
               }`}
             >

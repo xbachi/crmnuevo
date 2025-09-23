@@ -80,56 +80,53 @@ export default function DraggableVehicleCard({
     transition,
   }
 
-  // Función helper para detectar tipo de vehículo de manera flexible
-  const detectVehicleType = (tipo: string) => {
-    const tipoLower = tipo.toLowerCase().trim()
+  // Función helper para detectar tipo de vehículo basado en la referencia
+  const detectVehicleType = (referencia: string) => {
+    if (!referencia) return 'Compra'
 
-    // Detectar tipo R
-    if (tipoLower.includes('r') || tipoLower === 'r') {
+    const refUpper = referencia.toUpperCase().trim()
+
+    // Detectar tipo R - referencia que empieza con "R-"
+    if (refUpper.startsWith('R-')) {
       return 'R'
     }
 
-    // Detectar tipo Depósito
-    if (
-      tipoLower.includes('depósito') ||
-      tipoLower.includes('deposito') ||
-      tipoLower.includes('dep') ||
-      tipoLower === 'd'
-    ) {
+    // Detectar tipo Depósito - referencia que empieza con "D-"
+    if (refUpper.startsWith('D-')) {
       return 'Depósito'
     }
 
-    // Detectar tipo Inversor
-    if (tipoLower.includes('inversor') || tipoLower === 'i') {
+    // Detectar tipo Inversor - referencia que empieza con "I-"
+    if (refUpper.startsWith('I-')) {
       return 'Inversor'
     }
 
-    // Por defecto, tipo Compra
+    // Por defecto, tipo Compra (referencias que empiezan con "#" o solo números)
     return 'Compra'
   }
 
-  const getTipoColor = (tipo: string) => {
-    const detectedType = detectVehicleType(tipo)
+  const getTipoColor = (referencia: string) => {
+    const detectedType = detectVehicleType(referencia)
     console.log(
-      `🎨 [DraggableVehicleCard] Tipo original: "${tipo}" -> Detectado: "${detectedType}"`
+      `🎨 [DraggableVehicleCard] Referencia: "${referencia}" -> Detectado: "${detectedType}"`
     )
 
     switch (detectedType) {
       case 'Compra':
         return 'bg-green-100 text-green-800 border-green-200'
       case 'R':
-        return 'bg-blue-100 text-blue-800 border-blue-200'
+        return 'bg-red-100 text-red-800 border-red-200'
       case 'Depósito':
-        return 'bg-purple-100 text-purple-800 border-purple-200'
-      case 'Inversor':
         return 'bg-orange-100 text-orange-800 border-orange-200'
+      case 'Inversor':
+        return 'bg-purple-100 text-purple-800 border-purple-200'
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200'
     }
   }
 
-  const getTipoLetra = (tipo: string) => {
-    const detectedType = detectVehicleType(tipo)
+  const getTipoLetra = (referencia: string) => {
+    const detectedType = detectVehicleType(referencia)
 
     switch (detectedType) {
       case 'Compra':
@@ -178,12 +175,12 @@ export default function DraggableVehicleCard({
       {/* Header del acordeón - Siempre visible */}
       <div
         className={`p-3 cursor-pointer transition-colors ${
-          detectVehicleType(vehiculo.tipo) === 'Depósito'
-            ? 'hover:bg-purple-100'
-            : detectVehicleType(vehiculo.tipo) === 'R'
-              ? 'hover:bg-blue-100'
-              : detectVehicleType(vehiculo.tipo) === 'Inversor'
-                ? 'hover:bg-orange-100'
+          detectVehicleType(vehiculo.referencia) === 'Depósito'
+            ? 'hover:bg-orange-100'
+            : detectVehicleType(vehiculo.referencia) === 'R'
+              ? 'hover:bg-red-100'
+              : detectVehicleType(vehiculo.referencia) === 'Inversor'
+                ? 'hover:bg-purple-100'
                 : 'hover:bg-gray-50'
         }`}
         onClick={handleCardClick}
@@ -193,12 +190,12 @@ export default function DraggableVehicleCard({
             {/* Logo del vehículo - últimos 2 números */}
             <div
               className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                detectVehicleType(vehiculo.tipo) === 'Depósito'
-                  ? 'bg-gradient-to-br from-purple-500 to-purple-600'
-                  : detectVehicleType(vehiculo.tipo) === 'R'
-                    ? 'bg-gradient-to-br from-blue-500 to-blue-600'
-                    : detectVehicleType(vehiculo.tipo) === 'Inversor'
-                      ? 'bg-gradient-to-br from-orange-500 to-amber-600'
+                detectVehicleType(vehiculo.referencia) === 'Depósito'
+                  ? 'bg-gradient-to-br from-orange-500 to-orange-600'
+                  : detectVehicleType(vehiculo.referencia) === 'R'
+                    ? 'bg-gradient-to-br from-red-500 to-red-600'
+                    : detectVehicleType(vehiculo.referencia) === 'Inversor'
+                      ? 'bg-gradient-to-br from-purple-500 to-purple-600'
                       : 'bg-gradient-to-br from-green-500 to-green-600'
               }`}
             >
@@ -215,9 +212,9 @@ export default function DraggableVehicleCard({
                   {vehiculo.marca} {vehiculo.modelo}
                 </h3>
                 <span
-                  className={`px-2 py-0.5 text-xs font-medium rounded-lg border ${getTipoColor(vehiculo.tipo)} flex-shrink-0 ml-2`}
+                  className={`px-2 py-0.5 text-xs font-medium rounded-lg border ${getTipoColor(vehiculo.referencia)} flex-shrink-0 ml-2`}
                 >
-                  {getTipoLetra(vehiculo.tipo)}
+                  {getTipoLetra(vehiculo.referencia)}
                 </span>
               </div>
               {/* Matrícula */}
