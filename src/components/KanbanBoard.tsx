@@ -357,7 +357,7 @@ export default function KanbanBoard({
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
-        collisionDetection={closestCorners}
+        collisionDetection={rectIntersection}
       >
         {console.log('🎭 [DND] DndContext rendered')}
         <div className="flex flex-col gap-4 h-full">
@@ -378,7 +378,7 @@ export default function KanbanBoard({
 
           {/* Columna Publicado abajo y más ancha con distribución horizontal */}
           <div className="w-full flex justify-center mt-12 relative z-10">
-            <div className="flex flex-col h-full w-4/5">
+            <div className="flex flex-col h-full w-full max-w-6xl">
               {/* Header de la columna Publicado */}
               <div className="bg-green-600 px-3 py-2 rounded-t-md flex items-center justify-center flex-shrink-0">
                 <h3 className="text-sm font-semibold text-white">Publicado</h3>
@@ -390,7 +390,7 @@ export default function KanbanBoard({
               {/* Área de drop con distribución horizontal */}
               <div
                 ref={setPublicadoNodeRef}
-                className={`flex-1 p-2 rounded-b-md min-h-[200px] max-h-[400px] overflow-y-auto transition-colors ${
+                className={`flex-1 p-4 rounded-b-md min-h-[300px] max-h-[500px] overflow-y-auto transition-colors ${
                   isPublicadoOver
                     ? 'bg-green-100 border-2 border-green-400 border-dashed'
                     : 'bg-slate-100'
