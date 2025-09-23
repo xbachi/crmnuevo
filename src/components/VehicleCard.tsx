@@ -150,7 +150,7 @@ const VehicleCard = memo(function VehicleCard({
 
   const TIPO_TEXTS = {
     Compra: 'Compra',
-    R: 'R',
+    R: 'COCHE R',
     Depósito: 'Depósito',
     Inversor: 'Inversor',
   } as const

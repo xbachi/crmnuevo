@@ -132,7 +132,7 @@ export default function DraggableVehicleCard({
       case 'Compra':
         return 'C'
       case 'R':
-        return 'R'
+        return 'COCHE R'
       case 'Depósito':
         return 'D'
       case 'Inversor':
