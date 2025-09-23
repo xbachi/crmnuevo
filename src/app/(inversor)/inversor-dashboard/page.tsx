@@ -14,6 +14,7 @@ interface InvestorMetrics {
   capitalAportado: number
   capitalDisponible: number
   roi: number
+  totalVendidos: number
   totalEnStock: number
   diasPromedioEnStock: number
 }
@@ -154,7 +155,11 @@ export default function InversorDashboardPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {vehiculos.map((vehiculo) => (
-                  <InvestorVehicleCard key={vehiculo.id} vehiculo={vehiculo} />
+                  <InvestorVehicleCard
+                    key={vehiculo.id}
+                    vehiculo={vehiculo}
+                    onView={(id) => console.log('Ver vehículo:', id)}
+                  />
                 ))}
               </div>
             )}

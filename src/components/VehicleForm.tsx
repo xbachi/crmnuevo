@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Inversor } from '@/lib/direct-database'
+import { Inversor } from '@/lib/database'
 
 interface VehicleFormData {
   referencia: string
@@ -47,7 +47,7 @@ export default function VehicleForm({
   submitText = 'Crear Vehículo',
   showInversorSection = true,
   fixedTipo,
-  asForm = true
+  asForm = true,
 }: VehicleFormProps) {
   const [formData, setFormData] = useState<VehicleFormData>({
     referencia: '',
@@ -72,16 +72,16 @@ export default function VehicleForm({
     precioPublicacion: '',
     precioVenta: '',
     notasInversor: '',
-    ...initialData
+    ...initialData,
   })
   const [inversores, setInversores] = useState<Inversor[]>([])
 
   const formatReferencia = (value: string, tipo: string) => {
     if (!value) return value
-    
+
     // Limpiar el valor de espacios y caracteres especiales
     const cleanValue = value.replace(/[^a-zA-Z0-9#-]/g, '')
-    
+
     if (tipo === 'Compra') {
       // Para compras: siempre con #
       if (cleanValue.startsWith('#')) {
@@ -117,23 +117,28 @@ export default function VehicleForm({
         return `R-${cleanValue}`
       }
     }
-    
+
     return cleanValue
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
     const { name, value, type } = e.target
-    setFormData(prev => {
+    setFormData((prev) => {
       const newData = {
         ...prev,
-        [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+        [name]:
+          type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
       }
-      
+
       // Formatear referencia automáticamente
       if (name === 'referencia') {
         newData.referencia = formatReferencia(value, prev.tipo)
       }
-      
+
       // Si se selecciona "Inversor" como tipo, marcar automáticamente como coche de inversor
       if (name === 'tipo' && value === 'Inversor') {
         newData.esCocheInversor = true
@@ -161,7 +166,7 @@ export default function VehicleForm({
         newData.precioVenta = ''
         newData.notasInversor = ''
       }
-      
+
       return newData
     })
   }
@@ -186,26 +191,38 @@ export default function VehicleForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     // Validación específica para depósitos
     if (fixedTipo === 'Deposito Venta' || formData.tipo === 'D') {
       const camposObligatorios = [
         { campo: 'marca', valor: formData.marca, nombre: 'Marca' },
         { campo: 'modelo', valor: formData.modelo, nombre: 'Modelo' },
-        { campo: 'bastidor', valor: formData.bastidor, nombre: 'Nº de Bastidor' },
+        {
+          campo: 'bastidor',
+          valor: formData.bastidor,
+          nombre: 'Nº de Bastidor',
+        },
         { campo: 'matricula', valor: formData.matricula, nombre: 'Matrícula' },
-        { campo: 'fechaMatriculacion', valor: formData.fechaMatriculacion, nombre: 'Fecha de 1ª Matriculación' },
-        { campo: 'kms', valor: formData.kms, nombre: 'Kilometraje' }
+        {
+          campo: 'fechaMatriculacion',
+          valor: formData.fechaMatriculacion,
+          nombre: 'Fecha de 1ª Matriculación',
+        },
+        { campo: 'kms', valor: formData.kms, nombre: 'Kilometraje' },
       ]
-      
-      const camposFaltantes = camposObligatorios.filter(campo => !campo.valor || campo.valor.trim() === '')
-      
+
+      const camposFaltantes = camposObligatorios.filter(
+        (campo) => !campo.valor || campo.valor.trim() === ''
+      )
+
       if (camposFaltantes.length > 0) {
-        alert(`Los siguientes campos son obligatorios para depósitos:\n${camposFaltantes.map(c => `• ${c.nombre}`).join('\n')}`)
+        alert(
+          `Los siguientes campos son obligatorios para depósitos:\n${camposFaltantes.map((c) => `• ${c.nombre}`).join('\n')}`
+        )
         return
       }
     }
-    
+
     await onSubmit(formData)
   }
 
@@ -213,7 +230,10 @@ export default function VehicleForm({
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label htmlFor="referencia" className="block text-sm font-medium text-slate-700 mb-1">
+          <label
+            htmlFor="referencia"
+            className="block text-sm font-medium text-slate-700 mb-1"
+          >
             Referencia *
           </label>
           <input
@@ -229,7 +249,10 @@ export default function VehicleForm({
         </div>
 
         <div>
-          <label htmlFor="tipo" className="block text-sm font-medium text-slate-700 mb-1">
+          <label
+            htmlFor="tipo"
+            className="block text-sm font-medium text-slate-700 mb-1"
+          >
             Tipo *
           </label>
           <select
@@ -252,7 +275,10 @@ export default function VehicleForm({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label htmlFor="marca" className="block text-sm font-medium text-slate-700 mb-1">
+          <label
+            htmlFor="marca"
+            className="block text-sm font-medium text-slate-700 mb-1"
+          >
             Marca *
           </label>
           <input
@@ -268,7 +294,10 @@ export default function VehicleForm({
         </div>
 
         <div>
-          <label htmlFor="modelo" className="block text-sm font-medium text-slate-700 mb-1">
+          <label
+            htmlFor="modelo"
+            className="block text-sm font-medium text-slate-700 mb-1"
+          >
             Modelo *
           </label>
           <input
@@ -286,7 +315,10 @@ export default function VehicleForm({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label htmlFor="matricula" className="block text-sm font-medium text-slate-700 mb-1">
+          <label
+            htmlFor="matricula"
+            className="block text-sm font-medium text-slate-700 mb-1"
+          >
             Matrícula *
           </label>
           <input
@@ -302,7 +334,10 @@ export default function VehicleForm({
         </div>
 
         <div>
-          <label htmlFor="bastidor" className="block text-sm font-medium text-slate-700 mb-1">
+          <label
+            htmlFor="bastidor"
+            className="block text-sm font-medium text-slate-700 mb-1"
+          >
             Bastidor *
           </label>
           <input
@@ -321,7 +356,10 @@ export default function VehicleForm({
       {/* Color y Fecha de Matriculación */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label htmlFor="color" className="block text-sm font-medium text-slate-700 mb-1">
+          <label
+            htmlFor="color"
+            className="block text-sm font-medium text-slate-700 mb-1"
+          >
             Color
           </label>
           <input
@@ -335,7 +373,10 @@ export default function VehicleForm({
           />
         </div>
         <div>
-          <label htmlFor="fechaMatriculacion" className="block text-sm font-medium text-slate-700 mb-1">
+          <label
+            htmlFor="fechaMatriculacion"
+            className="block text-sm font-medium text-slate-700 mb-1"
+          >
             Fecha de Matriculación
           </label>
           <input
@@ -350,7 +391,10 @@ export default function VehicleForm({
       </div>
 
       <div>
-        <label htmlFor="kms" className="block text-sm font-medium text-slate-700 mb-1">
+        <label
+          htmlFor="kms"
+          className="block text-sm font-medium text-slate-700 mb-1"
+        >
           Kilómetros *
         </label>
         <input
@@ -370,13 +414,20 @@ export default function VehicleForm({
       {showInversorSection && formData.tipo === 'Inversor' && (
         <div className="border-t border-slate-200 pt-6">
           <div className="mb-4">
-            <h3 className="text-lg font-medium text-slate-800 mb-2">Datos del Inversor</h3>
-            <p className="text-sm text-slate-600">Completa la información financiera del vehículo de inversión</p>
+            <h3 className="text-lg font-medium text-slate-800 mb-2">
+              Datos del Inversor
+            </h3>
+            <p className="text-sm text-slate-600">
+              Completa la información financiera del vehículo de inversión
+            </p>
           </div>
           <div className="space-y-4 bg-slate-50 p-4 rounded-lg">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="inversorId" className="block text-sm font-medium text-slate-700 mb-1">
+                <label
+                  htmlFor="inversorId"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
                   Inversor *
                 </label>
                 <select
@@ -397,7 +448,10 @@ export default function VehicleForm({
               </div>
 
               <div>
-                <label htmlFor="fechaCompra" className="block text-sm font-medium text-slate-700 mb-1">
+                <label
+                  htmlFor="fechaCompra"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
                   Fecha de compra
                 </label>
                 <input
@@ -413,7 +467,10 @@ export default function VehicleForm({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="precioCompra" className="block text-sm font-medium text-slate-700 mb-1">
+                <label
+                  htmlFor="precioCompra"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
                   Precio de compra (€)
                 </label>
                 <input
@@ -430,7 +487,10 @@ export default function VehicleForm({
               </div>
 
               <div>
-                <label htmlFor="precioPublicacion" className="block text-sm font-medium text-slate-700 mb-1">
+                <label
+                  htmlFor="precioPublicacion"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
                   Precio de publicación (€)
                 </label>
                 <input
@@ -453,7 +513,10 @@ export default function VehicleForm({
               </label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 <div>
-                  <label htmlFor="gastosTransporte" className="block text-xs text-slate-600 mb-1">
+                  <label
+                    htmlFor="gastosTransporte"
+                    className="block text-xs text-slate-600 mb-1"
+                  >
                     Transporte
                   </label>
                   <input
@@ -469,7 +532,10 @@ export default function VehicleForm({
                   />
                 </div>
                 <div>
-                  <label htmlFor="gastosTasas" className="block text-xs text-slate-600 mb-1">
+                  <label
+                    htmlFor="gastosTasas"
+                    className="block text-xs text-slate-600 mb-1"
+                  >
                     Tasas/Gestoría
                   </label>
                   <input
@@ -485,7 +551,10 @@ export default function VehicleForm({
                   />
                 </div>
                 <div>
-                  <label htmlFor="gastosMecanica" className="block text-xs text-slate-600 mb-1">
+                  <label
+                    htmlFor="gastosMecanica"
+                    className="block text-xs text-slate-600 mb-1"
+                  >
                     Mecánica
                   </label>
                   <input
@@ -501,7 +570,10 @@ export default function VehicleForm({
                   />
                 </div>
                 <div>
-                  <label htmlFor="gastosPintura" className="block text-xs text-slate-600 mb-1">
+                  <label
+                    htmlFor="gastosPintura"
+                    className="block text-xs text-slate-600 mb-1"
+                  >
                     Pintura
                   </label>
                   <input
@@ -517,7 +589,10 @@ export default function VehicleForm({
                   />
                 </div>
                 <div>
-                  <label htmlFor="gastosLimpieza" className="block text-xs text-slate-600 mb-1">
+                  <label
+                    htmlFor="gastosLimpieza"
+                    className="block text-xs text-slate-600 mb-1"
+                  >
                     Limpieza
                   </label>
                   <input
@@ -533,7 +608,10 @@ export default function VehicleForm({
                   />
                 </div>
                 <div>
-                  <label htmlFor="gastosOtros" className="block text-xs text-slate-600 mb-1">
+                  <label
+                    htmlFor="gastosOtros"
+                    className="block text-xs text-slate-600 mb-1"
+                  >
                     Otros
                   </label>
                   <input
@@ -552,7 +630,10 @@ export default function VehicleForm({
             </div>
 
             <div>
-              <label htmlFor="notasInversor" className="block text-sm font-medium text-slate-700 mb-1">
+              <label
+                htmlFor="notasInversor"
+                className="block text-sm font-medium text-slate-700 mb-1"
+              >
                 Notas para inversor
               </label>
               <textarea
@@ -598,11 +679,7 @@ export default function VehicleForm({
   )
 
   if (asForm) {
-    return (
-      <form onSubmit={handleSubmit}>
-        {formContent}
-      </form>
-    )
+    return <form onSubmit={handleSubmit}>{formContent}</form>
   }
 
   return formContent
