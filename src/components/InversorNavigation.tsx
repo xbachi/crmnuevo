@@ -80,7 +80,7 @@ export default function InversorNavigation() {
 
   const navItems = [
     {
-      href: null, // No es clickeable
+      href: '#', // Usar '#' para evitar errores de TypeScript
       label: 'Inversores',
       icon: InversoresIcon,
     },

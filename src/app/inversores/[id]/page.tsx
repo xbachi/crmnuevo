@@ -30,6 +30,9 @@ export default function InvestorDashboardPage() {
   const { inversor, isLoading: authLoading } = useInversorAuth()
 
   const [inversorData, setInversorData] = useState<Inversor | null>(null)
+
+  // Verificar si el usuario actual es un inversor autenticado
+  const isInvestorUser = inversor && inversor.id === parseInt(inversorId)
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>([])
   const [metrics, setMetrics] = useState<InvestorMetrics | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -353,7 +356,7 @@ export default function InvestorDashboardPage() {
               <h2 className="text-xl font-semibold text-gray-900">
                 Información del Inversor
               </h2>
-              {!isEditing && (
+              {!isEditing && !isInvestorUser && (
                 <button
                   onClick={handleEdit}
                   className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2"
@@ -979,6 +982,7 @@ export default function InvestorDashboardPage() {
                     onEdit={handleEditVehiculo}
                     onEditVehiculo={handleEditVehiculo}
                     onPhotoUpload={handlePhotoUpload}
+                    isReadOnly={isInvestorUser}
                   />
                 ))}
               </div>
@@ -994,6 +998,7 @@ export default function InvestorDashboardPage() {
                 onNotasChange={setNotas}
                 entityId={inversorData.id}
                 entityType="inversores"
+                isReadOnly={isInvestorUser}
               />
             ) : (
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
@@ -1009,6 +1014,7 @@ export default function InvestorDashboardPage() {
               <InversorReminders
                 inversorId={inversorData.id}
                 inversorNombre={inversorData.nombre}
+                isReadOnly={isInvestorUser}
               />
             ) : (
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mt-6">

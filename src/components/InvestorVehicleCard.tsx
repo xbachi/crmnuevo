@@ -19,6 +19,7 @@ interface InvestorVehicleCardProps {
   onEdit?: (vehiculo: Vehiculo) => void
   onEditVehiculo?: (vehiculo: Vehiculo) => void
   onPhotoUpload?: (vehiculoId: number, photoUrl: string) => void
+  isReadOnly?: boolean
 }
 
 export function InvestorVehicleCard({
@@ -28,6 +29,7 @@ export function InvestorVehicleCard({
   onEdit,
   onEditVehiculo,
   onPhotoUpload,
+  isReadOnly = false,
 }: InvestorVehicleCardProps) {
   const [showPhotoModal, setShowPhotoModal] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
@@ -216,7 +218,7 @@ export function InvestorVehicleCard({
           </div>
 
           <div className="flex space-x-1">
-            {onEdit && (
+            {onEdit && !isReadOnly && (
               <button
                 onClick={() => onEdit(vehiculo)}
                 className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all duration-200"
@@ -415,7 +417,7 @@ export function InvestorVehicleCard({
                 </span>
               </div>
               <div className="flex items-center space-x-2">
-                {onEditVehiculo && (
+                {onEditVehiculo && !isReadOnly && (
                   <div
                     onClick={(e) => {
                       e.stopPropagation()
