@@ -78,7 +78,7 @@ export default function ListaVehiculos() {
   >('activos')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [typeFilter, setTypeFilter] = useState<
-    'todos' | 'Compra' | 'Coche R' | 'D' | 'inversores'
+    'todos' | 'Compra' | 'R' | 'Depósito' | 'inversores'
   >('todos')
   const [editingVehiculo, setEditingVehiculo] = useState<Vehiculo | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -852,9 +852,9 @@ export default function ListaVehiculos() {
                       Compra
                     </button>
                     <button
-                      onClick={() => setTypeFilter('Coche R')}
+                      onClick={() => setTypeFilter('R')}
                       className={`px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
-                        typeFilter === 'Coche R'
+                        typeFilter === 'R'
                           ? 'bg-blue-50 text-blue-700 shadow-sm border border-blue-200'
                           : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                       }`}
@@ -862,9 +862,9 @@ export default function ListaVehiculos() {
                       R
                     </button>
                     <button
-                      onClick={() => setTypeFilter('D')}
+                      onClick={() => setTypeFilter('Depósito')}
                       className={`px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
-                        typeFilter === 'D'
+                        typeFilter === 'Depósito'
                           ? 'bg-purple-50 text-purple-700 shadow-sm border border-purple-200'
                           : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                       }`}

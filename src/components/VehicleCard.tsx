@@ -118,14 +118,20 @@ const VehicleCard = memo(function VehicleCard({
   // Constantes para colores de tipo - optimización
   const TIPO_COLORS = {
     Compra: 'bg-green-100 text-green-700 border-green-200',
+    R: 'bg-blue-100 text-blue-700 border-blue-200',
+    Depósito: 'bg-purple-100 text-purple-700 border-purple-200',
+    // Mantener compatibilidad con valores antiguos
     'Coche R': 'bg-blue-100 text-blue-700 border-blue-200',
-    'Deposito Venta': 'bg-orange-100 text-orange-700 border-orange-200',
-    D: 'bg-orange-100 text-orange-700 border-orange-200',
+    'Deposito Venta': 'bg-purple-100 text-purple-700 border-purple-200',
+    D: 'bg-purple-100 text-purple-700 border-purple-200',
   } as const
 
   const TIPO_TEXTS = {
     Compra: 'Compra',
-    'Coche R': 'Coche R',
+    R: 'R',
+    Depósito: 'Depósito',
+    // Mantener compatibilidad con valores antiguos
+    'Coche R': 'R',
     'Deposito Venta': 'Depósito',
     D: 'Depósito',
   } as const
@@ -152,6 +158,21 @@ const VehicleCard = memo(function VehicleCard({
         />
       </svg>
     ),
+    R: (
+      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+    Depósito: (
+      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+        <path
+          fillRule="evenodd"
+          d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
+          clipRule="evenodd"
+        />
+      </svg>
+    ),
+    // Mantener compatibilidad con valores antiguos
     'Coche R': (
       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
         <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
