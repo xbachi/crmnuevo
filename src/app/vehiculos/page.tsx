@@ -114,6 +114,18 @@ export default function ListaVehiculos() {
   const { showToast, ToastContainer } = useToast()
   const { showConfirm, ConfirmModalComponent } = useConfirmModal()
 
+  // Funciones para contar vehículos por tipo
+  const getVehicleCountByType = (type: string) => {
+    if (type === 'todos') return vehiculos.length
+    if (type === 'inversores') {
+      return vehiculos.filter(
+        (v) => detectVehicleType(v.referencia) === 'Inversor'
+      ).length
+    }
+    return vehiculos.filter((v) => detectVehicleType(v.referencia) === type)
+      .length
+  }
+
   const getTipoText = (tipo: string) => {
     const tipos = {
       Compra: 'Compra',
@@ -865,7 +877,7 @@ export default function ListaVehiculos() {
                           : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                       }`}
                     >
-                      Todos
+                      Todos ({getVehicleCountByType('todos')})
                     </button>
                     <button
                       onClick={() => setTypeFilter('Compra')}
@@ -875,7 +887,7 @@ export default function ListaVehiculos() {
                           : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                       }`}
                     >
-                      Compra
+                      Compra ({getVehicleCountByType('Compra')})
                     </button>
                     <button
                       onClick={() => setTypeFilter('R')}
@@ -885,7 +897,7 @@ export default function ListaVehiculos() {
                           : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                       }`}
                     >
-                      R
+                      R ({getVehicleCountByType('R')})
                     </button>
                     <button
                       onClick={() => setTypeFilter('Depósito')}
@@ -895,7 +907,7 @@ export default function ListaVehiculos() {
                           : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                       }`}
                     >
-                      Dep.
+                      Dep. ({getVehicleCountByType('Depósito')})
                     </button>
                     <button
                       onClick={() => setTypeFilter('inversores')}
@@ -905,7 +917,7 @@ export default function ListaVehiculos() {
                           : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                       }`}
                     >
-                      Inv.
+                      Inv. ({getVehicleCountByType('inversores')})
                     </button>
                   </div>
                 </div>
