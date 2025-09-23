@@ -7,7 +7,6 @@ import {
   DragOverEvent,
   DragStartEvent,
   PointerSensor,
-  TouchSensor,
   useSensor,
   useSensors,
   DragOverlay,
@@ -107,18 +106,10 @@ export default function KanbanBoard({
   const { setNodeRef: setPublicadoNodeRef, isOver: isPublicadoOver } =
     useDroppable({ id: 'PUBLICADO' })
 
-  console.log('🎯 [PUBLICADO] isOver:', isPublicadoOver)
-
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 3,
-      },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 200,
-        tolerance: 5,
+        distance: 8,
       },
     })
   )
@@ -167,15 +158,6 @@ export default function KanbanBoard({
     const activeId = active.id as number
     const overId = over.id
 
-    console.log(
-      '🎯 [DRAG END] Active ID:',
-      activeId,
-      'Over ID:',
-      overId,
-      'Type:',
-      typeof overId
-    )
-
     // Encontrar el vehículo activo
     const activeVehiculo = vehiculos.find((v) => v.id === activeId)
     if (!activeVehiculo) return
@@ -185,17 +167,6 @@ export default function KanbanBoard({
       typeof overId === 'string' &&
       ESTADOS.some((estado) => estado.id === overId)
     const isMovingToVehicle = typeof overId === 'number'
-
-    console.log(
-      '🎯 [DRAG END] isMovingToColumn:',
-      isMovingToColumn,
-      'isMovingToVehicle:',
-      isMovingToVehicle
-    )
-    console.log(
-      '🎯 [DRAG END] ESTADOS:',
-      ESTADOS.map((e) => e.id)
-    )
 
     if (isMovingToColumn) {
       // Moviendo a una columna (cambio de estado)
@@ -369,17 +340,19 @@ export default function KanbanBoard({
               </div>
 
               {/* Área de drop con distribución horizontal */}
-              <SortableContext
-                items={(vehiculosPorEstado['PUBLICADO'] || []).map((v) => v.id)}
-                strategy={horizontalListSortingStrategy}
+              <div
+                ref={setPublicadoNodeRef}
+                className={`flex-1 p-2 rounded-b-md min-h-[200px] max-h-[400px] overflow-y-auto transition-colors ${
+                  isPublicadoOver
+                    ? 'bg-green-100 border-2 border-green-400 border-dashed'
+                    : 'bg-slate-100'
+                }`}
               >
-                <div
-                  ref={setPublicadoNodeRef}
-                  className={`flex-1 p-2 rounded-b-md min-h-[200px] max-h-[400px] overflow-y-auto transition-colors ${
-                    isPublicadoOver
-                      ? 'bg-green-100 border-2 border-green-400 border-dashed'
-                      : 'bg-slate-100'
-                  }`}
+                <SortableContext
+                  items={(vehiculosPorEstado['PUBLICADO'] || []).map(
+                    (v) => v.id
+                  )}
+                  strategy={horizontalListSortingStrategy}
                 >
                   {(vehiculosPorEstado['PUBLICADO'] || []).length === 0 ? (
                     <div className="text-center py-6 text-slate-500">
@@ -398,8 +371,8 @@ export default function KanbanBoard({
                       )}
                     </div>
                   )}
-                </div>
-              </SortableContext>
+                </SortableContext>
+              </div>
             </div>
           </div>
         </div>
