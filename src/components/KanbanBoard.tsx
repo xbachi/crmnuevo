@@ -114,13 +114,7 @@ export default function KanbanBoard({
 
   console.log('🔍 [DEBUG] PUBLICADO isOver:', isPublicadoOver)
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    })
-  )
+  const sensors = useSensors(useSensor(PointerSensor))
 
   // Agrupar vehículos por estado
   const vehiculosPorEstado = ESTADOS.reduce(
