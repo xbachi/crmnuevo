@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, memo } from 'react'
 import {
   DndContext,
   DragEndEvent,
@@ -96,14 +96,16 @@ const ESTADOS = [
   },
 ]
 
-export default function KanbanBoard({
+const KanbanBoard = memo(function KanbanBoard({
   vehiculos,
   onUpdateVehiculos,
 }: KanbanBoardProps) {
   console.log(
     '🎬 [KANBAN] Component rendered with',
     vehiculos.length,
-    'vehicles'
+    'vehicles',
+    'Render count:',
+    Date.now()
   )
 
   const [activeId, setActiveId] = useState<number | null>(null)
@@ -431,4 +433,6 @@ export default function KanbanBoard({
       <ConfirmModalComponent />
     </div>
   )
-}
+})
+
+export default KanbanBoard
