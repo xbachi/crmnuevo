@@ -1099,21 +1099,22 @@ export default function ListaVehiculos() {
                       }
                       const vehiculoVendido = isVendido(vehiculo.estado)
 
-                      // Determinar el color de fondo según el tipo (más oscuros como las cabeceras de tarjetas)
-                      const getRowBackgroundColor = (tipo: string) => {
-                        switch (tipo) {
+                      // Determinar el color de fondo según la referencia (más oscuros como las cabeceras de tarjetas)
+                      const getRowBackgroundColor = (referencia: string) => {
+                        const detectedType = detectVehicleType(referencia)
+                        console.log(
+                          `🎨 [LISTA ROWS] Referencia: "${referencia}" -> Detectado: "${detectedType}"`
+                        )
+
+                        switch (detectedType) {
                           case 'Compra':
-                          case 'C':
-                            return 'bg-white hover:bg-slate-50/80'
-                          case 'Inversor':
-                          case 'I':
-                            return 'bg-gradient-to-r from-orange-200 to-amber-200 hover:from-orange-300 hover:to-amber-300'
-                          case 'Deposito Venta':
-                          case 'D':
-                            return 'bg-gradient-to-r from-cyan-200 to-blue-200 hover:from-cyan-300 hover:to-blue-300'
-                          case 'Coche R':
+                            return 'bg-gradient-to-r from-green-200 to-green-300 hover:from-green-300 hover:to-green-400'
                           case 'R':
-                            return 'bg-gradient-to-r from-green-200 to-emerald-200 hover:from-green-300 hover:to-emerald-300'
+                            return 'bg-gradient-to-r from-red-200 to-red-300 hover:from-red-300 hover:to-red-400'
+                          case 'Depósito':
+                            return 'bg-gradient-to-r from-orange-200 to-orange-300 hover:from-orange-300 hover:to-orange-400'
+                          case 'Inversor':
+                            return 'bg-gradient-to-r from-purple-200 to-purple-300 hover:from-purple-300 hover:to-purple-400'
                           default:
                             return 'bg-white hover:bg-slate-50/80'
                         }
@@ -1122,7 +1123,7 @@ export default function ListaVehiculos() {
                       return (
                         <tr
                           key={`${vehiculo.id}-${vehiculo.updatedAt}-${index}`}
-                          className={`${getRowBackgroundColor(vehiculo.tipo)} transition-colors duration-200 ${vehiculoVendido ? 'opacity-60 grayscale' : ''} cursor-pointer hover:bg-blue-50`}
+                          className={`${getRowBackgroundColor(vehiculo.referencia)} transition-colors duration-200 ${vehiculoVendido ? 'opacity-60 grayscale' : ''} cursor-pointer`}
                           onClick={() =>
                             router.push(
                               `/vehiculos/${generateVehicleSlug(vehiculo)}`
@@ -1135,7 +1136,18 @@ export default function ListaVehiculos() {
                                 className={`w-12 h-10 rounded-lg flex items-center justify-center mr-2 ${
                                   vehiculoVendido
                                     ? 'bg-red-600'
-                                    : 'bg-gradient-to-r from-blue-500 to-cyan-600'
+                                    : detectVehicleType(vehiculo.referencia) ===
+                                        'Depósito'
+                                      ? 'bg-gradient-to-br from-orange-500 to-orange-600'
+                                      : detectVehicleType(
+                                            vehiculo.referencia
+                                          ) === 'R'
+                                        ? 'bg-gradient-to-br from-red-500 to-red-600'
+                                        : detectVehicleType(
+                                              vehiculo.referencia
+                                            ) === 'Inversor'
+                                          ? 'bg-gradient-to-br from-purple-500 to-purple-600'
+                                          : 'bg-gradient-to-br from-green-500 to-green-600'
                                 }`}
                               >
                                 <span className="text-white font-bold text-xs">
