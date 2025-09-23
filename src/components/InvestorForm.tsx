@@ -10,7 +10,12 @@ interface InvestorFormProps {
   isLoading?: boolean
 }
 
-export function InvestorForm({ inversor, onSave, onCancel, isLoading = false }: InvestorFormProps) {
+export function InvestorForm({
+  inversor,
+  onSave,
+  onCancel,
+  isLoading = false,
+}: InvestorFormProps) {
   const [formData, setFormData] = useState({
     nombre: inversor?.nombre || '',
     documento: inversor?.documento || '',
@@ -18,39 +23,52 @@ export function InvestorForm({ inversor, onSave, onCancel, isLoading = false }: 
     telefono: inversor?.telefono || '',
     fechaAlta: inversor?.fechaAlta || new Date().toISOString().split('T')[0],
     capitalComprometido: inversor?.capitalComprometido?.toString() || '',
-    capitalAportadoHistorico: inversor?.capitalAportadoHistorico?.toString() || '0',
+    capitalAportadoHistorico:
+      inversor?.capitalAportadoHistorico?.toString() || '0',
     capitalDisponible: inversor?.capitalDisponible?.toString() || '',
-    notasInternas: inversor?.notasInternas || ''
+    notasInternas: inversor?.notasInternas || '',
   })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     const data = {
       nombre: formData.nombre.trim(),
       documento: formData.documento.trim() || undefined,
       email: formData.email.trim() || undefined,
       telefono: formData.telefono.trim() || undefined,
       fechaAlta: formData.fechaAlta,
-      capitalComprometido: formData.capitalComprometido ? Number(formData.capitalComprometido) : undefined,
+      capitalAportado: inversor?.capitalAportado || 0,
+      fechaAporte:
+        inversor?.fechaAporte || new Date().toISOString().split('T')[0],
+      capitalComprometido: formData.capitalComprometido
+        ? Number(formData.capitalComprometido)
+        : undefined,
       capitalAportadoHistorico: Number(formData.capitalAportadoHistorico) || 0,
-      capitalDisponible: formData.capitalDisponible ? Number(formData.capitalDisponible) : undefined,
-      notasInternas: formData.notasInternas.trim() || undefined
+      capitalDisponible: formData.capitalDisponible
+        ? Number(formData.capitalDisponible)
+        : undefined,
+      notasInternas: formData.notasInternas.trim() || undefined,
     }
-    
+
     onSave(data)
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label htmlFor="nombre" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="nombre"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Nombre completo *
           </label>
           <input
@@ -66,7 +84,10 @@ export function InvestorForm({ inversor, onSave, onCancel, isLoading = false }: 
         </div>
 
         <div>
-          <label htmlFor="documento" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="documento"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Documento/ID
           </label>
           <input
@@ -81,7 +102,10 @@ export function InvestorForm({ inversor, onSave, onCancel, isLoading = false }: 
         </div>
 
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Email
           </label>
           <input
@@ -96,7 +120,10 @@ export function InvestorForm({ inversor, onSave, onCancel, isLoading = false }: 
         </div>
 
         <div>
-          <label htmlFor="telefono" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="telefono"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Teléfono
           </label>
           <input
@@ -111,7 +138,10 @@ export function InvestorForm({ inversor, onSave, onCancel, isLoading = false }: 
         </div>
 
         <div>
-          <label htmlFor="fechaAlta" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="fechaAlta"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Fecha de alta
           </label>
           <input
@@ -125,7 +155,10 @@ export function InvestorForm({ inversor, onSave, onCancel, isLoading = false }: 
         </div>
 
         <div>
-          <label htmlFor="capitalAportadoHistorico" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="capitalAportadoHistorico"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Capital aportado histórico (€)
           </label>
           <input
@@ -142,7 +175,10 @@ export function InvestorForm({ inversor, onSave, onCancel, isLoading = false }: 
         </div>
 
         <div>
-          <label htmlFor="capitalComprometido" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="capitalComprometido"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Capital comprometido (€)
           </label>
           <input
@@ -159,7 +195,10 @@ export function InvestorForm({ inversor, onSave, onCancel, isLoading = false }: 
         </div>
 
         <div>
-          <label htmlFor="capitalDisponible" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="capitalDisponible"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Capital disponible (€)
           </label>
           <input
@@ -177,7 +216,10 @@ export function InvestorForm({ inversor, onSave, onCancel, isLoading = false }: 
       </div>
 
       <div>
-        <label htmlFor="notasInternas" className="block text-sm font-medium text-gray-700 mb-2">
+        <label
+          htmlFor="notasInternas"
+          className="block text-sm font-medium text-gray-700 mb-2"
+        >
           Notas internas
         </label>
         <textarea

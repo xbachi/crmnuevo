@@ -760,7 +760,7 @@ const VehicleCard = memo(function VehicleCard({
                           }
                           onChange={(e) => {
                             if (e.target.value === 'chequear') {
-                              handleFieldChange('itv', null)
+                              handleFieldChange('itv', false)
                             } else {
                               handleFieldChange('itv', e.target.value === 'si')
                             }

@@ -10,12 +10,19 @@ interface InvestorCardProps {
   onView: (id: number) => void
 }
 
-export function InvestorCard({ inversor, onEdit, onDelete, onView }: InvestorCardProps) {
+export function InvestorCard({
+  inversor,
+  onEdit,
+  onDelete,
+  onView,
+}: InvestorCardProps) {
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
       <div className="flex justify-between items-start mb-4">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">{inversor.nombre}</h3>
+          <h3 className="text-lg font-semibold text-gray-900">
+            {inversor.nombre}
+          </h3>
           {inversor.documento && (
             <p className="text-sm text-gray-500">ID: {inversor.documento}</p>
           )}
@@ -41,23 +48,39 @@ export function InvestorCard({ inversor, onEdit, onDelete, onView }: InvestorCar
           </button>
         </div>
       </div>
-      
+
       <div className="space-y-2 text-sm text-gray-600">
         {inversor.email && (
-          <p><span className="font-medium">Email:</span> {inversor.email}</p>
+          <p>
+            <span className="font-medium">Email:</span> {inversor.email}
+          </p>
         )}
         {inversor.telefono && (
-          <p><span className="font-medium">Teléfono:</span> {inversor.telefono}</p>
+          <p>
+            <span className="font-medium">Teléfono:</span> {inversor.telefono}
+          </p>
         )}
-        <p><span className="font-medium">Fecha de alta:</span> {formatDate(inversor.fechaAlta)}</p>
-        {inversor.capitalAportadoHistorico > 0 && (
-          <p><span className="font-medium">Capital aportado:</span> €{inversor.capitalAportadoHistorico.toLocaleString()}</p>
-        )}
+        <p>
+          <span className="font-medium">Fecha de alta:</span>{' '}
+          {inversor.fechaAlta
+            ? formatDate(inversor.fechaAlta)
+            : 'No especificada'}
+        </p>
+        {inversor.capitalAportadoHistorico &&
+          inversor.capitalAportadoHistorico > 0 && (
+            <p>
+              <span className="font-medium">Capital aportado:</span> €
+              {inversor.capitalAportadoHistorico.toLocaleString()}
+            </p>
+          )}
         {inversor.capitalComprometido && (
-          <p><span className="font-medium">Capital comprometido:</span> €{inversor.capitalComprometido.toLocaleString()}</p>
+          <p>
+            <span className="font-medium">Capital comprometido:</span> €
+            {inversor.capitalComprometido.toLocaleString()}
+          </p>
         )}
       </div>
-      
+
       {inversor.notasInternas && (
         <div className="mt-4 p-3 bg-gray-50 rounded-md">
           <p className="text-sm text-gray-700">

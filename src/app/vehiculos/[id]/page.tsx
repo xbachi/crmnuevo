@@ -2414,8 +2414,7 @@ export default function VehiculoDetailPage() {
                             } else {
                               setEditingData((prev) => ({
                                 ...prev,
-                                segundaLlave:
-                                  e.target.value === 'si' ? 'Sí' : 'No',
+                                segundaLlave: e.target.value === 'si',
                               }))
                             }
                           }}
@@ -2489,8 +2488,7 @@ export default function VehiculoDetailPage() {
                             } else {
                               setEditingData((prev) => ({
                                 ...prev,
-                                documentacion:
-                                  e.target.value === 'si' ? 'Sí' : 'No',
+                                documentacion: e.target.value === 'si',
                               }))
                             }
                           }}
@@ -2562,7 +2560,7 @@ export default function VehiculoDetailPage() {
                             } else {
                               setEditingData((prev) => ({
                                 ...prev,
-                                master: e.target.value === 'si' ? 'Sí' : 'No',
+                                master: e.target.value === 'si',
                               }))
                             }
                           }}
@@ -2633,7 +2631,7 @@ export default function VehiculoDetailPage() {
                             } else {
                               setEditingData((prev) => ({
                                 ...prev,
-                                carpeta: e.target.value === 'si' ? 'Sí' : 'No',
+                                carpeta: e.target.value === 'si',
                               }))
                             }
                           }}
