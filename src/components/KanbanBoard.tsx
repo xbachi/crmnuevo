@@ -381,21 +381,13 @@ export default function KanbanBoard({
                     : 'bg-slate-100'
                 }`}
               >
-                {(vehiculosPorEstado['PUBLICADO'] || []).length === 0 ? (
-                  <div className="text-center py-6 text-slate-500">
-                    <div className="text-2xl mb-1">📋</div>
-                    <p className="text-xs">Sin vehículos</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {(vehiculosPorEstado['PUBLICADO'] || []).map((vehiculo) => (
-                      <DraggableVehicleCard
-                        key={vehiculo.id}
-                        vehiculo={vehiculo}
-                      />
-                    ))}
-                  </div>
-                )}
+                <div className="text-center py-6 text-slate-500">
+                  <div className="text-2xl mb-1">🎯</div>
+                  <p className="text-xs">
+                    ZONA DE DROP VACÍA - SOLO PARA DEBUG
+                  </p>
+                  <p className="text-xs mt-2">Arrastra aquí para probar</p>
+                </div>
               </div>
             </div>
           </div>
