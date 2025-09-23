@@ -369,19 +369,17 @@ export default function KanbanBoard({
               </div>
 
               {/* Área de drop con distribución horizontal */}
-              <div
-                ref={setPublicadoNodeRef}
-                className={`flex-1 p-2 rounded-b-md min-h-[200px] max-h-[400px] overflow-y-auto transition-colors ${
-                  isPublicadoOver
-                    ? 'bg-green-100 border-2 border-green-400 border-dashed'
-                    : 'bg-slate-100'
-                }`}
+              <SortableContext
+                items={(vehiculosPorEstado['PUBLICADO'] || []).map((v) => v.id)}
+                strategy={horizontalListSortingStrategy}
               >
-                <SortableContext
-                  items={(vehiculosPorEstado['PUBLICADO'] || []).map(
-                    (v) => v.id
-                  )}
-                  strategy={horizontalListSortingStrategy}
+                <div
+                  ref={setPublicadoNodeRef}
+                  className={`flex-1 p-2 rounded-b-md min-h-[200px] max-h-[400px] overflow-y-auto transition-colors ${
+                    isPublicadoOver
+                      ? 'bg-green-100 border-2 border-green-400 border-dashed'
+                      : 'bg-slate-100'
+                  }`}
                 >
                   {(vehiculosPorEstado['PUBLICADO'] || []).length === 0 ? (
                     <div className="text-center py-6 text-slate-500">
@@ -400,8 +398,8 @@ export default function KanbanBoard({
                       )}
                     </div>
                   )}
-                </SortableContext>
-              </div>
+                </div>
+              </SortableContext>
             </div>
           </div>
         </div>
