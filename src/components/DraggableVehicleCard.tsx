@@ -162,11 +162,15 @@ export default function DraggableVehicleCard({
       {/* Header del acordeón - Siempre visible */}
       <div
         className={`p-3 cursor-pointer transition-colors ${
-          esDeposito
-            ? 'hover:bg-cyan-200'
-            : esInversor
-              ? 'hover:bg-orange-200'
-              : 'hover:bg-gray-50'
+          vehiculo.tipo === 'Depósito' ||
+          vehiculo.tipo === 'D' ||
+          vehiculo.tipo === 'Deposito Venta'
+            ? 'hover:bg-purple-100'
+            : vehiculo.tipo === 'R' || vehiculo.tipo === 'Coche R'
+              ? 'hover:bg-blue-100'
+              : vehiculo.tipo === 'I' || vehiculo.tipo === 'Inversor'
+                ? 'hover:bg-orange-100'
+                : 'hover:bg-gray-50'
         }`}
         onClick={handleCardClick}
       >
@@ -175,11 +179,15 @@ export default function DraggableVehicleCard({
             {/* Logo del vehículo - últimos 2 números */}
             <div
               className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                esDeposito
-                  ? 'bg-gradient-to-br from-cyan-500 to-blue-600'
-                  : esInversor
-                    ? 'bg-gradient-to-br from-orange-500 to-amber-600'
-                    : 'bg-gradient-to-br from-green-500 to-green-600'
+                vehiculo.tipo === 'Depósito' ||
+                vehiculo.tipo === 'D' ||
+                vehiculo.tipo === 'Deposito Venta'
+                  ? 'bg-gradient-to-br from-purple-500 to-purple-600'
+                  : vehiculo.tipo === 'R' || vehiculo.tipo === 'Coche R'
+                    ? 'bg-gradient-to-br from-blue-500 to-blue-600'
+                    : vehiculo.tipo === 'I' || vehiculo.tipo === 'Inversor'
+                      ? 'bg-gradient-to-br from-orange-500 to-amber-600'
+                      : 'bg-gradient-to-br from-green-500 to-green-600'
               }`}
             >
               <span className="text-white font-bold text-xs">
