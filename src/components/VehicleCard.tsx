@@ -320,12 +320,16 @@ const VehicleCard = memo(function VehicleCard({
     [vehiculo.estado, isReservado]
   )
   const esDeposito = useMemo(
-    () => vehiculo.tipo === 'D' || vehiculo.tipo === 'Deposito Venta',
-    [vehiculo.tipo]
+    () => detectVehicleType(vehiculo.tipo) === 'Depósito',
+    [vehiculo.tipo, detectVehicleType]
   )
   const esInversor = useMemo(
-    () => vehiculo.tipo === 'I' || vehiculo.tipo === 'Inversor',
-    [vehiculo.tipo]
+    () => detectVehicleType(vehiculo.tipo) === 'Inversor',
+    [vehiculo.tipo, detectVehicleType]
+  )
+  const esTipoR = useMemo(
+    () => detectVehicleType(vehiculo.tipo) === 'R',
+    [vehiculo.tipo, detectVehicleType]
   )
 
   return (
@@ -340,10 +344,12 @@ const VehicleCard = memo(function VehicleCard({
       <div
         className={`px-4 sm:px-6 py-4 sm:py-5 min-h-[100px] sm:min-h-[115px] border-b cursor-pointer hover:opacity-90 transition-opacity ${
           esDeposito
-            ? 'bg-gradient-to-r from-cyan-200 to-blue-200 border-cyan-300'
-            : esInversor
-              ? 'bg-gradient-to-r from-orange-200 to-amber-200 border-orange-300'
-              : 'bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200'
+            ? 'bg-gradient-to-r from-purple-200 to-purple-300 border-purple-300'
+            : esTipoR
+              ? 'bg-gradient-to-r from-blue-200 to-blue-300 border-blue-300'
+              : esInversor
+                ? 'bg-gradient-to-r from-orange-200 to-amber-200 border-orange-300'
+                : 'bg-gradient-to-r from-green-200 to-green-300 border-green-300'
         }`}
         onClick={() => {
           console.log(`🎯 [VEHICLE CARD] Header clicked - ID: ${vehiculo.id}`)
@@ -369,10 +375,12 @@ const VehicleCard = memo(function VehicleCard({
             <div
               className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0 ${
                 esDeposito
-                  ? 'bg-gradient-to-br from-cyan-500 to-blue-600'
-                  : esInversor
-                    ? 'bg-gradient-to-br from-orange-500 to-amber-600'
-                    : 'bg-gradient-to-br from-purple-500 to-blue-600'
+                  ? 'bg-gradient-to-br from-purple-500 to-purple-600'
+                  : esTipoR
+                    ? 'bg-gradient-to-br from-blue-500 to-blue-600'
+                    : esInversor
+                      ? 'bg-gradient-to-br from-orange-500 to-amber-600'
+                      : 'bg-gradient-to-br from-green-500 to-green-600'
               }`}
             >
               <span className="text-white font-bold text-xs sm:text-sm">

@@ -38,9 +38,38 @@ export function InvestorVehicleCard({
   const [isExpanded, setIsExpanded] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Función helper para detectar tipo de vehículo de manera flexible
+  const detectVehicleType = (tipo: string) => {
+    const tipoLower = tipo.toLowerCase().trim()
+
+    // Detectar tipo R
+    if (tipoLower.includes('r') || tipoLower === 'r') {
+      return 'R'
+    }
+
+    // Detectar tipo Depósito
+    if (
+      tipoLower.includes('depósito') ||
+      tipoLower.includes('deposito') ||
+      tipoLower.includes('dep') ||
+      tipoLower === 'd'
+    ) {
+      return 'Depósito'
+    }
+
+    // Detectar tipo Inversor
+    if (tipoLower.includes('inversor') || tipoLower === 'i') {
+      return 'Inversor'
+    }
+
+    // Por defecto, tipo Compra
+    return 'Compra'
+  }
+
   // Determinar si es un vehículo de depósito o inversor
-  const esDeposito = vehiculo.tipo === 'D' || vehiculo.tipo === 'Deposito Venta'
-  const esInversor = vehiculo.tipo === 'I' || vehiculo.tipo === 'Inversor'
+  const esDeposito = detectVehicleType(vehiculo.tipo) === 'Depósito'
+  const esInversor = detectVehicleType(vehiculo.tipo) === 'Inversor'
+  const esTipoR = detectVehicleType(vehiculo.tipo) === 'R'
 
   // Helper function para normalizar valores booleanos
   const isPositive = (value: string | boolean | null | undefined): boolean => {
@@ -156,10 +185,12 @@ export function InvestorVehicleCard({
       <div
         className={`px-6 py-4 border-b ${
           esDeposito
-            ? 'bg-gradient-to-r from-cyan-200 to-blue-200 border-cyan-300'
-            : esInversor
-              ? 'bg-gradient-to-r from-orange-200 to-amber-200 border-orange-300'
-              : 'bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200'
+            ? 'bg-gradient-to-r from-purple-200 to-purple-300 border-purple-300'
+            : esTipoR
+              ? 'bg-gradient-to-r from-blue-200 to-blue-300 border-blue-300'
+              : esInversor
+                ? 'bg-gradient-to-r from-orange-200 to-amber-200 border-orange-300'
+                : 'bg-gradient-to-r from-green-200 to-green-300 border-green-300'
         }`}
       >
         <div className="flex justify-between items-start">
@@ -167,10 +198,12 @@ export function InvestorVehicleCard({
             <div
               className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-sm ${
                 esDeposito
-                  ? 'bg-gradient-to-br from-cyan-500 to-blue-600'
-                  : esInversor
-                    ? 'bg-gradient-to-br from-orange-500 to-amber-600'
-                    : 'bg-gradient-to-br from-purple-500 to-blue-600'
+                  ? 'bg-gradient-to-br from-purple-500 to-purple-600'
+                  : esTipoR
+                    ? 'bg-gradient-to-br from-blue-500 to-blue-600'
+                    : esInversor
+                      ? 'bg-gradient-to-br from-orange-500 to-amber-600'
+                      : 'bg-gradient-to-br from-green-500 to-green-600'
               }`}
             >
               <span className="text-white font-bold text-sm">
