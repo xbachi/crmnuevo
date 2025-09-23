@@ -80,49 +80,65 @@ export default function DraggableVehicleCard({
     transition,
   }
 
-  const getTipoColor = (tipo: string) => {
-    // Debug: mostrar el tipo que está llegando
-    console.log(`🎨 [DraggableVehicleCard] Tipo recibido: "${tipo}"`)
+  // Función helper para detectar tipo de vehículo de manera flexible
+  const detectVehicleType = (tipo: string) => {
+    const tipoLower = tipo.toLowerCase().trim()
 
-    switch (tipo) {
+    // Detectar tipo R
+    if (tipoLower.includes('r') || tipoLower === 'r') {
+      return 'R'
+    }
+
+    // Detectar tipo Depósito
+    if (
+      tipoLower.includes('depósito') ||
+      tipoLower.includes('deposito') ||
+      tipoLower.includes('dep') ||
+      tipoLower === 'd'
+    ) {
+      return 'Depósito'
+    }
+
+    // Detectar tipo Inversor
+    if (tipoLower.includes('inversor') || tipoLower === 'i') {
+      return 'Inversor'
+    }
+
+    // Por defecto, tipo Compra
+    return 'Compra'
+  }
+
+  const getTipoColor = (tipo: string) => {
+    const detectedType = detectVehicleType(tipo)
+    console.log(
+      `🎨 [DraggableVehicleCard] Tipo original: "${tipo}" -> Detectado: "${detectedType}"`
+    )
+
+    switch (detectedType) {
       case 'Compra':
         return 'bg-green-100 text-green-800 border-green-200'
       case 'R':
         return 'bg-blue-100 text-blue-800 border-blue-200'
       case 'Depósito':
         return 'bg-purple-100 text-purple-800 border-purple-200'
-      // Mantener compatibilidad con valores antiguos
-      case 'Coche R':
-        return 'bg-blue-100 text-blue-800 border-blue-200'
-      case 'Deposito Venta':
-        return 'bg-purple-100 text-purple-800 border-purple-200'
-      case 'D':
-        return 'bg-purple-100 text-purple-800 border-purple-200'
+      case 'Inversor':
+        return 'bg-orange-100 text-orange-800 border-orange-200'
       default:
-        console.log(
-          `⚠️ [DraggableVehicleCard] Tipo no reconocido: "${tipo}", usando color por defecto`
-        )
         return 'bg-gray-100 text-gray-800 border-gray-200'
     }
   }
 
   const getTipoLetra = (tipo: string) => {
-    switch (tipo) {
+    const detectedType = detectVehicleType(tipo)
+
+    switch (detectedType) {
       case 'Compra':
-      case 'C':
         return 'C'
       case 'R':
         return 'R'
       case 'Depósito':
         return 'D'
-      // Mantener compatibilidad con valores antiguos
-      case 'Coche R':
-        return 'R'
-      case 'Deposito Venta':
-      case 'D':
-        return 'D'
       case 'Inversor':
-      case 'I':
         return 'I'
       default:
         return 'C'
@@ -162,13 +178,11 @@ export default function DraggableVehicleCard({
       {/* Header del acordeón - Siempre visible */}
       <div
         className={`p-3 cursor-pointer transition-colors ${
-          vehiculo.tipo === 'Depósito' ||
-          vehiculo.tipo === 'D' ||
-          vehiculo.tipo === 'Deposito Venta'
+          detectVehicleType(vehiculo.tipo) === 'Depósito'
             ? 'hover:bg-purple-100'
-            : vehiculo.tipo === 'R' || vehiculo.tipo === 'Coche R'
+            : detectVehicleType(vehiculo.tipo) === 'R'
               ? 'hover:bg-blue-100'
-              : vehiculo.tipo === 'I' || vehiculo.tipo === 'Inversor'
+              : detectVehicleType(vehiculo.tipo) === 'Inversor'
                 ? 'hover:bg-orange-100'
                 : 'hover:bg-gray-50'
         }`}
@@ -179,13 +193,11 @@ export default function DraggableVehicleCard({
             {/* Logo del vehículo - últimos 2 números */}
             <div
               className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                vehiculo.tipo === 'Depósito' ||
-                vehiculo.tipo === 'D' ||
-                vehiculo.tipo === 'Deposito Venta'
+                detectVehicleType(vehiculo.tipo) === 'Depósito'
                   ? 'bg-gradient-to-br from-purple-500 to-purple-600'
-                  : vehiculo.tipo === 'R' || vehiculo.tipo === 'Coche R'
+                  : detectVehicleType(vehiculo.tipo) === 'R'
                     ? 'bg-gradient-to-br from-blue-500 to-blue-600'
-                    : vehiculo.tipo === 'I' || vehiculo.tipo === 'Inversor'
+                    : detectVehicleType(vehiculo.tipo) === 'Inversor'
                       ? 'bg-gradient-to-br from-orange-500 to-amber-600'
                       : 'bg-gradient-to-br from-green-500 to-green-600'
               }`}

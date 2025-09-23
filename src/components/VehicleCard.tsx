@@ -115,37 +115,71 @@ const VehicleCard = memo(function VehicleCard({
     seguro: isPositive(vehiculo.seguro),
   })
 
+  // Función helper para detectar tipo de vehículo de manera flexible
+  const detectVehicleType = useCallback((tipo: string) => {
+    const tipoLower = tipo.toLowerCase().trim()
+
+    // Detectar tipo R
+    if (tipoLower.includes('r') || tipoLower === 'r') {
+      return 'R'
+    }
+
+    // Detectar tipo Depósito
+    if (
+      tipoLower.includes('depósito') ||
+      tipoLower.includes('deposito') ||
+      tipoLower.includes('dep') ||
+      tipoLower === 'd'
+    ) {
+      return 'Depósito'
+    }
+
+    // Detectar tipo Inversor
+    if (tipoLower.includes('inversor') || tipoLower === 'i') {
+      return 'Inversor'
+    }
+
+    // Por defecto, tipo Compra
+    return 'Compra'
+  }, [])
+
   // Constantes para colores de tipo - optimización
   const TIPO_COLORS = {
     Compra: 'bg-green-100 text-green-700 border-green-200',
     R: 'bg-blue-100 text-blue-700 border-blue-200',
     Depósito: 'bg-purple-100 text-purple-700 border-purple-200',
-    // Mantener compatibilidad con valores antiguos
-    'Coche R': 'bg-blue-100 text-blue-700 border-blue-200',
-    'Deposito Venta': 'bg-purple-100 text-purple-700 border-purple-200',
-    D: 'bg-purple-100 text-purple-700 border-purple-200',
+    Inversor: 'bg-orange-100 text-orange-700 border-orange-200',
   } as const
 
   const TIPO_TEXTS = {
     Compra: 'Compra',
     R: 'R',
     Depósito: 'Depósito',
-    // Mantener compatibilidad con valores antiguos
-    'Coche R': 'R',
-    'Deposito Venta': 'Depósito',
-    D: 'Depósito',
+    Inversor: 'Inversor',
   } as const
 
-  const getTipoColor = useCallback((tipo: string) => {
-    return (
-      TIPO_COLORS[tipo as keyof typeof TIPO_COLORS] ||
-      'bg-gray-100 text-gray-700 border-gray-200'
-    )
-  }, [])
+  const getTipoColor = useCallback(
+    (tipo: string) => {
+      const detectedType = detectVehicleType(tipo)
+      console.log(
+        `🎨 [VehicleCard] Tipo original: "${tipo}" -> Detectado: "${detectedType}"`
+      )
 
-  const getTipoText = useCallback((tipo: string) => {
-    return TIPO_TEXTS[tipo as keyof typeof TIPO_TEXTS] || tipo
-  }, [])
+      return (
+        TIPO_COLORS[detectedType as keyof typeof TIPO_COLORS] ||
+        'bg-gray-100 text-gray-700 border-gray-200'
+      )
+    },
+    [detectVehicleType]
+  )
+
+  const getTipoText = useCallback(
+    (tipo: string) => {
+      const detectedType = detectVehicleType(tipo)
+      return TIPO_TEXTS[detectedType as keyof typeof TIPO_TEXTS] || detectedType
+    },
+    [detectVehicleType]
+  )
 
   // Iconos de tipo - memoizados
   const TIPO_ICONS = {
@@ -172,26 +206,11 @@ const VehicleCard = memo(function VehicleCard({
         />
       </svg>
     ),
-    // Mantener compatibilidad con valores antiguos
-    'Coche R': (
-      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    ),
-    'Deposito Venta': (
+    Inversor: (
       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
         <path
           fillRule="evenodd"
-          d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
-          clipRule="evenodd"
-        />
-      </svg>
-    ),
-    D: (
-      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-        <path
-          fillRule="evenodd"
-          d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
+          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
           clipRule="evenodd"
         />
       </svg>
@@ -208,9 +227,13 @@ const VehicleCard = memo(function VehicleCard({
     </svg>
   )
 
-  const getTipoIcon = useCallback((tipo: string) => {
-    return TIPO_ICONS[tipo as keyof typeof TIPO_ICONS] || DEFAULT_ICON
-  }, [])
+  const getTipoIcon = useCallback(
+    (tipo: string) => {
+      const detectedType = detectVehicleType(tipo)
+      return TIPO_ICONS[detectedType as keyof typeof TIPO_ICONS] || DEFAULT_ICON
+    },
+    [detectVehicleType]
+  )
 
   const formatDate = useCallback((dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-ES', {
