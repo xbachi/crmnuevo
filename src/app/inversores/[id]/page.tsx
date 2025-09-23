@@ -10,6 +10,7 @@ import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { formatDateTime } from '@/lib/utils'
 import NotasSection from '@/components/NotasSection'
 import InversorReminders from '@/components/InversorReminders'
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal'
 import { useInversorAuth } from '@/contexts/InversorAuthContext'
 
 interface InvestorMetrics {
@@ -65,6 +66,14 @@ export default function InvestorDashboardPage() {
       tamañoFormateado: string
     }>
   >([])
+
+  // Estados para modal de confirmación de eliminación
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [fileToDelete, setFileToDelete] = useState<{
+    id: string
+    name: string
+  } | null>(null)
+  const [isDeletingFile, setIsDeletingFile] = useState(false)
 
   const inversorId = (params.id as string).split('-')[0] // Extraer solo el ID del slug
 
@@ -351,14 +360,25 @@ export default function InvestorDashboardPage() {
     }
   }
 
-  const handleDeleteFile = async (docId: string) => {
+  const handleDeleteFile = (docId: string) => {
+    const documento = documentos.find((doc) => doc.id === docId)
+    if (documento) {
+      setFileToDelete({ id: docId, name: documento.name })
+      setShowDeleteModal(true)
+    }
+  }
+
+  const confirmDeleteFile = async () => {
+    if (!fileToDelete || !inversorData?.id) return
+
     try {
+      setIsDeletingFile(true)
       console.log(
-        `🗑️ [INVERSOR DELETE] Eliminando archivo ${docId} del inversor ${inversorData?.id}`
+        `🗑️ [INVERSOR DELETE] Eliminando archivo ${fileToDelete.id} del inversor ${inversorData.id}`
       )
 
       const response = await fetch(
-        `/api/inversores/${inversorData?.id}/files/${docId}`,
+        `/api/inversores/${inversorData.id}/files/${fileToDelete.id}`,
         {
           method: 'DELETE',
         }
@@ -383,10 +403,21 @@ export default function InvestorDashboardPage() {
       // Actualizar lista de documentos
       await fetchDocumentos()
       showToast('Archivo eliminado correctamente', 'success')
+
+      // Cerrar modal
+      setShowDeleteModal(false)
+      setFileToDelete(null)
     } catch (error) {
       console.error('❌ [INVERSOR DELETE] Error eliminando archivo:', error)
       showToast('Error eliminando archivo', 'error')
+    } finally {
+      setIsDeletingFile(false)
     }
+  }
+
+  const cancelDeleteFile = () => {
+    setShowDeleteModal(false)
+    setFileToDelete(null)
   }
 
   const formatFileSize = (bytes: number): string => {
@@ -1645,6 +1676,17 @@ export default function InvestorDashboardPage() {
       )}
 
       <ToastContainer />
+
+      {/* Modal de confirmación de eliminación */}
+      <ConfirmDeleteModal
+        isOpen={showDeleteModal}
+        onClose={cancelDeleteFile}
+        onConfirm={confirmDeleteFile}
+        title="Eliminar archivo"
+        message="¿Estás seguro de que quieres eliminar este archivo? Esta acción no se puede deshacer."
+        fileName={fileToDelete?.name}
+        isLoading={isDeletingFile}
+      />
     </div>
   )
 }
