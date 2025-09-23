@@ -106,6 +106,8 @@ export default function KanbanBoard({
   const { setNodeRef: setPublicadoNodeRef, isOver: isPublicadoOver } =
     useDroppable({ id: 'PUBLICADO' })
 
+  console.log('🔍 [DEBUG] PUBLICADO isOver:', isPublicadoOver)
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -142,25 +144,45 @@ export default function KanbanBoard({
   )
 
   const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as number)
+    const activeId = event.active.id as number
+    setActiveId(activeId)
+    console.log('🚀 [DRAG START] Active ID:', activeId)
   }
 
   const handleDragOver = (event: DragOverEvent) => {
-    // Esta función se puede usar para efectos visuales durante el drag
+    const { over } = event
+    if (over) {
+      console.log('🔄 [DRAG OVER] Over ID:', over.id, 'Type:', typeof over.id)
+    }
   }
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
     setActiveId(null)
 
-    if (!over) return
+    console.log(
+      '🏁 [DRAG END] Active:',
+      active.id,
+      'Over:',
+      over?.id,
+      'Over Type:',
+      typeof over?.id
+    )
+
+    if (!over) {
+      console.log('❌ [DRAG END] No over target')
+      return
+    }
 
     const activeId = active.id as number
     const overId = over.id
 
     // Encontrar el vehículo activo
     const activeVehiculo = vehiculos.find((v) => v.id === activeId)
-    if (!activeVehiculo) return
+    if (!activeVehiculo) {
+      console.log('❌ [DRAG END] Active vehicle not found')
+      return
+    }
 
     // Determinar si se está moviendo a una columna o a otro vehículo
     const isMovingToColumn =
@@ -168,11 +190,33 @@ export default function KanbanBoard({
       ESTADOS.some((estado) => estado.id === overId)
     const isMovingToVehicle = typeof overId === 'number'
 
+    console.log(
+      '🎯 [DRAG END] isMovingToColumn:',
+      isMovingToColumn,
+      'isMovingToVehicle:',
+      isMovingToVehicle
+    )
+    console.log(
+      '📋 [DRAG END] Available ESTADOS:',
+      ESTADOS.map((e) => e.id)
+    )
+    console.log(
+      '🎯 [DRAG END] Over ID matches PUBLICADO:',
+      overId === 'PUBLICADO'
+    )
+
     if (isMovingToColumn) {
       // Moviendo a una columna (cambio de estado)
       const newEstado = overId as string
       const vehiculosEnNuevoEstado = vehiculosPorEstado[newEstado] || []
       const newOrden = vehiculosEnNuevoEstado.length
+
+      console.log(
+        '✅ [DRAG END] Moving to column:',
+        newEstado,
+        'New order:',
+        newOrden
+      )
 
       try {
         const response = await fetch('/api/vehiculos/kanban', {
