@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useInversorAuth } from '@/contexts/InversorAuthContext'
 
@@ -14,15 +14,29 @@ export default function InversorProtectedRoute({
   const { inversor, isLoading } = useInversorAuth()
   const router = useRouter()
   const pathname = usePathname()
+  const [isCrmUser, setIsCrmUser] = useState(false)
+
+  // Verificar si el usuario es un usuario CRM (no inversor)
+  useEffect(() => {
+    // Si no hay inversor autenticado, asumimos que es un usuario CRM
+    if (!isLoading && !inversor) {
+      setIsCrmUser(true)
+    } else {
+      setIsCrmUser(false)
+    }
+  }, [inversor, isLoading])
 
   useEffect(() => {
-    if (!isLoading && !inversor) {
-      // Solo redirigir si estamos en una página de inversores
-      if (pathname.startsWith('/inversores/')) {
-        router.push('/logininv')
-      }
+    // Solo redirigir si no es usuario CRM y no hay inversor autenticado
+    if (
+      !isLoading &&
+      !inversor &&
+      !isCrmUser &&
+      pathname.startsWith('/inversores/')
+    ) {
+      router.push('/logininv')
     }
-  }, [inversor, isLoading, router, pathname])
+  }, [inversor, isLoading, isCrmUser, router, pathname])
 
   // Mostrar loading mientras se verifica la autenticación
   if (isLoading) {
@@ -33,10 +47,11 @@ export default function InversorProtectedRoute({
     )
   }
 
-  // Si no está autenticado y estamos en una página de inversores, no mostrar nada
-  if (!inversor && pathname.startsWith('/inversores/')) {
-    return null
+  // Permitir acceso si es usuario CRM o si hay inversor autenticado
+  if (isCrmUser || inversor) {
+    return <>{children}</>
   }
 
-  return <>{children}</>
+  // Si no está autenticado y no es usuario CRM, no mostrar nada
+  return null
 }

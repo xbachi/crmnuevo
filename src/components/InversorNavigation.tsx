@@ -57,6 +57,11 @@ export default function InversorNavigation() {
   const pathname = usePathname()
   const { inversor, logout } = useInversorAuth()
 
+  // Solo mostrar la navegación si hay un inversor autenticado
+  if (!inversor) {
+    return null
+  }
+
   // Detectar si es móvil
   const [isMobile, setIsMobile] = useState(false)
 
@@ -75,7 +80,7 @@ export default function InversorNavigation() {
 
   const navItems = [
     {
-      href: '/inversores',
+      href: null, // No es clickeable
       label: 'Inversores',
       icon: InversoresIcon,
     },
@@ -164,24 +169,41 @@ export default function InversorNavigation() {
           <div className="space-y-1 sm:space-y-2">
             {navItems.map((item) => {
               const Icon = item.icon
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center ${shouldShowCollapsed ? 'justify-center px-3 py-4' : 'space-x-2 sm:space-x-3 px-2 sm:px-3 py-2 sm:py-3'} rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 ${
-                    isActive(item.href)
-                      ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-white hover:shadow-sm'
-                  }`}
-                  title={shouldShowCollapsed ? item.label : undefined}
-                  onClick={() => isMobile && setIsMobileMenuOpen(false)}
-                >
-                  <Icon isCollapsed={shouldShowCollapsed} />
-                  {!shouldShowCollapsed && (
-                    <span className="truncate">{item.label}</span>
-                  )}
-                </Link>
-              )
+              const isClickable = item.href !== null
+
+              if (isClickable) {
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center ${shouldShowCollapsed ? 'justify-center px-3 py-4' : 'space-x-2 sm:space-x-3 px-2 sm:px-3 py-2 sm:py-3'} rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 ${
+                      isActive(item.href)
+                        ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-white hover:shadow-sm'
+                    }`}
+                    title={shouldShowCollapsed ? item.label : undefined}
+                    onClick={() => isMobile && setIsMobileMenuOpen(false)}
+                  >
+                    <Icon isCollapsed={shouldShowCollapsed} />
+                    {!shouldShowCollapsed && (
+                      <span className="truncate">{item.label}</span>
+                    )}
+                  </Link>
+                )
+              } else {
+                return (
+                  <div
+                    key={item.label}
+                    className={`flex items-center ${shouldShowCollapsed ? 'justify-center px-3 py-4' : 'space-x-2 sm:space-x-3 px-2 sm:px-3 py-2 sm:py-3'} rounded-lg text-xs sm:text-sm font-medium text-gray-600 bg-gray-100`}
+                    title={shouldShowCollapsed ? item.label : undefined}
+                  >
+                    <Icon isCollapsed={shouldShowCollapsed} />
+                    {!shouldShowCollapsed && (
+                      <span className="truncate">{item.label}</span>
+                    )}
+                  </div>
+                )
+              }
             })}
           </div>
         </nav>

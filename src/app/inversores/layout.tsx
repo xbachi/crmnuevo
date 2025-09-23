@@ -1,5 +1,6 @@
 import { InversorAuthProvider } from '@/contexts/InversorAuthContext'
-import InversorNavigation from '@/components/InversorNavigation'
+import InversorAuthGuard from '@/components/InversorAuthGuard'
+import InversorLayoutWrapper from '@/components/InversorLayoutWrapper'
 
 export default function InversoresLayout({
   children,
@@ -8,12 +9,9 @@ export default function InversoresLayout({
 }) {
   return (
     <InversorAuthProvider>
-      <div className="flex min-h-screen">
-        <InversorNavigation />
-        <main className="flex-1 min-w-0 lg:ml-0">
-          <div className="h-full">{children}</div>
-        </main>
-      </div>
+      <InversorAuthGuard>
+        <InversorLayoutWrapper>{children}</InversorLayoutWrapper>
+      </InversorAuthGuard>
     </InversorAuthProvider>
   )
 }

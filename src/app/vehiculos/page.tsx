@@ -579,7 +579,7 @@ export default function ListaVehiculos() {
   return (
     <ProtectedRoute>
       <div className="min-h-full bg-gradient-to-br from-slate-50 via-green-50 to-emerald-100">
-        <div className="w-4/5 mx-auto px-4 sm:px-6 py-4 sm:py-8">
+        <div className="w-full px-8 sm:px-12 lg:px-16 py-4 sm:py-8">
           {/* Header Moderno - Estilo Navegación */}
           <div className="mb-4 sm:mb-6">
             {/* Título y stats compactos */}
@@ -1294,7 +1294,7 @@ export default function ListaVehiculos() {
             </div>
           ) : (
             /* Vista de Cartas */
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 sm:gap-8 items-start">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8 items-start">
               {filteredVehiculos.map((vehiculo, index) => (
                 <VehicleCard
                   key={`${vehiculo.id}-${vehiculo.updatedAt}-${index}`}
