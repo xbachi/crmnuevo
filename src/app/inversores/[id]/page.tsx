@@ -30,9 +30,6 @@ export default function InvestorDashboardPage() {
   const { inversor, isLoading: authLoading } = useInversorAuth()
 
   const [inversorData, setInversorData] = useState<Inversor | null>(null)
-
-  // Verificar si el usuario actual es un inversor autenticado
-  const isInvestorUser = inversor && inversor.id === parseInt(inversorId)
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>([])
   const [metrics, setMetrics] = useState<InvestorMetrics | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -56,6 +53,9 @@ export default function InvestorDashboardPage() {
   const [notas, setNotas] = useState<any[]>([])
 
   const inversorId = (params.id as string).split('-')[0] // Extraer solo el ID del slug
+
+  // Verificar si el usuario actual es un inversor autenticado
+  const isInvestorUser = inversor && inversor.id === parseInt(inversorId)
 
   const calculateAnnualizedROI = () => {
     if (!inversorData?.fechaAporte || !metrics?.roi) return 0
