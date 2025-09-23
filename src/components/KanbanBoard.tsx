@@ -107,6 +107,8 @@ export default function KanbanBoard({
   const { setNodeRef: setPublicadoNodeRef, isOver: isPublicadoOver } =
     useDroppable({ id: 'PUBLICADO' })
 
+  console.log('🎯 [PUBLICADO] isOver:', isPublicadoOver)
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -165,6 +167,15 @@ export default function KanbanBoard({
     const activeId = active.id as number
     const overId = over.id
 
+    console.log(
+      '🎯 [DRAG END] Active ID:',
+      activeId,
+      'Over ID:',
+      overId,
+      'Type:',
+      typeof overId
+    )
+
     // Encontrar el vehículo activo
     const activeVehiculo = vehiculos.find((v) => v.id === activeId)
     if (!activeVehiculo) return
@@ -174,6 +185,17 @@ export default function KanbanBoard({
       typeof overId === 'string' &&
       ESTADOS.some((estado) => estado.id === overId)
     const isMovingToVehicle = typeof overId === 'number'
+
+    console.log(
+      '🎯 [DRAG END] isMovingToColumn:',
+      isMovingToColumn,
+      'isMovingToVehicle:',
+      isMovingToVehicle
+    )
+    console.log(
+      '🎯 [DRAG END] ESTADOS:',
+      ESTADOS.map((e) => e.id)
+    )
 
     if (isMovingToColumn) {
       // Moviendo a una columna (cambio de estado)
