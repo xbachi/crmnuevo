@@ -98,6 +98,12 @@ export default function KanbanBoard({
   vehiculos,
   onUpdateVehiculos,
 }: KanbanBoardProps) {
+  console.log(
+    '🎬 [KANBAN] Component rendered with',
+    vehiculos.length,
+    'vehicles'
+  )
+
   const [activeId, setActiveId] = useState<number | null>(null)
   const { showToast, ToastContainer } = useToast()
   const { showConfirm, ConfirmModalComponent } = useConfirmModal()
@@ -356,6 +362,7 @@ export default function KanbanBoard({
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
+        {console.log('🎭 [DND] DndContext rendered')}
         <div className="flex flex-col gap-4 h-full">
           {/* Columnas principales arriba */}
           <div className="grid grid-cols-7 gap-3 flex-1">
