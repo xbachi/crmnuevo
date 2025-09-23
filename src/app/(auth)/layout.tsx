@@ -1,17 +1,14 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import Navigation from '@/components/Navigation'
 import { ToastProvider } from '@/hooks/useToast'
 import { AuthProvider } from '@/contexts/AuthContext'
-import { InversorAuthProvider } from '@/contexts/InversorAuthContext'
-import ConditionalLayout from '@/components/ConditionalLayout'
 
 export const metadata: Metadata = {
-  title: 'SevenCars CRM',
+  title: 'SevenCars CRM - Login',
   description: 'Sistema de gestión de vehículos - SevenCars CRM Platform',
 }
 
-export default function RootLayout({
+export default function AuthLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
@@ -20,9 +17,7 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <body className="antialiased bg-white" suppressHydrationWarning>
         <AuthProvider>
-          <ToastProvider>
-            <ConditionalLayout>{children}</ConditionalLayout>
-          </ToastProvider>
+          <ToastProvider>{children}</ToastProvider>
         </AuthProvider>
       </body>
     </html>

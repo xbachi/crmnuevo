@@ -2,38 +2,38 @@
 import { Pool } from 'pg'
 
 // Cargar variables de entorno manualmente
-const fs = require('fs');
-const path = require('path');
+const fs = require('fs')
+const path = require('path')
 
 // Función para cargar .env.local
 function loadEnvFile() {
   try {
-    const envPath = path.join(process.cwd(), '.env.local');
+    const envPath = path.join(process.cwd(), '.env.local')
     if (fs.existsSync(envPath)) {
-      const content = fs.readFileSync(envPath, 'utf8');
-      const lines = content.split('\n');
-      lines.forEach(line => {
-        const [key, value] = line.split('=');
+      const content = fs.readFileSync(envPath, 'utf8')
+      const lines = content.split('\n')
+      lines.forEach((line) => {
+        const [key, value] = line.split('=')
         if (key && value) {
-          process.env[key] = value.replace(/"/g, '');
+          process.env[key] = value.replace(/"/g, '')
         }
-      });
+      })
     }
   } catch (error) {
-    console.error('Error cargando .env.local:', error);
+    console.error('Error cargando .env.local:', error)
   }
 }
 
 // Cargar variables de entorno
-loadEnvFile();
+loadEnvFile()
 
-console.log('DATABASE_URL cargada:', process.env.DATABASE_URL ? 'Sí' : 'No');
+console.log('DATABASE_URL cargada:', process.env.DATABASE_URL ? 'Sí' : 'No')
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
-    rejectUnauthorized: false
-  }
+    rejectUnauthorized: false,
+  },
 })
 
 export { pool }
@@ -47,7 +47,7 @@ export interface Vehiculo {
   bastidor: string
   kms: number
   tipo: string
-  estado: string
+  estado: 'ACTIVO' | 'VENDIDO' | 'RESERVADO' | 'BORRADOR' | 'FINALIZADO'
   orden: number
   createdAt: Date
   updatedAt: Date
@@ -89,17 +89,22 @@ export interface Vehiculo {
   documentacion?: string | null
 }
 
-export async function getVehiculos(limit?: number, offset?: number, search?: string, tipo?: string): Promise<Vehiculo[]> {
+export async function getVehiculos(
+  limit?: number,
+  offset?: number,
+  search?: string,
+  tipo?: string
+): Promise<Vehiculo[]> {
   const client = await pool.connect()
   try {
     // Consulta optimizada: solo campos necesarios para la lista
     const limitClause = limit ? `LIMIT ${limit}` : ''
     const offsetClause = offset ? `OFFSET ${offset}` : ''
-    
+
     // Construir filtros de búsqueda
     let whereClause = ''
     const conditions = []
-    
+
     if (search && search.trim()) {
       conditions.push(`(
         LOWER(v.referencia) LIKE LOWER($1) OR
@@ -109,15 +114,15 @@ export async function getVehiculos(limit?: number, offset?: number, search?: str
         LOWER(v.bastidor) LIKE LOWER($1)
       )`)
     }
-    
+
     if (tipo && tipo.trim()) {
       conditions.push(`v.tipo = $${conditions.length + 1}`)
     }
-    
+
     if (conditions.length > 0) {
       whereClause = `WHERE ${conditions.join(' AND ')}`
     }
-    
+
     const queryParams = []
     if (search && search.trim()) {
       queryParams.push(`%${search}%`)
@@ -125,8 +130,9 @@ export async function getVehiculos(limit?: number, offset?: number, search?: str
     if (tipo && tipo.trim()) {
       queryParams.push(tipo)
     }
-    
-    const result = await client.query(`
+
+    const result = await client.query(
+      `
       SELECT 
         v.id, v.referencia, v.marca, v.modelo, v.matricula, v.bastidor, 
         v.kms, v.tipo, v.estado, v.orden, v."createdAt", v."updatedAt",
@@ -143,9 +149,11 @@ export async function getVehiculos(limit?: number, offset?: number, search?: str
       ${whereClause}
       ORDER BY v."createdAt" DESC, v.id DESC
       ${limitClause} ${offsetClause}
-    `, queryParams.length > 0 ? queryParams : undefined)
-    
-    return result.rows.map(row => ({
+    `,
+      queryParams.length > 0 ? queryParams : undefined
+    )
+
+    return result.rows.map((row) => ({
       id: row.id,
       referencia: row.referencia,
       marca: row.marca,
@@ -163,10 +171,12 @@ export async function getVehiculos(limit?: number, offset?: number, search?: str
       año: row.año,
       esCocheInversor: row.esCocheInversor,
       inversorId: row.inversorId,
-      inversor: row.inversor_nombre ? {
-        id: row.inversorId,
-        nombre: row.inversor_nombre
-      } : null,
+      inversor: row.inversor_nombre
+        ? {
+            id: row.inversorId,
+            nombre: row.inversor_nombre,
+          }
+        : null,
       fechaCompra: row.fechaCompra,
       precioCompra: row.precioCompra,
       gastosTransporte: row.gastosTransporte,
@@ -188,7 +198,7 @@ export async function getVehiculos(limit?: number, offset?: number, search?: str
       hojasA: row.hojasA,
       documentacion: row.documentacion,
       enDeposito: !!row.deposito_id,
-      depositoId: row.deposito_id
+      depositoId: row.deposito_id,
     }))
   } catch (error) {
     console.error('Error obteniendo vehículos:', error)
@@ -198,13 +208,16 @@ export async function getVehiculos(limit?: number, offset?: number, search?: str
   }
 }
 
-export async function getVehiculosCount(search?: string, tipo?: string): Promise<number> {
+export async function getVehiculosCount(
+  search?: string,
+  tipo?: string
+): Promise<number> {
   const client = await pool.connect()
   try {
     // Construir filtros de búsqueda
     let whereClause = ''
     const conditions = []
-    
+
     if (search && search.trim()) {
       conditions.push(`(
         LOWER(referencia) LIKE LOWER($1) OR
@@ -214,15 +227,15 @@ export async function getVehiculosCount(search?: string, tipo?: string): Promise
         LOWER(bastidor) LIKE LOWER($1)
       )`)
     }
-    
+
     if (tipo && tipo.trim()) {
       conditions.push(`tipo = $${conditions.length + 1}`)
     }
-    
+
     if (conditions.length > 0) {
       whereClause = `WHERE ${conditions.join(' AND ')}`
     }
-    
+
     const queryParams = []
     if (search && search.trim()) {
       queryParams.push(`%${search}%`)
@@ -230,8 +243,11 @@ export async function getVehiculosCount(search?: string, tipo?: string): Promise
     if (tipo && tipo.trim()) {
       queryParams.push(tipo)
     }
-    
-    const result = await client.query(`SELECT COUNT(*) as count FROM "Vehiculo" ${whereClause}`, queryParams.length > 0 ? queryParams : undefined)
+
+    const result = await client.query(
+      `SELECT COUNT(*) as count FROM "Vehiculo" ${whereClause}`,
+      queryParams.length > 0 ? queryParams : undefined
+    )
     return parseInt(result.rows[0].count)
   } catch (error) {
     console.error('Error obteniendo conteo de vehículos:', error)
@@ -289,6 +305,16 @@ export interface Deal {
   pagosResto?: string
   observaciones?: string
   responsableComercial?: string
+  // Cambio de nombre
+  cambioNombreSolicitado?: boolean
+  documentacionRecibida?: boolean
+  clienteAvisado?: boolean
+  documentacionRetirada?: boolean
+  // Timestamps individuales
+  cambioNombreSolicitadoAt?: Date
+  documentacionRecibidaAt?: Date
+  documentacionRetiradaAt?: Date
+  clienteAvisadoAt?: Date
   logHistorial?: string
   createdAt: Date
   updatedAt: Date
@@ -334,8 +360,8 @@ export async function getDeals() {
       LEFT JOIN "Vehiculo" v ON d."vehiculoId" = v.id
       ORDER BY d."createdAt" DESC
     `)
-    
-    return result.rows.map(row => ({
+
+    return result.rows.map((row) => ({
       id: row.id,
       numero: row.numero,
       clienteId: row.clienteId,
@@ -346,7 +372,7 @@ export async function getDeals() {
         apellidos: row.cliente_apellidos,
         email: row.cliente_email,
         telefono: row.cliente_telefono,
-        dni: row.cliente_dni
+        dni: row.cliente_dni,
       },
       vehiculo: {
         id: row.vehiculoId,
@@ -357,7 +383,7 @@ export async function getDeals() {
         bastidor: row.vehiculo_bastidor,
         kms: row.vehiculo_kms,
         precioPublicacion: row.vehiculo_precio,
-        estado: row.vehiculo_estado
+        estado: row.vehiculo_estado,
       },
       estado: row.estado,
       resultado: row.resultado,
@@ -389,7 +415,7 @@ export async function getDeals() {
       documentacionRetirada: row.documentacionRetirada ?? false,
       logHistorial: row.logHistorial,
       createdAt: row.createdAt,
-      updatedAt: row.updatedAt
+      updatedAt: row.updatedAt,
     }))
   } catch (error) {
     console.error('Error obteniendo deals:', error)
@@ -402,7 +428,8 @@ export async function getDeals() {
 export async function getDealById(id: number): Promise<Deal | null> {
   const client = await pool.connect()
   try {
-    const result = await client.query(`
+    const result = await client.query(
+      `
       SELECT 
         d.*,
         c.nombre as cliente_nombre,
@@ -426,10 +453,12 @@ export async function getDealById(id: number): Promise<Deal | null> {
       LEFT JOIN "Cliente" c ON d."clienteId" = c.id
       LEFT JOIN "Vehiculo" v ON d."vehiculoId" = v.id
       WHERE d.id = $1
-    `, [id])
-    
+    `,
+      [id]
+    )
+
     if (result.rows.length === 0) return null
-    
+
     const row = result.rows[0]
     return {
       id: row.id,
@@ -446,7 +475,7 @@ export async function getDealById(id: number): Promise<Deal | null> {
         direccion: row.cliente_direccion,
         ciudad: row.cliente_ciudad,
         provincia: row.cliente_provincia,
-        codPostal: row.cliente_codPostal
+        codPostal: row.cliente_codPostal,
       },
       vehiculo: {
         id: row.vehiculoId,
@@ -457,7 +486,7 @@ export async function getDealById(id: number): Promise<Deal | null> {
         bastidor: row.vehiculo_bastidor,
         kms: row.vehiculo_kms,
         precioPublicacion: row.vehiculo_precio,
-        estado: row.vehiculo_estado
+        estado: row.vehiculo_estado,
       },
       estado: row.estado,
       resultado: row.resultado,
@@ -487,9 +516,14 @@ export async function getDealById(id: number): Promise<Deal | null> {
       documentacionRecibida: row.documentacionRecibida ?? false,
       clienteAvisado: row.clienteAvisado ?? false,
       documentacionRetirada: row.documentacionRetirada ?? false,
+      // Timestamps individuales
+      cambioNombreSolicitadoAt: row.cambio_nombre_solicitado_at,
+      documentacionRecibidaAt: row.documentacion_recibida_at,
+      documentacionRetiradaAt: row.documentacion_retirada_at,
+      clienteAvisadoAt: row.cliente_avisado_at,
       logHistorial: row.logHistorial,
       createdAt: row.createdAt,
-      updatedAt: row.updatedAt
+      updatedAt: row.updatedAt,
     }
   } catch (error) {
     console.error('Error obteniendo deal por ID:', error)
@@ -503,35 +537,41 @@ export async function createDeal(dealData: DealCreateData) {
   const client = await pool.connect()
   try {
     // Obtener la referencia del vehículo
-    const vehiculoResult = await client.query('SELECT referencia FROM "Vehiculo" WHERE id = $1', [dealData.vehiculoId])
+    const vehiculoResult = await client.query(
+      'SELECT referencia FROM "Vehiculo" WHERE id = $1',
+      [dealData.vehiculoId]
+    )
     const vehiculoRef = vehiculoResult.rows[0]?.referencia || '0000'
-    
+
     // Generar número de deal con referencia del vehículo
     const year = new Date().getFullYear()
     const numero = `RES-${year}-${vehiculoRef}`
-    
+
     // Insertar deal básico
-    const result = await client.query(`
+    const result = await client.query(
+      `
       INSERT INTO "Deal" (
         numero, "clienteId", "vehiculoId", estado, "importeTotal", "importeSena", "formaPagoSena", observaciones, "responsableComercial"
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *
-    `, [
-      numero,
-      dealData.clienteId,
-      dealData.vehiculoId,
-      'nuevo',
-      dealData.importeTotal,
-      dealData.importeSena,
-      dealData.formaPagoSena,
-      dealData.observaciones,
-      dealData.responsableComercial
-    ])
-    
+    `,
+      [
+        numero,
+        dealData.clienteId,
+        dealData.vehiculoId,
+        'nuevo',
+        dealData.importeTotal,
+        dealData.importeSena,
+        dealData.formaPagoSena,
+        dealData.observaciones,
+        dealData.responsableComercial,
+      ]
+    )
+
     const newDeal = result.rows[0]
-    
+
     // NO actualizar el estado del vehículo al crear el deal
     // Solo se actualiza cuando se genera el contrato de reserva
-    
+
     return newDeal
   } catch (error) {
     console.error('Error creando deal:', error)
@@ -541,59 +581,89 @@ export async function createDeal(dealData: DealCreateData) {
   }
 }
 
-export async function updateDeal(id: number, dealData: Partial<DealCreateData>): Promise<Deal | null> {
+export async function updateDeal(
+  id: number,
+  dealData: Partial<DealCreateData>
+): Promise<Deal | null> {
   const client = await pool.connect()
   try {
     // Obtener el deal actual para auditoría
     const currentDeal = await getDealById(id)
     if (!currentDeal) return null
-    
+
     const oldEstado = currentDeal.estado
     const newEstado = dealData.estado
     const vehiculoId = currentDeal.vehiculoId
-    
+
     // Construir query dinámico
     const fields = []
     const values = []
     let paramIndex = 1
-    
+
     Object.entries(dealData).forEach(([key, value]) => {
       if (value !== undefined) {
         fields.push(`"${key}" = $${paramIndex}`)
         values.push(value)
         paramIndex++
+
+        // Agregar timestamp individual para acciones de cambio de nombre
+        if (key === 'cambioNombreSolicitado' && value === true) {
+          fields.push(`"cambio_nombre_solicitado_at" = $${paramIndex}`)
+          values.push(new Date())
+          paramIndex++
+        } else if (key === 'documentacionRecibida' && value === true) {
+          fields.push(`"documentacion_recibida_at" = $${paramIndex}`)
+          values.push(new Date())
+          paramIndex++
+        } else if (key === 'documentacionRetirada' && value === true) {
+          fields.push(`"documentacion_retirada_at" = $${paramIndex}`)
+          values.push(new Date())
+          paramIndex++
+        } else if (key === 'clienteAvisado' && value === true) {
+          fields.push(`"cliente_avisado_at" = $${paramIndex}`)
+          values.push(new Date())
+          paramIndex++
+        }
       }
     })
-    
+
     if (fields.length === 0) return currentDeal
-    
+
     // Agregar log de auditoría
     const logEntry = {
       fecha: new Date(),
       usuario: 'sistema',
       accion: 'Deal actualizado',
-      detalles: `Campos modificados: ${fields.join(', ')}`
+      detalles: `Campos modificados: ${fields.join(', ')}`,
     }
-    
+
     fields.push(`"logHistorial" = $${paramIndex}`)
-    values.push(JSON.stringify([...(JSON.parse(currentDeal.logHistorial || '[]')), logEntry]))
-    
+    values.push(
+      JSON.stringify([
+        ...JSON.parse(currentDeal.logHistorial || '[]'),
+        logEntry,
+      ])
+    )
+
     values.push(id)
-    
-    const result = await client.query(`
+
+    const result = await client.query(
+      `
       UPDATE "Deal" 
       SET ${fields.join(', ')}, "updatedAt" = NOW()
       WHERE id = $${paramIndex + 1}
       RETURNING *
-    `, values)
-    
+    `,
+      values
+    )
+
     if (result.rows.length === 0) return null
-    
+
     // Actualizar estado del vehículo según el estado del deal
     if (newEstado && newEstado !== oldEstado) {
       let vehiculoEstado = 'disponible'
       let dealActivoId = null
-      
+
       if (newEstado === 'reservado') {
         vehiculoEstado = 'reservado'
         dealActivoId = id
@@ -607,13 +677,13 @@ export async function updateDeal(id: number, dealData: Partial<DealCreateData>):
         vehiculoEstado = 'disponible'
         dealActivoId = null
       }
-      
+
       await client.query(
         'UPDATE "Vehiculo" SET estado = $1, "dealActivoId" = $2, "updatedAt" = NOW() WHERE id = $3',
         [vehiculoEstado, dealActivoId, vehiculoId]
       )
     }
-    
+
     return await getDealById(id)
   } catch (error) {
     console.error('Error actualizando deal:', error)
@@ -629,16 +699,16 @@ export async function deleteDeal(id: number): Promise<boolean> {
     // Obtener el deal antes de eliminar para liberar el vehículo
     const deal = await getDealById(id)
     if (!deal) return false
-    
+
     // Eliminar el deal
     const result = await client.query('DELETE FROM "Deal" WHERE id = $1', [id])
-    
+
     // Liberar el vehículo (volver a disponible)
-    await client.query('UPDATE "Vehiculo" SET estado = $1, "dealActivoId" = NULL WHERE id = $2', [
-      'disponible',
-      deal.vehiculoId
-    ])
-    
+    await client.query(
+      'UPDATE "Vehiculo" SET estado = $1, "dealActivoId" = NULL WHERE id = $2',
+      ['disponible', deal.vehiculoId]
+    )
+
     return result.rowCount > 0
   } catch (error) {
     console.error('Error eliminando deal:', error)
@@ -651,22 +721,25 @@ export async function deleteDeal(id: number): Promise<boolean> {
 export async function getVehiculoById(id: number): Promise<Vehiculo | null> {
   const client = await pool.connect()
   try {
-    const result = await client.query(`
+    const result = await client.query(
+      `
       SELECT v.*, i.nombre as inversor_nombre 
       FROM "Vehiculo" v
       LEFT JOIN "Inversor" i ON v."inversorId" = i.id
       WHERE v.id = $1
-    `, [id])
-    
+    `,
+      [id]
+    )
+
     if (result.rows.length === 0) return null
-    
+
     const row = result.rows[0]
     console.log('🔍 [GET_VEHICULO] Datos de la base de datos:', {
       id: row.id,
       marca: row.marca,
       modelo: row.modelo,
       color: row.color,
-      estado: row.estado
+      estado: row.estado,
     })
     return {
       id: row.id,
@@ -692,10 +765,12 @@ export async function getVehiculoById(id: number): Promise<Vehiculo | null> {
       hojasA: row.hojasA,
       esCocheInversor: row.esCocheInversor,
       inversorId: row.inversorId,
-      inversor: row.inversor_nombre ? {
-        id: row.inversorId,
-        nombre: row.inversor_nombre
-      } : null,
+      inversor: row.inversor_nombre
+        ? {
+            id: row.inversorId,
+            nombre: row.inversor_nombre,
+          }
+        : null,
       fechaCompra: row.fechaCompra,
       precioCompra: row.precioCompra,
       gastosTransporte: row.gastosTransporte,
@@ -709,7 +784,7 @@ export async function getVehiculoById(id: number): Promise<Vehiculo | null> {
       beneficioNeto: row.beneficioNeto,
       notasInversor: row.notasInversor,
       fotoInversor: row.fotoInversor,
-      color: row.color
+      color: row.color,
     }
   } catch (error) {
     console.error('Error obteniendo vehículo por ID:', error)
@@ -719,10 +794,13 @@ export async function getVehiculoById(id: number): Promise<Vehiculo | null> {
   }
 }
 
-export async function saveVehiculo(vehiculoData: Omit<Vehiculo, 'id' | 'createdAt' | 'updatedAt'>): Promise<Vehiculo> {
+export async function saveVehiculo(
+  vehiculoData: Omit<Vehiculo, 'id' | 'createdAt' | 'updatedAt'>
+): Promise<Vehiculo> {
   const client = await pool.connect()
   try {
-    const result = await client.query(`
+    const result = await client.query(
+      `
       INSERT INTO "Vehiculo" (
         referencia, marca, modelo, matricula, bastidor, kms, tipo, estado, orden,
         color, "fechaMatriculacion", año, itv, seguro, "segundaLlave", documentacion,
@@ -735,21 +813,45 @@ export async function saveVehiculo(vehiculoData: Omit<Vehiculo, 'id' | 'createdA
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21,
         $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, NOW(), NOW()
       ) RETURNING *
-    `, [
-      vehiculoData.referencia, vehiculoData.marca, vehiculoData.modelo,
-      vehiculoData.matricula, vehiculoData.bastidor, vehiculoData.kms,
-      vehiculoData.tipo, vehiculoData.estado, vehiculoData.orden,
-      vehiculoData.color, vehiculoData.fechaMatriculacion, vehiculoData.año, vehiculoData.itv,
-      vehiculoData.seguro, vehiculoData.segundaLlave, vehiculoData.documentacion,
-      vehiculoData.carpeta, vehiculoData.master, vehiculoData.hojasA,
-      vehiculoData.esCocheInversor, vehiculoData.inversorId,
-      vehiculoData.fechaCompra, vehiculoData.precioCompra, vehiculoData.gastosTransporte,
-      vehiculoData.gastosTasas, vehiculoData.gastosMecanica, vehiculoData.gastosPintura,
-      vehiculoData.gastosLimpieza, vehiculoData.gastosOtros, vehiculoData.precioPublicacion,
-      vehiculoData.precioVenta, vehiculoData.beneficioNeto, vehiculoData.notasInversor,
-      vehiculoData.fotoInversor
-    ])
-    
+    `,
+      [
+        vehiculoData.referencia,
+        vehiculoData.marca,
+        vehiculoData.modelo,
+        vehiculoData.matricula,
+        vehiculoData.bastidor,
+        vehiculoData.kms,
+        vehiculoData.tipo,
+        vehiculoData.estado,
+        vehiculoData.orden,
+        vehiculoData.color,
+        vehiculoData.fechaMatriculacion,
+        vehiculoData.año,
+        vehiculoData.itv,
+        vehiculoData.seguro,
+        vehiculoData.segundaLlave,
+        vehiculoData.documentacion,
+        vehiculoData.carpeta,
+        vehiculoData.master,
+        vehiculoData.hojasA,
+        vehiculoData.esCocheInversor,
+        vehiculoData.inversorId,
+        vehiculoData.fechaCompra,
+        vehiculoData.precioCompra,
+        vehiculoData.gastosTransporte,
+        vehiculoData.gastosTasas,
+        vehiculoData.gastosMecanica,
+        vehiculoData.gastosPintura,
+        vehiculoData.gastosLimpieza,
+        vehiculoData.gastosOtros,
+        vehiculoData.precioPublicacion,
+        vehiculoData.precioVenta,
+        vehiculoData.beneficioNeto,
+        vehiculoData.notasInversor,
+        vehiculoData.fotoInversor,
+      ]
+    )
+
     return result.rows[0] as Vehiculo
   } catch (error) {
     console.error('Error guardando vehículo:', error)
@@ -785,13 +887,18 @@ export async function deleteVehiculo(id: number): Promise<boolean> {
   }
 }
 
-export async function updateVehiculo(id: number, vehiculoData: Partial<Vehiculo>): Promise<Vehiculo | null> {
+export async function updateVehiculo(
+  id: number,
+  vehiculoData: Partial<Vehiculo>
+): Promise<Vehiculo | null> {
   const client = await pool.connect()
   try {
-    const fields = Object.keys(vehiculoData).filter(key => key !== 'id')
-    const values = fields.map(field => vehiculoData[field as keyof Vehiculo])
-    const setClause = fields.map((field, index) => `"${field}" = $${index + 2}`).join(', ')
-    
+    const fields = Object.keys(vehiculoData).filter((key) => key !== 'id')
+    const values = fields.map((field) => vehiculoData[field as keyof Vehiculo])
+    const setClause = fields
+      .map((field, index) => `"${field}" = $${index + 2}`)
+      .join(', ')
+
     console.log('🔄 Actualizando vehículo ID:', id)
     console.log('📋 Campos a actualizar:', fields)
     console.log('💾 Valores:', values)
@@ -801,30 +908,42 @@ export async function updateVehiculo(id: number, vehiculoData: Partial<Vehiculo>
       itv: vehiculoData.itv,
       seguro: vehiculoData.seguro,
       segundaLlave: vehiculoData.segundaLlave,
-      documentacion: vehiculoData.documentacion
+      documentacion: vehiculoData.documentacion,
     })
-    
+
     console.log('🔧 Ejecutando query SQL...')
-    console.log('🔧 Query:', `UPDATE "Vehiculo" SET ${setClause}, "updatedAt" = NOW() WHERE id = $1 RETURNING *`)
+    console.log(
+      '🔧 Query:',
+      `UPDATE "Vehiculo" SET ${setClause}, "updatedAt" = NOW() WHERE id = $1 RETURNING *`
+    )
     console.log('🔧 Parámetros:', [id, ...values])
-    
-    const result = await client.query(`
+
+    const result = await client.query(
+      `
       UPDATE "Vehiculo" 
       SET ${setClause}, "updatedAt" = NOW()
       WHERE id = $1 
       RETURNING *
-    `, [id, ...values])
-    
+    `,
+      [id, ...values]
+    )
+
     console.log('✅ Resultado de actualización:', result.rows[0])
     console.log('✅ Número de filas afectadas:', result.rowCount)
     console.log('✅ Resultado completo:', result)
-    
-    return result.rows[0] as Vehiculo || null
+
+    return (result.rows[0] as Vehiculo) || null
   } catch (error) {
     console.error('❌ Error actualizando vehículo:', error)
     console.error('❌ Tipo de error:', typeof error)
-    console.error('❌ Mensaje de error:', error instanceof Error ? error.message : 'Error desconocido')
-    console.error('❌ Stack trace:', error instanceof Error ? error.stack : 'No stack trace')
+    console.error(
+      '❌ Mensaje de error:',
+      error instanceof Error ? error.message : 'Error desconocido'
+    )
+    console.error(
+      '❌ Stack trace:',
+      error instanceof Error ? error.stack : 'No stack trace'
+    )
     throw error
   } finally {
     client.release()
@@ -834,7 +953,9 @@ export async function updateVehiculo(id: number, vehiculoData: Partial<Vehiculo>
 export async function getInversores() {
   const client = await pool.connect()
   try {
-    const result = await client.query('SELECT * FROM "Inversor" ORDER BY id ASC')
+    const result = await client.query(
+      'SELECT * FROM "Inversor" ORDER BY id ASC'
+    )
     return result.rows
   } catch (error) {
     console.error('Error obteniendo inversores:', error)
@@ -847,21 +968,25 @@ export async function getInversores() {
 export async function saveInversor(inversorData: any) {
   const client = await pool.connect()
   try {
-    const result = await client.query(`
+    const result = await client.query(
+      `
       INSERT INTO "Inversor" (
         nombre, email, "capitalAportado", "fechaAporte", "capitalInvertido", 
-        "notasInternas", "createdAt", "updatedAt"
+        usuario, contraseña, "createdAt", "updatedAt"
       )
-      VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
       RETURNING *
-    `, [
-      inversorData.nombre, 
-      inversorData.email, 
-      inversorData.capitalAportado || 0,
-      inversorData.fechaAporte,
-      inversorData.capitalInvertido || 0,
-      inversorData.notasInternas
-    ])
+    `,
+      [
+        inversorData.nombre || '',
+        inversorData.email || null,
+        inversorData.capitalAportado || 0,
+        inversorData.fechaAporte || null,
+        inversorData.capitalInvertido || 0,
+        inversorData.usuario || null,
+        inversorData.contraseña || null,
+      ]
+    )
     return result.rows[0]
   } catch (error) {
     console.error('Error guardando inversor:', error)
@@ -871,7 +996,12 @@ export async function saveInversor(inversorData: any) {
   }
 }
 
-export async function checkUniqueFields(referencia: string, matricula: string, bastidor: string, excludeId?: number) {
+export async function checkUniqueFields(
+  referencia: string,
+  matricula: string,
+  bastidor: string,
+  excludeId?: number
+) {
   const client = await pool.connect()
   try {
     let query = `
@@ -880,14 +1010,14 @@ export async function checkUniqueFields(referencia: string, matricula: string, b
       WHERE (referencia = $1 OR matricula = $2 OR bastidor = $3)
     `
     const params = [referencia, matricula, bastidor]
-    
+
     if (excludeId) {
       query += ' AND id != $4'
       params.push(excludeId)
     }
-    
+
     const result = await client.query(query, params)
-    
+
     if (result.rows.length > 0) {
       const existing = result.rows[0]
       if (existing.referencia === referencia) {
@@ -900,7 +1030,7 @@ export async function checkUniqueFields(referencia: string, matricula: string, b
         return { field: 'bastidor', value: bastidor }
       }
     }
-    
+
     return null
   } catch (error) {
     console.error('Error verificando campos únicos:', error)
@@ -927,7 +1057,8 @@ export async function getClientes() {
 export async function saveCliente(clienteData: any) {
   const client = await pool.connect()
   try {
-    const result = await client.query(`
+    const result = await client.query(
+      `
       INSERT INTO "Cliente" (
         nombre, apellidos, email, telefono, "fechaNacimiento", direccion,
         ciudad, "codigoPostal", provincia, dni, "vehiculosInteres",
@@ -940,18 +1071,38 @@ export async function saveCliente(clienteData: any) {
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, NOW(), NOW()
       ) RETURNING *
-    `, [
-      clienteData.nombre, clienteData.apellidos, clienteData.email,
-      clienteData.telefono, clienteData.fechaNacimiento, clienteData.direccion,
-      clienteData.ciudad, clienteData.codPostal, clienteData.provincia,
-      clienteData.dni, clienteData.vehiculosInteres, clienteData.presupuestoMaximo,
-      clienteData.kilometrajeMaximo, clienteData.añoMinimo, clienteData.combustiblePreferido,
-      clienteData.cambioPreferido, clienteData.coloresDeseados, clienteData.necesidadesEspeciales,
-      clienteData.formaPagoPreferida, clienteData.comoLlego, clienteData.fechaPrimerContacto,
-      clienteData.estado, clienteData.prioridad, clienteData.proximoPaso,
-      clienteData.etiquetas, clienteData.notasAdicionales, clienteData.observaciones,
-      clienteData.activo
-    ])
+    `,
+      [
+        clienteData.nombre,
+        clienteData.apellidos,
+        clienteData.email,
+        clienteData.telefono,
+        clienteData.fechaNacimiento,
+        clienteData.direccion,
+        clienteData.ciudad,
+        clienteData.codPostal,
+        clienteData.provincia,
+        clienteData.dni,
+        clienteData.vehiculosInteres,
+        clienteData.presupuestoMaximo,
+        clienteData.kilometrajeMaximo,
+        clienteData.añoMinimo,
+        clienteData.combustiblePreferido,
+        clienteData.cambioPreferido,
+        clienteData.coloresDeseados,
+        clienteData.necesidadesEspeciales,
+        clienteData.formaPagoPreferida,
+        clienteData.comoLlego,
+        clienteData.fechaPrimerContacto,
+        clienteData.estado,
+        clienteData.prioridad,
+        clienteData.proximoPaso,
+        clienteData.etiquetas,
+        clienteData.notasAdicionales,
+        clienteData.observaciones,
+        clienteData.activo,
+      ]
+    )
     return result.rows[0]
   } catch (error) {
     console.error('Error guardando cliente:', error)
@@ -964,7 +1115,9 @@ export async function saveCliente(clienteData: any) {
 export async function getClienteById(id: number) {
   const client = await pool.connect()
   try {
-    const result = await client.query('SELECT * FROM "Cliente" WHERE id = $1', [id])
+    const result = await client.query('SELECT * FROM "Cliente" WHERE id = $1', [
+      id,
+    ])
     return result.rows[0] || null
   } catch (error) {
     console.error('Error obteniendo cliente por ID:', error)
@@ -979,45 +1132,71 @@ export async function updateCliente(id: number, clienteData: any) {
   try {
     // Campos válidos según el esquema de la base de datos actualizado
     const validFields = [
-      'nombre', 'apellidos', 'email', 'telefono', 'fechaNacimiento', 
-      'direccion', 'ciudad', 'codigoPostal', 'provincia', 'dni',
-      'vehiculosInteres', 'presupuestoMaximo', 'kilometrajeMaximo', 
-      'añoMinimo', 'combustiblePreferido', 'cambioPreferido',
-      'coloresDeseados', 'necesidadesEspeciales', 'formaPagoPreferida',
-      'comoLlego', 'fechaPrimerContacto', 'estado', 'prioridad',
-      'proximoPaso', 'etiquetas', 'notasAdicionales', 'observaciones', 'activo'
+      'nombre',
+      'apellidos',
+      'email',
+      'telefono',
+      'fechaNacimiento',
+      'direccion',
+      'ciudad',
+      'codigoPostal',
+      'provincia',
+      'dni',
+      'vehiculosInteres',
+      'presupuestoMaximo',
+      'kilometrajeMaximo',
+      'añoMinimo',
+      'combustiblePreferido',
+      'cambioPreferido',
+      'coloresDeseados',
+      'necesidadesEspeciales',
+      'formaPagoPreferida',
+      'comoLlego',
+      'fechaPrimerContacto',
+      'estado',
+      'prioridad',
+      'proximoPaso',
+      'etiquetas',
+      'notasAdicionales',
+      'observaciones',
+      'activo',
     ]
-    
+
     // Filtrar solo campos válidos
-    const fields = Object.keys(clienteData).filter(key => 
-      key !== 'id' && validFields.includes(key)
+    const fields = Object.keys(clienteData).filter(
+      (key) => key !== 'id' && validFields.includes(key)
     )
-    
+
     // Si no hay campos válidos, no hacer nada
     if (fields.length === 0) {
       return await getClienteById(id)
     }
-    
-    const values = fields.map(field => {
+
+    const values = fields.map((field) => {
       // Mapear codPostal a codigoPostal para la base de datos
       if (field === 'codPostal') {
         return clienteData[field]
       }
       return clienteData[field]
     })
-    const setClause = fields.map((field, index) => {
-      // Mapear codPostal a codigoPostal en la consulta SQL
-      const dbField = field === 'codPostal' ? 'codigoPostal' : field
-      return `"${dbField}" = $${index + 2}`
-    }).join(', ')
-    
-    const result = await client.query(`
+    const setClause = fields
+      .map((field, index) => {
+        // Mapear codPostal a codigoPostal en la consulta SQL
+        const dbField = field === 'codPostal' ? 'codigoPostal' : field
+        return `"${dbField}" = $${index + 2}`
+      })
+      .join(', ')
+
+    const result = await client.query(
+      `
       UPDATE "Cliente" 
       SET ${setClause}, "updatedAt" = NOW()
       WHERE id = $1 
       RETURNING *
-    `, [id, ...values])
-    
+    `,
+      [id, ...values]
+    )
+
     return result.rows[0] || null
   } catch (error) {
     console.error('Error actualizando cliente:', error)
@@ -1044,7 +1223,10 @@ export async function deleteCliente(id: number) {
 export async function getInversorById(id: number) {
   const client = await pool.connect()
   try {
-    const result = await client.query('SELECT * FROM "Inversor" WHERE id = $1', [id])
+    const result = await client.query(
+      'SELECT * FROM "Inversor" WHERE id = $1',
+      [id]
+    )
     return result.rows[0] || null
   } catch (error) {
     console.error('Error obteniendo inversor por ID:', error)
@@ -1057,17 +1239,22 @@ export async function getInversorById(id: number) {
 export async function updateInversor(id: number, inversorData: any) {
   const client = await pool.connect()
   try {
-    const fields = Object.keys(inversorData).filter(key => key !== 'id')
-    const values = fields.map(field => inversorData[field])
-    const setClause = fields.map((field, index) => `"${field}" = $${index + 2}`).join(', ')
-    
-    const result = await client.query(`
+    const fields = Object.keys(inversorData).filter((key) => key !== 'id')
+    const values = fields.map((field) => inversorData[field])
+    const setClause = fields
+      .map((field, index) => `"${field}" = $${index + 2}`)
+      .join(', ')
+
+    const result = await client.query(
+      `
       UPDATE "Inversor" 
       SET ${setClause}, "updatedAt" = NOW()
       WHERE id = $1 
       RETURNING *
-    `, [id, ...values])
-    
+    `,
+      [id, ...values]
+    )
+
     return result.rows[0] || null
   } catch (error) {
     console.error('Error actualizando inversor:', error)
@@ -1093,11 +1280,14 @@ export async function deleteInversor(id: number) {
 export async function getVehiculosByInversor(inversorId: number) {
   const client = await pool.connect()
   try {
-    const result = await client.query(`
+    const result = await client.query(
+      `
       SELECT * FROM "Vehiculo" 
       WHERE "inversorId" = $1 
       ORDER BY id ASC
-    `, [inversorId])
+    `,
+      [inversorId]
+    )
     return result.rows
   } catch (error) {
     console.error('Error obteniendo vehículos por inversor:', error)
@@ -1112,13 +1302,16 @@ export async function updateVehiculosOrden(updates: any[]) {
   try {
     const results = []
     for (const update of updates) {
-      const result = await client.query(`
+      const result = await client.query(
+        `
         UPDATE "Vehiculo" 
         SET estado = $2, orden = $3, "updatedAt" = NOW()
         WHERE id = $1 
         RETURNING *
-      `, [update.id, update.estado, update.orden])
-      
+      `,
+        [update.id, update.estado, update.orden]
+      )
+
       if (result.rows[0]) {
         results.push(result.rows[0])
       }
@@ -1136,11 +1329,14 @@ export async function updateVehiculosOrden(updates: any[]) {
 export async function getNotasByCliente(clienteId: number) {
   const client = await pool.connect()
   try {
-    const result = await client.query(`
+    const result = await client.query(
+      `
       SELECT * FROM "NotaCliente" 
       WHERE "clienteId" = $1 
       ORDER BY fecha DESC
-    `, [clienteId])
+    `,
+      [clienteId]
+    )
     return result.rows
   } catch (error) {
     console.error('Error obteniendo notas del cliente:', error)
@@ -1153,17 +1349,23 @@ export async function getNotasByCliente(clienteId: number) {
 export async function addNotaCliente(notaData: any) {
   const client = await pool.connect()
   try {
-    const result = await client.query(`
+    const result = await client.query(
+      `
       INSERT INTO "NotaCliente" (
         "clienteId", tipo, contenido, prioridad, completada,
         "createdAt", "updatedAt"
       ) VALUES (
         $1, $2, $3, $4, $5, NOW(), NOW()
       ) RETURNING *
-    `, [
-      notaData.clienteId, notaData.tipo, notaData.contenido,
-      notaData.prioridad, notaData.completada || false
-    ])
+    `,
+      [
+        notaData.clienteId,
+        notaData.tipo,
+        notaData.contenido,
+        notaData.prioridad,
+        notaData.completada || false,
+      ]
+    )
     return result.rows[0]
   } catch (error) {
     console.error('Error agregando nota del cliente:', error)
@@ -1177,11 +1379,14 @@ export async function addNotaCliente(notaData: any) {
 export async function buscarClientesPorVehiculo(vehiculoInfo: string) {
   const client = await pool.connect()
   try {
-    const result = await client.query(`
+    const result = await client.query(
+      `
       SELECT * FROM "Cliente" 
       WHERE "vehiculosInteres" ILIKE $1 
       ORDER BY id ASC
-    `, [`%${vehiculoInfo}%`])
+    `,
+      [`%${vehiculoInfo}%`]
+    )
     return result.rows
   } catch (error) {
     console.error('Error buscando clientes por vehículo:', error)
@@ -1195,19 +1400,23 @@ export async function getInversorMetrics(inversorId: number) {
   const client = await pool.connect()
   try {
     // Obtener datos del inversor
-    const inversorResult = await client.query(`
+    const inversorResult = await client.query(
+      `
       SELECT "capitalAportado", "capitalInvertido"
       FROM "Inversor" 
       WHERE id = $1
-    `, [inversorId])
-    
+    `,
+      [inversorId]
+    )
+
     const inversor = inversorResult.rows[0]
     if (!inversor) {
       throw new Error('Inversor no encontrado')
     }
-    
+
     // Obtener métricas de vehículos con costo total calculado
-    const vehiculosResult = await client.query(`
+    const vehiculosResult = await client.query(
+      `
       SELECT 
         COUNT(*) as total_vehiculos,
         COUNT(CASE WHEN estado = 'VENDIDO' THEN 1 END) as total_vendidos,
@@ -1227,17 +1436,22 @@ export async function getInversorMetrics(inversorId: number) {
         ) as total_costo_real
       FROM "Vehiculo" 
       WHERE "inversorId" = $1
-    `, [inversorId])
-    
+    `,
+      [inversorId]
+    )
+
     const metrics = vehiculosResult.rows[0]
-    
+
     // Calcular valores
     const capitalAportado = parseFloat(inversor.capitalAportado) || 0
     const capitalInvertidoReal = parseFloat(metrics.total_costo_real) || 0 // Capital realmente invertido en vehículos
     const capitalDisponible = capitalAportado - capitalInvertidoReal // Puede ser negativo
     const beneficioAcumulado = parseFloat(metrics.beneficio_total) || 0
-    const roi = capitalInvertidoReal > 0 ? (beneficioAcumulado / capitalInvertidoReal) * 100 : 0
-    
+    const roi =
+      capitalInvertidoReal > 0
+        ? (beneficioAcumulado / capitalInvertidoReal) * 100
+        : 0
+
     return {
       beneficioAcumulado: beneficioAcumulado,
       capitalInvertido: capitalInvertidoReal, // Capital realmente invertido en vehículos
@@ -1246,7 +1460,7 @@ export async function getInversorMetrics(inversorId: number) {
       roi: roi,
       totalVendidos: parseInt(metrics.total_vendidos) || 0,
       totalEnStock: parseInt(metrics.total_en_stock) || 0,
-      diasPromedioEnStock: 0 // TODO: Implementar cálculo de días promedio
+      diasPromedioEnStock: 0, // TODO: Implementar cálculo de días promedio
     }
   } catch (error) {
     console.error('Error obteniendo métricas del inversor:', error)
@@ -1258,7 +1472,7 @@ export async function getInversorMetrics(inversorId: number) {
       roi: 0,
       totalVendidos: 0,
       totalEnStock: 0,
-      diasPromedioEnStock: 0
+      diasPromedioEnStock: 0,
     }
   } finally {
     client.release()
@@ -1269,7 +1483,7 @@ export async function cleanupOrphanVehicles() {
   const client = await pool.connect()
   try {
     console.log('🧹 Iniciando limpieza de vehículos huérfanos...')
-    
+
     // Buscar vehículos que tienen dealActivoId pero el deal no existe
     const orphanVehicles = await client.query(`
       SELECT v.id, v.referencia, v.marca, v.modelo, v.estado, v."dealActivoId"
@@ -1278,29 +1492,37 @@ export async function cleanupOrphanVehicles() {
       WHERE v."dealActivoId" IS NOT NULL 
       AND d.id IS NULL
     `)
-    
-    console.log(`🔍 Encontrados ${orphanVehicles.rows.length} vehículos huérfanos`)
-    
+
+    console.log(
+      `🔍 Encontrados ${orphanVehicles.rows.length} vehículos huérfanos`
+    )
+
     if (orphanVehicles.rows.length > 0) {
       // Liberar todos los vehículos huérfanos
-      const updateResult = await client.query(`
+      const updateResult = await client.query(
+        `
         UPDATE "Vehiculo" 
         SET estado = 'disponible', "dealActivoId" = NULL, "updatedAt" = NOW()
         WHERE id IN (${orphanVehicles.rows.map((_, index) => `$${index + 1}`).join(', ')})
-      `, orphanVehicles.rows.map(v => v.id))
-      
+      `,
+        orphanVehicles.rows.map((v) => v.id)
+      )
+
       console.log(`✅ Liberados ${updateResult.rowCount} vehículos huérfanos`)
-      
+
       // Log de los vehículos liberados
-      orphanVehicles.rows.forEach(vehicle => {
-        console.log(`🚗 Vehículo ${vehicle.id} (${vehicle.marca} ${vehicle.modelo}) liberado`)
+      orphanVehicles.rows.forEach((vehicle) => {
+        console.log(
+          `🚗 Vehículo ${vehicle.id} (${vehicle.marca} ${vehicle.modelo}) liberado`
+        )
       })
     }
-    
+
     return {
       orphanCount: orphanVehicles.rows.length,
-      cleanedCount: orphanVehicles.rows.length > 0 ? orphanVehicles.rows.length : 0,
-      vehicles: orphanVehicles.rows
+      cleanedCount:
+        orphanVehicles.rows.length > 0 ? orphanVehicles.rows.length : 0,
+      vehicles: orphanVehicles.rows,
     }
   } catch (error) {
     console.error('Error limpiando vehículos huérfanos:', error)
@@ -1336,22 +1558,25 @@ export async function createClienteReminder(data: {
 }): Promise<ClienteReminder> {
   const client = await pool.connect()
   try {
-    const result = await client.query(`
+    const result = await client.query(
+      `
       INSERT INTO "ClienteReminder" (
         "clienteId", titulo, descripcion, tipo, prioridad, "fechaRecordatorio", completado, "deal_id"
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *
-    `, [
-      data.clienteId,
-      data.titulo,
-      data.descripcion,
-      data.tipo,
-      data.prioridad,
-      data.fechaRecordatorio,
-      false,
-      data.dealId || null
-    ])
-    
+    `,
+      [
+        data.clienteId,
+        data.titulo,
+        data.descripcion,
+        data.tipo,
+        data.prioridad,
+        data.fechaRecordatorio,
+        false,
+        data.dealId || null,
+      ]
+    )
+
     return result.rows[0]
   } catch (error) {
     console.error('Error creating client reminder:', error)
@@ -1361,15 +1586,20 @@ export async function createClienteReminder(data: {
   }
 }
 
-export async function getClienteReminders(clienteId: number): Promise<ClienteReminder[]> {
+export async function getClienteReminders(
+  clienteId: number
+): Promise<ClienteReminder[]> {
   const client = await pool.connect()
   try {
-    const result = await client.query(`
+    const result = await client.query(
+      `
       SELECT * FROM "ClienteReminder"
       WHERE "clienteId" = $1
       ORDER BY "fechaRecordatorio" ASC, "createdAt" DESC
-    `, [clienteId])
-    
+    `,
+      [clienteId]
+    )
+
     return result.rows
   } catch (error) {
     console.error('Error fetching client reminders:', error)
@@ -1379,16 +1609,22 @@ export async function getClienteReminders(clienteId: number): Promise<ClienteRem
   }
 }
 
-export async function updateClienteReminder(reminderId: number, data: { completado: boolean }): Promise<ClienteReminder | null> {
+export async function updateClienteReminder(
+  reminderId: number,
+  data: { completado: boolean }
+): Promise<ClienteReminder | null> {
   const client = await pool.connect()
   try {
-    const result = await client.query(`
+    const result = await client.query(
+      `
       UPDATE "ClienteReminder"
       SET completado = $1, "updatedAt" = NOW()
       WHERE id = $2
       RETURNING *
-    `, [data.completado, reminderId])
-    
+    `,
+      [data.completado, reminderId]
+    )
+
     return result.rows[0] || null
   } catch (error) {
     console.error('Error updating client reminder:', error)
@@ -1398,14 +1634,19 @@ export async function updateClienteReminder(reminderId: number, data: { completa
   }
 }
 
-export async function deleteClienteReminder(reminderId: number): Promise<boolean> {
+export async function deleteClienteReminder(
+  reminderId: number
+): Promise<boolean> {
   const client = await pool.connect()
   try {
-    const result = await client.query(`
+    const result = await client.query(
+      `
       DELETE FROM "ClienteReminder"
       WHERE id = $1
-    `, [reminderId])
-    
+    `,
+      [reminderId]
+    )
+
     return result.rowCount > 0
   } catch (error) {
     console.error('Error deleting client reminder:', error)
@@ -1415,7 +1656,9 @@ export async function deleteClienteReminder(reminderId: number): Promise<boolean
   }
 }
 
-export async function getAllReminders(): Promise<(ClienteReminder & { clienteNombre: string })[]> {
+export async function getAllReminders(): Promise<
+  (ClienteReminder & { clienteNombre: string })[]
+> {
   const client = await pool.connect()
   try {
     const result = await client.query(`
@@ -1427,7 +1670,7 @@ export async function getAllReminders(): Promise<(ClienteReminder & { clienteNom
       WHERE cr.completado = false
       ORDER BY cr."fechaRecordatorio" ASC, cr."createdAt" DESC
     `)
-    
+
     return result.rows
   } catch (error) {
     console.error('Error fetching all reminders:', error)
@@ -1449,33 +1692,32 @@ export async function getVehiculoStats(): Promise<VehiculoStats> {
   const client = await pool.connect()
   try {
     // Obtener estadísticas de vehículos (excluyendo tipo D - depósitos)
-    
+
     // Total de vehículos activos (no vendidos y no tipo D)
     const totalActivosResult = await client.query(`
       SELECT COUNT(*) as count
       FROM "Vehiculo"
       WHERE estado != 'vendido' AND tipo != 'D'
     `)
-    
+
     // Vehículos publicados - buscamos tanto 'PUBLICADO' como 'publicado' y 'disponible' (excluyendo tipo D)
     const publicadosResult = await client.query(`
       SELECT COUNT(*) as count
       FROM "Vehiculo"
       WHERE estado IN ('PUBLICADO', 'publicado', 'disponible') AND tipo != 'D'
     `)
-    
-    
+
     // Vehículos en proceso (todos los demás estados excepto vendido y publicados, excluyendo tipo D)
     const enProcesoResult = await client.query(`
       SELECT COUNT(*) as count
       FROM "Vehiculo"
       WHERE estado NOT IN ('vendido', 'PUBLICADO', 'publicado', 'disponible') AND tipo != 'D'
     `)
-    
+
     return {
       totalActivos: parseInt(totalActivosResult.rows[0].count),
       publicados: parseInt(publicadosResult.rows[0].count),
-      enProceso: parseInt(enProcesoResult.rows[0].count)
+      enProceso: parseInt(enProcesoResult.rows[0].count),
     }
   } catch (error) {
     console.error('Error fetching vehiculo stats:', error)
@@ -1495,14 +1737,14 @@ export async function getDepositoStats(): Promise<DepositoStats> {
   const client = await pool.connect()
   try {
     // Obtener estadísticas de vehículos tipo "D" (depósitos de venta)
-    
+
     // Total de vehículos en depósito de venta
     const totalDepositosResult = await client.query(`
       SELECT COUNT(*) as count
       FROM "Vehiculo"
       WHERE tipo = 'D'
     `)
-    
+
     // Vehículos en depósito en proceso (no publicados ni vendidos)
     const enProcesoResult = await client.query(`
       SELECT COUNT(*) as count
@@ -1510,7 +1752,7 @@ export async function getDepositoStats(): Promise<DepositoStats> {
       WHERE tipo = 'D' 
       AND estado NOT IN ('PUBLICADO', 'publicado', 'disponible', 'vendido', 'VENDIDO')
     `)
-    
+
     // Vehículos en depósito publicados
     const publicadosResult = await client.query(`
       SELECT COUNT(*) as count
@@ -1518,11 +1760,11 @@ export async function getDepositoStats(): Promise<DepositoStats> {
       WHERE tipo = 'D' 
       AND estado IN ('PUBLICADO', 'publicado', 'disponible')
     `)
-    
+
     return {
       totalDepositos: parseInt(totalDepositosResult.rows[0].count),
       enProceso: parseInt(enProcesoResult.rows[0].count),
-      publicados: parseInt(publicadosResult.rows[0].count)
+      publicados: parseInt(publicadosResult.rows[0].count),
     }
   } catch (error) {
     console.error('Error fetching deposito stats:', error)
@@ -1542,10 +1784,13 @@ export interface UltimaOperacion {
   precio: number
 }
 
-export async function getUltimasOperaciones(limit: number = 5): Promise<UltimaOperacion[]> {
+export async function getUltimasOperaciones(
+  limit: number = 5
+): Promise<UltimaOperacion[]> {
   const client = await pool.connect()
   try {
-    const result = await client.query(`
+    const result = await client.query(
+      `
       SELECT 
         d.id,
         d.numero as referencia,
@@ -1559,16 +1804,18 @@ export async function getUltimasOperaciones(limit: number = 5): Promise<UltimaOp
       LEFT JOIN "Vehiculo" v ON d."vehiculoId" = v.id
       ORDER BY d."createdAt" DESC
       LIMIT $1
-    `, [limit])
-    
-    return result.rows.map(row => ({
+    `,
+      [limit]
+    )
+
+    return result.rows.map((row) => ({
       id: row.id.toString(),
       referencia: row.referencia || 'Sin referencia',
       cliente: row.cliente,
       vehiculo: row.vehiculo,
       estado: row.estado,
       fecha: row.fecha,
-      precio: parseFloat(row.precio) || 0
+      precio: parseFloat(row.precio) || 0,
     }))
   } catch (error) {
     console.error('Error fetching ultimas operaciones:', error)
@@ -1586,12 +1833,18 @@ export interface VentasPorMes {
   cantidad: number
 }
 
-export async function getVentasPorMes(periodo: 'mes_actual' | 'mes_anterior' | 'ultimos_3_meses' | 'ultimos_6_meses' | 'año'): Promise<VentasPorMes[]> {
+export async function getVentasPorMes(
+  periodo:
+    | 'mes_actual'
+    | 'mes_anterior'
+    | 'ultimos_3_meses'
+    | 'ultimos_6_meses'
+    | 'año'
+): Promise<VentasPorMes[]> {
   const client = await pool.connect()
   try {
-    
     let whereClause = ''
-    
+
     switch (periodo) {
       case 'mes_actual':
         whereClause = `AND EXTRACT(YEAR FROM "updatedAt") = EXTRACT(YEAR FROM NOW()) 
@@ -1611,7 +1864,7 @@ export async function getVentasPorMes(periodo: 'mes_actual' | 'mes_anterior' | '
         whereClause = `AND EXTRACT(YEAR FROM "updatedAt") = EXTRACT(YEAR FROM NOW())`
         break
     }
-    
+
     const result = await client.query(`
       SELECT 
         TO_CHAR("updatedAt", 'YYYY-MM') as mes,
@@ -1623,11 +1876,11 @@ export async function getVentasPorMes(periodo: 'mes_actual' | 'mes_anterior' | '
       GROUP BY TO_CHAR("updatedAt", 'YYYY-MM'), EXTRACT(YEAR FROM "updatedAt")
       ORDER BY año DESC, mes DESC
     `)
-    
-    return result.rows.map(row => ({
+
+    return result.rows.map((row) => ({
       mes: row.mes,
       año: parseInt(row.año),
-      cantidad: parseInt(row.cantidad)
+      cantidad: parseInt(row.cantidad),
     }))
   } catch (error) {
     console.error('Error fetching ventas por mes:', error)

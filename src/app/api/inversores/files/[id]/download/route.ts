@@ -5,18 +5,22 @@ import { pool } from '@/lib/direct-database'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const fileId = params.id
+    const { id } = await params
+    const fileId = id
 
     const client = await pool.connect()
     try {
-      const result = await client.query(`
+      const result = await client.query(
+        `
         SELECT nombre, url, tipo
         FROM "InversorArchivo"
         WHERE id = $1
-      `, [fileId])
+      `,
+        [fileId]
+      )
 
       if (result.rows.length === 0) {
         return NextResponse.json(
@@ -30,7 +34,7 @@ export async function GET(
 
       try {
         const fileBuffer = await readFile(filePath)
-        
+
         return new NextResponse(fileBuffer, {
           headers: {
             'Content-Type': file.tipo,
@@ -45,11 +49,9 @@ export async function GET(
           { status: 404 }
         )
       }
-
     } finally {
       client.release()
     }
-
   } catch (error) {
     console.error('Error al descargar archivo:', error)
     return NextResponse.json(

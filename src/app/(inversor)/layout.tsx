@@ -1,17 +1,14 @@
 import type { Metadata } from 'next'
-import './globals.css'
-import Navigation from '@/components/Navigation'
+import '../globals.css'
 import { ToastProvider } from '@/hooks/useToast'
-import { AuthProvider } from '@/contexts/AuthContext'
 import { InversorAuthProvider } from '@/contexts/InversorAuthContext'
-import ConditionalLayout from '@/components/ConditionalLayout'
 
 export const metadata: Metadata = {
-  title: 'SevenCars CRM',
-  description: 'Sistema de gestión de vehículos - SevenCars CRM Platform',
+  title: 'Portal de Inversores - SevenCars',
+  description: 'Portal de acceso para inversores - SevenCars Motors',
 }
 
-export default function RootLayout({
+export default function InversorLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
@@ -19,11 +16,11 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body className="antialiased bg-white" suppressHydrationWarning>
-        <AuthProvider>
+        <InversorAuthProvider>
           <ToastProvider>
-            <ConditionalLayout>{children}</ConditionalLayout>
+            <div className="min-h-screen">{children}</div>
           </ToastProvider>
-        </AuthProvider>
+        </InversorAuthProvider>
       </body>
     </html>
   )

@@ -1,29 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { generateContractPDF } from '@/lib/contractGenerator'
+import { generarContratoVenta } from '@/lib/contractGenerator'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { cliente, vehiculo, deposito, tipo } = body
 
-    console.log('📄 Generando contrato de venta:', { cliente, vehiculo, deposito, tipo })
-
-    // Generar el PDF del contrato de venta
-    const pdfBuffer = await generateContractPDF({
+    console.log('📄 Generando contrato de venta:', {
       cliente,
       vehiculo,
       deposito,
-      tipo: 'VENTA'
+      tipo,
     })
 
-    return new NextResponse(pdfBuffer, {
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="contrato_venta_${vehiculo.referencia}.pdf"`
-      }
+    // Generar el PDF del contrato de venta
+    await generarContratoVenta({
+      cliente,
+      vehiculo,
+      deposito,
+      tipo: 'VENTA',
+    })
+
+    return NextResponse.json({
+      success: true,
+      message: 'Contrato generado correctamente',
     })
   } catch (error) {
     console.error('Error generando contrato de venta:', error)
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Error interno del servidor' },
+      { status: 500 }
+    )
   }
 }

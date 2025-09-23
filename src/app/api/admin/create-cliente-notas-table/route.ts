@@ -4,9 +4,9 @@ import { pool } from '@/lib/direct-database'
 export async function POST() {
   try {
     console.log('🔧 Creando tabla NotaCliente...')
-    
+
     const client = await pool.connect()
-    
+
     // Crear tabla NotaCliente con la misma estructura que NotaDeposito
     await client.query(`
       CREATE TABLE IF NOT EXISTS "NotaCliente" (
@@ -23,20 +23,20 @@ export async function POST() {
         FOREIGN KEY ("clienteId") REFERENCES "Cliente"(id) ON DELETE CASCADE
       )
     `)
-    
+
     // Crear índices para mejor rendimiento
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_nota_cliente_cliente_id ON "NotaCliente"("clienteId")
     `)
-    
+
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_nota_cliente_fecha ON "NotaCliente"(fecha)
     `)
-    
+
     client.release()
-    
+
     console.log('✅ Tabla NotaCliente creada exitosamente')
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: 'Tabla NotaCliente creada correctamente',
       structure: {
         id: 'SERIAL PRIMARY KEY',
@@ -48,15 +48,19 @@ export async function POST() {
         usuario: 'VARCHAR(100) DEFAULT Sistema',
         fecha: 'TIMESTAMP DEFAULT NOW()',
         createdAt: 'TIMESTAMP DEFAULT NOW()',
-        updatedAt: 'TIMESTAMP DEFAULT NOW()'
-      }
+        updatedAt: 'TIMESTAMP DEFAULT NOW()',
+      },
     })
   } catch (error) {
     console.error('❌ Error creando tabla NotaCliente:', error)
-    return NextResponse.json({ 
-      error: 'Error interno del servidor',
-      details: error.message,
-      code: error.code
-    }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: 'Error interno del servidor',
+        details: error instanceof Error ? error.message : 'Error desconocido',
+        code:
+          error instanceof Error && 'code' in error ? error.code : 'UNKNOWN',
+      },
+      { status: 500 }
+    )
   }
 }

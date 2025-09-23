@@ -29,6 +29,8 @@ export default function InversoresPage() {
     capitalAportado: '',
     fechaAporte: '',
     notasInternas: '',
+    usuario: '',
+    contraseña: '',
   })
 
   const fetchInversores = async () => {
@@ -95,6 +97,8 @@ export default function InversoresPage() {
         capitalAportado: '',
         fechaAporte: '',
         notasInternas: '',
+        usuario: '',
+        contraseña: '',
       })
       setShowForm(false)
 
@@ -126,6 +130,8 @@ export default function InversoresPage() {
       capitalAportado: '',
       fechaAporte: '',
       notasInternas: '',
+      usuario: '',
+      contraseña: '',
     })
   }
 
@@ -511,6 +517,44 @@ export default function InversoresPage() {
                     className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                     placeholder="Notas internas sobre el inversor..."
                   />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label
+                      htmlFor="usuario"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Usuario para acceso
+                    </label>
+                    <input
+                      type="text"
+                      id="usuario"
+                      name="usuario"
+                      value={formData.usuario}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                      placeholder="Ej: inversor123"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="contraseña"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Contraseña para acceso
+                    </label>
+                    <input
+                      type="password"
+                      id="contraseña"
+                      name="contraseña"
+                      value={formData.contraseña}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                      placeholder="Contraseña segura"
+                    />
+                  </div>
                 </div>
 
                 <div className="pt-4">

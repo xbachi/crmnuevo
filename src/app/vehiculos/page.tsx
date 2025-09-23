@@ -18,7 +18,7 @@ interface Vehiculo {
   bastidor: string
   kms: number
   tipo: string
-  estado: string
+  estado: 'ACTIVO' | 'VENDIDO' | 'RESERVADO' | 'BORRADOR' | 'FINALIZADO'
   orden: number
   createdAt: string
   color?: string
@@ -74,7 +74,7 @@ export default function ListaVehiculos() {
     | 'tipo'
   >('todos')
   const [statusFilter, setStatusFilter] = useState<
-    'todos' | 'activos' | 'vendidos'
+    'todos' | 'activos' | 'vendidos' | 'reservados'
   >('activos')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [typeFilter, setTypeFilter] = useState<
@@ -90,6 +90,7 @@ export default function ListaVehiculos() {
     bastidor: '',
     kms: '',
     tipo: '',
+    estado: 'ACTIVO',
     color: '',
     fechaMatriculacion: '',
     inversorId: '',
@@ -272,10 +273,18 @@ export default function ListaVehiculos() {
           return normalized === 'vendido'
         }
 
+        const isReservado = (estado: string | null | undefined): boolean => {
+          if (!estado) return false
+          const normalized = estado.toString().toLowerCase().trim()
+          return normalized === 'reservado'
+        }
+
         if (statusFilter === 'activos') {
-          return !isVendido(vehiculo.estado)
+          return !isVendido(vehiculo.estado) && !isReservado(vehiculo.estado)
         } else if (statusFilter === 'vendidos') {
           return isVendido(vehiculo.estado)
+        } else if (statusFilter === 'reservados') {
+          return isReservado(vehiculo.estado)
         }
         return true
       })
@@ -391,6 +400,7 @@ export default function ListaVehiculos() {
       bastidor: vehiculo.bastidor,
       kms: vehiculo.kms.toString(),
       tipo: vehiculo.tipo,
+      estado: vehiculo.estado,
       color: vehiculo.color || '',
       fechaMatriculacion: vehiculo.fechaMatriculacion || '',
       inversorId: vehiculo.inversorId?.toString() || '',
@@ -472,6 +482,7 @@ export default function ListaVehiculos() {
         bastidor: editFormData.bastidor,
         kms: parseInt(editFormData.kms),
         tipo: editFormData.tipo,
+        estado: editFormData.estado,
         color: editFormData.color,
         fechaMatriculacion: editFormData.fechaMatriculacion,
         esCocheInversor: editFormData.tipo === 'Inversor',
@@ -540,6 +551,9 @@ export default function ListaVehiculos() {
       bastidor: '',
       kms: '',
       tipo: '',
+      estado: 'ACTIVO',
+      color: '',
+      fechaMatriculacion: '',
       inversorId: '',
     })
   }
@@ -897,6 +911,17 @@ export default function ListaVehiculos() {
                     >
                       <span className="text-xs">💰</span>
                       <span className="hidden sm:inline">Vendidos</span>
+                    </button>
+                    <button
+                      onClick={() => setStatusFilter('reservados')}
+                      className={`px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all flex items-center gap-1 ${
+                        statusFilter === 'reservados'
+                          ? 'bg-yellow-50 text-yellow-700 shadow-sm border border-yellow-200'
+                          : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
+                      }`}
+                    >
+                      <span className="text-xs">🔒</span>
+                      <span className="hidden sm:inline">Reservados</span>
                     </button>
                     <button
                       onClick={() => setStatusFilter('todos')}
@@ -1544,6 +1569,29 @@ export default function ListaVehiculos() {
                       <option value="Coche R">Coche R</option>
                       <option value="Deposito Venta">Deposito Venta</option>
                       <option value="Inversor">Inversor</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="edit-estado"
+                      className="block text-sm font-semibold text-slate-700"
+                    >
+                      Estado *
+                    </label>
+                    <select
+                      id="edit-estado"
+                      name="estado"
+                      value={editFormData.estado}
+                      onChange={handleEditInputChange}
+                      required
+                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white/80 backdrop-blur-sm transition-all duration-300"
+                    >
+                      <option value="ACTIVO">Activo</option>
+                      <option value="VENDIDO">Vendido</option>
+                      <option value="RESERVADO">Reservado</option>
+                      <option value="BORRADOR">Borrador</option>
+                      <option value="FINALIZADO">Finalizado</option>
                     </select>
                   </div>
 

@@ -18,17 +18,22 @@ interface DealVentaInfoProps {
   onUpdate?: (data: any) => void
 }
 
-export default function DealVentaInfo({ dealId, initialData, onUpdate }: DealVentaInfoProps) {
+export default function DealVentaInfo({
+  dealId,
+  initialData,
+  onUpdate,
+}: DealVentaInfoProps) {
   const { showToast, ToastContainer } = useSimpleToast()
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [formData, setFormData] = useState({
     montoVenta: initialData?.montoVenta || 0,
-    formaPago: initialData?.formaPago || 'contado' as 'contado' | 'financiado' | 'mixto',
+    formaPago:
+      initialData?.formaPago || ('' as 'contado' | 'financiado' | 'mixto' | ''),
     montoContado: initialData?.montoContado || 0,
     montoFinanciado: initialData?.montoFinanciado || 0,
-    garantia: initialData?.garantia || 'standard' as 'premium' | 'standard',
-    entidadFinanciera: initialData?.entidadFinanciera || ''
+    garantia: initialData?.garantia || ('standard' as 'premium' | 'standard'),
+    entidadFinanciera: initialData?.entidadFinanciera || '',
   })
 
   // Cargar datos desde la API al montar el componente
@@ -40,11 +45,11 @@ export default function DealVentaInfo({ dealId, initialData, onUpdate }: DealVen
           const data = await response.json()
           setFormData({
             montoVenta: data.montoVenta || 0,
-            formaPago: data.formaPago || 'contado',
+            formaPago: data.formaPago || '',
             montoContado: data.montoContado || 0,
             montoFinanciado: data.montoFinanciado || 0,
             garantia: data.garantia || 'standard',
-            entidadFinanciera: data.entidadFinanciera || ''
+            entidadFinanciera: data.entidadFinanciera || '',
           })
         }
       } catch (error) {
@@ -55,20 +60,22 @@ export default function DealVentaInfo({ dealId, initialData, onUpdate }: DealVen
     loadVentaInfo()
   }, [dealId])
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value, type } = e.target
     const newValue = type === 'number' ? parseFloat(value) || 0 : value
-    
-    setFormData(prev => ({
+
+    setFormData((prev) => ({
       ...prev,
-      [name]: newValue
+      [name]: newValue,
     }))
   }
 
   const handleSave = async () => {
     try {
       setIsSaving(true)
-      
+
       // Validaciones
       if (formData.montoVenta <= 0) {
         showToast('El monto de venta debe ser mayor a 0', 'error')
@@ -77,16 +84,31 @@ export default function DealVentaInfo({ dealId, initialData, onUpdate }: DealVen
 
       if (formData.formaPago === 'mixto') {
         if (formData.montoContado <= 0 || formData.montoFinanciado <= 0) {
-          showToast('Para pago mixto, ambos montos deben ser mayores a 0', 'error')
+          showToast(
+            'Para pago mixto, ambos montos deben ser mayores a 0',
+            'error'
+          )
           return
         }
-        if (Math.abs((formData.montoContado + formData.montoFinanciado) - formData.montoVenta) > 0.01) {
-          showToast('La suma de contado + financiado debe igualar el monto total', 'error')
+        if (
+          Math.abs(
+            formData.montoContado +
+              formData.montoFinanciado -
+              formData.montoVenta
+          ) > 0.01
+        ) {
+          showToast(
+            'La suma de contado + financiado debe igualar el monto total',
+            'error'
+          )
           return
         }
       }
 
-      if (formData.formaPago === 'financiado' && !formData.entidadFinanciera.trim()) {
+      if (
+        formData.formaPago === 'financiado' &&
+        !formData.entidadFinanciera.trim()
+      ) {
         showToast('Debe especificar la entidad financiera', 'error')
         return
       }
@@ -95,7 +117,7 @@ export default function DealVentaInfo({ dealId, initialData, onUpdate }: DealVen
       const response = await fetch(`/api/deals/${dealId}/venta-info`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
       })
 
       if (response.ok) {
@@ -117,37 +139,47 @@ export default function DealVentaInfo({ dealId, initialData, onUpdate }: DealVen
   const handleCancel = () => {
     setFormData({
       montoVenta: initialData?.montoVenta || 0,
-      formaPago: initialData?.formaPago || 'contado',
+      formaPago: initialData?.formaPago || '',
       montoContado: initialData?.montoContado || 0,
       montoFinanciado: initialData?.montoFinanciado || 0,
       garantia: initialData?.garantia || 'standard',
-      entidadFinanciera: initialData?.entidadFinanciera || ''
+      entidadFinanciera: initialData?.entidadFinanciera || '',
     })
     setIsEditing(false)
   }
 
   const getFormaPagoLabel = (forma: string) => {
     switch (forma) {
-      case 'contado': return 'Contado'
-      case 'financiado': return 'Financiado'
-      case 'mixto': return 'Mixto'
-      default: return forma
+      case 'contado':
+        return 'Contado'
+      case 'financiado':
+        return 'Financiado'
+      case 'mixto':
+        return 'Mixto'
+      case '':
+        return 'Seleccionar'
+      default:
+        return forma || 'Seleccionar'
     }
   }
 
   const getGarantiaLabel = (garantia: string) => {
     switch (garantia) {
-      case 'premium': return 'Premium'
-      case 'standard': return 'Standard'
-      default: return garantia
+      case 'premium':
+        return 'Premium'
+      case 'standard':
+        return 'Standard'
+      default:
+        return garantia
     }
   }
-
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold text-gray-900">Información de Venta</h2>
+        <h2 className="text-lg font-semibold text-gray-900">
+          Información de Venta
+        </h2>
         {!isEditing && (
           <button
             onClick={() => setIsEditing(true)}
@@ -160,92 +192,115 @@ export default function DealVentaInfo({ dealId, initialData, onUpdate }: DealVen
 
       {isEditing ? (
         <div className="space-y-4">
-          {/* Monto de Venta */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Monto de Venta
-            </label>
-            <CurrencyInput
-              value={formData.montoVenta}
-              onChange={(value) => setFormData(prev => ({ ...prev, montoVenta: value }))}
-              placeholder="0"
-            />
-          </div>
-
-          {/* Forma de Pago */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Forma de Pago
-            </label>
-            <select
-              name="formaPago"
-              value={formData.formaPago}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="contado">Contado</option>
-              <option value="financiado">Financiado</option>
-              <option value="mixto">Mixto (Contado + Financiado)</option>
-            </select>
-          </div>
-
-          {/* Montos específicos para pago mixto */}
-          {formData.formaPago === 'mixto' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Layout de 2 columnas: Izquierda (Monto + Garantía) y Derecha (Forma de Pago + Entidad + Montos) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Columna Izquierda */}
+            <div className="space-y-4">
+              {/* Monto de Venta */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Monto Contado
+                  Monto de Venta
                 </label>
                 <CurrencyInput
-                  value={formData.montoContado}
-                  onChange={(value) => setFormData(prev => ({ ...prev, montoContado: value }))}
+                  value={formData.montoVenta}
+                  onChange={(value) =>
+                    setFormData((prev) => ({ ...prev, montoVenta: value }))
+                  }
                   placeholder="0"
                 />
               </div>
+
+              {/* Tipo de Garantía */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Monto Financiado
+                  Tipo de Garantía
                 </label>
-                <CurrencyInput
-                  value={formData.montoFinanciado}
-                  onChange={(value) => setFormData(prev => ({ ...prev, montoFinanciado: value }))}
-                  placeholder="0"
-                />
+                <select
+                  name="garantia"
+                  value={formData.garantia}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="standard">Standard</option>
+                  <option value="premium">Premium</option>
+                </select>
               </div>
             </div>
-          )}
 
-          {/* Entidad Financiera */}
-          {(formData.formaPago === 'financiado' || formData.formaPago === 'mixto') && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Entidad Financiera
-              </label>
-              <input
-                type="text"
-                name="entidadFinanciera"
-                value={formData.entidadFinanciera}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Nombre de la entidad financiera"
-              />
+            {/* Columna Derecha */}
+            <div className="space-y-4">
+              {/* Forma de Pago */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Forma de Pago
+                </label>
+                <select
+                  name="formaPago"
+                  value={formData.formaPago}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Seleccionar</option>
+                  <option value="contado">Contado</option>
+                  <option value="financiado">Financiado</option>
+                  <option value="mixto">Mixto (Contado + Financiado)</option>
+                </select>
+              </div>
+
+              {/* Entidad Financiera */}
+              {(formData.formaPago === 'financiado' ||
+                formData.formaPago === 'mixto') && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Entidad Financiera
+                  </label>
+                  <input
+                    type="text"
+                    name="entidadFinanciera"
+                    value={formData.entidadFinanciera}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Nombre de la entidad financiera"
+                  />
+                </div>
+              )}
+
+              {/* Montos específicos para pago mixto */}
+              {formData.formaPago === 'mixto' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Monto Contado
+                    </label>
+                    <CurrencyInput
+                      value={formData.montoContado}
+                      onChange={(value) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          montoContado: value,
+                        }))
+                      }
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Monto Financiado
+                    </label>
+                    <CurrencyInput
+                      value={formData.montoFinanciado}
+                      onChange={(value) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          montoFinanciado: value,
+                        }))
+                      }
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-
-          {/* Tipo de Garantía */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tipo de Garantía
-            </label>
-            <select
-              name="garantia"
-              value={formData.garantia}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="standard">Standard</option>
-              <option value="premium">Premium</option>
-            </select>
           </div>
 
           {/* Botones de acción */}
@@ -267,76 +322,119 @@ export default function DealVentaInfo({ dealId, initialData, onUpdate }: DealVen
         </div>
       ) : (
         <div className="space-y-4">
-          {/* Información de solo lectura */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-500 mb-1">
-                Monto de Venta
-              </label>
-              <p className="text-lg font-semibold text-gray-900">
-                {formatCurrency(formData.montoVenta)}
-              </p>
+          {/* Layout de 2 columnas para vista de solo lectura */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Columna Izquierda */}
+            <div className="space-y-4">
+              {/* Monto de Venta */}
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-1">
+                  Monto de Venta
+                </label>
+                <p className="text-lg font-semibold text-gray-900">
+                  {formatCurrency(formData.montoVenta)}
+                </p>
+              </div>
+
+              {/* Tipo de Garantía */}
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-1">
+                  Tipo de Garantía
+                </label>
+                <p className="text-lg font-semibold text-gray-900">
+                  {getGarantiaLabel(formData.garantia)}
+                </p>
+              </div>
             </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-500 mb-1">
-                Forma de Pago
-              </label>
-              <p className="text-lg font-semibold text-gray-900 mb-3">
-                {getFormaPagoLabel(formData.formaPago)}
-              </p>
-              
-              {/* Entidad Financiera dentro del bloque de forma de pago */}
-              {(formData.formaPago === 'financiado' || formData.formaPago === 'mixto') && formData.entidadFinanciera && (
-                <div className="mb-3">
-                  <span className="text-sm text-gray-500">Entidad: </span>
-                  <span className="text-sm font-medium text-gray-900">{formData.entidadFinanciera}</span>
-                </div>
-              )}
-              
-              {/* Desglose de pago mixto integrado */}
+
+            {/* Columna Derecha */}
+            <div className="space-y-4">
+              {/* Forma de Pago */}
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-1">
+                  Forma de Pago
+                </label>
+                <p className="text-lg font-semibold text-gray-900">
+                  {getFormaPagoLabel(formData.formaPago)}
+                </p>
+              </div>
+
+              {/* Entidad Financiera */}
+              {(formData.formaPago === 'financiado' ||
+                formData.formaPago === 'mixto') &&
+                formData.entidadFinanciera && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500 mb-1">
+                      Entidad Financiera
+                    </label>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {formData.entidadFinanciera}
+                    </p>
+                  </div>
+                )}
+
+              {/* Desglose de pago mixto */}
               {formData.formaPago === 'mixto' && (
-                <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="grid grid-cols-2 gap-2">
                   <div className="bg-green-50 rounded-lg p-2 border border-green-200">
                     <div className="flex items-center space-x-1 mb-1">
                       <div className="w-4 h-4 bg-green-500 rounded flex items-center justify-center">
-                        <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        <svg
+                          className="w-2 h-2 text-white"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
                         </svg>
                       </div>
-                      <span className="font-medium text-green-700">Contado</span>
+                      <span className="font-medium text-green-700">
+                        Contado
+                      </span>
                     </div>
                     <p className="text-green-900 font-semibold">
                       {formatCurrency(formData.montoContado)}
                     </p>
                   </div>
-                  
+
                   <div className="bg-blue-50 rounded-lg p-2 border border-blue-200">
                     <div className="flex items-center space-x-1 mb-1">
                       <div className="w-4 h-4 bg-blue-500 rounded flex items-center justify-center">
-                        <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 114 0 2 2 0 01-4 0zm8 0a2 2 0 114 0 2 2 0 01-4 0z" clipRule="evenodd" />
+                        <svg
+                          className="w-2 h-2 text-white"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 114 0 2 2 0 01-4 0zm8 0a2 2 0 114 0 2 2 0 01-4 0z"
+                            clipRule="evenodd"
+                          />
                         </svg>
                       </div>
-                      <span className="font-medium text-blue-700">Financiado</span>
+                      <span className="font-medium text-blue-700">
+                        Financiado
+                      </span>
                     </div>
                     <p className="text-blue-900 font-semibold">
                       {formatCurrency(formData.montoFinanciado)}
+                    </p>
+                    <p className="text-blue-600 text-xs">
+                      {formData.montoVenta > 0
+                        ? Math.round(
+                            (formData.montoFinanciado / formData.montoVenta) *
+                              100
+                          )
+                        : 0}
+                      % financiado
                     </p>
                   </div>
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Tipo de Garantía - Siempre en su propia fila */}
-          <div>
-            <label className="block text-sm font-medium text-gray-500 mb-1">
-              Tipo de Garantía
-            </label>
-            <p className="text-lg font-semibold text-gray-900">
-              {getGarantiaLabel(formData.garantia)}
-            </p>
           </div>
         </div>
       )}

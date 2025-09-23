@@ -200,12 +200,12 @@ export function generateClienteSlug(cliente: {
 export function generateInversorSlug(inversor: {
   id: number
   nombre: string
-  apellidos: string
+  apellidos?: string
 }): string {
   const cleanNombre = inversor.nombre.toLowerCase().replace(/[^a-z0-9]/g, '')
   const cleanApellidos = inversor.apellidos
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, '')
+    ? inversor.apellidos.toLowerCase().replace(/[^a-z0-9]/g, '')
+    : ''
 
-  return `${inversor.id}-${cleanNombre}-${cleanApellidos}`
+  return `${inversor.id}-${cleanNombre}${cleanApellidos ? `-${cleanApellidos}` : ''}`
 }

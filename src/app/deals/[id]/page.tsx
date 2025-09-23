@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useToast } from '@/components/Toast'
 import { useConfirmModal } from '@/components/ConfirmModal'
+import { useAuth } from '@/contexts/AuthContext'
 import {
   generarContratoReserva,
   generarContratoVenta,
@@ -72,6 +73,11 @@ interface Deal {
   documentacionRecibida: boolean
   clienteAvisado: boolean
   documentacionRetirada: boolean
+  // Timestamps individuales
+  cambioNombreSolicitadoAt?: Date
+  documentacionRecibidaAt?: Date
+  documentacionRetiradaAt?: Date
+  clienteAvisadoAt?: Date
   logHistorial?: string
   createdAt: Date
   updatedAt: Date
@@ -92,11 +98,110 @@ interface Recordatorio {
   completado: boolean
 }
 
+interface AccionHistorial {
+  accion: string
+  fecha: Date
+  usuario?: string
+}
+
+// Función para generar el historial de acciones basado en los datos del deal
+function getHistorialAcciones(
+  deal: Deal,
+  currentUser?: any
+): AccionHistorial[] {
+  const historial: AccionHistorial[] = []
+
+  // Determinar el nombre del usuario según el login
+  let usuario = 'Usuario'
+  if (currentUser?.username === 'admin') {
+    usuario = 'Sebastian'
+  } else if (currentUser?.username === 'asesor') {
+    usuario = 'asesor'
+  } else {
+    usuario = deal.responsableComercial || 'Usuario'
+  }
+
+  // Creación del deal
+  historial.push({
+    accion: 'Deal creado',
+    fecha: new Date(deal.fechaCreacion),
+    usuario: usuario,
+  })
+
+  // Contrato de reserva generado
+  if (deal.contratoReserva) {
+    historial.push({
+      accion: 'Contrato de reserva generado',
+      fecha: new Date(deal.fechaReservaDesde || deal.fechaCreacion),
+      usuario: usuario,
+    })
+  }
+
+  // Contrato de venta generado
+  if (deal.contratoVenta) {
+    historial.push({
+      accion: 'Contrato de venta generado',
+      fecha: new Date(deal.fechaVentaFirmada || deal.fechaCreacion),
+      usuario: usuario,
+    })
+  }
+
+  // Factura generada
+  if (deal.factura) {
+    historial.push({
+      accion: 'Factura generada',
+      fecha: new Date(deal.fechaFacturada || deal.fechaCreacion),
+      usuario: usuario,
+    })
+  }
+
+  // Usar timestamps individuales para orden cronológico real
+  // Cambio de nombre solicitado
+  if (deal.cambioNombreSolicitado && deal.cambioNombreSolicitadoAt) {
+    historial.push({
+      accion: 'Cambio de nombre solicitado',
+      fecha: new Date(deal.cambioNombreSolicitadoAt),
+      usuario: usuario,
+    })
+  }
+
+  // Documentación recibida
+  if (deal.documentacionRecibida && deal.documentacionRecibidaAt) {
+    historial.push({
+      accion: 'Documentación recibida',
+      fecha: new Date(deal.documentacionRecibidaAt),
+      usuario: usuario,
+    })
+  }
+
+  // Documentación retirada
+  if (deal.documentacionRetirada && deal.documentacionRetiradaAt) {
+    historial.push({
+      accion: 'Documentación retirada',
+      fecha: new Date(deal.documentacionRetiradaAt),
+      usuario: usuario,
+    })
+  }
+
+  // Cliente avisado
+  if (deal.clienteAvisado && deal.clienteAvisadoAt) {
+    historial.push({
+      accion: 'Cliente avisado',
+      fecha: new Date(deal.clienteAvisadoAt),
+      usuario: usuario,
+    })
+  }
+
+  // Ordenar por fecha descendente (más reciente primero) para que la última acción esté arriba
+  return historial.sort((a, b) => b.fecha.getTime() - a.fecha.getTime())
+}
+
 export default function DealDetail() {
   const params = useParams()
   const router = useRouter()
   const { showToast, ToastContainer } = useToast()
   const { showConfirm, ConfirmModalComponent } = useConfirmModal()
+  const { user } = useAuth()
 
   const [deal, setDeal] = useState<Deal | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -104,6 +209,7 @@ export default function DealDetail() {
   const [notas, setNotas] = useState<Nota[]>([])
   const [recordatorios, setRecordatorios] = useState<Recordatorio[]>([])
   const [documentacionFiles, setDocumentacionFiles] = useState<any[]>([])
+  const [showAllHistorial, setShowAllHistorial] = useState(false)
 
   // Estados para los formularios
   const [nuevaNota, setNuevaNota] = useState('')
@@ -1114,7 +1220,10 @@ export default function DealDetail() {
                 </Link>
 
                 {/* Vehículo */}
-                <Link href={`/vehiculos`} className="group">
+                <Link
+                  href={`/vehiculos/${deal.vehiculo?.id}-${deal.vehiculo?.marca?.toLowerCase()}-${deal.vehiculo?.modelo?.toLowerCase()}`}
+                  className="group"
+                >
                   <div className="bg-green-50 rounded-lg p-3 border border-green-200 hover:bg-green-100 transition-colors cursor-pointer">
                     <div className="flex items-center space-x-2 mb-2">
                       <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
@@ -1842,6 +1951,57 @@ export default function DealDetail() {
                     })}
                   </p>
                 </div>
+              </div>
+            </div>
+
+            {/* Historial de Acciones */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+              <h2 className="text-sm font-semibold text-gray-900 mb-3">
+                Historial de Acciones
+              </h2>
+
+              <div className="space-y-2">
+                {(showAllHistorial
+                  ? getHistorialAcciones(deal, user)
+                  : getHistorialAcciones(deal, user).slice(0, 3)
+                ).map((accion, index) => (
+                  <div
+                    key={index}
+                    className="flex items-start space-x-2 text-xs"
+                  >
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></div>
+                    <div className="flex-1">
+                      <p className="text-gray-900 font-medium">
+                        {accion.accion}
+                      </p>
+                      <p className="text-gray-500">
+                        {accion.fecha.toLocaleDateString('es-ES')} a las{' '}
+                        {accion.fecha.toLocaleTimeString('es-ES', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}{' '}
+                        por {accion.usuario || 'Usuario'}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+
+                {getHistorialAcciones(deal, user).length > 3 && (
+                  <button
+                    onClick={() => setShowAllHistorial(!showAllHistorial)}
+                    className="text-blue-600 text-xs font-medium hover:text-blue-800 mt-2"
+                  >
+                    {showAllHistorial
+                      ? 'Ver menos'
+                      : `Ver más (${getHistorialAcciones(deal, user).length - 3} más)`}
+                  </button>
+                )}
+
+                {getHistorialAcciones(deal, user).length === 0 && (
+                  <p className="text-gray-500 text-xs">
+                    No hay acciones registradas
+                  </p>
+                )}
               </div>
             </div>
 

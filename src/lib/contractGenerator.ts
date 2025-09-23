@@ -813,6 +813,9 @@ export async function generarContratoVenta(deal: DealData): Promise<void> {
 
   // Parte vendedora
   doc.setFontSize(10)
+  doc.text('De una parte:', margin, yPosition)
+  yPosition += 6
+
   const textoVendedor =
     'D. Sebastián Pelella mayor de edad, con NIE Z0147238C en representación de Seven Cars Motors, s.l.. con CIF B-75939868 y con domicilio Camí dels Mollons, 36 de Alaquàs, Valencia, en calidad de vendedores, y en adelante parte vendedora.'
   const lineasVendedor = doc.splitTextToSize(
@@ -826,35 +829,14 @@ export async function generarContratoVenta(deal: DealData): Promise<void> {
   doc.text('Y de otra parte:', margin, yPosition)
   yPosition += 6
 
-  // Datos del cliente
-  doc.text(`D/DÑA ${nombreCompleto || 'NOMBRE DE CLIENTE'}`, margin, yPosition)
-  yPosition += 4
-  doc.text(
-    `Mayor de edad, con DNI ${deal.cliente?.dni || 'DNI CLIENTE'}`,
-    margin,
-    yPosition
+  // Datos del cliente en un párrafo continuo
+  const textoComprador = `D/DÑA ${nombreCompleto || 'NOMBRE DE CLIENTE'} mayor de edad, con DNI ${deal.cliente?.dni || 'DNI CLIENTE'}, con domicilio ${direccionCompleta}, con telefono ${deal.cliente?.telefono || 'TEL CLIENTE'} y email ${deal.cliente?.email || 'EMAIL CLIENTE'} en calidad de compradores, y en adelante parte compradora.`
+  const lineasComprador = doc.splitTextToSize(
+    textoComprador,
+    pageWidth - margin * 2
   )
-  yPosition += 4
-  doc.text(`Con domicilio ${direccionCompleta}`, margin, yPosition)
-  yPosition += 4
-  doc.text(
-    'en calidad de compradores, y en adelante parte compradora.',
-    margin,
-    yPosition
-  )
-  yPosition += 4
-  doc.text(
-    `Con telefono ${deal.cliente?.telefono || 'TEL CLIENTE'}`,
-    margin,
-    yPosition
-  )
-  yPosition += 4
-  doc.text(
-    `y email ${deal.cliente?.email || 'EMAIL CLIENTE'}`,
-    margin,
-    yPosition
-  )
-  yPosition += 10
+  doc.text(lineasComprador, margin, yPosition)
+  yPosition += lineasComprador.length * 4.5 + 4
 
   // Acuerdo común
   const textoAcuerdo =
@@ -864,7 +846,7 @@ export async function generarContratoVenta(deal: DealData): Promise<void> {
     pageWidth - margin * 2
   )
   doc.text(lineasAcuerdo, margin, yPosition)
-  yPosition += lineasAcuerdo.length * 4.5 + 8
+  yPosition += lineasAcuerdo.length * 4.5 + 4
 
   // Punto 1 - Información del vehículo
   const textoPunto1 =
@@ -873,34 +855,72 @@ export async function generarContratoVenta(deal: DealData): Promise<void> {
   doc.text(lineasPunto1, margin, yPosition)
   yPosition += lineasPunto1.length * 4.5 + 6
 
-  // Datos del vehículo en formato compacto
+  // Datos del vehículo en formato compacto con negrita para datos dinámicos
+  doc.setFont('helvetica', 'normal')
+  doc.text('MARCA:', margin + 5, yPosition)
+  doc.setFont('helvetica', 'bold')
   doc.text(
-    `MARCA ${deal.vehiculo?.marca || 'marca vehiculo'}`,
-    margin + 5,
+    `${deal.vehiculo?.marca || 'marca vehiculo'}`,
+    margin + 22,
     yPosition
   )
+
+  doc.setFont('helvetica', 'normal')
+  doc.text('MODELO:', pageWidth / 2, yPosition)
+  doc.setFont('helvetica', 'bold')
   doc.text(
-    `MODELO ${deal.vehiculo?.modelo || 'modelo vehiculo'}`,
-    pageWidth / 2,
+    `${deal.vehiculo?.modelo || 'modelo vehiculo'}`,
+    pageWidth / 2 + 18,
     yPosition
   )
+
   yPosition += 4
+
+  doc.setFont('helvetica', 'normal')
+  doc.text('MATRICULA:', margin + 5, yPosition)
+  doc.setFont('helvetica', 'bold')
   doc.text(
-    `MATRICULA ${deal.vehiculo?.matricula || 'matricula vehiculo'}`,
-    margin + 5,
+    `${deal.vehiculo?.matricula || 'matricula vehiculo'}`,
+    margin + 28,
     yPosition
   )
+
+  doc.setFont('helvetica', 'normal')
+  doc.text('BASTIDOR:', pageWidth / 2, yPosition)
+  doc.setFont('helvetica', 'bold')
   doc.text(
-    `BASTIDOR ${deal.vehiculo?.bastidor || 'bastidor vehiculo'}`,
-    pageWidth / 2,
+    `${deal.vehiculo?.bastidor || 'bastidor vehiculo'}`,
+    pageWidth / 2 + 23,
     yPosition
   )
+
   yPosition += 8
 
-  // Precio y garantía
+  // Precio y garantía con negrita para datos dinámicos
+  doc.setFont('helvetica', 'normal')
+  doc.text('Por la cantidad de ', margin, yPosition)
+  doc.setFont('helvetica', 'bold')
+  doc.text(`${formatCurrency(precio)}`, margin + 35, yPosition)
+  doc.setFont('helvetica', 'normal')
   doc.text(
-    `Por la cantidad de ${formatCurrency(precio)} (${precioEnLetras}) - Garantizado por 12 Meses`,
-    margin,
+    ' (',
+    margin + 35 + doc.getTextWidth(formatCurrency(precio)),
+    yPosition
+  )
+  doc.setFont('helvetica', 'bold')
+  doc.text(
+    `${precioEnLetras} euros  `,
+    margin + 35 + doc.getTextWidth(formatCurrency(precio)) + 3,
+    yPosition
+  )
+  doc.setFont('helvetica', 'normal')
+  doc.text(
+    ') - Garantizado por 12 Meses',
+    margin +
+      35 +
+      doc.getTextWidth(formatCurrency(precio)) +
+      doc.getTextWidth(`${precioEnLetras} euros  `) +
+      6,
     yPosition
   )
   yPosition += 10
@@ -937,6 +957,9 @@ export async function generarContratoVenta(deal: DealData): Promise<void> {
   doc.rect(margin + 50, yPosition - 2, 4, 4)
   doc.text('Pendiente', margin + 60, yPosition)
   yPosition += 15
+
+  // Espacio adicional antes de la firma
+  yPosition += 8
 
   // Firma
   doc.text('Y en prueba de conformidad, firman', margin, yPosition)
@@ -1171,12 +1194,6 @@ export async function generarFactura(
   }
   yPosition += 5
   doc.text('Garantía: 12 meses', margin, yPosition)
-  yPosition += 5
-  doc.text(
-    'Forma de pago: ' + (deal.formaPagoSena || 'Efectivo'),
-    margin,
-    yPosition
-  )
 
   // Disclaimers legales
   yPosition += 10

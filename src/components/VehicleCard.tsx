@@ -14,7 +14,7 @@ interface Vehiculo {
   bastidor: string
   kms: number
   tipo: string
-  estado: string
+  estado: 'ACTIVO' | 'VENDIDO' | 'RESERVADO' | 'BORRADOR' | 'FINALIZADO'
   orden: number
   createdAt: string
   esCocheInversor?: boolean
@@ -92,6 +92,16 @@ const VehicleCard = memo(function VehicleCard({
       if (!estado) return false
       const normalized = estado.toString().toLowerCase().trim()
       return normalized === 'vendido'
+    },
+    []
+  )
+
+  // Helper function para detectar si está reservado - memoizada
+  const isReservado = useCallback(
+    (estado: string | null | undefined): boolean => {
+      if (!estado) return false
+      const normalized = estado.toString().toLowerCase().trim()
+      return normalized === 'reservado'
     },
     []
   )
@@ -261,6 +271,10 @@ const VehicleCard = memo(function VehicleCard({
     () => isVendido(vehiculo.estado),
     [vehiculo.estado, isVendido]
   )
+  const vehiculoReservado = useMemo(
+    () => isReservado(vehiculo.estado),
+    [vehiculo.estado, isReservado]
+  )
   const esDeposito = useMemo(
     () => vehiculo.tipo === 'D' || vehiculo.tipo === 'Deposito Venta',
     [vehiculo.tipo]
@@ -274,7 +288,7 @@ const VehicleCard = memo(function VehicleCard({
     <div
       className={`rounded-xl border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group bg-white border-gray-200 min-w-[320px] ${
         vehiculoVendido ? 'opacity-60 grayscale' : ''
-      }`}
+      } ${vehiculoReservado ? 'opacity-75' : ''}`}
     >
       {/* Links de inversor/depósito por encima del header */}
 
@@ -322,9 +336,21 @@ const VehicleCard = memo(function VehicleCard({
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-base sm:text-lg font-bold text-gray-900 truncate">
+              <h3
+                className={`text-base sm:text-lg font-bold truncate ${
+                  vehiculoReservado ? 'text-gray-500' : 'text-gray-900'
+                }`}
+              >
                 {vehiculo.marca} {vehiculo.modelo}
               </h3>
+              {/* Cartel de RESERVADO */}
+              {vehiculoReservado && (
+                <div className="mt-1 inline-block">
+                  <span className="px-2 py-1 text-xs font-bold text-yellow-800 bg-yellow-300 rounded-md shadow-sm">
+                    RESERVADO
+                  </span>
+                </div>
+              )}
               {/* Alerta de ITV vencida */}
               {vehiculo.itv !== null &&
               vehiculo.itv !== undefined &&
@@ -392,35 +418,69 @@ const VehicleCard = memo(function VehicleCard({
         {/* Información del vehículo en formato limpio */}
         <div className="space-y-3 sm:space-y-4">
           <div className="flex justify-between items-center">
-            <span className="text-sm sm:text-base text-gray-600">
+            <span
+              className={`text-sm sm:text-base ${
+                vehiculoReservado ? 'text-gray-400' : 'text-gray-600'
+              }`}
+            >
               Matrícula
             </span>
-            <span className="text-sm sm:text-base font-semibold text-gray-900 font-mono">
+            <span
+              className={`text-sm sm:text-base font-semibold font-mono ${
+                vehiculoReservado ? 'text-gray-500' : 'text-gray-900'
+              }`}
+            >
               {vehiculo.matricula}
             </span>
           </div>
 
           <div className="flex justify-between items-center">
-            <span className="text-sm sm:text-base text-gray-600">Bastidor</span>
-            <span className="text-sm sm:text-base font-semibold text-gray-900 font-mono">
+            <span
+              className={`text-sm sm:text-base ${
+                vehiculoReservado ? 'text-gray-400' : 'text-gray-600'
+              }`}
+            >
+              Bastidor
+            </span>
+            <span
+              className={`text-sm sm:text-base font-semibold font-mono ${
+                vehiculoReservado ? 'text-gray-500' : 'text-gray-900'
+              }`}
+            >
               {truncateText(vehiculo.bastidor, 15)}
             </span>
           </div>
 
           <div className="flex justify-between items-center">
-            <span className="text-sm sm:text-base text-gray-600">
+            <span
+              className={`text-sm sm:text-base ${
+                vehiculoReservado ? 'text-gray-400' : 'text-gray-600'
+              }`}
+            >
               Kilómetros
             </span>
-            <span className="text-sm sm:text-base font-semibold text-gray-900">
+            <span
+              className={`text-sm sm:text-base font-semibold ${
+                vehiculoReservado ? 'text-gray-500' : 'text-gray-900'
+              }`}
+            >
               {vehiculo.kms.toLocaleString()}
             </span>
           </div>
 
           <div className="flex justify-between items-center">
-            <span className="text-sm sm:text-base text-gray-600">
+            <span
+              className={`text-sm sm:text-base ${
+                vehiculoReservado ? 'text-gray-400' : 'text-gray-600'
+              }`}
+            >
               Fecha Matric
             </span>
-            <span className="text-sm sm:text-base font-semibold text-gray-900">
+            <span
+              className={`text-sm sm:text-base font-semibold ${
+                vehiculoReservado ? 'text-gray-500' : 'text-gray-900'
+              }`}
+            >
               {vehiculo.fechaMatriculacion
                 ? (() => {
                     try {
@@ -449,8 +509,18 @@ const VehicleCard = memo(function VehicleCard({
           </div>
 
           <div className="flex justify-between items-center">
-            <span className="text-sm sm:text-base text-gray-600">Color</span>
-            <span className="text-sm sm:text-base font-semibold text-gray-900">
+            <span
+              className={`text-sm sm:text-base ${
+                vehiculoReservado ? 'text-gray-400' : 'text-gray-600'
+              }`}
+            >
+              Color
+            </span>
+            <span
+              className={`text-sm sm:text-base font-semibold ${
+                vehiculoReservado ? 'text-gray-500' : 'text-gray-900'
+              }`}
+            >
               {vehiculo.color || 'N/A'}
             </span>
           </div>
@@ -749,6 +819,11 @@ const VehicleCard = memo(function VehicleCard({
                 <span>🚗</span>
                 <span>VENDIDO</span>
               </span>
+            ) : vehiculoReservado ? (
+              <span className="font-bold text-yellow-700 text-sm flex items-center space-x-1">
+                <span>🔒</span>
+                <span>RESERVADO</span>
+              </span>
             ) : (
               <>
                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
@@ -766,17 +841,21 @@ const VehicleCard = memo(function VehicleCard({
           <div className="flex space-x-2">
             {onEdit && (
               <button
-                onClick={() => !vehiculoVendido && onEdit(vehiculo)}
-                disabled={vehiculoVendido}
+                onClick={() =>
+                  !vehiculoVendido && !vehiculoReservado && onEdit(vehiculo)
+                }
+                disabled={vehiculoVendido || vehiculoReservado}
                 className={`p-2 rounded-lg transition-all duration-200 ${
-                  vehiculoVendido
+                  vehiculoVendido || vehiculoReservado
                     ? 'text-gray-300 cursor-not-allowed'
                     : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
                 }`}
                 title={
                   vehiculoVendido
                     ? 'Vehículo vendido - No editable'
-                    : 'Editar vehículo'
+                    : vehiculoReservado
+                      ? 'Vehículo reservado - No editable'
+                      : 'Editar vehículo'
                 }
               >
                 <svg
@@ -796,17 +875,23 @@ const VehicleCard = memo(function VehicleCard({
             )}
             {onDelete && (
               <button
-                onClick={() => !vehiculoVendido && onDelete(vehiculo.id)}
-                disabled={vehiculoVendido}
+                onClick={() =>
+                  !vehiculoVendido &&
+                  !vehiculoReservado &&
+                  onDelete(vehiculo.id)
+                }
+                disabled={vehiculoVendido || vehiculoReservado}
                 className={`p-2 rounded-lg transition-all duration-200 ${
-                  vehiculoVendido
+                  vehiculoVendido || vehiculoReservado
                     ? 'text-gray-300 cursor-not-allowed'
                     : 'text-gray-400 hover:text-red-600 hover:bg-red-50'
                 }`}
                 title={
                   vehiculoVendido
                     ? 'Vehículo vendido - No eliminable'
-                    : 'Eliminar vehículo'
+                    : vehiculoReservado
+                      ? 'Vehículo reservado - No eliminable'
+                      : 'Eliminar vehículo'
                 }
               >
                 <svg
