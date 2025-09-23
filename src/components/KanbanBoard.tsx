@@ -372,7 +372,7 @@ export default function KanbanBoard({
                 </div>
               </div>
 
-              {/* Área de drop con distribución horizontal */}
+              {/* Área de drop SIMPLE sin SortableContext */}
               <div
                 ref={setPublicadoNodeRef}
                 className={`flex-1 p-4 rounded-b-md min-h-[300px] max-h-[500px] overflow-y-auto transition-colors ${
@@ -381,30 +381,21 @@ export default function KanbanBoard({
                     : 'bg-slate-100'
                 }`}
               >
-                <SortableContext
-                  items={(vehiculosPorEstado['PUBLICADO'] || []).map(
-                    (v) => v.id
-                  )}
-                  strategy={horizontalListSortingStrategy}
-                >
-                  {(vehiculosPorEstado['PUBLICADO'] || []).length === 0 ? (
-                    <div className="text-center py-6 text-slate-500">
-                      <div className="text-2xl mb-1">📋</div>
-                      <p className="text-xs">Sin vehículos</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {(vehiculosPorEstado['PUBLICADO'] || []).map(
-                        (vehiculo) => (
-                          <DraggableVehicleCard
-                            key={vehiculo.id}
-                            vehiculo={vehiculo}
-                          />
-                        )
-                      )}
-                    </div>
-                  )}
-                </SortableContext>
+                {(vehiculosPorEstado['PUBLICADO'] || []).length === 0 ? (
+                  <div className="text-center py-6 text-slate-500">
+                    <div className="text-2xl mb-1">📋</div>
+                    <p className="text-xs">Sin vehículos</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {(vehiculosPorEstado['PUBLICADO'] || []).map((vehiculo) => (
+                      <DraggableVehicleCard
+                        key={vehiculo.id}
+                        vehiculo={vehiculo}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
