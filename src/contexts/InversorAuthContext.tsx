@@ -22,9 +22,9 @@ interface InversorAuthContextType {
   isLoading: boolean
 }
 
-const InversorAuthContext = createContext<InversorAuthContextType | undefined>(
-  undefined
-)
+export const InversorAuthContext = createContext<
+  InversorAuthContextType | undefined
+>(undefined)
 
 export function InversorAuthProvider({ children }: { children: ReactNode }) {
   const [inversor, setInversor] = useState<InversorUser | null>(null)

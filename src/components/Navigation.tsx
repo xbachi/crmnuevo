@@ -163,7 +163,9 @@ export default function Navigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const pathname = usePathname()
   const { user, logout, isAdmin, isAsesor } = useAuth()
-  const { inversor, logout: logoutInversor } = useSafeInversorAuth()
+  const inversorAuth = useSafeInversorAuth()
+  const inversor = inversorAuth?.inversor || null
+  const logoutInversor = inversorAuth?.logout || (() => {})
 
   // Detectar si es móvil
   const [isMobile, setIsMobile] = useState(false)
