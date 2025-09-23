@@ -42,28 +42,33 @@ export default function CrearDeal() {
       // Obtener todos los vehículos
       const vehiculosResponse = await fetch('/api/vehiculos')
       if (!vehiculosResponse.ok) return
-      
+
       const vehiculosData = await vehiculosResponse.json()
       const todosVehiculos = vehiculosData.vehiculos || vehiculosData
-      
+
       // Obtener deals activos para filtrar vehículos reservados
       const dealsResponse = await fetch('/api/deals')
       if (!dealsResponse.ok) return
-      
+
       const dealsData = await dealsResponse.json()
-      
+
       // Filtrar vehículos que NO estén reservados o vendidos
-      const vehiculosDisponibles = todosVehiculos.filter(vehiculo => {
+      const vehiculosDisponibles = todosVehiculos.filter((vehiculo: any) => {
         // Un vehículo está reservado/vendido si tiene un deal activo con esos estados
-        const estaReservadoOVendido = dealsData.some(deal => 
-          deal.vehiculoId === vehiculo.id && 
-          (deal.estado === 'reservado' || deal.estado === 'vendido' || deal.estado === 'facturado')
+        const estaReservadoOVendido = dealsData.some(
+          (deal: any) =>
+            deal.vehiculoId === vehiculo.id &&
+            (deal.estado === 'reservado' ||
+              deal.estado === 'vendido' ||
+              deal.estado === 'facturado')
         )
         return !estaReservadoOVendido
       })
-      
+
       setVehiculos(vehiculosDisponibles)
-      console.log(`🚗 Vehículos disponibles: ${vehiculosDisponibles.length} (filtrados vehículos reservados/vendidos)`)
+      console.log(
+        `🚗 Vehículos disponibles: ${vehiculosDisponibles.length} (filtrados vehículos reservados/vendidos)`
+      )
     } catch (error) {
       console.error('Error fetching vehiculos:', error)
     }
@@ -72,14 +77,14 @@ export default function CrearDeal() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    
+
     try {
       // Validaciones
       if (!selectedCliente) {
         showToast('Debes seleccionar un cliente', 'error')
         return
       }
-      
+
       if (!selectedVehiculo) {
         showToast('Debes seleccionar un vehículo', 'error')
         return
@@ -103,7 +108,7 @@ export default function CrearDeal() {
         importeSena: parseFloat(senna),
         formaPagoSena: formaPago,
         observaciones: notas,
-        responsableComercial: 'Usuario' // Por ahora hardcodeado
+        responsableComercial: 'Usuario', // Por ahora hardcodeado
       }
 
       console.log('📤 Enviando deal:', dealData)
@@ -112,9 +117,9 @@ export default function CrearDeal() {
       const response = await fetch('/api/deals', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(dealData)
+        body: JSON.stringify(dealData),
       })
 
       if (!response.ok) {
@@ -129,7 +134,10 @@ export default function CrearDeal() {
       router.push('/deals')
     } catch (error) {
       console.error('❌ Error creando deal:', error)
-      showToast(`Error al crear el deal: ${error.message}`, 'error')
+      showToast(
+        `Error al crear el deal: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+        'error'
+      )
     } finally {
       setIsLoading(false)
     }
@@ -142,18 +150,30 @@ export default function CrearDeal() {
           {/* Header */}
           <div className="px-6 py-4 border-b border-slate-200">
             <div className="flex items-center justify-between">
-              <h1 className="text-xl font-bold text-slate-900">Crear Nuevo Deal</h1>
+              <h1 className="text-xl font-bold text-slate-900">
+                Crear Nuevo Deal
+              </h1>
               <button
                 onClick={() => router.push('/deals')}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
           </div>
-          
+
           {/* Form */}
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
             {/* Cliente */}
@@ -164,7 +184,11 @@ export default function CrearDeal() {
               <input
                 type="text"
                 placeholder="Escribir nombre del cliente..."
-                value={selectedCliente ? `${selectedCliente.nombre} ${selectedCliente.apellidos}` : clienteSearch}
+                value={
+                  selectedCliente
+                    ? `${selectedCliente.nombre} ${selectedCliente.apellidos}`
+                    : clienteSearch
+                }
                 onChange={(e) => {
                   setClienteSearch(e.target.value)
                   if (selectedCliente) {
@@ -176,11 +200,13 @@ export default function CrearDeal() {
               {clienteSearch && !selectedCliente && (
                 <div className="mt-2 border border-slate-200 rounded-lg bg-white">
                   {clientes
-                    .filter(cliente => 
-                      `${cliente.nombre} ${cliente.apellidos}`.toLowerCase().includes(clienteSearch.toLowerCase())
+                    .filter((cliente) =>
+                      `${cliente.nombre} ${cliente.apellidos}`
+                        .toLowerCase()
+                        .includes(clienteSearch.toLowerCase())
                     )
                     .slice(0, 3)
-                    .map(cliente => (
+                    .map((cliente) => (
                       <div
                         key={cliente.id}
                         onClick={() => {
@@ -191,8 +217,7 @@ export default function CrearDeal() {
                       >
                         {cliente.nombre} {cliente.apellidos}
                       </div>
-                    ))
-                  }
+                    ))}
                 </div>
               )}
             </div>
@@ -205,7 +230,11 @@ export default function CrearDeal() {
               <input
                 type="text"
                 placeholder="Escribir marca, modelo, matrícula o referencia..."
-                value={selectedVehiculo ? `${selectedVehiculo.marca} ${selectedVehiculo.modelo} - ${selectedVehiculo.matricula}` : vehiculoSearch}
+                value={
+                  selectedVehiculo
+                    ? `${selectedVehiculo.marca} ${selectedVehiculo.modelo} - ${selectedVehiculo.matricula}`
+                    : vehiculoSearch
+                }
                 onChange={(e) => {
                   setVehiculoSearch(e.target.value)
                   if (selectedVehiculo) {
@@ -217,17 +246,19 @@ export default function CrearDeal() {
               {vehiculoSearch && !selectedVehiculo && (
                 <div className="mt-2 border border-slate-200 rounded-lg bg-white">
                   {vehiculos
-                    .filter(vehiculo => {
+                    .filter((vehiculo) => {
                       const searchLower = vehiculoSearch.toLowerCase()
                       return (
                         vehiculo.marca?.toLowerCase().includes(searchLower) ||
                         vehiculo.modelo?.toLowerCase().includes(searchLower) ||
-                        vehiculo.matricula?.toLowerCase().includes(searchLower) ||
+                        vehiculo.matricula
+                          ?.toLowerCase()
+                          .includes(searchLower) ||
                         vehiculo.referencia?.toLowerCase().includes(searchLower)
                       )
                     })
                     .slice(0, 3)
-                    .map(vehiculo => (
+                    .map((vehiculo) => (
                       <div
                         key={vehiculo.id}
                         onClick={() => {
@@ -236,10 +267,10 @@ export default function CrearDeal() {
                         }}
                         className="px-4 py-2 hover:bg-gray-50 cursor-pointer border-b border-slate-100 last:border-b-0"
                       >
-                        {vehiculo.marca} {vehiculo.modelo} - {vehiculo.matricula}
+                        {vehiculo.marca} {vehiculo.modelo} -{' '}
+                        {vehiculo.matricula}
                       </div>
-                    ))
-                  }
+                    ))}
                 </div>
               )}
             </div>

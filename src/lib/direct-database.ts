@@ -12,7 +12,7 @@ function loadEnvFile() {
     if (fs.existsSync(envPath)) {
       const content = fs.readFileSync(envPath, 'utf8')
       const lines = content.split('\n')
-      lines.forEach((line) => {
+      lines.forEach((line: string) => {
         const [key, value] = line.split('=')
         if (key && value) {
           process.env[key] = value.replace(/"/g, '')
@@ -80,6 +80,7 @@ export interface Vehiculo {
   beneficioNeto?: number | null
   notasInversor?: string | null
   fotoInversor?: string | null
+  dealActivoId?: number | null
 }
 
 export async function getVehiculos(

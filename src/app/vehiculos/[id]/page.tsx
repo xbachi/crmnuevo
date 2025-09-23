@@ -168,13 +168,13 @@ export default function VehiculoDetailPage() {
     color: '',
     fechaMatriculacion: '',
     año: 0,
-    itv: '',
-    seguro: '',
-    segundaLlave: '',
-    carpeta: '',
-    master: '',
-    hojasA: '',
-    documentacion: '',
+    itv: null as boolean | null,
+    seguro: null as boolean | null,
+    segundaLlave: null as boolean | null,
+    carpeta: null as boolean | null,
+    master: null as boolean | null,
+    hojasA: null as boolean | null,
+    documentacion: null as boolean | null,
     precioCompra: 0,
     gastosTransporte: 0,
     gastosTasas: 0,
@@ -551,13 +551,13 @@ export default function VehiculoDetailPage() {
     if (vehiculo) {
       setEditingData((prev) => ({
         ...prev,
-        itv: vehiculo.itv || '',
-        seguro: vehiculo.seguro || '',
-        segundaLlave: vehiculo.segundaLlave || '',
-        carpeta: vehiculo.carpeta || '',
-        master: vehiculo.master || '',
-        hojasA: vehiculo.hojasA || '',
-        documentacion: vehiculo.documentacion || '',
+        itv: vehiculo.itv,
+        seguro: vehiculo.seguro,
+        segundaLlave: vehiculo.segundaLlave,
+        carpeta: vehiculo.carpeta,
+        master: vehiculo.master,
+        hojasA: vehiculo.hojasA,
+        documentacion: vehiculo.documentacion,
       }))
       setIsEditingDocumentacion(true)
     }
@@ -694,7 +694,7 @@ export default function VehiculoDetailPage() {
 
     if (Object.keys(camposAGuardar).length === 0) {
       console.warn('⚠️ [SAVE] No hay campos para guardar')
-      showToast('No hay cambios para guardar', 'warning')
+      showToast('No hay cambios para guardar', 'info')
       return
     }
 
@@ -2243,11 +2243,9 @@ export default function VehiculoDetailPage() {
                           <select
                             value={
                               editingData.itv === null ||
-                              editingData.itv === undefined ||
-                              editingData.itv === ''
+                              editingData.itv === undefined
                                 ? 'chequear'
-                                : editingData.itv === 'Sí' ||
-                                    editingData.itv === 'si'
+                                : editingData.itv === true
                                   ? 'si'
                                   : 'no'
                             }
@@ -2324,13 +2322,12 @@ export default function VehiculoDetailPage() {
                       {isEditingDocumentacion ? (
                         <select
                           value={
-                            editingData.seguro === 'Sí' ||
-                            editingData.seguro === 'si'
-                              ? 'si'
-                              : editingData.seguro === 'No' ||
-                                  editingData.seguro === 'no'
-                                ? 'no'
-                                : 'chequear'
+                            editingData.seguro === null ||
+                            editingData.seguro === undefined
+                              ? 'chequear'
+                              : editingData.seguro === true
+                                ? 'si'
+                                : 'no'
                           }
                           onChange={(e) => {
                             if (e.target.value === 'chequear') {
@@ -2341,7 +2338,7 @@ export default function VehiculoDetailPage() {
                             } else {
                               setEditingData((prev) => ({
                                 ...prev,
-                                seguro: e.target.value === 'si' ? 'Sí' : 'No',
+                                seguro: e.target.value === 'si',
                               }))
                             }
                           }}
@@ -2398,7 +2395,7 @@ export default function VehiculoDetailPage() {
                         <select
                           value={
                             editingData.segundaLlave === 'Sí' ||
-                            editingData.segundaLlave === 'si'
+                            editingData.segundaLlave === true
                               ? 'si'
                               : editingData.segundaLlave === 'No' ||
                                   editingData.segundaLlave === 'no'
@@ -2472,7 +2469,7 @@ export default function VehiculoDetailPage() {
                         <select
                           value={
                             editingData.documentacion === 'Sí' ||
-                            editingData.documentacion === 'si'
+                            editingData.documentacion === true
                               ? 'si'
                               : editingData.documentacion === 'No' ||
                                   editingData.documentacion === 'no'
@@ -2544,7 +2541,7 @@ export default function VehiculoDetailPage() {
                         <select
                           value={
                             editingData.master === 'Sí' ||
-                            editingData.master === 'si'
+                            editingData.master === true
                               ? 'si'
                               : editingData.master === 'No' ||
                                   editingData.master === 'no'
@@ -2615,7 +2612,7 @@ export default function VehiculoDetailPage() {
                         <select
                           value={
                             editingData.carpeta === 'Sí' ||
-                            editingData.carpeta === 'si'
+                            editingData.carpeta === true
                               ? 'si'
                               : editingData.carpeta === 'No' ||
                                   editingData.carpeta === 'no'
@@ -2687,7 +2684,7 @@ export default function VehiculoDetailPage() {
                         <select
                           value={
                             editingData.hojasA === 'Sí' ||
-                            editingData.hojasA === 'si'
+                            editingData.hojasA === true
                               ? 'si'
                               : editingData.hojasA === 'No' ||
                                   editingData.hojasA === 'no'
@@ -2942,15 +2939,15 @@ export default function VehiculoDetailPage() {
                           <div className="flex-1 min-w-0">
                             <p
                               className="font-medium text-gray-900 truncate"
-                              title={doc.name}
+                              title={doc.nombre}
                             >
-                              {doc.name.length > 30
-                                ? `${doc.name.substring(0, 30)}...`
-                                : doc.name}
+                              {doc.nombre.length > 30
+                                ? `${doc.nombre.substring(0, 30)}...`
+                                : doc.nombre}
                             </p>
                             <p className="text-xs text-gray-500">
-                              {doc.tamañoFormateado} •{' '}
-                              {new Date(doc.uploadDate).toLocaleDateString(
+                              {doc.tamaño} •{' '}
+                              {new Date(doc.fechaSubida).toLocaleDateString(
                                 'es-ES'
                               )}
                             </p>

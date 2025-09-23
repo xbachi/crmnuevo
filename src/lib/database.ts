@@ -70,6 +70,10 @@ export interface Cliente {
   email?: string
   dni?: string
   whatsapp?: string
+  direccion?: string
+  ciudad?: string
+  provincia?: string
+  codPostal?: string
   comoLlego: string
   fechaPrimerContacto: string
   estado:
@@ -88,6 +92,8 @@ export interface Cliente {
 
 export interface InteresesCliente {
   vehiculosInteres: string[]
+  vehiculoPrincipal: string
+  modelosAlternativos: string[]
   precioMaximo: number
   kilometrajeMaximo: number
   añoMinimo: number

@@ -88,6 +88,8 @@ interface DealData {
     modelo: string
     matricula: string
     bastidor?: string
+    año?: number
+    kms?: number
     precioPublicacion?: number
   }
   importeTotal?: number
@@ -995,7 +997,7 @@ export async function generarFactura(
   // Generar número de factura
   const numeroFactura =
     numeroFacturaPersonalizado ||
-    `FAC-${new Date().getFullYear()}-${String(deal.id || Math.floor(Math.random() * 1000)).padStart(4, '0')}`
+    `FAC-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 1000)).padStart(4, '0')}`
   const fechaFactura = new Date()
 
   // Logo de Seven Cars (centrado)

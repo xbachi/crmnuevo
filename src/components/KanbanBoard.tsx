@@ -242,7 +242,9 @@ const KanbanBoard = memo(function KanbanBoard({
             const updatedMap = new Map(
               updatedVehiculos.map((v: Vehiculo) => [v.id, v])
             )
-            return prevVehiculos.map((v) => updatedMap.get(v.id) || v)
+            return prevVehiculos.map(
+              (v) => updatedMap.get(v.id) || v
+            ) as Vehiculo[]
           })
           showToast(
             `Vehículo movido a ${ESTADOS.find((e) => e.id === newEstado)?.title}`,
@@ -294,7 +296,9 @@ const KanbanBoard = memo(function KanbanBoard({
                 const updatedMap = new Map(
                   updatedVehiculos.map((v: Vehiculo) => [v.id, v])
                 )
-                return prevVehiculos.map((v) => updatedMap.get(v.id) || v)
+                return prevVehiculos.map(
+                  (v) => updatedMap.get(v.id) || v
+                ) as Vehiculo[]
               })
               showToast('Orden actualizado', 'success')
             } else {
@@ -333,7 +337,9 @@ const KanbanBoard = memo(function KanbanBoard({
               const updatedMap = new Map(
                 updatedVehiculos.map((v: Vehiculo) => [v.id, v])
               )
-              return prevVehiculos.map((v) => updatedMap.get(v.id) || v)
+              return prevVehiculos.map(
+                (v) => updatedMap.get(v.id) || v
+              ) as Vehiculo[]
             })
             showToast(
               `Vehículo movido a ${ESTADOS.find((e) => e.id === newEstado)?.title}`,

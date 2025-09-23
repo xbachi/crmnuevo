@@ -17,6 +17,10 @@ interface Vehiculo {
   estado: 'ACTIVO' | 'VENDIDO' | 'RESERVADO' | 'BORRADOR' | 'FINALIZADO'
   orden: number
   createdAt: string
+  updatedAt?: string
+  color?: string
+  fechaMatriculacion?: string
+  año?: number
   esCocheInversor?: boolean
   inversorId?: number
   inversorNombre?: string
@@ -35,7 +39,6 @@ interface Vehiculo {
   notasInversor?: string
   fotoInversor?: string
   // Campos adicionales de Google Sheets
-  año?: number
   segundaLlave?: string
   carpeta?: string
   master?: string

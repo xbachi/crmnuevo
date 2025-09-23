@@ -75,7 +75,7 @@ export default function ListaVehiculos() {
   >('todos')
   const [statusFilter, setStatusFilter] = useState<
     'todos' | 'activos' | 'vendidos' | 'reservados'
-  >('activos')
+  >('todos')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [typeFilter, setTypeFilter] = useState<
     'todos' | 'Compra' | 'R' | 'Depósito' | 'inversores'
@@ -118,12 +118,21 @@ export default function ListaVehiculos() {
   const getVehicleCountByType = (type: string) => {
     if (type === 'todos') return vehiculos.length
     if (type === 'inversores') {
-      return vehiculos.filter(
-        (v) => detectVehicleType(v.referencia) === 'Inversor'
-      ).length
+      return vehiculos.filter((v) => v.esCocheInversor === true).length
     }
-    return vehiculos.filter((v) => detectVehicleType(v.referencia) === type)
-      .length
+
+    // Mapear los tipos de filtro para incluir múltiples variantes
+    if (type === 'Compra') {
+      return vehiculos.filter((v) => v.tipo === 'C' || v.tipo === 'Compra')
+        .length
+    } else if (type === 'Depósito') {
+      return vehiculos.filter((v) => v.tipo === 'D' || v.tipo === 'Depósito')
+        .length
+    } else if (type === 'R') {
+      return vehiculos.filter((v) => v.tipo === 'R').length
+    }
+
+    return vehiculos.filter((v) => v.tipo === type).length
   }
 
   const getTipoText = (tipo: string) => {
@@ -318,6 +327,8 @@ export default function ListaVehiculos() {
         }
 
         if (statusFilter === 'activos') {
+          // Considerar activos a los vehículos que no están vendidos ni reservados
+          // Incluir también los que tienen estado null/undefined como activos
           return !isVendido(vehiculo.estado) && !isReservado(vehiculo.estado)
         } else if (statusFilter === 'vendidos') {
           return isVendido(vehiculo.estado)
@@ -334,6 +345,14 @@ export default function ListaVehiculos() {
         if (typeFilter === 'inversores') {
           return vehiculo.esCocheInversor === true
         } else {
+          // Mapear los tipos de filtro para incluir múltiples variantes
+          if (typeFilter === 'Compra') {
+            return vehiculo.tipo === 'C' || vehiculo.tipo === 'Compra'
+          } else if (typeFilter === 'Depósito') {
+            return vehiculo.tipo === 'D' || vehiculo.tipo === 'Depósito'
+          } else if (typeFilter === 'R') {
+            return vehiculo.tipo === 'R'
+          }
           return vehiculo.tipo === typeFilter
         }
       })
