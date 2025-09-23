@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import KanbanBoard from '@/components/KanbanBoard'
 import { useToast } from '@/components/Toast'
 import { useConfirmModal } from '@/components/ConfirmModal'
@@ -35,7 +35,15 @@ export default function KanbanPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
-  const [searchField, setSearchField] = useState<'todos' | 'referencia' | 'marca' | 'modelo' | 'matricula' | 'bastidor' | 'tipo'>('todos')
+  const [searchField, setSearchField] = useState<
+    | 'todos'
+    | 'referencia'
+    | 'marca'
+    | 'modelo'
+    | 'matricula'
+    | 'bastidor'
+    | 'tipo'
+  >('todos')
   const [editingVehiculo, setEditingVehiculo] = useState<Vehiculo | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editFormData, setEditFormData] = useState({
@@ -45,11 +53,23 @@ export default function KanbanPage() {
     matricula: '',
     bastidor: '',
     kms: '',
-    tipo: ''
+    tipo: '',
   })
   const [isUpdating, setIsUpdating] = useState(false)
   const { showToast, ToastContainer } = useToast()
   const { showConfirm, ConfirmModalComponent } = useConfirmModal()
+
+  // Memoizar la función onUpdateVehiculos para evitar re-renderizados
+  const handleUpdateVehiculos = useCallback(
+    (update: Vehiculo[] | ((prev: Vehiculo[]) => Vehiculo[])) => {
+      if (typeof update === 'function') {
+        setVehiculos(update)
+      } else {
+        setVehiculos(update)
+      }
+    },
+    []
+  )
 
   useEffect(() => {
     // Limpiar cache del localStorage al cargar la página
@@ -64,7 +84,7 @@ export default function KanbanPage() {
 
   const filterVehiculos = () => {
     // Primero filtrar vehículos vendidos (no mostrar en Kanban)
-    const vehiculosEnProceso = vehiculos.filter(vehiculo => {
+    const vehiculosEnProceso = vehiculos.filter((vehiculo) => {
       const estado = vehiculo.estado?.toLowerCase()
       return estado !== 'vendido'
     })
@@ -74,10 +94,12 @@ export default function KanbanPage() {
       return
     }
 
-    const filtered = vehiculosEnProceso.filter(vehiculo => {
+    const filtered = vehiculosEnProceso.filter((vehiculo) => {
       if (searchField === 'todos') {
         return (
-          vehiculo.referencia.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          vehiculo.referencia
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
           vehiculo.marca.toLowerCase().includes(searchTerm.toLowerCase()) ||
           vehiculo.modelo.toLowerCase().includes(searchTerm.toLowerCase()) ||
           vehiculo.matricula.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -96,7 +118,7 @@ export default function KanbanPage() {
   const handleSyncSheets = async () => {
     try {
       const response = await fetch('/api/vehiculos/sync-sheets', {
-        method: 'POST'
+        method: 'POST',
       })
 
       if (response.ok) {
@@ -132,13 +154,13 @@ export default function KanbanPage() {
   const fetchVehiculos = async () => {
     try {
       setIsLoading(true)
-      
+
       const response = await fetch('/api/vehiculos', {
         headers: {
-          'Cache-Control': 'no-cache'
-        }
+          'Cache-Control': 'no-cache',
+        },
       })
-      
+
       if (response.ok) {
         const data = await response.json()
         // La API ahora devuelve { vehiculos: [...], pagination: {...} }
@@ -163,30 +185,34 @@ export default function KanbanPage() {
       matricula: vehiculo.matricula,
       bastidor: vehiculo.bastidor,
       kms: vehiculo.kms.toString(),
-      tipo: vehiculo.tipo
+      tipo: vehiculo.tipo,
     })
     setShowEditModal(true)
   }
 
-  const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleEditInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target
-    setEditFormData(prev => ({
+    setEditFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }))
   }
 
   const handleDelete = (id: number) => {
-    const vehiculo = vehiculos.find(v => v.id === id)
-    const vehiculoName = vehiculo ? `${vehiculo.marca} ${vehiculo.modelo} (${formatVehicleReference(vehiculo.referencia, vehiculo.tipo)})` : 'este vehículo'
-    
+    const vehiculo = vehiculos.find((v) => v.id === id)
+    const vehiculoName = vehiculo
+      ? `${vehiculo.marca} ${vehiculo.modelo} (${formatVehicleReference(vehiculo.referencia, vehiculo.tipo)})`
+      : 'este vehículo'
+
     showConfirm(
       'Eliminar Vehículo',
       `¿Estás seguro de que quieres eliminar ${vehiculoName}? Esta acción no se puede deshacer.`,
       async () => {
         try {
           const response = await fetch(`/api/vehiculos?id=${id}`, {
-            method: 'DELETE'
+            method: 'DELETE',
           })
 
           if (response.ok) {
@@ -219,7 +245,7 @@ export default function KanbanPage() {
         matricula: editFormData.matricula,
         bastidor: editFormData.bastidor,
         kms: parseInt(editFormData.kms),
-        tipo: editFormData.tipo
+        tipo: editFormData.tipo,
       }
 
       const response = await fetch('/api/vehiculos', {
@@ -227,7 +253,7 @@ export default function KanbanPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(updatedVehiculo)
+        body: JSON.stringify(updatedVehiculo),
       })
 
       if (response.ok) {
@@ -257,7 +283,7 @@ export default function KanbanPage() {
       matricula: '',
       bastidor: '',
       kms: '',
-      tipo: ''
+      tipo: '',
     })
   }
 
@@ -280,7 +306,9 @@ export default function KanbanPage() {
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="text-center">
             <div className="text-red-600 text-4xl mb-4">⚠️</div>
-            <h2 className="text-xl font-semibold text-slate-800 mb-2">Error al cargar el tablero</h2>
+            <h2 className="text-xl font-semibold text-slate-800 mb-2">
+              Error al cargar el tablero
+            </h2>
             <p className="text-slate-600 mb-4">{error}</p>
             <button
               onClick={fetchVehiculos}
@@ -302,8 +330,12 @@ export default function KanbanPage() {
           <div className="flex flex-col space-y-4">
             <div className="flex justify-between items-center">
               <div>
-                <h1 className="text-xl font-bold text-slate-800">Tablero de Procesos</h1>
-                <p className="text-sm text-slate-600">Arrastra y suelta los vehículos entre las diferentes etapas</p>
+                <h1 className="text-xl font-bold text-slate-800">
+                  Tablero de Procesos
+                </h1>
+                <p className="text-sm text-slate-600">
+                  Arrastra y suelta los vehículos entre las diferentes etapas
+                </p>
               </div>
               <button
                 onClick={handleManualSync}
@@ -314,7 +346,7 @@ export default function KanbanPage() {
                 <span>Actualizar Datos</span>
               </button>
             </div>
-            
+
             {/* Barra de búsqueda */}
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1">
@@ -327,8 +359,18 @@ export default function KanbanPage() {
                     className="w-full px-4 py-2 pl-10 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white transition-all duration-300"
                   />
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    <svg
+                      className="h-4 w-4 text-slate-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      />
                     </svg>
                   </div>
                   {searchTerm && (
@@ -336,14 +378,24 @@ export default function KanbanPage() {
                       onClick={() => setSearchTerm('')}
                       className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
                     >
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
                       </svg>
                     </button>
                   )}
                 </div>
               </div>
-              
+
               <select
                 value={searchField}
                 onChange={(e) => setSearchField(e.target.value as any)}
@@ -357,7 +409,7 @@ export default function KanbanPage() {
                 <option value="bastidor">Bastidor</option>
                 <option value="tipo">Tipo</option>
               </select>
-              
+
               <div className="flex items-center space-x-2 text-sm text-slate-600">
                 <span>Total: {vehiculos.length}</span>
                 <span>•</span>
@@ -373,13 +425,7 @@ export default function KanbanPage() {
         <div className="w-full h-full">
           <KanbanBoard
             vehiculos={filteredVehiculos}
-            onUpdateVehiculos={(update) => {
-              if (typeof update === 'function') {
-                setVehiculos(update)
-              } else {
-                setVehiculos(update)
-              }
-            }}
+            onUpdateVehiculos={handleUpdateVehiculos}
           />
         </div>
       </div>
@@ -391,13 +437,25 @@ export default function KanbanPage() {
             {/* Header del Modal */}
             <div className="bg-green-600 px-6 py-4 rounded-t-lg">
               <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold text-white">Editar Vehículo</h2>
+                <h2 className="text-xl font-bold text-white">
+                  Editar Vehículo
+                </h2>
                 <button
                   onClick={closeEditModal}
                   className="text-white hover:text-green-100 transition-colors"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
@@ -407,7 +465,10 @@ export default function KanbanPage() {
             <form onSubmit={handleUpdate} className="p-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="edit-referencia" className="block text-sm font-medium text-slate-700 mb-1">
+                  <label
+                    htmlFor="edit-referencia"
+                    className="block text-sm font-medium text-slate-700 mb-1"
+                  >
                     Referencia *
                   </label>
                   <input
@@ -423,7 +484,10 @@ export default function KanbanPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="edit-tipo" className="block text-sm font-medium text-slate-700 mb-1">
+                  <label
+                    htmlFor="edit-tipo"
+                    className="block text-sm font-medium text-slate-700 mb-1"
+                  >
                     Tipo *
                   </label>
                   <select
@@ -444,7 +508,10 @@ export default function KanbanPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="edit-marca" className="block text-sm font-medium text-slate-700 mb-1">
+                  <label
+                    htmlFor="edit-marca"
+                    className="block text-sm font-medium text-slate-700 mb-1"
+                  >
                     Marca *
                   </label>
                   <input
@@ -460,7 +527,10 @@ export default function KanbanPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="edit-modelo" className="block text-sm font-medium text-slate-700 mb-1">
+                  <label
+                    htmlFor="edit-modelo"
+                    className="block text-sm font-medium text-slate-700 mb-1"
+                  >
                     Modelo *
                   </label>
                   <input
@@ -478,7 +548,10 @@ export default function KanbanPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="edit-matricula" className="block text-sm font-medium text-slate-700 mb-1">
+                  <label
+                    htmlFor="edit-matricula"
+                    className="block text-sm font-medium text-slate-700 mb-1"
+                  >
                     Matrícula *
                   </label>
                   <input
@@ -494,7 +567,10 @@ export default function KanbanPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="edit-bastidor" className="block text-sm font-medium text-slate-700 mb-1">
+                  <label
+                    htmlFor="edit-bastidor"
+                    className="block text-sm font-medium text-slate-700 mb-1"
+                  >
                     Bastidor *
                   </label>
                   <input
@@ -511,7 +587,10 @@ export default function KanbanPage() {
               </div>
 
               <div>
-                <label htmlFor="edit-kms" className="block text-sm font-medium text-slate-700 mb-1">
+                <label
+                  htmlFor="edit-kms"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
                   Kilómetros *
                 </label>
                 <input
