@@ -361,8 +361,8 @@ export default function KanbanBoard({
       >
         {console.log('🎭 [DND] DndContext rendered')}
         <div className="flex flex-col gap-4 h-full">
-          {/* Columnas principales arriba */}
-          <div className="grid grid-cols-7 gap-3 flex-1 relative z-0">
+          {/* Columnas principales arriba - TEMPORALMENTE DESHABILITADAS PARA DEBUG */}
+          {/* <div className="grid grid-cols-7 gap-3 flex-1 relative z-0">
             {ESTADOS.filter((estado) => estado.id !== 'PUBLICADO').map(
               (estado) => (
                 <KanbanColumn
@@ -374,7 +374,7 @@ export default function KanbanBoard({
                 />
               )
             )}
-          </div>
+          </div> */}
 
           {/* Columna Publicado abajo y más ancha con distribución horizontal */}
           <div className="w-full flex justify-center mt-12 relative z-10">
