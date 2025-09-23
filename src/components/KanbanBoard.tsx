@@ -361,23 +361,8 @@ export default function KanbanBoard({
       >
         {console.log('🎭 [DND] DndContext rendered')}
         <div className="flex flex-col gap-4 h-full">
-          {/* Columnas principales arriba - TEMPORALMENTE DESHABILITADAS PARA DEBUG */}
-          {/* <div className="grid grid-cols-7 gap-3 flex-1 relative z-0">
-            {ESTADOS.filter((estado) => estado.id !== 'PUBLICADO').map(
-              (estado) => (
-                <KanbanColumn
-                  key={estado.id}
-                  id={estado.id}
-                  title={estado.title}
-                  vehiculos={vehiculosPorEstado[estado.id] || []}
-                  color={estado.color}
-                />
-              )
-            )}
-          </div> */}
-
-          {/* Columna Publicado abajo y más ancha con distribución horizontal */}
-          <div className="w-full flex justify-center mt-12 relative z-10">
+          {/* Columna Publicado PRIMERO para tener prioridad */}
+          <div className="w-full flex justify-center mb-8 relative z-20">
             <div className="flex flex-col h-full w-full max-w-6xl">
               {/* Header de la columna Publicado */}
               <div className="bg-green-600 px-3 py-2 rounded-t-md flex items-center justify-center flex-shrink-0">
@@ -422,6 +407,21 @@ export default function KanbanBoard({
                 </SortableContext>
               </div>
             </div>
+          </div>
+
+          {/* Columnas principales abajo */}
+          <div className="grid grid-cols-7 gap-3 flex-1 relative z-0">
+            {ESTADOS.filter((estado) => estado.id !== 'PUBLICADO').map(
+              (estado) => (
+                <KanbanColumn
+                  key={estado.id}
+                  id={estado.id}
+                  title={estado.title}
+                  vehiculos={vehiculosPorEstado[estado.id] || []}
+                  color={estado.color}
+                />
+              )
+            )}
           </div>
         </div>
 
