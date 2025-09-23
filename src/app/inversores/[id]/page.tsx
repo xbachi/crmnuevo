@@ -52,6 +52,20 @@ export default function InvestorDashboardPage() {
   const [isEditingVehiculo, setIsEditingVehiculo] = useState(false)
   const [notas, setNotas] = useState<any[]>([])
 
+  // Estados para documentos
+  const [documentos, setDocumentos] = useState<
+    Array<{
+      id: string
+      name: string
+      fileName: string
+      size: number
+      type: string
+      uploadDate: string
+      path: string
+      tamañoFormateado: string
+    }>
+  >([])
+
   const inversorId = (params.id as string).split('-')[0] // Extraer solo el ID del slug
 
   // Verificar si el usuario actual es un inversor autenticado
@@ -111,6 +125,12 @@ export default function InvestorDashboardPage() {
       fetchData()
     }
   }, [inversorId])
+
+  useEffect(() => {
+    if (inversorData?.id) {
+      fetchDocumentos()
+    }
+  }, [inversorData?.id])
 
   const handleViewVehicle = (id: number) => {
     // Por ahora redirigir a la página de vehículos con filtro
@@ -249,6 +269,132 @@ export default function InvestorDashboardPage() {
       console.error('Error:', error)
       showToast('Error al cargar la foto', 'error')
     }
+  }
+
+  // Función para obtener documentos
+  const fetchDocumentos = async () => {
+    if (!inversorData?.id) return
+
+    try {
+      console.log(
+        `📁 [INVERSOR PAGE] Obteniendo documentos para inversor ${inversorData.id}`
+      )
+      const response = await fetch(`/api/inversores/${inversorData.id}/files`)
+      if (response.ok) {
+        const data = await response.json()
+        const documentosFormateados = data.map((doc: any) => ({
+          ...doc,
+          tamañoFormateado: formatFileSize(doc.size),
+        }))
+        setDocumentos(documentosFormateados)
+        console.log(
+          `✅ [INVERSOR PAGE] Archivos cargados:`,
+          documentosFormateados.length
+        )
+      } else {
+        console.error('Error al obtener documentos:', response.statusText)
+      }
+    } catch (error) {
+      console.error('Error al obtener documentos:', error)
+    }
+  }
+
+  // Funciones para manejar documentos
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const files = event.target.files
+    if (!files || files.length === 0 || !inversorData?.id) return
+
+    for (const file of files) {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('inversorId', inversorData.id.toString())
+
+      try {
+        const response = await fetch(
+          `/api/inversores/${inversorData.id}/upload-document`,
+          {
+            method: 'POST',
+            body: formData,
+          }
+        )
+
+        if (response.ok) {
+          const responseData = await response.json()
+          showToast('Archivo subido exitosamente', 'success')
+          // Recargar archivos
+          await fetchDocumentos()
+        } else {
+          showToast('Error al subir archivo', 'error')
+        }
+      } catch (error) {
+        console.error('Error al subir archivo:', error)
+        showToast('Error al subir archivo', 'error')
+      }
+    }
+  }
+
+  const handleDownloadFile = (docId: string) => {
+    const documento = documentos.find((doc) => doc.id === docId)
+    if (documento) {
+      // Crear un enlace temporal para descargar el archivo
+      const link = document.createElement('a')
+      link.href = documento.path
+      link.download = documento.name
+      link.target = '_blank'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      showToast(`Descargando ${documento.name}`, 'success')
+    }
+  }
+
+  const handleDeleteFile = async (docId: string) => {
+    try {
+      console.log(
+        `🗑️ [INVERSOR DELETE] Eliminando archivo ${docId} del inversor ${inversorData?.id}`
+      )
+
+      const response = await fetch(
+        `/api/inversores/${inversorData?.id}/files/${docId}`,
+        {
+          method: 'DELETE',
+        }
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error(
+          '❌ [INVERSOR DELETE] Error eliminando archivo:',
+          errorData
+        )
+        showToast(`Error eliminando archivo: ${errorData.error}`, 'error')
+        return
+      }
+
+      const result = await response.json()
+      console.log(
+        '✅ [INVERSOR DELETE] Archivo eliminado exitosamente:',
+        result
+      )
+
+      // Actualizar lista de documentos
+      await fetchDocumentos()
+      showToast('Archivo eliminado correctamente', 'success')
+    } catch (error) {
+      console.error('❌ [INVERSOR DELETE] Error eliminando archivo:', error)
+      showToast('Error eliminando archivo', 'error')
+    }
+  }
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
   const getPeriodoText = () => {
@@ -1024,6 +1170,152 @@ export default function InvestorDashboardPage() {
                 <p className="text-gray-500 text-center py-4">Cargando...</p>
               </div>
             )}
+
+            {/* Bloque de Archivos */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mt-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                    <svg
+                      className="w-4 h-4 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                  </div>
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    Documentos
+                  </h2>
+                </div>
+                {!isInvestorUser && (
+                  <label className="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors cursor-pointer">
+                    <svg
+                      className="w-4 h-4 inline mr-1"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                      />
+                    </svg>
+                    Subir Archivo
+                    <input
+                      type="file"
+                      multiple
+                      className="hidden"
+                      onChange={handleFileUpload}
+                    />
+                  </label>
+                )}
+              </div>
+
+              {/* Lista de archivos - Estilo Google Drive */}
+              <div className="space-y-2">
+                {documentos.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <svg
+                      className="w-12 h-12 mx-auto mb-4 text-gray-300"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                    <p>No hay documentos subidos</p>
+                    <p className="text-sm">
+                      Sube archivos para organizarlos aquí
+                    </p>
+                  </div>
+                ) : (
+                  documentos.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors"
+                    >
+                      <div className="flex items-center space-x-3 flex-1 min-w-0">
+                        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <svg
+                            className="w-4 h-4 text-blue-600"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                            />
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p
+                            className="font-medium text-gray-900 truncate"
+                            title={doc.name}
+                          >
+                            {doc.name.length > 30
+                              ? `${doc.name.substring(0, 30)}...`
+                              : doc.name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {doc.tamañoFormateado} •{' '}
+                            {new Date(doc.uploadDate).toLocaleDateString(
+                              'es-ES'
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2 flex-shrink-0">
+                        <button
+                          onClick={() => handleDownloadFile(doc.id)}
+                          className="px-3 py-1 bg-green-100 text-green-700 rounded-md text-sm font-medium hover:bg-green-200 transition-colors"
+                          title="Descargar"
+                        >
+                          Descargar
+                        </button>
+                        {!isInvestorUser && (
+                          <button
+                            onClick={() => handleDeleteFile(doc.id)}
+                            className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                            title="Eliminar"
+                          >
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </main>
