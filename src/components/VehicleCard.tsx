@@ -137,10 +137,20 @@ const VehicleCard = memo(function VehicleCard({
   } as const
 
   const getTipoColor = useCallback((tipo: string) => {
-    return (
+    // Debug: mostrar el tipo que está llegando
+    console.log(`🎨 [VehicleCard] Tipo recibido: "${tipo}"`)
+
+    const color =
       TIPO_COLORS[tipo as keyof typeof TIPO_COLORS] ||
       'bg-gray-100 text-gray-700 border-gray-200'
-    )
+
+    if (!TIPO_COLORS[tipo as keyof typeof TIPO_COLORS]) {
+      console.log(
+        `⚠️ [VehicleCard] Tipo no reconocido: "${tipo}", usando color por defecto`
+      )
+    }
+
+    return color
   }, [])
 
   const getTipoText = useCallback((tipo: string) => {

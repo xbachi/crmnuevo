@@ -81,6 +81,9 @@ export default function DraggableVehicleCard({
   }
 
   const getTipoColor = (tipo: string) => {
+    // Debug: mostrar el tipo que está llegando
+    console.log(`🎨 [DraggableVehicleCard] Tipo recibido: "${tipo}"`)
+
     switch (tipo) {
       case 'Compra':
         return 'bg-green-100 text-green-800 border-green-200'
@@ -96,6 +99,9 @@ export default function DraggableVehicleCard({
       case 'D':
         return 'bg-purple-100 text-purple-800 border-purple-200'
       default:
+        console.log(
+          `⚠️ [DraggableVehicleCard] Tipo no reconocido: "${tipo}", usando color por defecto`
+        )
         return 'bg-gray-100 text-gray-800 border-gray-200'
     }
   }
