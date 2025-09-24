@@ -136,31 +136,58 @@ export interface TestInversor {
 }
 
 // Factory functions
-export const createTestCliente = (overrides: Partial<TestCliente> = {}): TestCliente => {
+export const createTestCliente = (
+  overrides: Partial<TestCliente> = {}
+): TestCliente => {
   const nombre = faker.person.firstName()
   const apellidos = faker.person.lastName()
-  
+
   return {
     nombre,
     apellidos,
     email: faker.internet.email({ firstName: nombre, lastName: apellidos }),
-    telefono: faker.phone.number('6## ### ###'),
-    dni: faker.string.numeric(8) + faker.string.alpha({ length: 1, casing: 'upper' }),
+    telefono: faker.phone.number(),
+    dni:
+      faker.string.numeric(8) +
+      faker.string.alpha({ length: 1, casing: 'upper' }),
     direccion: faker.location.streetAddress(),
     ciudad: faker.location.city(),
     provincia: faker.location.state(),
     codigoPostal: faker.location.zipCode('####'),
     fechaNacimiento: faker.date.birthdate({ min: 18, max: 80, mode: 'age' }),
-    vehiculosInteres: JSON.stringify([faker.vehicle.model(), faker.vehicle.model()]),
+    vehiculosInteres: JSON.stringify([
+      faker.vehicle.model(),
+      faker.vehicle.model(),
+    ]),
     presupuestoMaximo: faker.number.int({ min: 5000, max: 50000 }),
     kilometrajeMaximo: faker.number.int({ min: 50000, max: 200000 }),
     añoMinimo: faker.number.int({ min: 2015, max: 2023 }),
-    combustiblePreferido: faker.helpers.arrayElement(['gasolina', 'diesel', 'hibrido', 'electrico', 'cualquiera']),
-    cambioPreferido: faker.helpers.arrayElement(['manual', 'automatico', 'cualquiera']),
+    combustiblePreferido: faker.helpers.arrayElement([
+      'gasolina',
+      'diesel',
+      'hibrido',
+      'electrico',
+      'cualquiera',
+    ]),
+    cambioPreferido: faker.helpers.arrayElement([
+      'manual',
+      'automatico',
+      'cualquiera',
+    ]),
     coloresDeseados: JSON.stringify([faker.color.human(), faker.color.human()]),
     necesidadesEspeciales: JSON.stringify([faker.lorem.words(3)]),
-    formaPagoPreferida: faker.helpers.arrayElement(['efectivo', 'transferencia', 'financiacion', 'cualquiera']),
-    comoLlego: faker.helpers.arrayElement(['web', 'telefono', 'recomendacion', 'presencial']),
+    formaPagoPreferida: faker.helpers.arrayElement([
+      'efectivo',
+      'transferencia',
+      'financiacion',
+      'cualquiera',
+    ]),
+    comoLlego: faker.helpers.arrayElement([
+      'web',
+      'telefono',
+      'recomendacion',
+      'presencial',
+    ]),
     estado: 'nuevo',
     prioridad: 'media',
     proximoPaso: faker.lorem.sentence(),
@@ -172,16 +199,20 @@ export const createTestCliente = (overrides: Partial<TestCliente> = {}): TestCli
   }
 }
 
-export const createTestVehiculo = (overrides: Partial<TestVehiculo> = {}): TestVehiculo => {
+export const createTestVehiculo = (
+  overrides: Partial<TestVehiculo> = {}
+): TestVehiculo => {
   const marca = faker.vehicle.manufacturer()
   const modelo = faker.vehicle.model()
   const year = faker.number.int({ min: 2015, max: 2024 })
-  
+
   return {
     referencia: faker.string.numeric(4),
     marca,
     modelo,
-    matricula: faker.string.numeric(4) + faker.string.alpha({ length: 3, casing: 'upper' }),
+    matricula:
+      faker.string.numeric(4) +
+      faker.string.alpha({ length: 3, casing: 'upper' }),
     bastidor: faker.string.alphanumeric({ length: 17, casing: 'upper' }),
     kms: faker.number.int({ min: 10000, max: 200000 }),
     tipo: faker.helpers.arrayElement(['C', 'I', 'D', 'R']),
@@ -190,9 +221,17 @@ export const createTestVehiculo = (overrides: Partial<TestVehiculo> = {}): TestV
     fechaMatriculacion: `${year}-${faker.date.month()}-${faker.date.recent()}`,
     año: year,
     itv: faker.helpers.arrayElement(['al dia', 'proxima', 'vencida']),
-    seguro: faker.helpers.arrayElement(['al dia', 'proximo vencimiento', 'vencido']),
+    seguro: faker.helpers.arrayElement([
+      'al dia',
+      'proximo vencimiento',
+      'vencido',
+    ]),
     segundaLlave: faker.helpers.arrayElement(['si', 'no']),
-    documentacion: faker.helpers.arrayElement(['completa', 'falta ITV', 'falta seguro']),
+    documentacion: faker.helpers.arrayElement([
+      'completa',
+      'falta ITV',
+      'falta seguro',
+    ]),
     carpeta: faker.string.alphanumeric(10),
     master: faker.helpers.arrayElement(['si', 'no']),
     hojasA: faker.helpers.arrayElement(['si', 'no']),
@@ -214,7 +253,7 @@ export const createTestVehiculo = (overrides: Partial<TestVehiculo> = {}): TestV
 export const createTestDeal = (overrides: Partial<TestDeal> = {}): TestDeal => {
   const year = new Date().getFullYear()
   const number = faker.string.numeric(4)
-  
+
   return {
     numero: `RES-${year}-${number}`,
     clienteId: faker.number.int({ min: 1, max: 100 }),
@@ -222,33 +261,41 @@ export const createTestDeal = (overrides: Partial<TestDeal> = {}): TestDeal => {
     estado: 'nuevo',
     importeTotal: faker.number.int({ min: 12000, max: 40000 }),
     importeSena: faker.number.int({ min: 1000, max: 5000 }),
-    formaPagoSena: faker.helpers.arrayElement(['efectivo', 'transferencia', 'tarjeta']),
+    formaPagoSena: faker.helpers.arrayElement([
+      'efectivo',
+      'transferencia',
+      'tarjeta',
+    ]),
     financiacion: faker.datatype.boolean(),
     fechaCreacion: faker.date.recent({ days: 30 }),
     fechaReservaDesde: faker.date.recent({ days: 7 }),
-    fechaReservaExpira: faker.date.future({ days: 15 }),
+    fechaReservaExpira: faker.date.future({ years: 0.04 }),
     observaciones: faker.lorem.paragraph(),
     responsableComercial: faker.person.fullName(),
     cambioNombreSolicitado: false,
     documentacionRecibida: false,
     clienteAvisado: false,
     documentacionRetirada: false,
-    logHistorial: JSON.stringify([{
-      fecha: faker.date.recent(),
-      accion: 'Creacion',
-      usuario: 'Sistema',
-      detalles: 'Deal creado'
-    }]),
+    logHistorial: JSON.stringify([
+      {
+        fecha: faker.date.recent(),
+        accion: 'Creacion',
+        usuario: 'Sistema',
+        detalles: 'Deal creado',
+      },
+    ]),
     ...overrides,
   }
 }
 
-export const createTestDeposito = (overrides: Partial<TestDeposito> = {}): TestDeposito => {
+export const createTestDeposito = (
+  overrides: Partial<TestDeposito> = {}
+): TestDeposito => {
   const fechaInicio = faker.date.recent({ days: 30 })
   const diasGestion = faker.number.int({ min: 30, max: 180 })
   const fechaFin = new Date(fechaInicio)
   fechaFin.setDate(fechaFin.getDate() + diasGestion)
-  
+
   return {
     cliente_id: faker.number.int({ min: 1, max: 100 }),
     vehiculo_id: faker.number.int({ min: 1, max: 100 }),
@@ -268,13 +315,15 @@ export const createTestDeposito = (overrides: Partial<TestDeposito> = {}): TestD
   }
 }
 
-export const createTestInversor = (overrides: Partial<TestInversor> = {}): TestInversor => {
+export const createTestInversor = (
+  overrides: Partial<TestInversor> = {}
+): TestInversor => {
   const nombre = faker.person.fullName()
-  
+
   return {
     nombre,
     email: faker.internet.email({ firstName: nombre }),
-    telefono: faker.phone.number('6## ### ###'),
+    telefono: faker.phone.number(),
     capitalAportado: faker.number.int({ min: 50000, max: 500000 }),
     capitalInvertido: faker.number.int({ min: 30000, max: 300000 }),
     activo: true,
@@ -283,7 +332,9 @@ export const createTestInversor = (overrides: Partial<TestInversor> = {}): TestI
 }
 
 // Helper functions for specific test scenarios
-export const createVehiculoDeposito = (overrides: Partial<TestVehiculo> = {}): TestVehiculo => {
+export const createVehiculoDeposito = (
+  overrides: Partial<TestVehiculo> = {}
+): TestVehiculo => {
   return createTestVehiculo({
     tipo: 'D',
     referencia: `D-${faker.string.numeric(3)}`,
@@ -291,7 +342,9 @@ export const createVehiculoDeposito = (overrides: Partial<TestVehiculo> = {}): T
   })
 }
 
-export const createVehiculoInversor = (overrides: Partial<TestVehiculo> = {}): TestVehiculo => {
+export const createVehiculoInversor = (
+  overrides: Partial<TestVehiculo> = {}
+): TestVehiculo => {
   return createTestVehiculo({
     tipo: 'I',
     referencia: `I-${faker.string.numeric(3)}`,
@@ -301,7 +354,9 @@ export const createVehiculoInversor = (overrides: Partial<TestVehiculo> = {}): T
   })
 }
 
-export const createVehiculoCompra = (overrides: Partial<TestVehiculo> = {}): TestVehiculo => {
+export const createVehiculoCompra = (
+  overrides: Partial<TestVehiculo> = {}
+): TestVehiculo => {
   return createTestVehiculo({
     tipo: 'C',
     referencia: faker.string.numeric(4),
@@ -310,23 +365,27 @@ export const createVehiculoCompra = (overrides: Partial<TestVehiculo> = {}): Tes
   })
 }
 
-export const createDealReserva = (overrides: Partial<TestDeal> = {}): TestDeal => {
+export const createDealReserva = (
+  overrides: Partial<TestDeal> = {}
+): TestDeal => {
   const year = new Date().getFullYear()
   const number = faker.string.numeric(4)
-  
+
   return createTestDeal({
     numero: `RES-${year}-${number}`,
     estado: 'reservado',
     fechaReservaDesde: faker.date.recent({ days: 3 }),
-    fechaReservaExpira: faker.date.future({ days: 15 }),
+    fechaReservaExpira: faker.date.future({ years: 0.04 }),
     ...overrides,
   })
 }
 
-export const createDealVenta = (overrides: Partial<TestDeal> = {}): TestDeal => {
+export const createDealVenta = (
+  overrides: Partial<TestDeal> = {}
+): TestDeal => {
   const year = new Date().getFullYear()
   const number = faker.string.numeric(4)
-  
+
   return createTestDeal({
     numero: `CCV-${year}-${number}`,
     estado: 'vendido',
@@ -336,23 +395,38 @@ export const createDealVenta = (overrides: Partial<TestDeal> = {}): TestDeal => 
 }
 
 // Batch creation helpers
-export const createTestClientes = (count: number, overrides: Partial<TestCliente> = {}): TestCliente[] => {
+export const createTestClientes = (
+  count: number,
+  overrides: Partial<TestCliente> = {}
+): TestCliente[] => {
   return Array.from({ length: count }, () => createTestCliente(overrides))
 }
 
-export const createTestVehiculos = (count: number, overrides: Partial<TestVehiculo> = {}): TestVehiculo[] => {
+export const createTestVehiculos = (
+  count: number,
+  overrides: Partial<TestVehiculo> = {}
+): TestVehiculo[] => {
   return Array.from({ length: count }, () => createTestVehiculo(overrides))
 }
 
-export const createTestDeals = (count: number, overrides: Partial<TestDeal> = {}): TestDeal[] => {
+export const createTestDeals = (
+  count: number,
+  overrides: Partial<TestDeal> = {}
+): TestDeal[] => {
   return Array.from({ length: count }, () => createTestDeal(overrides))
 }
 
-export const createTestDepositos = (count: number, overrides: Partial<TestDeposito> = {}): TestDeposito[] => {
+export const createTestDepositos = (
+  count: number,
+  overrides: Partial<TestDeposito> = {}
+): TestDeposito[] => {
   return Array.from({ length: count }, () => createTestDeposito(overrides))
 }
 
-export const createTestInversores = (count: number, overrides: Partial<TestInversor> = {}): TestInversor[] => {
+export const createTestInversores = (
+  count: number,
+  overrides: Partial<TestInversor> = {}
+): TestInversor[] => {
   return Array.from({ length: count }, () => createTestInversor(overrides))
 }
 

@@ -55,6 +55,11 @@ export interface Inversor {
   contraseña?: string
   createdAt: string
   updatedAt: string
+  documento?: string
+  telefono?: string
+  fechaAlta?: string
+  capitalAportadoHistorico?: number
+  capitalComprometido?: number
 }
 
 export interface Cliente {
@@ -77,6 +82,10 @@ export interface Cliente {
   intereses: InteresesCliente
   proximoPaso?: string
   etiquetas: string[]
+  direccion?: string
+  ciudad?: string
+  provincia?: string
+  codPostal?: string
   createdAt: string
   updatedAt: string
 }
@@ -100,6 +109,8 @@ export interface InteresesCliente {
     | 'contado'
     | 'entrega_usado'
     | 'cualquiera'
+  vehiculoPrincipal?: string
+  modelosAlternativos?: string[]
 }
 
 export interface NotaCliente {
@@ -612,10 +623,12 @@ export async function buscarClientesPorVehiculo(criterios: {
     // Filtro por marca/modelo
     if (
       criterios.marca &&
+      intereses.vehiculoPrincipal &&
       !intereses.vehiculoPrincipal
         .toLowerCase()
         .includes(criterios.marca.toLowerCase()) &&
-      !intereses.modelosAlternativos.some((m) =>
+      intereses.modelosAlternativos &&
+      !intereses.modelosAlternativos.some((m: string) =>
         m.toLowerCase().includes(criterios.marca!.toLowerCase())
       )
     ) {
@@ -624,10 +637,12 @@ export async function buscarClientesPorVehiculo(criterios: {
 
     if (
       criterios.modelo &&
+      intereses.vehiculoPrincipal &&
       !intereses.vehiculoPrincipal
         .toLowerCase()
         .includes(criterios.modelo.toLowerCase()) &&
-      !intereses.modelosAlternativos.some((m) =>
+      intereses.modelosAlternativos &&
+      !intereses.modelosAlternativos.some((m: string) =>
         m.toLowerCase().includes(criterios.modelo!.toLowerCase())
       )
     ) {

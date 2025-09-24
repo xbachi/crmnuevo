@@ -12,7 +12,7 @@ function loadEnvFile() {
     if (fs.existsSync(envPath)) {
       const content = fs.readFileSync(envPath, 'utf8')
       const lines = content.split('\n')
-      lines.forEach((line) => {
+      lines.forEach((line: string) => {
         const [key, value] = line.split('=')
         if (key && value) {
           process.env[key] = value.replace(/"/g, '')
@@ -80,13 +80,7 @@ export interface Vehiculo {
   beneficioNeto?: number | null
   notasInversor?: string | null
   fotoInversor?: string | null
-  itv?: string | null
-  seguro?: string | null
-  segundaLlave?: string | null
-  carpeta?: string | null
-  master?: string | null
-  hojasA?: string | null
-  documentacion?: string | null
+  dealActivoId?: number | null
 }
 
 export async function getVehiculos(
@@ -596,8 +590,8 @@ export async function updateDeal(
     const vehiculoId = currentDeal.vehiculoId
 
     // Construir query dinámico
-    const fields = []
-    const values = []
+    const fields: string[] = []
+    const values: any[] = []
     let paramIndex = 1
 
     Object.entries(dealData).forEach(([key, value]) => {
@@ -709,7 +703,7 @@ export async function deleteDeal(id: number): Promise<boolean> {
       ['disponible', deal.vehiculoId]
     )
 
-    return result.rowCount > 0
+    return (result.rowCount ?? 0) > 0
   } catch (error) {
     console.error('Error eliminando deal:', error)
     return false
@@ -1013,7 +1007,7 @@ export async function checkUniqueFields(
 
     if (excludeId) {
       query += ' AND id != $4'
-      params.push(excludeId)
+      params.push(excludeId.toString())
     }
 
     const result = await client.query(query, params)
@@ -1647,7 +1641,7 @@ export async function deleteClienteReminder(
       [reminderId]
     )
 
-    return result.rowCount > 0
+    return (result.rowCount ?? 0) > 0
   } catch (error) {
     console.error('Error deleting client reminder:', error)
     throw error

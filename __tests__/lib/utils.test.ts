@@ -16,7 +16,7 @@ describe('formatCurrency', () => {
   })
 
   test('handles decimal amounts', () => {
-    expect(formatCurrency(1000.50)).toBe('1.000,50€')
+    expect(formatCurrency(1000.5)).toBe('1.000,50€')
     expect(formatCurrency(15000.99)).toBe('15.000,99€')
   })
 
@@ -89,7 +89,7 @@ describe('formatVehicleReference', () => {
   test('handles unknown types', () => {
     // Por defecto, tipos desconocidos se tratan como compra (C) y agregan #
     expect(formatVehicleReference('123', 'UNKNOWN')).toBe('#123')
-    expect(formatVehicleReference('123', null)).toBe('#123')
+    expect(formatVehicleReference('123', '')).toBe('#123')
     expect(formatVehicleReference('123', undefined)).toBe('#123')
   })
 
@@ -116,14 +116,14 @@ describe('formatVehicleReferenceShort', () => {
     expect(formatVehicleReferenceShort('1010', 'C')).toBe('#10')
     expect(formatVehicleReferenceShort('12345', 'C')).toBe('#45')
     expect(formatVehicleReferenceShort('9', 'C')).toBe('#9')
-    
+
     // Inversores: I- + último dígito
     expect(formatVehicleReferenceShort('9', 'I')).toBe('I-9')
     expect(formatVehicleReferenceShort('123', 'I')).toBe('I-3')
-    
+
     // Depósitos: D- + último dígito
     expect(formatVehicleReferenceShort('456', 'D')).toBe('D-6')
-    
+
     // Renting: R- + último dígito
     expect(formatVehicleReferenceShort('789', 'R')).toBe('R-9')
   })
@@ -138,10 +138,10 @@ describe('generateVehicleSlug', () => {
   test('handles references with prefixes', () => {
     const vehiculo1 = { referencia: '#1234', marca: 'BMW', modelo: 'X5' }
     expect(generateVehicleSlug(vehiculo1)).toBe('1234-bmw-x5')
-    
+
     const vehiculo2 = { referencia: 'I-567', marca: 'Audi', modelo: 'A4' }
     expect(generateVehicleSlug(vehiculo2)).toBe('567-audi-a4')
-    
+
     const vehiculo3 = { referencia: 'D-890', marca: 'Tesla', modelo: 'Model 3' }
     expect(generateVehicleSlug(vehiculo3)).toBe('890-tesla-model3')
   })
@@ -152,7 +152,11 @@ describe('generateVehicleSlug', () => {
   })
 
   test('handles accents and symbols', () => {
-    const vehiculo = { referencia: '#456', marca: 'Citroën', modelo: 'C4 Picasso' }
+    const vehiculo = {
+      referencia: '#456',
+      marca: 'Citroën',
+      modelo: 'C4 Picasso',
+    }
     expect(generateVehicleSlug(vehiculo)).toBe('456-citron-c4picasso')
   })
 

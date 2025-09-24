@@ -21,6 +21,7 @@ interface Vehiculo {
   estado: 'ACTIVO' | 'VENDIDO' | 'RESERVADO' | 'BORRADOR' | 'FINALIZADO'
   orden: number
   createdAt: string
+  updatedAt?: string
   color?: string
   fechaMatriculacion?: string
   esCocheInversor?: boolean

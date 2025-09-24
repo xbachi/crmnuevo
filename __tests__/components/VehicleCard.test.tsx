@@ -17,13 +17,16 @@ const createTestVehicle = (overrides = {}) => ({
   ...overrides,
 })
 
-const createVehiculoCompra = (overrides = {}) => createTestVehicle({ tipo: 'C', ...overrides })
-const createVehiculoInversor = (overrides = {}) => createTestVehicle({ tipo: 'I', ...overrides })
-const createVehiculoDeposito = (overrides = {}) => createTestVehicle({ tipo: 'D', ...overrides })
+const createVehiculoCompra = (overrides = {}) =>
+  createTestVehicle({ tipo: 'C', ...overrides })
+const createVehiculoInversor = (overrides = {}) =>
+  createTestVehicle({ tipo: 'I', ...overrides })
+const createVehiculoDeposito = (overrides = {}) =>
+  createTestVehicle({ tipo: 'D', ...overrides })
 
 // Mock the VehicleCard component since we don't have the actual import
-const MockVehicleCard = ({ vehiculo, onClick, ...props }) => {
-  const getTypeColor = (tipo) => {
+const MockVehicleCard = ({ vehiculo, onClick, ...props }: any) => {
+  const getTypeColor = (tipo: string) => {
     switch (tipo) {
       case 'I':
         return 'bg-orange-100'
@@ -34,12 +37,12 @@ const MockVehicleCard = ({ vehiculo, onClick, ...props }) => {
     }
   }
 
-  const formatReference = (referencia, tipo) => {
+  const formatReference = (referencia: string, tipo: string) => {
     if (!referencia) return ''
-    
+
     // Limpiar la referencia
     const cleanRef = referencia.trim().replace(/[^a-zA-Z0-9-]/g, '')
-    
+
     switch (tipo) {
       case 'I':
         if (cleanRef.startsWith('I-')) return cleanRef
@@ -56,7 +59,7 @@ const MockVehicleCard = ({ vehiculo, onClick, ...props }) => {
   }
 
   return (
-    <div 
+    <div
       className={`vehicle-card ${getTypeColor(vehiculo.tipo)} p-4 border rounded cursor-pointer`}
       onClick={() => onClick?.(vehiculo)}
       data-testid="vehicle-card"
@@ -64,18 +67,10 @@ const MockVehicleCard = ({ vehiculo, onClick, ...props }) => {
       <div data-testid="vehicle-reference">
         {formatReference(vehiculo.referencia, vehiculo.tipo)}
       </div>
-      <div data-testid="vehicle-brand">
-        {vehiculo.marca}
-      </div>
-      <div data-testid="vehicle-model">
-        {vehiculo.modelo}
-      </div>
-      <div data-testid="vehicle-state">
-        {vehiculo.estado}
-      </div>
-      <div data-testid="vehicle-kms">
-        {vehiculo.kms} km
-      </div>
+      <div data-testid="vehicle-brand">{vehiculo.marca}</div>
+      <div data-testid="vehicle-model">{vehiculo.modelo}</div>
+      <div data-testid="vehicle-state">{vehiculo.estado}</div>
+      <div data-testid="vehicle-kms">{vehiculo.kms} km</div>
       {vehiculo.tipo === 'D' && (
         <div data-testid="vehicle-deposit-badge" className="text-blue-600">
           En depósito
@@ -100,14 +95,14 @@ describe('VehicleCard Component', () => {
       kms: 75000,
     })
 
-    render(<MockVehicleCard vehiculo={vehiculo} />)
+    render(<MockVehicleCard vehiculo={vehiculo} onClick={() => {}} />)
 
     expect(screen.getByTestId('vehicle-reference')).toHaveTextContent('#1010')
     expect(screen.getByTestId('vehicle-brand')).toHaveTextContent('BMW')
     expect(screen.getByTestId('vehicle-model')).toHaveTextContent('X5')
     expect(screen.getByTestId('vehicle-state')).toHaveTextContent('disponible')
     expect(screen.getByTestId('vehicle-kms')).toHaveTextContent('75000 km')
-    
+
     // Should have white background for purchase vehicles
     expect(screen.getByTestId('vehicle-card')).toHaveClass('bg-white')
   })
@@ -121,13 +116,13 @@ describe('VehicleCard Component', () => {
       kms: 50000,
     })
 
-    render(<MockVehicleCard vehiculo={vehiculo} />)
+    render(<MockVehicleCard vehiculo={vehiculo} onClick={() => {}} />)
 
     expect(screen.getByTestId('vehicle-reference')).toHaveTextContent('I-9')
     expect(screen.getByTestId('vehicle-brand')).toHaveTextContent('Audi')
     expect(screen.getByTestId('vehicle-model')).toHaveTextContent('A4')
     expect(screen.getByTestId('vehicle-investor-badge')).toBeInTheDocument()
-    
+
     // Should have orange background for investor vehicles
     expect(screen.getByTestId('vehicle-card')).toHaveClass('bg-orange-100')
   })
@@ -141,13 +136,13 @@ describe('VehicleCard Component', () => {
       kms: 30000,
     })
 
-    render(<MockVehicleCard vehiculo={vehiculo} />)
+    render(<MockVehicleCard vehiculo={vehiculo} onClick={() => {}} />)
 
     expect(screen.getByTestId('vehicle-reference')).toHaveTextContent('D-5')
     expect(screen.getByTestId('vehicle-brand')).toHaveTextContent('Mercedes')
     expect(screen.getByTestId('vehicle-model')).toHaveTextContent('C-Class')
     expect(screen.getByTestId('vehicle-deposit-badge')).toBeInTheDocument()
-    
+
     // Should have blue background for deposit vehicles
     expect(screen.getByTestId('vehicle-card')).toHaveClass('bg-blue-100')
   })
@@ -167,7 +162,7 @@ describe('VehicleCard Component', () => {
   test('handles different vehicle states', () => {
     const estados = ['disponible', 'reservado', 'vendido']
 
-    estados.forEach(estado => {
+    estados.forEach((estado) => {
       const vehiculo = createVehiculoCompra({ estado })
       const { rerender } = render(<MockVehicleCard vehiculo={vehiculo} />)
 
@@ -194,7 +189,9 @@ describe('VehicleCard Component', () => {
       const vehiculo = createVehiculoCompra({ referencia, tipo })
       const { rerender } = render(<MockVehicleCard vehiculo={vehiculo} />)
 
-      expect(screen.getByTestId('vehicle-reference')).toHaveTextContent(expected)
+      expect(screen.getByTestId('vehicle-reference')).toHaveTextContent(
+        expected
+      )
 
       // Clean up for next iteration
       rerender(<div />)
@@ -212,7 +209,7 @@ describe('VehicleCard Component', () => {
       tipo: 'C',
     }
 
-    render(<MockVehicleCard vehiculo={vehiculo} />)
+    render(<MockVehicleCard vehiculo={vehiculo} onClick={() => {}} />)
 
     // Referencias vacías devuelven string vacío, no '#'
     expect(screen.getByTestId('vehicle-reference')).toHaveTextContent('')
@@ -225,42 +222,54 @@ describe('VehicleCard Component', () => {
     // Test deposit badge
     const depositVehicle = createVehiculoDeposito()
     const { rerender } = render(<MockVehicleCard vehiculo={depositVehicle} />)
-    
-    expect(screen.getByTestId('vehicle-deposit-badge')).toHaveTextContent('En depósito')
-    expect(screen.queryByTestId('vehicle-investor-badge')).not.toBeInTheDocument()
+
+    expect(screen.getByTestId('vehicle-deposit-badge')).toHaveTextContent(
+      'En depósito'
+    )
+    expect(
+      screen.queryByTestId('vehicle-investor-badge')
+    ).not.toBeInTheDocument()
 
     // Test investor badge
     const investorVehicle = createVehiculoInversor()
     rerender(<MockVehicleCard vehiculo={investorVehicle} />)
-    
-    expect(screen.getByTestId('vehicle-investor-badge')).toHaveTextContent('Inversor')
-    expect(screen.queryByTestId('vehicle-deposit-badge')).not.toBeInTheDocument()
+
+    expect(screen.getByTestId('vehicle-investor-badge')).toHaveTextContent(
+      'Inversor'
+    )
+    expect(
+      screen.queryByTestId('vehicle-deposit-badge')
+    ).not.toBeInTheDocument()
 
     // Test purchase vehicle (no badge)
     const purchaseVehicle = createVehiculoCompra()
     rerender(<MockVehicleCard vehiculo={purchaseVehicle} />)
-    
-    expect(screen.queryByTestId('vehicle-deposit-badge')).not.toBeInTheDocument()
-    expect(screen.queryByTestId('vehicle-investor-badge')).not.toBeInTheDocument()
+
+    expect(
+      screen.queryByTestId('vehicle-deposit-badge')
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByTestId('vehicle-investor-badge')
+    ).not.toBeInTheDocument()
   })
 
   test('applies correct styling based on vehicle type', () => {
     // Test purchase vehicle styling
     const purchaseVehicle = createVehiculoCompra()
     const { rerender } = render(<MockVehicleCard vehiculo={purchaseVehicle} />)
-    
+
     expect(screen.getByTestId('vehicle-card')).toHaveClass('bg-white')
 
     // Test investor vehicle styling
     const investorVehicle = createVehiculoInversor()
     rerender(<MockVehicleCard vehiculo={investorVehicle} />)
-    
+
     expect(screen.getByTestId('vehicle-card')).toHaveClass('bg-orange-100')
 
     // Test deposit vehicle styling
     const depositVehicle = createVehiculoDeposito()
     rerender(<MockVehicleCard vehiculo={depositVehicle} />)
-    
+
     expect(screen.getByTestId('vehicle-card')).toHaveClass('bg-blue-100')
   })
 })

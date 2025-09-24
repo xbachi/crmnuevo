@@ -34,14 +34,21 @@ interface InteractiveMetricsChartProps {
   data: MetricsData
 }
 
-export default function InteractiveMetricsChart({ data }: InteractiveMetricsChartProps) {
+export default function InteractiveMetricsChart({
+  data,
+}: InteractiveMetricsChartProps) {
   // Datos para el gráfico de barras
   const barData = {
     labels: ['Vehículos Vendidos', 'En Stock', 'Depósitos', 'En Proceso'],
     datasets: [
       {
         label: 'Cantidad',
-        data: [data.vehiculosVendidos, data.enStock, data.depositos, data.enProceso],
+        data: [
+          data.vehiculosVendidos,
+          data.enStock,
+          data.depositos,
+          data.enProceso,
+        ],
         backgroundColor: [
           'rgba(34, 197, 94, 0.8)', // Verde para vendidos
           'rgba(59, 130, 246, 0.8)', // Azul para en stock
@@ -66,7 +73,12 @@ export default function InteractiveMetricsChart({ data }: InteractiveMetricsChar
     labels: ['Vendidos', 'En Stock', 'Depósitos', 'En Proceso'],
     datasets: [
       {
-        data: [data.vehiculosVendidos, data.enStock, data.depositos, data.enProceso],
+        data: [
+          data.vehiculosVendidos,
+          data.enStock,
+          data.depositos,
+          data.enProceso,
+        ],
         backgroundColor: [
           'rgba(34, 197, 94, 0.8)',
           'rgba(59, 130, 246, 0.8)',
@@ -104,10 +116,10 @@ export default function InteractiveMetricsChart({ data }: InteractiveMetricsChar
         cornerRadius: 8,
         displayColors: true,
         callbacks: {
-          label: function(context: any) {
+          label: function (context: any) {
             return `${context.label}: ${context.parsed.y} vehículos`
-          }
-        }
+          },
+        },
       },
     },
     scales: {
@@ -133,15 +145,15 @@ export default function InteractiveMetricsChart({ data }: InteractiveMetricsChar
           font: {
             size: 12,
           },
-          callback: function(value: any) {
+          callback: function (value: any) {
             return Number.isInteger(value) ? value : null
-          }
+          },
         },
       },
     },
     animation: {
       duration: 1000,
-      easing: 'easeInOutQuart',
+      easing: 'easeInOutQuart' as const,
     },
     interaction: {
       intersect: false,
@@ -175,17 +187,20 @@ export default function InteractiveMetricsChart({ data }: InteractiveMetricsChar
         cornerRadius: 8,
         displayColors: true,
         callbacks: {
-          label: function(context: any) {
-            const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0)
+          label: function (context: any) {
+            const total = context.dataset.data.reduce(
+              (a: number, b: number) => a + b,
+              0
+            )
             const percentage = ((context.parsed / total) * 100).toFixed(1)
             return `${context.label}: ${context.parsed} (${percentage}%)`
-          }
-        }
+          },
+        },
       },
     },
     animation: {
       duration: 1000,
-      easing: 'easeInOutQuart',
+      easing: 'easeInOutQuart' as const,
     },
     cutout: '60%',
   }
@@ -193,7 +208,9 @@ export default function InteractiveMetricsChart({ data }: InteractiveMetricsChar
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">Métricas del Mes</h3>
+        <h3 className="text-lg font-semibold text-gray-900">
+          Métricas del Mes
+        </h3>
         <div className="flex items-center space-x-2">
           <div className="w-3 h-3 bg-green-500 rounded-full"></div>
           <span className="text-sm text-gray-600">Tiempo real</span>
@@ -205,7 +222,9 @@ export default function InteractiveMetricsChart({ data }: InteractiveMetricsChar
         <div className="space-y-4">
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 bg-blue-500 rounded"></div>
-            <h4 className="text-sm font-medium text-gray-700">Distribución por Categoría</h4>
+            <h4 className="text-sm font-medium text-gray-700">
+              Distribución por Categoría
+            </h4>
           </div>
           <div className="h-64">
             <Bar data={barData} options={barOptions} />
@@ -216,7 +235,9 @@ export default function InteractiveMetricsChart({ data }: InteractiveMetricsChar
         <div className="space-y-4">
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 bg-purple-500 rounded-full"></div>
-            <h4 className="text-sm font-medium text-gray-700">Proporción Total</h4>
+            <h4 className="text-sm font-medium text-gray-700">
+              Proporción Total
+            </h4>
           </div>
           <div className="h-64">
             <Doughnut data={doughnutData} options={doughnutOptions} />
@@ -230,7 +251,9 @@ export default function InteractiveMetricsChart({ data }: InteractiveMetricsChar
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-green-600 font-medium">Vendidos</p>
-              <p className="text-2xl font-bold text-green-900">{data.vehiculosVendidos}</p>
+              <p className="text-2xl font-bold text-green-900">
+                {data.vehiculosVendidos}
+              </p>
             </div>
             <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
               <span className="text-white text-sm">🚗</span>
@@ -254,7 +277,9 @@ export default function InteractiveMetricsChart({ data }: InteractiveMetricsChar
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-purple-600 font-medium">Depósitos</p>
-              <p className="text-2xl font-bold text-purple-900">{data.depositos}</p>
+              <p className="text-2xl font-bold text-purple-900">
+                {data.depositos}
+              </p>
             </div>
             <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
               <span className="text-white text-sm">🏪</span>
@@ -266,7 +291,9 @@ export default function InteractiveMetricsChart({ data }: InteractiveMetricsChar
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-yellow-600 font-medium">En Proceso</p>
-              <p className="text-2xl font-bold text-yellow-900">{data.enProceso}</p>
+              <p className="text-2xl font-bold text-yellow-900">
+                {data.enProceso}
+              </p>
             </div>
             <div className="w-8 h-8 bg-yellow-500 rounded-lg flex items-center justify-center">
               <span className="text-white text-sm">⚙️</span>

@@ -34,6 +34,8 @@ interface Vehiculo {
   beneficioNeto?: number
   notasInversor?: string
   fotoInversor?: string
+  color?: string
+  fechaMatriculacion?: string
   // Campos adicionales de Google Sheets
   año?: number
   segundaLlave?: string
@@ -760,7 +762,7 @@ const VehicleCard = memo(function VehicleCard({
                           }
                           onChange={(e) => {
                             if (e.target.value === 'chequear') {
-                              handleFieldChange('itv', null)
+                              handleFieldChange('itv', false)
                             } else {
                               handleFieldChange('itv', e.target.value === 'si')
                             }
