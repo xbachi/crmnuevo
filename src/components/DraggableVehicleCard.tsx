@@ -167,13 +167,14 @@ export default function DraggableVehicleCard({
       ref={setNodeRef}
       style={style}
       {...attributes}
+      {...listeners}
       className={`rounded-xl border shadow-sm hover:shadow-md transition-all bg-white border-gray-200 ${
         isDragging ? 'opacity-50 shadow-lg' : ''
       }`}
     >
       {/* Header del acordeón - Siempre visible */}
       <div
-        className={`p-3 cursor-pointer transition-colors ${
+        className={`p-3 transition-colors ${
           detectVehicleType(vehiculo.referencia) === 'Depósito'
             ? 'hover:bg-orange-100'
             : detectVehicleType(vehiculo.referencia) === 'R'
@@ -182,7 +183,6 @@ export default function DraggableVehicleCard({
                 ? 'hover:bg-purple-100'
                 : 'hover:bg-gray-50'
         }`}
-        onClick={handleCardClick}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3 flex-1 min-w-0">
@@ -222,15 +222,17 @@ export default function DraggableVehicleCard({
               </div>
             </div>
           </div>
-          <div className="ml-2 flex-shrink-0 flex items-center space-x-2">
-            {/* Drag handle */}
-            <div
-              {...listeners}
-              className="p-1 cursor-grab hover:bg-gray-100 rounded"
-              title="Arrastrar para mover"
+          <div className="ml-2 flex-shrink-0">
+            {/* Expand/collapse button - Solo este botón es clickeable */}
+            <button
+              onClick={handleCardClick}
+              className="p-1 hover:bg-gray-100 rounded transition-colors"
+              title={isExpanded ? 'Ocultar detalles' : 'Ver detalles'}
             >
               <svg
-                className="w-4 h-4 text-gray-400"
+                className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+                  isExpanded ? 'rotate-180' : ''
+                }`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -239,26 +241,10 @@ export default function DraggableVehicleCard({
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M4 8h16M4 16h16"
+                  d="M19 9l-7 7-7-7"
                 />
               </svg>
-            </div>
-            {/* Expand/collapse button */}
-            <svg
-              className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
-                isExpanded ? 'rotate-180' : ''
-              }`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
+            </button>
           </div>
         </div>
       </div>
