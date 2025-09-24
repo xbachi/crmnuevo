@@ -459,6 +459,60 @@ export default function VehiculoDetailPage() {
     }
   }
 
+  // Función para cambiar la condición del vehículo
+  const cambiarCondicionVehiculo = async (nuevaCondicion: string) => {
+    if (!vehiculo?.id) {
+      showToast('Error: No se pudo identificar el vehículo', 'error')
+      return
+    }
+
+    try {
+      console.log(
+        `🔄 [CONDICION] Cambiando condición del vehículo ${vehiculo.id} a ${nuevaCondicion}`
+      )
+
+      // Mapear condición a estado para simplificar
+      let nuevoEstado = vehiculo.estado
+      if (nuevaCondicion === 'disponible') {
+        nuevoEstado = 'ACTIVO'
+      } else if (nuevaCondicion === 'reservado') {
+        nuevoEstado = 'RESERVADO'
+      } else if (nuevaCondicion === 'vendido') {
+        nuevoEstado = 'VENDIDO'
+      }
+
+      const response = await fetch(`/api/vehiculos/${vehiculo.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          estado: nuevoEstado,
+        }),
+      })
+
+      if (response.ok) {
+        const vehiculoActualizado = await response.json()
+        setVehiculo(vehiculoActualizado)
+        showToast(`Condición cambiada a ${nuevaCondicion}`, 'success')
+        console.log(
+          `✅ [CONDICION] Condición actualizada exitosamente:`,
+          nuevaCondicion
+        )
+      } else {
+        const errorData = await response.json()
+        console.error('❌ [CONDICION] Error actualizando condición:', errorData)
+        showToast(
+          `Error al cambiar condición: ${errorData.message || 'Error desconocido'}`,
+          'error'
+        )
+      }
+    } catch (error) {
+      console.error('❌ [CONDICION] Error al cambiar condición:', error)
+      showToast('Error al cambiar condición del vehículo', 'error')
+    }
+  }
+
   const handleDeleteFile = async (docId: string) => {
     try {
       console.log(
@@ -1049,10 +1103,11 @@ export default function VehiculoDetailPage() {
 
   const getEstadoColor = (estado: string) => {
     switch (estado.toLowerCase()) {
+      case 'activo':
       case 'disponible':
         return 'bg-green-100 text-green-800'
       case 'reservado':
-        return 'bg-orange-100 text-orange-800'
+        return 'bg-yellow-100 text-yellow-800'
       case 'vendido':
         return 'bg-red-100 text-red-800'
       case 'facturado':
@@ -1077,17 +1132,22 @@ export default function VehiculoDetailPage() {
     }
   }
 
-  // Función para determinar la condición del vehículo basada en el deal
+  // Función para determinar la condición del vehículo basada en el estado
   const getCondicionVehiculo = () => {
-    // Si tiene dealActivoId, significa que está en proceso de venta
-    if (vehiculo?.dealActivoId) {
-      // Aquí podrías hacer una consulta adicional para obtener el estado del deal
-      // Por ahora, asumimos que si tiene deal activo, está "reservado"
-      return 'reservado'
-    }
+    if (!vehiculo?.estado) return 'disponible'
 
-    // Si no tiene deal activo, está disponible
-    return 'disponible'
+    const estado = vehiculo.estado.toLowerCase()
+
+    switch (estado) {
+      case 'activo':
+        return 'disponible'
+      case 'reservado':
+        return 'reservado'
+      case 'vendido':
+        return 'vendido'
+      default:
+        return 'disponible'
+    }
   }
 
   // Función para obtener el color de la condición
@@ -2782,12 +2842,94 @@ export default function VehiculoDetailPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Estado Actual
                     </label>
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center justify-between">
                       <span
                         className={`px-3 py-2 rounded-lg text-sm font-medium ${getEstadoColor(vehiculo.estado || 'inicial')}`}
                       >
                         {(vehiculo.estado || 'inicial').toUpperCase()}
                       </span>
+
+                      {/* Botones de cambio de condición (Solo Admin) */}
+                      {isAdmin && (
+                        <div className="space-y-2">
+                          <p className="text-xs text-gray-600 font-medium">
+                            Marcar como:
+                          </p>
+                          <div className="flex space-x-2">
+                            {getCondicionVehiculo() !== 'reservado' && (
+                              <button
+                                onClick={() =>
+                                  cambiarCondicionVehiculo('reservado')
+                                }
+                                className="px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors text-xs font-medium flex items-center space-x-1"
+                              >
+                                <svg
+                                  className="w-3 h-3"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                                  />
+                                </svg>
+                                <span>Reservado</span>
+                              </button>
+                            )}
+
+                            {getCondicionVehiculo() !== 'vendido' && (
+                              <button
+                                onClick={() =>
+                                  cambiarCondicionVehiculo('vendido')
+                                }
+                                className="px-3 py-1 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-xs font-medium flex items-center space-x-1"
+                              >
+                                <svg
+                                  className="w-3 h-3"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                  />
+                                </svg>
+                                <span>Vendido</span>
+                              </button>
+                            )}
+
+                            {getCondicionVehiculo() !== 'disponible' && (
+                              <button
+                                onClick={() =>
+                                  cambiarCondicionVehiculo('disponible')
+                                }
+                                className="px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-xs font-medium flex items-center space-x-1"
+                              >
+                                <svg
+                                  className="w-3 h-3"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                  />
+                                </svg>
+                                <span>Disponible</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
