@@ -167,7 +167,6 @@ export default function DraggableVehicleCard({
       ref={setNodeRef}
       style={style}
       {...attributes}
-      {...listeners}
       className={`rounded-xl border shadow-sm hover:shadow-md transition-all bg-white border-gray-200 ${
         isDragging ? 'opacity-50 shadow-lg' : ''
       }`}
@@ -223,7 +222,28 @@ export default function DraggableVehicleCard({
               </div>
             </div>
           </div>
-          <div className="ml-2 flex-shrink-0">
+          <div className="ml-2 flex-shrink-0 flex items-center space-x-2">
+            {/* Drag handle */}
+            <div
+              {...listeners}
+              className="p-1 cursor-grab hover:bg-gray-100 rounded"
+              title="Arrastrar para mover"
+            >
+              <svg
+                className="w-4 h-4 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 8h16M4 16h16"
+                />
+              </svg>
+            </div>
+            {/* Expand/collapse button */}
             <svg
               className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
                 isExpanded ? 'rotate-180' : ''
