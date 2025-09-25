@@ -20,12 +20,14 @@ interface VehicleSearchProps {
   onVehicleSelect: (vehiculo: Vehiculo) => void
   placeholder?: string
   className?: string
+  vehicleType?: string
 }
 
 export default function VehicleSearch({
   onVehicleSelect,
   placeholder = 'Buscar vehículo...',
   className = '',
+  vehicleType,
 }: VehicleSearchProps) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Vehiculo[]>([])
@@ -67,23 +69,32 @@ export default function VehicleSearch({
         const data = await response.json()
         const queryLower = query.toLowerCase()
 
-        const filteredVehicles = data.filter((vehiculo: Vehiculo) => {
+        const filteredVehicles = data.filter((vehiculo: any) => {
+          // Filtrar por tipo si se especifica
+          if (vehicleType && vehiculo.tipo !== vehicleType) {
+            return false
+          }
+
           const marcaModelo =
             `${vehiculo.marca} ${vehiculo.modelo}`.toLowerCase()
           const color = vehiculo.color?.toLowerCase() || ''
           const combustible = vehiculo.combustible?.toLowerCase() || ''
           const cambio = vehiculo.cambio?.toLowerCase() || ''
+          const matricula = vehiculo.matricula?.toLowerCase() || ''
+          const referencia = vehiculo.referencia?.toLowerCase() || ''
 
           return (
             marcaModelo.includes(queryLower) ||
             color.includes(queryLower) ||
             combustible.includes(queryLower) ||
             cambio.includes(queryLower) ||
+            matricula.includes(queryLower) ||
+            referencia.includes(queryLower) ||
             (getVehiculoAño(vehiculo)?.toString() || '').includes(query)
           )
         })
 
-        setResults(filteredVehicles.slice(0, 10))
+        setResults(filteredVehicles.slice(0, 5)) // Mostrar solo 5 resultados
         setIsOpen(filteredVehicles.length > 0)
       }
     } catch (error) {

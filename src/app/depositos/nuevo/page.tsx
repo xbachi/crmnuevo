@@ -39,6 +39,8 @@ export default function NuevoDepositoPage() {
   const [selectedVehiculo, setSelectedVehiculo] = useState<Vehiculo | null>(
     null
   )
+  const [showClienteDropdown, setShowClienteDropdown] = useState(false)
+  const [showVehiculoDropdown, setShowVehiculoDropdown] = useState(false)
   const { clientes, vehiculos, refreshClientes, refreshVehiculos } = useCache()
 
   // Datos financieros
@@ -93,10 +95,56 @@ export default function NuevoDepositoPage() {
 
   // Los datos se cargan automáticamente desde el caché global
 
+  // Cerrar dropdowns al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      if (!target.closest('.dropdown-container')) {
+        setShowClienteDropdown(false)
+        setShowVehiculoDropdown(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
   // Filtrar vehículos de depósito
   const vehiculosDeposito = Array.isArray(vehiculos)
-    ? vehiculos.filter((v) => v.tipo === 'Deposito Venta')
+    ? vehiculos.filter((v) => v.tipo === 'Depósito')
     : []
+
+  // Filtrar clientes basado en el término de búsqueda
+  const filteredClientes = clientes
+    .filter((cliente) => {
+      if (!clienteSearch) return true
+      const searchLower = clienteSearch.toLowerCase()
+      return (
+        cliente.nombre.toLowerCase().includes(searchLower) ||
+        cliente.apellidos.toLowerCase().includes(searchLower) ||
+        cliente.telefono?.includes(searchLower) ||
+        cliente.email?.toLowerCase().includes(searchLower) ||
+        cliente.dni?.includes(searchLower)
+      )
+    })
+    .slice(0, 5) // Mostrar solo 5 resultados
+
+  // Filtrar vehículos basado en el término de búsqueda
+  const filteredVehiculos = vehiculosDeposito
+    .filter((vehiculo) => {
+      if (!vehiculoSearch) return true
+      const searchLower = vehiculoSearch.toLowerCase().trim()
+      return (
+        vehiculo.marca?.toLowerCase().includes(searchLower) ||
+        vehiculo.modelo?.toLowerCase().includes(searchLower) ||
+        vehiculo.matricula?.toLowerCase().includes(searchLower) ||
+        vehiculo.referencia?.toLowerCase().includes(searchLower) ||
+        vehiculo.bastidor?.toLowerCase().includes(searchLower)
+      )
+    })
+    .slice(0, 5) // Mostrar solo 5 resultados
 
   const createCliente = async () => {
     // Validación para campos obligatorios en depósitos (incluyendo DNI y dirección completa)
@@ -389,49 +437,68 @@ export default function NuevoDepositoPage() {
                   <label className="block text-sm font-medium text-slate-700 mb-2">
                     Cliente *
                   </label>
-                  <input
-                    type="text"
-                    placeholder="Escribir nombre del cliente..."
-                    value={
-                      selectedCliente
-                        ? `${selectedCliente.nombre} ${selectedCliente.apellidos}`
-                        : clienteSearch
-                    }
-                    onChange={(e) => {
-                      setClienteSearch(e.target.value)
-                      if (selectedCliente) {
-                        setSelectedCliente(null)
-                      }
-                    }}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  {clienteSearch && !selectedCliente && (
-                    <div className="mt-2 border border-slate-200 rounded-lg bg-white">
-                      {clientes
-                        .filter((cliente) =>
-                          `${cliente.nombre} ${cliente.apellidos}`
-                            .toLowerCase()
-                            .includes(clienteSearch.toLowerCase())
-                        )
-                        .slice(0, 3)
-                        .map((cliente) => (
-                          <div
-                            key={cliente.id}
-                            onClick={() => {
-                              setSelectedCliente(cliente)
-                              setClienteSearch('')
-                            }}
-                            className={`px-4 py-2 cursor-pointer border-b border-slate-100 last:border-b-0 ${
-                              selectedCliente?.id === cliente.id
-                                ? 'bg-blue-50 border-blue-200 text-blue-900 font-medium'
-                                : 'hover:bg-gray-50'
-                            }`}
-                          >
-                            {cliente.nombre} {cliente.apellidos}
+                  <div className="relative dropdown-container">
+                    <input
+                      type="text"
+                      value={clienteSearch}
+                      onChange={(e) => {
+                        setClienteSearch(e.target.value)
+                        setShowClienteDropdown(true)
+                      }}
+                      onFocus={() => setShowClienteDropdown(true)}
+                      placeholder="Escribir nombre del cliente..."
+                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <svg
+                      className="absolute right-3 top-3.5 h-5 w-5 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      />
+                    </svg>
+
+                    {/* Dropdown de clientes */}
+                    {showClienteDropdown && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        {filteredClientes.length === 0 ? (
+                          <div className="px-3 py-2 text-sm text-gray-500">
+                            {clienteSearch
+                              ? 'No se encontraron clientes'
+                              : 'Escribe para buscar clientes'}
                           </div>
-                        ))}
-                    </div>
-                  )}
+                        ) : (
+                          filteredClientes.map((cliente) => (
+                            <button
+                              key={cliente.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedCliente(cliente)
+                                setClienteSearch(
+                                  `${cliente.nombre} ${cliente.apellidos}`
+                                )
+                                setShowClienteDropdown(false)
+                              }}
+                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                            >
+                              <div className="font-medium text-gray-900">
+                                {cliente.nombre} {cliente.apellidos}
+                              </div>
+                              <div className="text-gray-500">
+                                {cliente.telefono}{' '}
+                                {cliente.email && `• ${cliente.email}`}
+                              </div>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
 
                   {/* Botón crear cliente */}
                   <div className="mt-2">
@@ -669,58 +736,67 @@ export default function NuevoDepositoPage() {
                   <label className="block text-sm font-medium text-slate-700 mb-2">
                     Vehículo *
                   </label>
-                  <input
-                    type="text"
-                    placeholder="Escribir marca, modelo, matrícula o referencia..."
-                    value={
-                      selectedVehiculo
-                        ? `${selectedVehiculo.marca || ''} ${selectedVehiculo.modelo || ''} - ${selectedVehiculo.matricula || ''}`
-                        : vehiculoSearch
-                    }
-                    onChange={(e) => {
-                      setVehiculoSearch(e.target.value)
-                      if (selectedVehiculo) {
-                        setSelectedVehiculo(null)
-                      }
-                    }}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  {vehiculoSearch && !selectedVehiculo && (
-                    <div className="mt-2 border border-slate-200 rounded-lg bg-white">
-                      {vehiculos
-                        .filter((vehiculo) => {
-                          const searchLower = vehiculoSearch.toLowerCase()
-                          return (
-                            vehiculo.marca
-                              ?.toLowerCase()
-                              .includes(searchLower) ||
-                            vehiculo.modelo
-                              ?.toLowerCase()
-                              .includes(searchLower) ||
-                            vehiculo.matricula
-                              ?.toLowerCase()
-                              .includes(searchLower) ||
-                            vehiculo.referencia
-                              ?.toLowerCase()
-                              .includes(searchLower)
-                          )
-                        })
-                        .slice(0, 3)
-                        .map((vehiculo) => (
-                          <div
-                            key={vehiculo.id}
-                            onClick={() => {
-                              setSelectedVehiculo(vehiculo)
-                              setVehiculoSearch('')
-                            }}
-                            className="px-4 py-2 hover:bg-gray-50 cursor-pointer border-b border-slate-100 last:border-b-0"
-                          >
-                            {vehiculo.marca} {vehiculo.modelo} -{' '}
-                            {vehiculo.matricula}
+                  <div className="relative dropdown-container">
+                    <input
+                      type="text"
+                      value={vehiculoSearch}
+                      onChange={(e) => {
+                        setVehiculoSearch(e.target.value)
+                        setShowVehiculoDropdown(true)
+                      }}
+                      onFocus={() => setShowVehiculoDropdown(true)}
+                      placeholder="Escribir marca, modelo, matrícula o referencia..."
+                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <svg
+                      className="absolute right-3 top-3.5 h-5 w-5 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      />
+                    </svg>
+
+                    {/* Dropdown de vehículos */}
+                    {showVehiculoDropdown && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        {filteredVehiculos.length === 0 ? (
+                          <div className="px-3 py-2 text-sm text-gray-500">
+                            {vehiculoSearch
+                              ? 'No se encontraron vehículos'
+                              : 'No hay vehículos de depósito disponibles'}
                           </div>
-                        ))}
-                    </div>
-                  )}
+                        ) : (
+                          filteredVehiculos.map((vehiculo) => (
+                            <button
+                              key={vehiculo.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedVehiculo(vehiculo)
+                                setVehiculoSearch(
+                                  `${vehiculo.marca} ${vehiculo.modelo} - ${vehiculo.matricula}`
+                                )
+                                setShowVehiculoDropdown(false)
+                              }}
+                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                            >
+                              <div className="font-medium text-gray-900">
+                                {vehiculo.marca} {vehiculo.modelo}
+                              </div>
+                              <div className="text-gray-500">
+                                {vehiculo.matricula} • {vehiculo.referencia}
+                              </div>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
 
                   {/* Botón crear vehículo */}
                   <div className="mt-2">
