@@ -352,21 +352,11 @@ const VehicleCard = memo(function VehicleCard({
         }`}
         onClick={() => {
           console.log(`🎯 [VEHICLE CARD] Header clicked - ID: ${vehiculo.id}`)
-          if (!vehiculoVendido) {
-            const slug = generateVehicleSlug(vehiculo)
-            console.log(`🔗 [VEHICLE CARD] Navegando a: /vehiculos/${slug}`)
-            router.push(`/vehiculos/${slug}`)
-          } else {
-            console.log(
-              `⚠️ [VEHICLE CARD] Vehículo vendido - navegación bloqueada`
-            )
-          }
+          const slug = generateVehicleSlug(vehiculo)
+          console.log(`🔗 [VEHICLE CARD] Navegando a: /vehiculos/${slug}`)
+          router.push(`/vehiculos/${slug}`)
         }}
-        title={
-          vehiculoVendido
-            ? 'Vehículo vendido - No disponible'
-            : 'Ver detalles del vehículo'
-        }
+        title="Ver detalles del vehículo"
       >
         <div className="flex items-start justify-between">
           {/* Logo del vehículo */}

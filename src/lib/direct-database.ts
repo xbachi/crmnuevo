@@ -81,6 +81,19 @@ export interface Vehiculo {
   notasInversor?: string | null
   fotoInversor?: string | null
   dealActivoId?: number | null
+  // Información de venta
+  venta?: {
+    dealId: number
+    dealNumero: string
+    fechaVenta: string
+    cliente: {
+      id: number
+      nombre: string
+      apellidos: string
+      email: string
+      telefono: string
+    }
+  } | null
 }
 
 export async function getVehiculos(
@@ -275,6 +288,8 @@ export interface Deal {
     kms: number
     precioPublicacion?: number
     estado: string
+    fechaMatriculacion?: string
+    año?: number
   }
   estado: string
   resultado?: string
@@ -745,9 +760,14 @@ export async function getVehiculoById(id: number): Promise<Vehiculo | null> {
   try {
     const result = await client.query(
       `
-      SELECT v.*, i.nombre as inversor_nombre 
+      SELECT v.*, i.nombre as inversor_nombre,
+             d.id as deal_id, d.numero as deal_numero, d."fechaVentaFirmada" as deal_fecha_venta,
+             c.id as cliente_id, c.nombre as cliente_nombre, c.apellidos as cliente_apellidos,
+             c.email as cliente_email, c.telefono as cliente_telefono
       FROM "Vehiculo" v
       LEFT JOIN "Inversor" i ON v."inversorId" = i.id
+      LEFT JOIN "Deal" d ON v."dealActivoId" = d.id
+      LEFT JOIN "Cliente" c ON d."clienteId" = c.id
       WHERE v.id = $1
     `,
       [id]
@@ -762,6 +782,8 @@ export async function getVehiculoById(id: number): Promise<Vehiculo | null> {
       modelo: row.modelo,
       color: row.color,
       estado: row.estado,
+      deal_id: row.deal_id,
+      cliente_nombre: row.cliente_nombre,
     })
     return {
       id: row.id,
@@ -807,6 +829,21 @@ export async function getVehiculoById(id: number): Promise<Vehiculo | null> {
       notasInversor: row.notasInversor,
       fotoInversor: row.fotoInversor,
       color: row.color,
+      // Información de venta
+      venta: row.deal_id
+        ? {
+            dealId: row.deal_id,
+            dealNumero: row.deal_numero,
+            fechaVenta: row.deal_fecha_venta,
+            cliente: {
+              id: row.cliente_id,
+              nombre: row.cliente_nombre,
+              apellidos: row.cliente_apellidos,
+              email: row.cliente_email,
+              telefono: row.cliente_telefono,
+            },
+          }
+        : null,
     }
   } catch (error) {
     console.error('Error obteniendo vehículo por ID:', error)

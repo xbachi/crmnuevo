@@ -71,6 +71,19 @@ interface Vehiculo {
 
   createdAt: string
   updatedAt?: string
+  // Información de venta
+  venta?: {
+    dealId: number
+    dealNumero: string
+    fechaVenta: string
+    cliente: {
+      id: number
+      nombre: string
+      apellidos: string
+      email: string
+      telefono: string
+    }
+  } | null
 }
 
 interface VehiculoNota {
@@ -1645,6 +1658,113 @@ export default function VehiculoDetailPage() {
                     </div>
                   )}
 
+                  {/* Información de Venta */}
+                  {vehiculo?.venta && (
+                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
+                      <div className="flex items-center space-x-2 mb-4">
+                        <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                          <svg
+                            className="w-4 h-4 text-white"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                        </div>
+                        <h3 className="text-lg font-semibold text-green-900">
+                          Información de Venta
+                        </h3>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Cliente */}
+                        <div className="bg-white rounded-lg p-4 border border-green-200">
+                          <h4 className="font-medium text-green-800 mb-3 flex items-center">
+                            <svg
+                              className="w-4 h-4 mr-2"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                              />
+                            </svg>
+                            Cliente
+                          </h4>
+                          <div className="space-y-2">
+                            <p className="text-sm text-gray-600">
+                              <span className="font-medium">Nombre:</span>{' '}
+                              <Link
+                                href={`/clientes/${vehiculo.venta.cliente.id}`}
+                                className="text-green-600 hover:text-green-800 font-medium"
+                              >
+                                {vehiculo.venta.cliente.nombre}{' '}
+                                {vehiculo.venta.cliente.apellidos}
+                              </Link>
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              <span className="font-medium">Email:</span>{' '}
+                              {vehiculo.venta.cliente.email}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              <span className="font-medium">Teléfono:</span>{' '}
+                              {vehiculo.venta.cliente.telefono}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Deal */}
+                        <div className="bg-white rounded-lg p-4 border border-green-200">
+                          <h4 className="font-medium text-green-800 mb-3 flex items-center">
+                            <svg
+                              className="w-4 h-4 mr-2"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                              />
+                            </svg>
+                            Deal de Venta
+                          </h4>
+                          <div className="space-y-2">
+                            <p className="text-sm text-gray-600">
+                              <span className="font-medium">Número:</span>{' '}
+                              <Link
+                                href={`/deals/${vehiculo.venta.dealId}`}
+                                className="text-green-600 hover:text-green-800 font-medium"
+                              >
+                                {vehiculo.venta.dealNumero}
+                              </Link>
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              <span className="font-medium">
+                                Fecha de Venta:
+                              </span>{' '}
+                              {vehiculo.venta.fechaVenta
+                                ? formatDate(vehiculo.venta.fechaVenta)
+                                : 'N/A'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Información Financiera (Solo Admin) - Formato Mejorado */}
                   {activeTab === 'financiero' && isAdmin && (
                     <div className="space-y-6">
@@ -2991,6 +3111,111 @@ export default function VehiculoDetailPage() {
                   )}
                 </div>
               </div>
+
+              {/* Información de Venta */}
+              {vehiculo?.venta && (
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
+                  <div className="flex items-center space-x-2 mb-4">
+                    <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                      <svg
+                        className="w-4 h-4 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-green-900">
+                      Información de Venta
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Cliente */}
+                    <div className="bg-white rounded-lg p-4 border border-green-200">
+                      <h4 className="font-medium text-green-800 mb-3 flex items-center">
+                        <svg
+                          className="w-4 h-4 mr-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                          />
+                        </svg>
+                        Cliente
+                      </h4>
+                      <div className="space-y-2">
+                        <p className="text-sm text-gray-600">
+                          <span className="font-medium">Nombre:</span>{' '}
+                          <Link
+                            href={`/clientes/${vehiculo.venta.cliente.id}`}
+                            className="text-green-600 hover:text-green-800 font-medium"
+                          >
+                            {vehiculo.venta.cliente.nombre}{' '}
+                            {vehiculo.venta.cliente.apellidos}
+                          </Link>
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          <span className="font-medium">Email:</span>{' '}
+                          {vehiculo.venta.cliente.email}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          <span className="font-medium">Teléfono:</span>{' '}
+                          {vehiculo.venta.cliente.telefono}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Deal */}
+                    <div className="bg-white rounded-lg p-4 border border-green-200">
+                      <h4 className="font-medium text-green-800 mb-3 flex items-center">
+                        <svg
+                          className="w-4 h-4 mr-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                        Deal de Venta
+                      </h4>
+                      <div className="space-y-2">
+                        <p className="text-sm text-gray-600">
+                          <span className="font-medium">Número:</span>{' '}
+                          <Link
+                            href={`/deals/${vehiculo.venta.dealId}`}
+                            className="text-green-600 hover:text-green-800 font-medium"
+                          >
+                            {vehiculo.venta.dealNumero}
+                          </Link>
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          <span className="font-medium">Fecha de Venta:</span>{' '}
+                          {vehiculo.venta.fechaVenta
+                            ? formatDate(vehiculo.venta.fechaVenta)
+                            : 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Documentos del Vehículo */}
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">

@@ -470,8 +470,15 @@ export default function DepositoDetail() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          contrato_deposito: contratoFilename,
           estado: newEstado,
+          fecha_fin: deposito.fecha_fin,
+          monto_recibir: deposito.monto_recibir,
+          dias_gestion: deposito.dias_gestion,
+          multa_retiro_anticipado: deposito.multa_retiro_anticipado,
+          numero_cuenta: deposito.numero_cuenta,
+          notas: deposito.notas,
+          contrato_deposito: contratoFilename,
+          contrato_compra: deposito.contrato_compra,
         }),
       })
 
@@ -529,7 +536,19 @@ export default function DepositoDetail() {
       }
 
       // Generar y descargar el contrato de compraventa
-      await generarContratoCompraventa(contratoData)
+      const pdfBuffer = await generarContratoCompraventa(contratoData)
+
+      // Crear y descargar el PDF
+      const pdfBlob = new Blob([pdfBuffer], { type: 'application/pdf' })
+      const url = window.URL.createObjectURL(pdfBlob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `contrato-compraventa-${deposito.id}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+
       showToast('Contrato de compraventa descargado correctamente', 'success')
     } catch (error) {
       console.error('Error descargando contrato de compraventa:', error)
@@ -583,7 +602,18 @@ export default function DepositoDetail() {
       }
 
       // Generar el contrato de compraventa en PDF
-      await generarContratoCompraventa(contratoData)
+      const pdfBuffer = await generarContratoCompraventa(contratoData)
+
+      // Crear y descargar el PDF
+      const pdfBlob = new Blob([pdfBuffer], { type: 'application/pdf' })
+      const url = window.URL.createObjectURL(pdfBlob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `contrato-compraventa-${deposito.id}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
 
       // Actualizar el depósito con el nombre del contrato de compraventa
       const contratoFilename = `contrato-compraventa-${deposito.id}.pdf`

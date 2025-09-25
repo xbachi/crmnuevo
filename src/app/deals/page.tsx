@@ -29,6 +29,8 @@ interface Deal {
     kms: number
     precioPublicacion?: number
     estado: string
+    fechaMatriculacion?: string
+    año?: number
   }
   estado: string
   resultado?: string
