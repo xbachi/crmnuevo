@@ -4,9 +4,9 @@ import { pool } from '@/lib/direct-database'
 export async function POST() {
   try {
     console.log('🔧 Creando tabla DepositoRecordatorios...')
-    
+
     const client = await pool.connect()
-    
+
     // Crear tabla DepositoRecordatorios con la misma estructura que VehiculoRecordatorios
     await client.query(`
       CREATE TABLE IF NOT EXISTS DepositoRecordatorios (
@@ -23,20 +23,20 @@ export async function POST() {
         FOREIGN KEY (deposito_id) REFERENCES "depositos"(id) ON DELETE CASCADE
       )
     `)
-    
+
     // Crear índices para mejor rendimiento
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_deposito_recordatorio_deposito_id ON DepositoRecordatorios(deposito_id)
     `)
-    
+
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_deposito_recordatorio_fecha ON DepositoRecordatorios(fecha_recordatorio)
     `)
-    
+
     client.release()
-    
+
     console.log('✅ Tabla DepositoRecordatorios creada exitosamente')
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: 'Tabla DepositoRecordatorios creada correctamente',
       structure: {
         id: 'SERIAL PRIMARY KEY',
@@ -48,15 +48,19 @@ export async function POST() {
         fecha_recordatorio: 'TIMESTAMP NOT NULL',
         completado: 'BOOLEAN DEFAULT false',
         created_at: 'TIMESTAMP DEFAULT NOW()',
-        updated_at: 'TIMESTAMP DEFAULT NOW()'
-      }
+        updated_at: 'TIMESTAMP DEFAULT NOW()',
+      },
     })
   } catch (error) {
     console.error('❌ Error creando tabla DepositoRecordatorios:', error)
-    return NextResponse.json({ 
-      error: 'Error interno del servidor',
-      details: error.message,
-      code: error.code
-    }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: 'Error interno del servidor',
+        details: error instanceof Error ? error.message : 'Error desconocido',
+        code:
+          error instanceof Error && 'code' in error ? error.code : undefined,
+      },
+      { status: 500 }
+    )
   }
 }
