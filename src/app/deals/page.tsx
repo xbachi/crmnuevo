@@ -114,7 +114,7 @@ export default function DealsPage() {
   }
 
   const handleCreateDeal = () => {
-    router.push('/deals/crear')
+    router.push('/deals/nuevo')
   }
 
   const handleViewDeal = (id: number) => {
