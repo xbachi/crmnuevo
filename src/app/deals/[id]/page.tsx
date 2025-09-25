@@ -206,6 +206,9 @@ export default function DealDetail() {
   const [deal, setDeal] = useState<Deal | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isUpdating, setIsUpdating] = useState(false)
+  const [isGeneratingReserva, setIsGeneratingReserva] = useState(false)
+  const [isGeneratingVenta, setIsGeneratingVenta] = useState(false)
+  const [isGeneratingFactura, setIsGeneratingFactura] = useState(false)
   const [notas, setNotas] = useState<Nota[]>([])
   const [recordatorios, setRecordatorios] = useState<Recordatorio[]>([])
   const [documentacionFiles, setDocumentacionFiles] = useState<any[]>([])
@@ -282,6 +285,9 @@ export default function DealDetail() {
     }
   }
 
+  // Alias para recargar el deal (usado después de generar documentos)
+  const loadDeal = fetchDeal
+
   const fetchNotas = async () => {
     try {
       console.log(`📝 [DEAL] Obteniendo notas para deal ${params.id}`)
@@ -339,122 +345,180 @@ export default function DealDetail() {
 
   const handleGenerarContratoReserva = async () => {
     try {
-      setIsUpdating(true)
+      setIsGeneratingReserva(true)
 
       if (!deal) {
         showToast('No hay datos del deal disponibles', 'error')
         return
       }
 
-      // Generar el contrato en PDF
-      await generarContratoReserva({
-        numero: deal.numero,
-        fechaCreacion: deal.fechaCreacion,
-        cliente: deal.cliente,
-        vehiculo: deal.vehiculo,
-        importeTotal: deal.importeTotal,
-        importeSena: deal.importeSena,
-        formaPagoSena: deal.formaPagoSena,
-        fechaReservaDesde: deal.fechaReservaDesde,
-        fechaReservaExpira: deal.fechaReservaExpira,
+      // Si ya existe el contrato, descargarlo
+      if (deal.contratoReserva) {
+        const downloadUrl = `/api/documents/${deal.id}/contrato-reserva?dealNumber=${deal.numero}`
+        window.open(downloadUrl, '_blank')
+        return
+      }
+
+      // Generar el contrato
+      const response = await fetch('/api/documents/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          dealId: deal.id,
+          documentType: 'contrato-reserva',
+          dealNumber: deal.numero,
+          dealData: {
+            numero: deal.numero,
+            fechaCreacion: deal.fechaCreacion,
+            cliente: deal.cliente,
+            vehiculo: deal.vehiculo,
+            importeTotal: deal.importeTotal,
+            importeSena: deal.importeSena,
+            formaPagoSena: deal.formaPagoSena,
+            fechaReservaDesde: deal.fechaReservaDesde,
+            fechaReservaExpira: deal.fechaReservaExpira,
+          },
+        }),
       })
 
-      showToast('Contrato de reserva generado y descargado', 'success')
+      if (response.ok) {
+        const result = await response.json()
 
-      // Calcular fecha de expiración (7 días desde hoy)
-      const fechaReservaDesde = new Date()
-      const fechaReservaExpira = new Date()
-      fechaReservaExpira.setDate(fechaReservaExpira.getDate() + 7)
+        // Calcular fecha de expiración (7 días desde hoy)
+        const fechaReservaDesde = new Date()
+        const fechaReservaExpira = new Date()
+        fechaReservaExpira.setDate(fechaReservaExpira.getDate() + 7)
 
-      // Actualizar el deal para marcar que tiene contrato de reserva
-      const updatedDeal = {
-        ...deal,
-        contratoReserva: `contrato-reserva-${deal.numero}.pdf`,
-        estado: 'reservado',
-        fechaReservaDesde: fechaReservaDesde,
-        fechaReservaExpira: fechaReservaExpira,
-      }
-      setDeal(updatedDeal)
+        // Actualizar el deal para marcar que tiene contrato de reserva
+        const updatedDeal = {
+          ...deal,
+          contratoReserva: `contrato-reserva-${deal.numero}.pdf`,
+          estado: 'reservado',
+          fechaReservaDesde: fechaReservaDesde,
+          fechaReservaExpira: fechaReservaExpira,
+        }
+        setDeal(updatedDeal)
 
-      // Actualizar en la base de datos
-      try {
-        await fetch(`/api/deals/${deal.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            estado: 'reservado',
-            contratoReserva: `contrato-reserva-${deal.numero}.pdf`,
-            fechaReservaDesde: fechaReservaDesde.toISOString(),
-            fechaReservaExpira: fechaReservaExpira.toISOString(),
-          }),
-        })
+        // Actualizar en la base de datos
+        try {
+          await fetch(`/api/deals/${deal.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              estado: 'reservado',
+              contratoReserva: `contrato-reserva-${deal.numero}.pdf`,
+              fechaReservaDesde: fechaReservaDesde.toISOString(),
+              fechaReservaExpira: fechaReservaExpira.toISOString(),
+            }),
+          })
 
-        showToast('Estado actualizado a Reservado', 'success')
-      } catch (error) {
-        console.error('Error actualizando estado:', error)
+          showToast('Contrato de reserva generado exitosamente', 'success')
+
+          // Recargar el deal para actualizar el estado
+          await loadDeal()
+
+          // Descargar el documento
+          window.open(result.url, '_blank')
+        } catch (error) {
+          console.error('Error actualizando estado:', error)
+        }
+      } else {
+        const error = await response.json()
+        showToast(error.error || 'Error generando contrato de reserva', 'error')
       }
     } catch (error) {
       console.error('Error generando contrato:', error)
       showToast('Error al generar el contrato de reserva', 'error')
     } finally {
-      setIsUpdating(false)
+      setIsGeneratingReserva(false)
     }
   }
 
   const handleGenerarContratoVenta = async () => {
     try {
-      setIsUpdating(true)
+      setIsGeneratingVenta(true)
 
       if (!deal) {
         showToast('No hay datos del deal disponibles', 'error')
         return
       }
 
-      // Generar el contrato de venta en PDF
-      await generarContratoVenta({
-        numero: deal.numero,
-        fechaCreacion: deal.fechaCreacion,
-        cliente: deal.cliente,
-        vehiculo: deal.vehiculo,
-        importeTotal: deal.importeTotal,
-        importeSena: deal.importeSena,
-        formaPagoSena: deal.formaPagoSena,
-        fechaReservaDesde: deal.fechaReservaDesde,
-        fechaReservaExpira: deal.fechaReservaExpira,
+      // Si ya existe el contrato, descargarlo
+      if (deal.contratoVenta) {
+        const downloadUrl = `/api/documents/${deal.id}/contrato-venta?dealNumber=${deal.numero}`
+        window.open(downloadUrl, '_blank')
+        return
+      }
+
+      // Generar el contrato
+      const response = await fetch('/api/documents/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          dealId: deal.id,
+          documentType: 'contrato-venta',
+          dealNumber: deal.numero,
+          dealData: {
+            numero: deal.numero,
+            fechaCreacion: deal.fechaCreacion,
+            cliente: deal.cliente,
+            vehiculo: deal.vehiculo,
+            importeTotal: deal.importeTotal,
+            importeSena: deal.importeSena,
+            formaPagoSena: deal.formaPagoSena,
+            fechaReservaDesde: deal.fechaReservaDesde,
+            fechaReservaExpira: deal.fechaReservaExpira,
+          },
+        }),
       })
 
-      showToast('Contrato de venta generado y descargado', 'success')
+      if (response.ok) {
+        const result = await response.json()
 
-      // Actualizar el deal
-      const updatedDeal = {
-        ...deal,
-        contratoVenta: `contrato-venta-${deal.numero}.pdf`,
-        estado: 'vendido',
-        fechaVentaFirmada: new Date(),
-      }
-      setDeal(updatedDeal)
+        // Actualizar el deal
+        const updatedDeal = {
+          ...deal,
+          contratoVenta: `contrato-venta-${deal.numero}.pdf`,
+          estado: 'vendido',
+          fechaVentaFirmada: new Date(),
+        }
+        setDeal(updatedDeal)
 
-      // Actualizar en la base de datos
-      try {
-        await fetch(`/api/deals/${deal.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            estado: 'vendido',
-            contratoVenta: `contrato-venta-${deal.numero}.pdf`,
-            fechaVentaFirmada: new Date().toISOString(),
-          }),
-        })
+        // Actualizar en la base de datos
+        try {
+          await fetch(`/api/deals/${deal.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              estado: 'vendido',
+              contratoVenta: `contrato-venta-${deal.numero}.pdf`,
+              fechaVentaFirmada: new Date().toISOString(),
+            }),
+          })
 
-        showToast('Estado actualizado a Vendido', 'success')
-      } catch (error) {
-        console.error('Error actualizando estado:', error)
+          showToast('Contrato de venta generado exitosamente', 'success')
+
+          // Recargar el deal para actualizar el estado
+          await loadDeal()
+
+          // Descargar el documento
+          window.open(result.url, '_blank')
+        } catch (error) {
+          console.error('Error actualizando estado:', error)
+        }
+      } else {
+        const error = await response.json()
+        showToast(error.error || 'Error generando contrato de venta', 'error')
       }
     } catch (error) {
       console.error('Error generando contrato de venta:', error)
       showToast('Error al generar el contrato de venta', 'error')
     } finally {
-      setIsUpdating(false)
+      setIsGeneratingVenta(false)
     }
   }
 
@@ -462,104 +526,168 @@ export default function DealDetail() {
     setShowFacturaModal(true)
   }
 
+  // Funciones de descarga para el bloque Documentación
+  const handleDescargarContratoReserva = async () => {
+    if (!deal?.contratoReserva) return
+
+    try {
+      const downloadUrl = `/api/documents/${deal.id}/contrato-reserva?dealNumber=${deal.numero}`
+      window.open(downloadUrl, '_blank')
+    } catch (error) {
+      console.error('Error descargando contrato de reserva:', error)
+      showToast('Error al descargar el contrato de reserva', 'error')
+    }
+  }
+
+  const handleDescargarContratoVenta = async () => {
+    if (!deal?.contratoVenta) return
+
+    try {
+      const downloadUrl = `/api/documents/${deal.id}/contrato-venta?dealNumber=${deal.numero}`
+      window.open(downloadUrl, '_blank')
+    } catch (error) {
+      console.error('Error descargando contrato de venta:', error)
+      showToast('Error al descargar el contrato de venta', 'error')
+    }
+  }
+
+  const handleDescargarFactura = async () => {
+    if (!deal?.factura) return
+
+    try {
+      const downloadUrl = `/api/documents/${deal.id}/factura?dealNumber=${deal.numero}`
+      window.open(downloadUrl, '_blank')
+    } catch (error) {
+      console.error('Error descargando factura:', error)
+      showToast('Error al descargar la factura', 'error')
+    }
+  }
+
   const handleConfirmFactura = async (
     tipoFactura: 'IVA' | 'REBU',
     numeroFactura?: string
   ) => {
     try {
-      setIsUpdating(true)
+      setIsGeneratingFactura(true)
 
       if (!deal) {
         showToast('No hay datos del deal disponibles', 'error')
         return
       }
 
-      // Generar la factura en PDF
-      await generarFactura(
-        {
-          numero: deal.numero,
-          fechaCreacion: deal.fechaCreacion,
-          cliente: deal.cliente,
-          vehiculo: deal.vehiculo,
-          importeTotal: deal.importeTotal,
-          importeSena: deal.importeSena,
-          formaPagoSena: deal.formaPagoSena,
-          fechaReservaDesde: deal.fechaReservaDesde,
-          fechaReservaExpira: deal.fechaReservaExpira,
-        },
-        tipoFactura,
-        numeroFactura
-      )
-
-      showToast(`Factura ${tipoFactura} generada y descargada`, 'success')
-
-      // Actualizar el deal
-      const updatedDeal = {
-        ...deal,
-        factura: `factura-${tipoFactura.toLowerCase()}-${numeroFactura || deal.numero}.pdf`,
-        estado: 'facturado',
-        fechaFacturada: new Date(),
+      // Si ya existe la factura, descargarla
+      if (deal.factura) {
+        const downloadUrl = `/api/documents/${deal.id}/factura?dealNumber=${deal.numero}`
+        window.open(downloadUrl, '_blank')
+        return
       }
-      setDeal(updatedDeal)
 
-      // Actualizar en la base de datos
-      try {
-        await fetch(`/api/deals/${deal.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            estado: 'facturado',
-            factura: `factura-${tipoFactura.toLowerCase()}-${numeroFactura || deal.numero}.pdf`,
-            fechaFacturada: new Date().toISOString(),
-          }),
-        })
+      // Generar la factura
+      const response = await fetch('/api/documents/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          dealId: deal.id,
+          documentType: 'factura',
+          dealNumber: deal.numero,
+          dealData: {
+            numero: deal.numero,
+            fechaCreacion: deal.fechaCreacion,
+            cliente: deal.cliente,
+            vehiculo: deal.vehiculo,
+            importeTotal: deal.importeTotal,
+            importeSena: deal.importeSena,
+            formaPagoSena: deal.formaPagoSena,
+            fechaReservaDesde: deal.fechaReservaDesde,
+            fechaReservaExpira: deal.fechaReservaExpira,
+          },
+          tipoFactura,
+          numeroFactura,
+        }),
+      })
 
-        showToast('Estado actualizado a Facturado', 'success')
+      if (response.ok) {
+        const result = await response.json()
 
-        // Crear recordatorio para documentación de cambio de nombre en la base de datos
-        if (deal.cliente && deal.vehiculo) {
-          try {
-            const response = await fetch(
-              `/api/clientes/${deal.clienteId}/recordatorios`,
-              {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  clienteId: deal.clienteId,
-                  titulo: 'Solicitar cambio de nombre',
-                  descripcion: `Solicitar documentación para cambio de nombre del vehículo ${formatVehicleReference(deal.vehiculo.referencia, deal.vehiculo.tipo)} al cliente ${deal.cliente.nombre} ${deal.cliente.apellidos}`,
-                  tipo: 'otro',
-                  prioridad: 'alta',
-                  fechaRecordatorio: new Date(
-                    Date.now() + 7 * 24 * 60 * 60 * 1000
-                  ).toISOString(), // 7 días desde ahora
-                  dealId: deal.id,
-                }),
-              }
-            )
+        showToast(`Factura ${tipoFactura} generada exitosamente`, 'success')
 
-            if (response.ok) {
-              console.log(
-                '📝 Recordatorio de cambio de nombre creado en la base de datos'
-              )
-            } else {
-              console.error(
-                'Error creando recordatorio:',
-                await response.text()
-              )
-            }
-          } catch (error) {
-            console.error('Error creando recordatorio:', error)
-          }
+        // Recargar el deal para actualizar el estado
+        await loadDeal()
+
+        // Actualizar el deal
+        const updatedDeal = {
+          ...deal,
+          factura: `factura-${tipoFactura.toLowerCase()}-${numeroFactura || deal.numero}.pdf`,
+          estado: 'facturado',
+          fechaFacturada: new Date(),
         }
-      } catch (error) {
-        console.error('Error actualizando estado:', error)
+        setDeal(updatedDeal)
+
+        // Actualizar en la base de datos
+        try {
+          await fetch(`/api/deals/${deal.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              estado: 'facturado',
+              factura: `factura-${tipoFactura.toLowerCase()}-${numeroFactura || deal.numero}.pdf`,
+              fechaFacturada: new Date().toISOString(),
+            }),
+          })
+
+          // Descargar el documento
+          window.open(result.url, '_blank')
+
+          // Crear recordatorio para documentación de cambio de nombre en la base de datos
+          if (deal.cliente && deal.vehiculo) {
+            try {
+              const response = await fetch(
+                `/api/clientes/${deal.clienteId}/recordatorios`,
+                {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    clienteId: deal.clienteId,
+                    titulo: 'Solicitar cambio de nombre',
+                    descripcion: `Solicitar documentación para cambio de nombre del vehículo ${formatVehicleReference(deal.vehiculo.referencia, deal.vehiculo.tipo)} al cliente ${deal.cliente.nombre} ${deal.cliente.apellidos}`,
+                    tipo: 'otro',
+                    prioridad: 'alta',
+                    fechaRecordatorio: new Date(
+                      Date.now() + 7 * 24 * 60 * 60 * 1000
+                    ).toISOString(), // 7 días desde ahora
+                    dealId: deal.id,
+                  }),
+                }
+              )
+
+              if (response.ok) {
+                console.log(
+                  '📝 Recordatorio de cambio de nombre creado en la base de datos'
+                )
+              } else {
+                console.error(
+                  'Error creando recordatorio:',
+                  await response.text()
+                )
+              }
+            } catch (error) {
+              console.error('Error creando recordatorio:', error)
+            }
+          }
+        } catch (error) {
+          console.error('Error actualizando estado:', error)
+        }
+      } else {
+        const error = await response.json()
+        showToast(error.error || 'Error generando factura', 'error')
       }
     } catch (error) {
       console.error('Error generando factura:', error)
       showToast('Error al generar la factura', 'error')
     } finally {
-      setIsUpdating(false)
+      setIsGeneratingFactura(false)
     }
   }
 
@@ -999,7 +1127,7 @@ export default function DealDetail() {
                 <div className="text-center">
                   <button
                     onClick={handleGenerarContratoReserva}
-                    disabled={isUpdating || deal.contratoReserva}
+                    disabled={isGeneratingReserva || deal.contratoReserva}
                     className={`w-full px-4 py-3 rounded-lg font-medium transition-colors ${
                       deal.contratoReserva
                         ? 'bg-green-100 text-green-700 cursor-not-allowed'
@@ -1022,6 +1150,23 @@ export default function DealDetail() {
                           />
                         </svg>
                         <span>Contrato Generado</span>
+                      </div>
+                    ) : isGeneratingReserva ? (
+                      <div className="flex items-center justify-center space-x-2">
+                        <svg
+                          className="w-5 h-5 animate-spin"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                          />
+                        </svg>
+                        <span>Generando...</span>
                       </div>
                     ) : (
                       <div className="flex items-center justify-center space-x-2">
@@ -1049,7 +1194,7 @@ export default function DealDetail() {
                   <button
                     onClick={handleGenerarContratoVenta}
                     disabled={
-                      isUpdating ||
+                      isGeneratingVenta ||
                       !canGenerateContratoVenta ||
                       deal.contratoVenta
                     }
@@ -1078,6 +1223,23 @@ export default function DealDetail() {
                         </svg>
                         <span>Contrato Generado</span>
                       </div>
+                    ) : isGeneratingVenta ? (
+                      <div className="flex items-center justify-center space-x-2">
+                        <svg
+                          className="w-5 h-5 animate-spin"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                          />
+                        </svg>
+                        <span>Generando...</span>
+                      </div>
                     ) : (
                       <div className="flex items-center justify-center space-x-2">
                         <svg
@@ -1103,7 +1265,9 @@ export default function DealDetail() {
                 <div className="text-center">
                   <button
                     onClick={handleGenerarFactura}
-                    disabled={isUpdating || !canGenerateFactura || deal.factura}
+                    disabled={
+                      isGeneratingFactura || !canGenerateFactura || deal.factura
+                    }
                     className={`w-full px-4 py-3 rounded-lg font-medium transition-colors ${
                       deal.factura
                         ? 'bg-green-100 text-green-700 cursor-not-allowed'
@@ -1128,6 +1292,23 @@ export default function DealDetail() {
                           />
                         </svg>
                         <span>Factura Generada</span>
+                      </div>
+                    ) : isGeneratingFactura ? (
+                      <div className="flex items-center justify-center space-x-2">
+                        <svg
+                          className="w-5 h-5 animate-spin"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                          />
+                        </svg>
+                        <span>Generando...</span>
                       </div>
                     ) : (
                       <div className="flex items-center justify-center space-x-2">
@@ -1639,17 +1820,19 @@ export default function DealDetail() {
                       </p>
                     </div>
                   </div>
-                  <button
-                    onClick={handleGenerarContratoReserva}
-                    disabled={isUpdating}
-                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                      deal.contratoReserva
-                        ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                        : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                    }`}
-                  >
-                    {deal.contratoReserva ? 'Descargar' : 'Generar'}
-                  </button>
+                  {deal.contratoReserva ? (
+                    <button
+                      onClick={handleDescargarContratoReserva}
+                      disabled={isUpdating}
+                      className="px-3 py-1 bg-blue-100 text-blue-700 rounded-md text-sm font-medium hover:bg-blue-200 transition-colors"
+                    >
+                      Descargar
+                    </button>
+                  ) : (
+                    <span className="px-3 py-1 bg-gray-100 text-gray-400 rounded-md text-sm font-medium cursor-not-allowed">
+                      No generado
+                    </span>
+                  )}
                 </div>
 
                 {/* Contrato de Venta */}
@@ -1683,19 +1866,19 @@ export default function DealDetail() {
                       </p>
                     </div>
                   </div>
-                  <button
-                    onClick={handleGenerarContratoVenta}
-                    disabled={isUpdating || !canGenerateContratoVenta}
-                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                      deal.contratoVenta
-                        ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                        : !canGenerateContratoVenta
-                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                          : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                    }`}
-                  >
-                    {deal.contratoVenta ? 'Descargar' : 'Generar'}
-                  </button>
+                  {deal.contratoVenta ? (
+                    <button
+                      onClick={handleDescargarContratoVenta}
+                      disabled={isUpdating}
+                      className="px-3 py-1 bg-blue-100 text-blue-700 rounded-md text-sm font-medium hover:bg-blue-200 transition-colors"
+                    >
+                      Descargar
+                    </button>
+                  ) : (
+                    <span className="px-3 py-1 bg-gray-100 text-gray-400 rounded-md text-sm font-medium cursor-not-allowed">
+                      No generado
+                    </span>
+                  )}
                 </div>
 
                 {/* Factura */}
@@ -1727,19 +1910,19 @@ export default function DealDetail() {
                       </p>
                     </div>
                   </div>
-                  <button
-                    onClick={handleGenerarFactura}
-                    disabled={isUpdating || !canGenerateFactura}
-                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                      deal.factura
-                        ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                        : !canGenerateFactura
-                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                          : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
-                    }`}
-                  >
-                    {deal.factura ? 'Descargar' : 'Generar'}
-                  </button>
+                  {deal.factura ? (
+                    <button
+                      onClick={handleDescargarFactura}
+                      disabled={isUpdating}
+                      className="px-3 py-1 bg-blue-100 text-blue-700 rounded-md text-sm font-medium hover:bg-blue-200 transition-colors"
+                    >
+                      Descargar
+                    </button>
+                  ) : (
+                    <span className="px-3 py-1 bg-gray-100 text-gray-400 rounded-md text-sm font-medium cursor-not-allowed">
+                      No generada
+                    </span>
+                  )}
                 </div>
 
                 {/* Mandato Gestoría */}

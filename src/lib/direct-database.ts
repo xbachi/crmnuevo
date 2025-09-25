@@ -333,9 +333,28 @@ export interface DealCreateData {
 export async function getDeals() {
   const client = await pool.connect()
   try {
+    // Consulta optimizada con solo campos esenciales
     const result = await client.query(`
       SELECT 
-        d.*,
+        d.id,
+        d.numero,
+        d."clienteId",
+        d."vehiculoId",
+        d.estado,
+        d."importeTotal",
+        d."importeSena",
+        d."formaPagoSena",
+        d."createdAt",
+        d."updatedAt",
+        d."fechaReservaDesde",
+        d."fechaReservaExpira",
+        d."fechaVentaFirmada",
+        d."fechaFacturada",
+        d.observaciones,
+        d."responsableComercial",
+        d."contratoReserva",
+        d."contratoVenta",
+        d.factura,
         c.nombre as cliente_nombre,
         c.apellidos as cliente_apellidos,
         c.email as cliente_email,
@@ -348,7 +367,9 @@ export async function getDeals() {
         v.bastidor as vehiculo_bastidor,
         v.kms as vehiculo_kms,
         v."precioPublicacion" as vehiculo_precio,
-        v.estado as vehiculo_estado
+        v.estado as vehiculo_estado,
+        v."fechaMatriculacion" as "vehiculo_fechaMatriculacion",
+        v.año as "vehiculo_año"
       FROM "Deal" d
       LEFT JOIN "Cliente" c ON d."clienteId" = c.id
       LEFT JOIN "Vehiculo" v ON d."vehiculoId" = v.id
@@ -378,6 +399,8 @@ export async function getDeals() {
         kms: row.vehiculo_kms,
         precioPublicacion: row.vehiculo_precio,
         estado: row.vehiculo_estado,
+        fechaMatriculacion: row.vehiculo_fechaMatriculacion,
+        año: row.vehiculo_año,
       },
       estado: row.estado,
       resultado: row.resultado,
@@ -442,7 +465,9 @@ export async function getDealById(id: number): Promise<Deal | null> {
         v.bastidor as vehiculo_bastidor,
         v.kms as vehiculo_kms,
         v."precioPublicacion" as vehiculo_precio,
-        v.estado as vehiculo_estado
+        v.estado as vehiculo_estado,
+        v."fechaMatriculacion" as "vehiculo_fechaMatriculacion",
+        v.año as "vehiculo_año"
       FROM "Deal" d
       LEFT JOIN "Cliente" c ON d."clienteId" = c.id
       LEFT JOIN "Vehiculo" v ON d."vehiculoId" = v.id
@@ -481,6 +506,8 @@ export async function getDealById(id: number): Promise<Deal | null> {
         kms: row.vehiculo_kms,
         precioPublicacion: row.vehiculo_precio,
         estado: row.vehiculo_estado,
+        fechaMatriculacion: row.vehiculo_fechaMatriculacion,
+        año: row.vehiculo_año,
       },
       estado: row.estado,
       resultado: row.resultado,
@@ -537,9 +564,10 @@ export async function createDeal(dealData: DealCreateData) {
     )
     const vehiculoRef = vehiculoResult.rows[0]?.referencia || '0000'
 
-    // Generar número de deal con referencia del vehículo
+    // Generar número de deal único
     const year = new Date().getFullYear()
-    const numero = `RES-${year}-${vehiculoRef}`
+    const timestamp = Date.now().toString().slice(-6) // Últimos 6 dígitos del timestamp
+    const numero = `RES-${year}-${timestamp}`
 
     // Insertar deal básico
     const result = await client.query(
@@ -1038,7 +1066,25 @@ export async function checkUniqueFields(
 export async function getClientes() {
   const client = await pool.connect()
   try {
-    const result = await client.query('SELECT * FROM "Cliente" ORDER BY id ASC')
+    // Consulta optimizada con solo campos esenciales
+    const result = await client.query(`
+      SELECT 
+        id,
+        nombre,
+        apellidos,
+        email,
+        telefono,
+        dni,
+        direccion,
+        ciudad,
+        "codigoPostal",
+        provincia,
+        estado,
+        "createdAt",
+        "updatedAt"
+      FROM "Cliente" 
+      ORDER BY "createdAt" DESC
+    `)
     return result.rows
   } catch (error) {
     console.error('Error obteniendo clientes:', error)
@@ -1074,7 +1120,7 @@ export async function saveCliente(clienteData: any) {
         clienteData.fechaNacimiento,
         clienteData.direccion,
         clienteData.ciudad,
-        clienteData.codPostal,
+        clienteData.codigoPostal,
         clienteData.provincia,
         clienteData.dni,
         clienteData.vehiculosInteres,

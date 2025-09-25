@@ -85,7 +85,7 @@ export interface Cliente {
   direccion?: string
   ciudad?: string
   provincia?: string
-  codPostal?: string
+  codigoPostal?: string
   createdAt: string
   updatedAt: string
 }

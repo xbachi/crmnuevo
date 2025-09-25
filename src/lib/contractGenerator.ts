@@ -1,15 +1,32 @@
 // Generador de contratos con jsPDF
 import jsPDF from 'jspdf'
-import { formatCurrency } from './utils'
+import { formatCurrency, getVehiculoAño } from './utils'
+
+// Función para formatear la fecha de matriculación
+function getFechaMatriculacion(vehiculo: any): string {
+  if (vehiculo?.fechaMatriculacion) {
+    const fecha = new Date(vehiculo.fechaMatriculacion)
+    if (!isNaN(fecha.getTime())) {
+      return fecha.toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })
+    }
+  }
+  return 'No especificada'
+}
 
 // Función para cargar el logo SVG y convertirlo a imagen
 async function loadLogoSVG(): Promise<string> {
   try {
-    const response = await fetch('/logocontrato.svg')
-    if (!response.ok) {
-      throw new Error('No se pudo cargar el logo')
-    }
-    let svgText = await response.text()
+    // En el servidor, usar la ruta absoluta del archivo
+    const fs = await import('fs/promises')
+    const path = await import('path')
+    const { createCanvas, loadImage } = await import('canvas')
+
+    const logoPath = path.join(process.cwd(), 'public', 'logocontrato.svg')
+    let svgText = await fs.readFile(logoPath, 'utf-8')
 
     // Convertir solo el texto (elementos blancos) a negro, mantener el logo verde
     svgText = svgText
@@ -18,36 +35,20 @@ async function loadLogoSVG(): Promise<string> {
       .replace(/fill="white"/g, 'fill="#000000"') // Solo cambiar elementos blancos a negro
       .replace(/fill="none"/g, 'fill="#000000"') // Solo cambiar elementos sin fill a negro
 
-    // Crear un canvas para convertir SVG a imagen
-    const canvas = document.createElement('canvas')
+    // Convertir SVG a PNG usando canvas
+    const svgBuffer = Buffer.from(svgText)
+    const img = await loadImage(svgBuffer)
+
+    // Crear canvas con el tamaño del logo
+    const canvas = createCanvas(img.width, img.height)
     const ctx = canvas.getContext('2d')
-    if (!ctx) throw new Error('No se pudo crear contexto de canvas')
 
-    // Crear imagen desde SVG modificado
-    const img = new Image()
-    const svgBlob = new Blob([svgText], { type: 'image/svg+xml' })
-    const url = URL.createObjectURL(svgBlob)
+    // Dibujar la imagen en el canvas
+    ctx.drawImage(img, 0, 0)
 
-    return new Promise((resolve, reject) => {
-      img.onload = () => {
-        // Configurar canvas con tamaño del logo
-        canvas.width = 200 // Ancho fijo
-        canvas.height = 80 // Alto fijo
-
-        // Dibujar imagen en canvas
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-
-        // Convertir a data URL
-        const dataURL = canvas.toDataURL('image/png')
-        URL.revokeObjectURL(url)
-        resolve(dataURL)
-      }
-      img.onerror = () => {
-        URL.revokeObjectURL(url)
-        reject(new Error('Error cargando imagen SVG'))
-      }
-      img.src = url
-    })
+    // Convertir a PNG y devolver como data URL
+    const pngBuffer = canvas.toBuffer('image/png')
+    return `data:image/png;base64,${pngBuffer.toString('base64')}`
   } catch (error) {
     console.error('Error cargando logo:', error)
     return ''
@@ -313,7 +314,9 @@ function construirDireccionCompleta(cliente: DealData['cliente']): string {
   return partes.join(', ')
 }
 
-export async function generarContratoReserva(deal: DealData): Promise<void> {
+export async function generarContratoReserva(
+  deal: DealData
+): Promise<Uint8Array> {
   try {
     const doc = new jsPDF()
     const pageWidth = doc.internal.pageSize.width
@@ -462,6 +465,12 @@ export async function generarContratoReserva(deal: DealData): Promise<void> {
     )
     yPosition += 5
     doc.text(
+      `FECHA DE MATRICULACIÓN: ${getFechaMatriculacion(deal.vehiculo)}`,
+      margin + 10,
+      yPosition
+    )
+    yPosition += 5
+    doc.text(
       `MATRICULA ${deal.vehiculo?.matricula || 'matricula vehiculo'}`,
       margin + 10,
       yPosition
@@ -537,15 +546,13 @@ export async function generarContratoReserva(deal: DealData): Promise<void> {
     doc.line(margin, yPosition, margin + 80, yPosition)
     doc.line(pageWidth / 2 + 20, yPosition, pageWidth / 2 + 100, yPosition)
 
-    // Descargar el PDF
-    const nombreArchivo = `contrato-reserva-${deal.numero}.pdf`
-    doc.save(nombreArchivo)
-
-    console.log('✅ Contrato generado exitosamente:', nombreArchivo)
+    // Retornar el buffer del PDF
+    const pdfBuffer = doc.output('arraybuffer')
+    console.log('✅ Contrato generado exitosamente')
+    return new Uint8Array(pdfBuffer)
   } catch (error) {
     console.error('❌ Error generando contrato PDF:', error)
-    // Fallback a versión HTML si falla PDF
-    generarContratoHTML(deal)
+    throw error
   }
 }
 
@@ -745,7 +752,9 @@ function generarContratoHTML(deal: DealData): void {
 }
 
 // Función para generar contrato de venta (placeholder)
-export async function generarContratoVenta(deal: DealData): Promise<void> {
+export async function generarContratoVenta(
+  deal: DealData
+): Promise<Uint8Array> {
   const doc = new jsPDF()
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
@@ -877,6 +886,22 @@ export async function generarContratoVenta(deal: DealData): Promise<void> {
   yPosition += 4
 
   doc.setFont('helvetica', 'normal')
+  doc.text('FECHA MATRICULACIÓN:', margin + 5, yPosition)
+  doc.setFont('helvetica', 'bold')
+  doc.text(`${getFechaMatriculacion(deal.vehiculo)}`, margin + 22, yPosition)
+
+  doc.setFont('helvetica', 'normal')
+  doc.text('KMS:', pageWidth / 2, yPosition)
+  doc.setFont('helvetica', 'bold')
+  doc.text(
+    `${deal.vehiculo?.kms ? deal.vehiculo.kms.toLocaleString('es-ES') : 'No especificados'}`,
+    pageWidth / 2 + 15,
+    yPosition
+  )
+
+  yPosition += 4
+
+  doc.setFont('helvetica', 'normal')
   doc.text('MATRICULA:', margin + 5, yPosition)
   doc.setFont('helvetica', 'bold')
   doc.text(
@@ -974,9 +999,9 @@ export async function generarContratoVenta(deal: DealData): Promise<void> {
   doc.line(margin, yPosition, margin + 70, yPosition)
   doc.line(pageWidth / 2 + 10, yPosition, pageWidth / 2 + 80, yPosition)
 
-  // Guardar el PDF
-  const nombreArchivo = `contrato-venta-${deal.numero || 'sin-numero'}.pdf`
-  doc.save(nombreArchivo)
+  // Retornar el buffer del PDF
+  const pdfBuffer = doc.output('arraybuffer')
+  return new Uint8Array(pdfBuffer)
 }
 
 // Función para generar factura
@@ -985,7 +1010,7 @@ export async function generarFactura(
   deal: DealData,
   tipoFactura: 'IVA' | 'REBU' = 'IVA',
   numeroFacturaPersonalizado?: string
-): Promise<void> {
+): Promise<Uint8Array> {
   const doc = new jsPDF()
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
@@ -1138,7 +1163,7 @@ export async function generarFactura(
     yPosition + 8
   )
   doc.text(
-    `Año: ${deal.vehiculo?.año || 'No especificado'}`,
+    `Fecha de Matriculación: ${getFechaMatriculacion(deal.vehiculo)}`,
     margin,
     yPosition + 12
   )
@@ -1234,9 +1259,9 @@ export async function generarFactura(
     { align: 'center' }
   )
 
-  // Guardar el PDF
-  const nombreArchivo = `factura-${tipoFactura.toLowerCase()}-${numeroFactura}.pdf`
-  doc.save(nombreArchivo)
+  // Retornar el buffer del PDF
+  const pdfBuffer = doc.output('arraybuffer')
+  return new Uint8Array(pdfBuffer)
 }
 
 // Interface para datos del depósito

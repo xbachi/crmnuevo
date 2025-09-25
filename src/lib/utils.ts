@@ -9,6 +9,24 @@ export function formatDate(dateString: string): string {
   return `${day}/${month}/${year}`
 }
 
+// Función helper para obtener el año del vehículo
+export function getVehiculoAño(vehiculo: any): number | null {
+  // Si ya tiene año, usarlo
+  if (vehiculo?.año && vehiculo.año > 0) {
+    return vehiculo.año
+  }
+
+  // Si tiene fecha de matriculación, extraer el año
+  if (vehiculo?.fechaMatriculacion) {
+    const fecha = new Date(vehiculo.fechaMatriculacion)
+    if (!isNaN(fecha.getTime())) {
+      return fecha.getFullYear()
+    }
+  }
+
+  return null
+}
+
 export function formatDateTime(dateString: string): string {
   const date = new Date(dateString)
   return date.toLocaleString('es-ES', {

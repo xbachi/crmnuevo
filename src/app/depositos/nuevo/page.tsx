@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useToast, ToastContainer } from '@/hooks/useToast'
+import { useCache } from '@/contexts/CacheContext'
 import VehicleForm from '@/components/VehicleForm'
 
 interface Cliente {
@@ -28,26 +29,27 @@ interface Vehiculo {
 export default function NuevoDepositoPage() {
   const router = useRouter()
   const { showToast, ToastContainer } = useToast()
-  
+
   const [isLoading, setIsLoading] = useState(false)
-  
+
   // Búsquedas
   const [clienteSearch, setClienteSearch] = useState('')
   const [vehiculoSearch, setVehiculoSearch] = useState('')
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null)
-  const [selectedVehiculo, setSelectedVehiculo] = useState<Vehiculo | null>(null)
-  const [clientes, setClientes] = useState<Cliente[]>([])
-  const [vehiculos, setVehiculos] = useState<Vehiculo[]>([])
-  
+  const [selectedVehiculo, setSelectedVehiculo] = useState<Vehiculo | null>(
+    null
+  )
+  const { clientes, vehiculos, refreshClientes, refreshVehiculos } = useCache()
+
   // Datos financieros
   const [montoRecibir, setMontoRecibir] = useState('')
   const [diasGestion, setDiasGestion] = useState('')
   const [multaRetiroAnticipado, setMultaRetiroAnticipado] = useState('')
   const [numeroCuenta, setNumeroCuenta] = useState('')
-  
+
   // Estado del formulario
   const [currentStep, setCurrentStep] = useState(1) // 1: Cliente, 2: Vehículo, 3: Datos financieros
-  
+
   // Formularios de creación
   const [showClienteForm, setShowClienteForm] = useState(false)
   const [showVehiculoForm, setShowVehiculoForm] = useState(false)
@@ -57,7 +59,7 @@ export default function NuevoDepositoPage() {
     email: '',
     telefono: '',
     dni: '',
-    direccion: '',
+    calle: '',
     ciudad: '',
     provincia: '',
     codPostal: '',
@@ -66,7 +68,7 @@ export default function NuevoDepositoPage() {
     estado: 'nuevo',
     prioridad: 'media',
     proximoPaso: '',
-    notas: ''
+    notas: '',
   })
   const [newVehiculo, setNewVehiculo] = useState({
     referencia: '',
@@ -86,44 +88,32 @@ export default function NuevoDepositoPage() {
     carpeta: false,
     master: false,
     hojasA: false,
-    documentacion: false
+    documentacion: false,
   })
 
-  // Cargar datos iniciales
-  useEffect(() => {
-    fetchClientes()
-    fetchVehiculos()
-  }, [])
+  // Los datos se cargan automáticamente desde el caché global
 
-  const fetchClientes = async () => {
-    try {
-      const response = await fetch('/api/clientes')
-      if (response.ok) {
-        const data = await response.json()
-        setClientes(data)
-      }
-    } catch (error) {
-      console.error('Error fetching clientes:', error)
-    }
-  }
-
-  const fetchVehiculos = async () => {
-    try {
-      const response = await fetch('/api/vehiculos?tipo=D')
-      if (response.ok) {
-        const data = await response.json()
-        setVehiculos(data.vehiculos || data)
-      }
-    } catch (error) {
-      console.error('Error fetching vehiculos:', error)
-    }
-  }
+  // Filtrar vehículos de depósito
+  const vehiculosDeposito = Array.isArray(vehiculos)
+    ? vehiculos.filter((v) => v.tipo === 'Deposito Venta')
+    : []
 
   const createCliente = async () => {
-    // Validación para campos obligatorios en depósitos
-    if (!newCliente.nombre.trim() || !newCliente.apellidos.trim() || !newCliente.telefono.trim() || 
-        !newCliente.direccion.trim() || !newCliente.ciudad.trim() || !newCliente.provincia.trim() || !newCliente.codPostal.trim()) {
-      showToast('Por favor completa todos los campos obligatorios (incluyendo dirección completa)', 'error')
+    // Validación para campos obligatorios en depósitos (incluyendo DNI y dirección completa)
+    if (
+      !newCliente.nombre.trim() ||
+      !newCliente.apellidos.trim() ||
+      !newCliente.telefono.trim() ||
+      !newCliente.dni.trim() ||
+      !newCliente.calle.trim() ||
+      !newCliente.ciudad.trim() ||
+      !newCliente.provincia.trim() ||
+      !newCliente.codPostal.trim()
+    ) {
+      showToast(
+        'Por favor completa todos los campos obligatorios (incluyendo DNI y dirección completa)',
+        'error'
+      )
       return
     }
 
@@ -131,7 +121,7 @@ export default function NuevoDepositoPage() {
       const response = await fetch('/api/clientes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newCliente)
+        body: JSON.stringify(newCliente),
       })
 
       if (response.ok) {
@@ -154,8 +144,10 @@ export default function NuevoDepositoPage() {
           estado: 'nuevo',
           prioridad: 'media',
           proximoPaso: '',
-          notas: ''
+          notas: '',
         })
+        // Refrescar caché de clientes
+        await refreshClientes()
         showToast('Cliente creado y seleccionado exitosamente', 'success')
       } else {
         const error = await response.json()
@@ -192,20 +184,21 @@ export default function NuevoDepositoPage() {
         precioVenta: null,
         beneficioNeto: null,
         notasInversor: null,
-        fotoInversor: null
+        fotoInversor: null,
       }
 
       const response = await fetch('/api/vehiculos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(vehiculoData)
+        body: JSON.stringify(vehiculoData),
       })
 
       if (response.ok) {
         const responseData = await response.json()
         const vehiculo = responseData.vehiculo || responseData
-        
-        await fetchVehiculos()
+
+        // Refrescar caché de vehículos
+        await refreshVehiculos()
         setSelectedVehiculo(vehiculo)
         setShowVehiculoForm(false)
         setVehiculoSearch('')
@@ -227,7 +220,7 @@ export default function NuevoDepositoPage() {
           carpeta: false,
           master: false,
           hojasA: false,
-          documentacion: false
+          documentacion: false,
         })
         showToast('Vehículo creado y seleccionado exitosamente', 'success')
       } else {
@@ -255,17 +248,21 @@ export default function NuevoDepositoPage() {
 
   const canProceedToNext = () => {
     switch (currentStep) {
-      case 1: return selectedCliente !== null
-      case 2: return selectedVehiculo !== null
-      case 3: return true // Los datos financieros son opcionales
-      default: return false
+      case 1:
+        return selectedCliente !== null
+      case 2:
+        return selectedVehiculo !== null
+      case 3:
+        return true // Los datos financieros son opcionales
+      default:
+        return false
     }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    
+
     try {
       if (!selectedCliente) {
         showToast('Debes seleccionar un cliente', 'error')
@@ -285,9 +282,11 @@ export default function NuevoDepositoPage() {
         notas: '', // Vacío por defecto
         monto_recibir: montoRecibir ? parseFloat(montoRecibir) : null,
         dias_gestion: diasGestion ? parseInt(diasGestion) : null,
-        multa_retiro_anticipado: multaRetiroAnticipado ? parseFloat(multaRetiroAnticipado) : null,
+        multa_retiro_anticipado: multaRetiroAnticipado
+          ? parseFloat(multaRetiroAnticipado)
+          : null,
         numero_cuenta: numeroCuenta || null,
-        fecha_inicio: new Date().toISOString().split('T')[0]
+        fecha_inicio: new Date().toISOString().split('T')[0],
       }
 
       console.log('📤 Enviando depósito:', depositoData)
@@ -295,7 +294,7 @@ export default function NuevoDepositoPage() {
       const response = await fetch('/api/depositos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(depositoData)
+        body: JSON.stringify(depositoData),
       })
 
       if (response.ok) {
@@ -323,8 +322,12 @@ export default function NuevoDepositoPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">Nuevo Depósito de Venta</h1>
-              <p className="text-slate-600 mt-2">Crear un nuevo depósito de venta con datos financieros</p>
+              <h1 className="text-3xl font-bold text-slate-900">
+                Nuevo Depósito de Venta
+              </h1>
+              <p className="text-slate-600 mt-2">
+                Crear un nuevo depósito de venta con datos financieros
+              </p>
             </div>
             <Link
               href="/depositos"
@@ -343,25 +346,31 @@ export default function NuevoDepositoPage() {
               {[
                 { step: 1, label: 'Cliente', icon: '👤' },
                 { step: 2, label: 'Vehículo', icon: '🚗' },
-                { step: 3, label: 'Datos Financieros', icon: '💰' }
+                { step: 3, label: 'Datos Financieros', icon: '💰' },
               ].map(({ step, label, icon }) => (
                 <div key={step} className="flex items-center">
-                  <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
-                    currentStep >= step 
-                      ? 'bg-blue-600 text-white' 
-                      : 'bg-slate-200 text-slate-600'
-                  }`}>
+                  <div
+                    className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
+                      currentStep >= step
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-slate-200 text-slate-600'
+                    }`}
+                  >
                     {currentStep > step ? '✓' : icon}
                   </div>
-                  <span className={`ml-2 text-sm font-medium ${
-                    currentStep >= step ? 'text-blue-600' : 'text-slate-500'
-                  }`}>
+                  <span
+                    className={`ml-2 text-sm font-medium ${
+                      currentStep >= step ? 'text-blue-600' : 'text-slate-500'
+                    }`}
+                  >
                     {label}
                   </span>
                   {step < 3 && (
-                    <div className={`w-8 h-0.5 mx-4 ${
-                      currentStep > step ? 'bg-blue-600' : 'bg-slate-200'
-                    }`} />
+                    <div
+                      className={`w-8 h-0.5 mx-4 ${
+                        currentStep > step ? 'bg-blue-600' : 'bg-slate-200'
+                      }`}
+                    />
                   )}
                 </div>
               ))}
@@ -374,14 +383,20 @@ export default function NuevoDepositoPage() {
             {currentStep === 1 && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-900 mb-4">Seleccionar Cliente</h3>
+                  <h3 className="text-lg font-semibold text-slate-900 mb-4">
+                    Seleccionar Cliente
+                  </h3>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
                     Cliente *
                   </label>
                   <input
                     type="text"
                     placeholder="Escribir nombre del cliente..."
-                    value={selectedCliente ? `${selectedCliente.nombre} ${selectedCliente.apellidos}` : clienteSearch}
+                    value={
+                      selectedCliente
+                        ? `${selectedCliente.nombre} ${selectedCliente.apellidos}`
+                        : clienteSearch
+                    }
                     onChange={(e) => {
                       setClienteSearch(e.target.value)
                       if (selectedCliente) {
@@ -393,26 +408,31 @@ export default function NuevoDepositoPage() {
                   {clienteSearch && !selectedCliente && (
                     <div className="mt-2 border border-slate-200 rounded-lg bg-white">
                       {clientes
-                        .filter(cliente => 
-                          `${cliente.nombre} ${cliente.apellidos}`.toLowerCase().includes(clienteSearch.toLowerCase())
+                        .filter((cliente) =>
+                          `${cliente.nombre} ${cliente.apellidos}`
+                            .toLowerCase()
+                            .includes(clienteSearch.toLowerCase())
                         )
                         .slice(0, 3)
-                        .map(cliente => (
+                        .map((cliente) => (
                           <div
                             key={cliente.id}
                             onClick={() => {
                               setSelectedCliente(cliente)
                               setClienteSearch('')
                             }}
-                            className="px-4 py-2 hover:bg-gray-50 cursor-pointer border-b border-slate-100 last:border-b-0"
+                            className={`px-4 py-2 cursor-pointer border-b border-slate-100 last:border-b-0 ${
+                              selectedCliente?.id === cliente.id
+                                ? 'bg-blue-50 border-blue-200 text-blue-900 font-medium'
+                                : 'hover:bg-gray-50'
+                            }`}
                           >
                             {cliente.nombre} {cliente.apellidos}
                           </div>
-                        ))
-                      }
+                        ))}
                     </div>
                   )}
-                  
+
                   {/* Botón crear cliente */}
                   <div className="mt-2">
                     <button
@@ -420,8 +440,18 @@ export default function NuevoDepositoPage() {
                       onClick={() => setShowClienteForm(!showClienteForm)}
                       className="w-full px-4 py-2 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center space-x-2"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 4v16m8-8H4"
+                        />
                       </svg>
                       <span>Crear nuevo cliente</span>
                     </button>
@@ -431,111 +461,176 @@ export default function NuevoDepositoPage() {
                   {showClienteForm && (
                     <div className="mt-4 bg-slate-50 rounded-lg p-4">
                       <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold text-slate-900">Crear Nuevo Cliente</h3>
+                        <h3 className="text-lg font-semibold text-slate-900">
+                          Crear Nuevo Cliente
+                        </h3>
                         <button
                           onClick={() => setShowClienteForm(false)}
                           className="text-slate-500 hover:text-slate-700"
                         >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
                           </svg>
                         </button>
                       </div>
-                      
+
                       <div className="space-y-4">
                         <div className="bg-white rounded-lg p-4">
-                          <h4 className="font-medium text-slate-900 mb-3">Información Personal</h4>
+                          <h4 className="font-medium text-slate-900 mb-3">
+                            Información Personal
+                          </h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div>
-                              <label className="block text-sm font-medium text-slate-700 mb-1">Nombre *</label>
+                              <label className="block text-sm font-medium text-slate-700 mb-1">
+                                Nombre *
+                              </label>
                               <input
                                 type="text"
                                 value={newCliente.nombre}
-                                onChange={(e) => setNewCliente(prev => ({ ...prev, nombre: e.target.value }))}
+                                onChange={(e) =>
+                                  setNewCliente((prev) => ({
+                                    ...prev,
+                                    nombre: e.target.value,
+                                  }))
+                                }
                                 className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               />
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-slate-700 mb-1">Apellidos *</label>
+                              <label className="block text-sm font-medium text-slate-700 mb-1">
+                                Apellidos *
+                              </label>
                               <input
                                 type="text"
                                 value={newCliente.apellidos}
-                                onChange={(e) => setNewCliente(prev => ({ ...prev, apellidos: e.target.value }))}
+                                onChange={(e) =>
+                                  setNewCliente((prev) => ({
+                                    ...prev,
+                                    apellidos: e.target.value,
+                                  }))
+                                }
                                 className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               />
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-slate-700 mb-1">Teléfono *</label>
+                              <label className="block text-sm font-medium text-slate-700 mb-1">
+                                Teléfono *
+                              </label>
                               <input
                                 type="tel"
                                 value={newCliente.telefono}
-                                onChange={(e) => setNewCliente(prev => ({ ...prev, telefono: e.target.value }))}
+                                onChange={(e) =>
+                                  setNewCliente((prev) => ({
+                                    ...prev,
+                                    telefono: e.target.value,
+                                  }))
+                                }
                                 className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               />
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                              <label className="block text-sm font-medium text-slate-700 mb-1">
+                                Email
+                              </label>
                               <input
                                 type="email"
                                 value={newCliente.email}
-                                onChange={(e) => setNewCliente(prev => ({ ...prev, email: e.target.value }))}
+                                onChange={(e) =>
+                                  setNewCliente((prev) => ({
+                                    ...prev,
+                                    email: e.target.value,
+                                  }))
+                                }
                                 className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               />
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-slate-700 mb-1">DNI</label>
+                              <label className="block text-sm font-medium text-slate-700 mb-1">
+                                DNI *
+                              </label>
                               <input
                                 type="text"
                                 value={newCliente.dni}
-                                onChange={(e) => setNewCliente(prev => ({ ...prev, dni: e.target.value }))}
+                                onChange={(e) =>
+                                  setNewCliente((prev) => ({
+                                    ...prev,
+                                    dni: e.target.value,
+                                  }))
+                                }
                                 className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder="Ej: 12345678A"
                               />
                             </div>
                           </div>
-                          
+
                           {/* Campos de dirección obligatorios para depósitos */}
                           <div className="mt-4 pt-4 border-t border-slate-200">
-                            <h4 className="font-medium text-slate-900 mb-3">Dirección *</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <h4 className="font-medium text-slate-900 mb-3">
+                              Dirección *
+                            </h4>
+                            <div className="space-y-3">
                               <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Dirección *</label>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">
+                                  Calle *
+                                </label>
                                 <input
                                   type="text"
-                                  value={newCliente.direccion}
-                                  onChange={(e) => setNewCliente(prev => ({ ...prev, direccion: e.target.value }))}
+                                  value={newCliente.calle}
+                                  onChange={(e) =>
+                                    setNewCliente((prev) => ({
+                                      ...prev,
+                                      calle: e.target.value,
+                                    }))
+                                  }
                                   className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                   placeholder="Ej: Calle Mayor 123"
                                 />
                               </div>
-                              <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Ciudad *</label>
-                                <input
-                                  type="text"
-                                  value={newCliente.ciudad}
-                                  onChange={(e) => setNewCliente(prev => ({ ...prev, ciudad: e.target.value }))}
-                                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                  placeholder="Ej: Valencia"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Provincia *</label>
-                                <input
-                                  type="text"
-                                  value={newCliente.provincia}
-                                  onChange={(e) => setNewCliente(prev => ({ ...prev, provincia: e.target.value }))}
-                                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                  placeholder="Ej: Valencia"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Código Postal *</label>
-                                <input
-                                  type="text"
-                                  value={newCliente.codPostal}
-                                  onChange={(e) => setNewCliente(prev => ({ ...prev, codPostal: e.target.value }))}
-                                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                  placeholder="Ej: 46001"
-                                />
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                                    Código Postal *
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={newCliente.codPostal}
+                                    onChange={(e) =>
+                                      setNewCliente((prev) => ({
+                                        ...prev,
+                                        codPostal: e.target.value,
+                                      }))
+                                    }
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="Ej: 46001"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                                    Ciudad *
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={newCliente.ciudad}
+                                    onChange={(e) =>
+                                      setNewCliente((prev) => ({
+                                        ...prev,
+                                        ciudad: e.target.value,
+                                      }))
+                                    }
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="Ej: Valencia"
+                                  />
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -568,14 +663,20 @@ export default function NuevoDepositoPage() {
             {currentStep === 2 && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-900 mb-4">Seleccionar Vehículo</h3>
+                  <h3 className="text-lg font-semibold text-slate-900 mb-4">
+                    Seleccionar Vehículo
+                  </h3>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
                     Vehículo *
                   </label>
                   <input
                     type="text"
                     placeholder="Escribir marca, modelo, matrícula o referencia..."
-                    value={selectedVehiculo ? `${selectedVehiculo.marca || ''} ${selectedVehiculo.modelo || ''} - ${selectedVehiculo.matricula || ''}` : vehiculoSearch}
+                    value={
+                      selectedVehiculo
+                        ? `${selectedVehiculo.marca || ''} ${selectedVehiculo.modelo || ''} - ${selectedVehiculo.matricula || ''}`
+                        : vehiculoSearch
+                    }
                     onChange={(e) => {
                       setVehiculoSearch(e.target.value)
                       if (selectedVehiculo) {
@@ -587,17 +688,25 @@ export default function NuevoDepositoPage() {
                   {vehiculoSearch && !selectedVehiculo && (
                     <div className="mt-2 border border-slate-200 rounded-lg bg-white">
                       {vehiculos
-                        .filter(vehiculo => {
+                        .filter((vehiculo) => {
                           const searchLower = vehiculoSearch.toLowerCase()
                           return (
-                            vehiculo.marca?.toLowerCase().includes(searchLower) ||
-                            vehiculo.modelo?.toLowerCase().includes(searchLower) ||
-                            vehiculo.matricula?.toLowerCase().includes(searchLower) ||
-                            vehiculo.referencia?.toLowerCase().includes(searchLower)
+                            vehiculo.marca
+                              ?.toLowerCase()
+                              .includes(searchLower) ||
+                            vehiculo.modelo
+                              ?.toLowerCase()
+                              .includes(searchLower) ||
+                            vehiculo.matricula
+                              ?.toLowerCase()
+                              .includes(searchLower) ||
+                            vehiculo.referencia
+                              ?.toLowerCase()
+                              .includes(searchLower)
                           )
                         })
                         .slice(0, 3)
-                        .map(vehiculo => (
+                        .map((vehiculo) => (
                           <div
                             key={vehiculo.id}
                             onClick={() => {
@@ -606,13 +715,13 @@ export default function NuevoDepositoPage() {
                             }}
                             className="px-4 py-2 hover:bg-gray-50 cursor-pointer border-b border-slate-100 last:border-b-0"
                           >
-                            {vehiculo.marca} {vehiculo.modelo} - {vehiculo.matricula}
+                            {vehiculo.marca} {vehiculo.modelo} -{' '}
+                            {vehiculo.matricula}
                           </div>
-                        ))
-                      }
+                        ))}
                     </div>
                   )}
-                  
+
                   {/* Botón crear vehículo */}
                   <div className="mt-2">
                     <button
@@ -620,8 +729,18 @@ export default function NuevoDepositoPage() {
                       onClick={() => setShowVehiculoForm(!showVehiculoForm)}
                       className="w-full px-4 py-2 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center space-x-2"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 4v16m8-8H4"
+                        />
                       </svg>
                       <span>Crear nuevo vehículo</span>
                     </button>
@@ -631,22 +750,34 @@ export default function NuevoDepositoPage() {
                   {showVehiculoForm && (
                     <div className="mt-4 bg-slate-50 rounded-lg p-4">
                       <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold text-slate-900">Crear Nuevo Vehículo</h3>
+                        <h3 className="text-lg font-semibold text-slate-900">
+                          Crear Nuevo Vehículo
+                        </h3>
                         <button
                           onClick={() => setShowVehiculoForm(false)}
                           className="text-slate-500 hover:text-slate-700"
                         >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
                           </svg>
                         </button>
                       </div>
-                      
+
                       <VehicleForm
                         asForm={true}
                         initialData={{
                           ...newVehiculo,
-                          tipo: 'Deposito Venta'
+                          tipo: 'Deposito Venta',
                         }}
                         onSubmit={async (data) => {
                           const vehiculoData = {
@@ -673,20 +804,22 @@ export default function NuevoDepositoPage() {
                             precioVenta: null,
                             beneficioNeto: null,
                             notasInversor: null,
-                            fotoInversor: null
+                            fotoInversor: null,
                           }
 
                           const response = await fetch('/api/vehiculos', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(vehiculoData)
+                            body: JSON.stringify(vehiculoData),
                           })
-                          
+
                           if (response.ok) {
                             const responseData = await response.json()
-                            const vehiculo = responseData.vehiculo || responseData
-                            
-                            await fetchVehiculos()
+                            const vehiculo =
+                              responseData.vehiculo || responseData
+
+                            // Refrescar caché de vehículos
+                            await refreshVehiculos()
                             setSelectedVehiculo(vehiculo)
                             setShowVehiculoForm(false)
                             setVehiculoSearch('')
@@ -708,9 +841,12 @@ export default function NuevoDepositoPage() {
                               carpeta: false,
                               master: false,
                               hojasA: false,
-                              documentacion: false
+                              documentacion: false,
                             })
-                            showToast('Vehículo creado y seleccionado exitosamente', 'success')
+                            showToast(
+                              'Vehículo creado y seleccionado exitosamente',
+                              'success'
+                            )
                           } else {
                             const error = await response.json()
                             showToast(`Error: ${error.error}`, 'error')
@@ -731,10 +867,14 @@ export default function NuevoDepositoPage() {
             {currentStep === 3 && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-900 mb-4">Datos Financieros del Depósito</h3>
+                  <h3 className="text-lg font-semibold text-slate-900 mb-4">
+                    Datos Financieros del Depósito
+                  </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">Monto que va a recibir el propietario (€)</label>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Monto que va a recibir el propietario (€)
+                      </label>
                       <input
                         type="number"
                         step="0.01"
@@ -745,7 +885,9 @@ export default function NuevoDepositoPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">Días de gestión</label>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Días de gestión
+                      </label>
                       <input
                         type="number"
                         value={diasGestion}
@@ -755,18 +897,24 @@ export default function NuevoDepositoPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">Multa por retiro anticipado (€)</label>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Multa por retiro anticipado (€)
+                      </label>
                       <input
                         type="number"
                         step="0.01"
                         value={multaRetiroAnticipado}
-                        onChange={(e) => setMultaRetiroAnticipado(e.target.value)}
+                        onChange={(e) =>
+                          setMultaRetiroAnticipado(e.target.value)
+                        }
                         className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="Ej: 500.00"
                       />
                     </div>
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-slate-700 mb-2">Número de cuenta</label>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Número de cuenta
+                      </label>
                       <input
                         type="text"
                         value={numeroCuenta}
@@ -790,7 +938,7 @@ export default function NuevoDepositoPage() {
               >
                 ← Anterior
               </button>
-              
+
               <div className="flex space-x-2">
                 {currentStep < 3 ? (
                   <button
@@ -804,7 +952,9 @@ export default function NuevoDepositoPage() {
                 ) : (
                   <button
                     onClick={handleSubmit}
-                    disabled={!selectedCliente || !selectedVehiculo || isLoading}
+                    disabled={
+                      !selectedCliente || !selectedVehiculo || isLoading
+                    }
                     className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                   >
                     {isLoading ? 'Creando...' : 'Crear Depósito'}

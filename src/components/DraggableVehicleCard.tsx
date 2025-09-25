@@ -6,6 +6,7 @@ import { CSS } from '@dnd-kit/utilities'
 import {
   formatVehicleReference,
   formatVehicleReferenceShort,
+  getVehiculoAño,
 } from '@/lib/utils'
 
 interface Vehiculo {
@@ -270,7 +271,7 @@ export default function DraggableVehicleCard({
               <div className="flex justify-between items-center">
                 <span className="text-xs text-gray-600">Año</span>
                 <span className="text-xs font-semibold text-gray-900">
-                  {vehiculo.año || 'N/A'}
+                  {getVehiculoAño(vehiculo) || 'N/A'}
                 </span>
               </div>
             </div>

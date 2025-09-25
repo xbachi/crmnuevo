@@ -4,6 +4,7 @@ import Navigation from '@/components/Navigation'
 import { ToastProvider } from '@/hooks/useToast'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { InversorAuthProvider } from '@/contexts/InversorAuthContext'
+import { CacheProvider } from '@/contexts/CacheContext'
 import ConditionalLayout from '@/components/ConditionalLayout'
 
 export const metadata: Metadata = {
@@ -20,9 +21,11 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <body className="antialiased bg-white" suppressHydrationWarning>
         <AuthProvider>
-          <ToastProvider>
-            <ConditionalLayout>{children}</ConditionalLayout>
-          </ToastProvider>
+          <CacheProvider>
+            <ToastProvider>
+              <ConditionalLayout>{children}</ConditionalLayout>
+            </ToastProvider>
+          </CacheProvider>
         </AuthProvider>
       </body>
     </html>
