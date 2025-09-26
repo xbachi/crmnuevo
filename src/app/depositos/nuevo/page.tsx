@@ -11,9 +11,9 @@ interface Cliente {
   id: number
   nombre: string
   apellidos: string
-  email: string
-  telefono: string
-  dni: string
+  email?: string
+  telefono?: string
+  dni?: string
 }
 
 interface Vehiculo {
@@ -183,7 +183,7 @@ export default function NuevoDepositoPage() {
           email: '',
           telefono: '',
           dni: '',
-          direccion: '',
+          calle: '',
           ciudad: '',
           provincia: '',
           codPostal: '',
@@ -500,6 +500,30 @@ export default function NuevoDepositoPage() {
                     )}
                   </div>
 
+                  {/* Caja de cliente seleccionado */}
+                  {selectedCliente && (
+                    <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                      <div className="text-sm">
+                        <p className="font-medium text-green-800">
+                          {selectedCliente.nombre} {selectedCliente.apellidos}
+                        </p>
+                        <p className="text-green-600">
+                          {selectedCliente.telefono}
+                        </p>
+                        {selectedCliente.email && (
+                          <p className="text-green-600">
+                            {selectedCliente.email}
+                          </p>
+                        )}
+                        {selectedCliente.dni && (
+                          <p className="text-green-600">
+                            DNI: {selectedCliente.dni}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Botón crear cliente */}
                   <div className="mt-2">
                     <button
@@ -797,6 +821,28 @@ export default function NuevoDepositoPage() {
                       </div>
                     )}
                   </div>
+
+                  {/* Caja de vehículo seleccionado */}
+                  {selectedVehiculo && (
+                    <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                      <div className="text-sm">
+                        <p className="font-medium text-green-800">
+                          {selectedVehiculo.marca} {selectedVehiculo.modelo}
+                        </p>
+                        <p className="text-green-600">
+                          {selectedVehiculo.matricula}
+                        </p>
+                        <p className="text-green-600">
+                          Referencia: {selectedVehiculo.referencia}
+                        </p>
+                        {selectedVehiculo.bastidor && (
+                          <p className="text-green-600">
+                            Bastidor: {selectedVehiculo.bastidor}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Botón crear vehículo */}
                   <div className="mt-2">
