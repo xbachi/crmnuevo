@@ -1067,9 +1067,9 @@ export default function ListaVehiculos() {
             </div>
           ) : viewMode === 'lista' ? (
             /* Vista de Lista */
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-2xl border border-slate-200/60 overflow-hidden">
-              <div className="overflow-hidden">
-                <table className="w-full divide-y divide-slate-200 table-fixed">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-2xl border border-slate-200/60 overflow-hidden max-w-[1400px] mx-auto">
+              <div className="overflow-x-auto">
+                <table className="w-full divide-y divide-slate-200 table-fixed min-w-[800px]">
                   <thead className="bg-gradient-to-r from-slate-50 to-slate-100">
                     <tr>
                       <th className="w-24 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
@@ -1090,10 +1090,10 @@ export default function ListaVehiculos() {
                       <th className="w-32 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider hidden sm:table-cell">
                         Tipo
                       </th>
-                      <th className="w-28 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider hidden lg:table-cell">
+                      <th className="w-28 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider hidden xl:table-cell">
                         Fecha
                       </th>
-                      <th className="w-32 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      <th className="w-32 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider hidden md:table-cell">
                         Acciones
                       </th>
                     </tr>
@@ -1259,7 +1259,7 @@ export default function ListaVehiculos() {
                               {vehiculo.bastidor}
                             </span>
                           </td>
-                          <td className="px-3 py-4">
+                          <td className="px-3 py-4 hidden lg:table-cell">
                             <span
                               className={`font-bold text-sm ${
                                 vehiculoVendido
@@ -1283,7 +1283,7 @@ export default function ListaVehiculos() {
                                 : getTipoText(vehiculo.tipo)}
                             </span>
                           </td>
-                          <td className="px-3 py-4 hidden lg:table-cell text-xs">
+                          <td className="px-3 py-4 hidden xl:table-cell text-xs">
                             <span
                               className={
                                 vehiculoVendido
@@ -1296,7 +1296,7 @@ export default function ListaVehiculos() {
                               ).toLocaleDateString()}
                             </span>
                           </td>
-                          <td className="px-3 py-4">
+                          <td className="px-3 py-4 hidden md:table-cell">
                             <div className="flex space-x-2">
                               <button
                                 onClick={() => handleEdit(vehiculo)}
