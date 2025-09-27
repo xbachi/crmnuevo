@@ -1345,7 +1345,12 @@ export default function ListaVehiculos() {
             </div>
           ) : (
             /* Vista de Cartas */
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-3 items-start">
+            <div
+              className="grid gap-3 items-start justify-items-stretch"
+              style={{
+                gridTemplateColumns: 'repeat(auto-fit, minmax(330px, 1fr))',
+              }}
+            >
               {filteredVehiculos.map((vehiculo, index) => (
                 <VehicleCard
                   key={`${vehiculo.id}-${vehiculo.updatedAt}-${index}`}
