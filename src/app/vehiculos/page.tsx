@@ -1258,7 +1258,7 @@ export default function ListaVehiculos() {
                           </td>
                           <td className="px-2 lg:px-3 py-2 lg:py-4 w-1/3">
                             <span
-                              className={`font-mono text-xs px-1 lg:px-2 py-1 rounded block ${
+                              className={`font-mono text-xs px-1 lg:px-2 py-1 rounded inline-block ${
                                 vehiculoVendido
                                   ? 'text-gray-500 bg-gray-200'
                                   : 'text-slate-600 bg-slate-50'
