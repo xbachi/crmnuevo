@@ -618,7 +618,7 @@ export default function ListaVehiculos() {
   return (
     <ProtectedRoute>
       <div className="min-h-full bg-gradient-to-br from-slate-50 via-green-50 to-emerald-100">
-        <div className="w-full px-4 sm:px-8 xl:px-12 py-4 sm:py-8">
+        <div className="w-full px-4 sm:px-8 xl:px-12 py-4 sm:py-8 md:ml-0">
           {/* Header Moderno - Estilo Navegación */}
           <div className="mb-4 sm:mb-6">
             {/* Título y stats compactos */}
