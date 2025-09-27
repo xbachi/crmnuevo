@@ -1346,10 +1346,10 @@ export default function ListaVehiculos() {
           ) : (
             /* Vista de Cartas */
             <div
-              className="grid gap-3 items-start justify-items-stretch"
+              className="grid gap-4 items-start justify-items-stretch"
               style={{
-                gridTemplateColumns: 'repeat(auto-fit, minmax(330px, 1fr))',
-                maxWidth: 'calc(5 * 330px + 4 * 12px + 2 * 20px)',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                maxWidth: 'calc(5 * 320px + 4 * 16px + 2 * 40px)',
               }}
             >
               {filteredVehiculos.map((vehiculo, index) => (
