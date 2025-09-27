@@ -1,12 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useInversorAuth } from '@/contexts/InversorAuthContext'
 import InversorProtectedRoute from '@/components/InversorProtectedRoute'
 import { InvestorMetrics } from '@/components/InvestorMetrics'
 import { InvestorVehicleCard } from '@/components/InvestorVehicleCard'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
-import { formatDateTime } from '@/lib/utils'
 
 interface InvestorMetrics {
   beneficioAcumulado: number
@@ -14,6 +13,7 @@ interface InvestorMetrics {
   capitalAportado: number
   capitalDisponible: number
   roi: number
+  totalVendidos: number
   totalEnStock: number
   diasPromedioEnStock: number
 }
@@ -21,16 +21,16 @@ interface InvestorMetrics {
 export default function InversorDashboardPage() {
   const { inversor } = useInversorAuth()
   const [metrics, setMetrics] = useState<InvestorMetrics | null>(null)
-  const [vehiculos, setVehiculos] = useState<any[]>([])
+  const [vehiculos, setVehiculos] = useState<unknown[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     if (inversor) {
       fetchInversorData()
     }
-  }, [inversor])
+  }, [inversor, fetchInversorData])
 
-  const fetchInversorData = async () => {
+  const fetchInversorData = useCallback(async () => {
     if (!inversor) return
 
     try {
@@ -42,7 +42,11 @@ export default function InversorDashboardPage() {
       )
       if (metricsResponse.ok) {
         const metricsData = await metricsResponse.json()
-        setMetrics(metricsData)
+        // Asegurar que totalVendidos esté presente
+        setMetrics({
+          ...metricsData,
+          totalVendidos: metricsData.totalVendidos || 0,
+        })
       }
 
       // Obtener vehículos del inversor
@@ -58,7 +62,7 @@ export default function InversorDashboardPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [inversor])
 
   if (isLoading) {
     return (
@@ -154,7 +158,11 @@ export default function InversorDashboardPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {vehiculos.map((vehiculo) => (
-                  <InvestorVehicleCard key={vehiculo.id} vehiculo={vehiculo} />
+                  <InvestorVehicleCard
+                    key={vehiculo.id}
+                    vehiculo={vehiculo}
+                    onView={(id) => window.open(`/vehiculos/${id}`, '_blank')}
+                  />
                 ))}
               </div>
             )}

@@ -2,8 +2,8 @@
 import { Pool } from 'pg'
 
 // Cargar variables de entorno manualmente
-const fs = require('fs')
-const path = require('path')
+import fs from 'fs'
+import path from 'path'
 
 // Función para cargar .env.local
 function loadEnvFile() {
@@ -1374,7 +1374,7 @@ export async function getVehiculosByInversor(inversorId: number) {
   }
 }
 
-export async function updateVehiculosOrden(updates: any[]) {
+export async function updateVehiculosOrden(updates: unknown[]) {
   const client = await pool.connect()
   try {
     const results = []
@@ -1386,7 +1386,11 @@ export async function updateVehiculosOrden(updates: any[]) {
         WHERE id = $1 
         RETURNING *
       `,
-        [update.id, update.estado, update.orden]
+        [
+          (update as { id: number }).id,
+          (update as { estado: string }).estado,
+          (update as { orden: number }).orden,
+        ]
       )
 
       if (result.rows[0]) {
@@ -1453,7 +1457,9 @@ export async function addNotaCliente(notaData: any) {
 }
 
 // Funciones adicionales
-export async function buscarClientesPorVehiculo(vehiculoInfo: string) {
+export async function buscarClientesPorVehiculo(
+  vehiculoInfo: string
+): Promise<unknown[]> {
   const client = await pool.connect()
   try {
     const result = await client.query(
@@ -1765,7 +1771,7 @@ export interface VehiculoStats {
   enProceso: number
 }
 
-export async function getVehiculoStats(): Promise<VehiculoStats> {
+export async function getVehiculoStats(): Promise<unknown> {
   const client = await pool.connect()
   try {
     // Obtener estadísticas de vehículos (excluyendo tipo D - depósitos)
