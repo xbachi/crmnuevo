@@ -1081,7 +1081,7 @@ export default function ListaVehiculos() {
                       <th className="px-2 lg:px-3 py-2 lg:py-4 text-left text-xs lg:text-sm font-bold text-slate-700 uppercase tracking-wider hidden xl:table-cell">
                         Matrícula
                       </th>
-                      <th className="px-2 lg:px-3 py-2 lg:py-4 text-left text-xs lg:text-sm font-bold text-slate-700 uppercase tracking-wider hidden md:table-cell">
+                      <th className="px-2 lg:px-3 py-2 lg:py-4 text-left text-xs lg:text-sm font-bold text-slate-700 uppercase tracking-wider">
                         Bastidor
                       </th>
                       <th className="px-2 lg:px-3 py-2 lg:py-4 text-left text-xs lg:text-sm font-bold text-slate-700 uppercase tracking-wider hidden lg:table-cell">
@@ -1172,7 +1172,7 @@ export default function ListaVehiculos() {
                               </div>
                             </div>
                           </td>
-                          <td className="px-2 lg:px-3 py-2 lg:py-4">
+                          <td className="px-2 lg:px-3 py-2 lg:py-4 w-1/4">
                             <div>
                               <div
                                 className={`font-semibold text-xs lg:text-sm truncate ${vehiculoVendido ? 'text-gray-500' : 'text-slate-900'}`}
@@ -1235,11 +1235,7 @@ export default function ListaVehiculos() {
                                     </div>
                                   )
                                 }
-                                return (
-                                  <div className="text-slate-500 text-xs">
-                                    Vehículo
-                                  </div>
-                                )
+                                return null
                               })()}
                             </div>
                           </td>
@@ -1260,9 +1256,9 @@ export default function ListaVehiculos() {
                               </span>
                             </div>
                           </td>
-                          <td className="px-2 lg:px-3 py-2 lg:py-4 hidden md:table-cell">
+                          <td className="px-2 lg:px-3 py-2 lg:py-4 w-1/3">
                             <span
-                              className={`font-mono text-xs px-1 lg:px-2 py-1 rounded truncate block ${
+                              className={`font-mono text-xs px-1 lg:px-2 py-1 rounded block ${
                                 vehiculoVendido
                                   ? 'text-gray-500 bg-gray-200'
                                   : 'text-slate-600 bg-slate-50'
