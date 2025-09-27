@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/Toast'
 import { useCache } from '@/contexts/CacheContext'
+import ProtectedRoute from '@/components/ProtectedRoute'
 
 export default function CrearDeal() {
   const [clienteSearch, setClienteSearch] = useState('')
@@ -384,97 +385,22 @@ export default function CrearDeal() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-2xl mx-auto px-4">
-        <div className="bg-white rounded-xl shadow-lg">
-          {/* Header */}
-          <div className="px-6 py-4 border-b border-slate-200">
-            <div className="flex items-center justify-between">
-              <h1 className="text-xl font-bold text-slate-900">
-                Crear Nuevo Deal
-              </h1>
-              <button
-                onClick={() => router.push('/deals')}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="p-6 space-y-6">
-            {/* Cliente */}
-            <div data-cliente-search>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Cliente *
-              </label>
-              <input
-                type="text"
-                placeholder="Escribir nombre del cliente..."
-                value={
-                  selectedCliente
-                    ? `${selectedCliente.nombre} ${selectedCliente.apellidos}`
-                    : clienteSearch
-                }
-                onFocus={() => setShowClienteList(true)}
-                onChange={(e) => {
-                  setClienteSearch(e.target.value)
-                  if (selectedCliente) {
-                    setSelectedCliente(null)
-                  }
-                }}
-                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              {!selectedCliente && showClienteList && (
-                <div className="mt-2 border border-slate-200 rounded-lg bg-white max-h-48 overflow-y-auto">
-                  {filteredClientes.length > 0 ? (
-                    filteredClientes.map((cliente) => (
-                      <div
-                        key={cliente.id}
-                        onClick={() => {
-                          setSelectedCliente(cliente)
-                          setClienteSearch('')
-                          setShowClienteList(false)
-                        }}
-                        className={`px-4 py-2 cursor-pointer border-b border-slate-100 last:border-b-0 ${
-                          selectedCliente?.id === cliente.id
-                            ? 'bg-blue-50 border-blue-200 text-blue-900 font-medium'
-                            : 'hover:bg-gray-50'
-                        }`}
-                      >
-                        {cliente.nombre} {cliente.apellidos}
-                      </div>
-                    ))
-                  ) : (
-                    <div className="px-4 py-2 text-gray-500 text-sm">
-                      No se encontraron clientes
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Botón crear cliente */}
-              <div className="mt-2">
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-2xl mx-auto px-4">
+          <div className="bg-white rounded-xl shadow-lg">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-slate-200">
+              <div className="flex items-center justify-between">
+                <h1 className="text-xl font-bold text-slate-900">
+                  Crear Nuevo Deal
+                </h1>
                 <button
-                  type="button"
-                  onClick={() => setShowClienteForm(!showClienteForm)}
-                  className="w-full px-4 py-2 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center space-x-2"
+                  onClick={() => router.push('/deals')}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <svg
-                    className="w-4 h-4"
+                    className="w-5 h-5"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -483,559 +409,636 @@ export default function CrearDeal() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M12 4v16m8-8H4"
+                      d="M6 18L18 6M6 6l12 12"
                     />
                   </svg>
-                  <span>Crear nuevo cliente</span>
                 </button>
               </div>
+            </div>
 
-              {/* Acordeón para crear cliente */}
-              {showClienteForm && (
-                <div className="mt-4 bg-slate-50 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-slate-900">
-                      Crear Nuevo Cliente
-                    </h3>
-                    <button
-                      onClick={() => setShowClienteForm(false)}
-                      className="text-slate-500 hover:text-slate-700"
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="bg-white rounded-lg p-4">
-                      <h4 className="font-medium text-slate-900 mb-3">
-                        Información Personal
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1">
-                            Nombre *
-                          </label>
-                          <input
-                            type="text"
-                            value={newCliente.nombre}
-                            onChange={(e) =>
-                              setNewCliente((prev) => ({
-                                ...prev,
-                                nombre: e.target.value,
-                              }))
-                            }
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          />
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              {/* Cliente */}
+              <div data-cliente-search>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Cliente *
+                </label>
+                <input
+                  type="text"
+                  placeholder="Escribir nombre del cliente..."
+                  value={
+                    selectedCliente
+                      ? `${selectedCliente.nombre} ${selectedCliente.apellidos}`
+                      : clienteSearch
+                  }
+                  onFocus={() => setShowClienteList(true)}
+                  onChange={(e) => {
+                    setClienteSearch(e.target.value)
+                    if (selectedCliente) {
+                      setSelectedCliente(null)
+                    }
+                  }}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                {!selectedCliente && showClienteList && (
+                  <div className="mt-2 border border-slate-200 rounded-lg bg-white max-h-48 overflow-y-auto">
+                    {filteredClientes.length > 0 ? (
+                      filteredClientes.map((cliente) => (
+                        <div
+                          key={cliente.id}
+                          onClick={() => {
+                            setSelectedCliente(cliente)
+                            setClienteSearch('')
+                            setShowClienteList(false)
+                          }}
+                          className={`px-4 py-2 cursor-pointer border-b border-slate-100 last:border-b-0 ${
+                            selectedCliente?.id === cliente.id
+                              ? 'bg-blue-50 border-blue-200 text-blue-900 font-medium'
+                              : 'hover:bg-gray-50'
+                          }`}
+                        >
+                          {cliente.nombre} {cliente.apellidos}
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1">
-                            Apellidos *
-                          </label>
-                          <input
-                            type="text"
-                            value={newCliente.apellidos}
-                            onChange={(e) =>
-                              setNewCliente((prev) => ({
-                                ...prev,
-                                apellidos: e.target.value,
-                              }))
-                            }
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1">
-                            Teléfono *
-                          </label>
-                          <input
-                            type="tel"
-                            value={newCliente.telefono}
-                            onChange={(e) =>
-                              setNewCliente((prev) => ({
-                                ...prev,
-                                telefono: e.target.value,
-                              }))
-                            }
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1">
-                            Email
-                          </label>
-                          <input
-                            type="email"
-                            value={newCliente.email}
-                            onChange={(e) =>
-                              setNewCliente((prev) => ({
-                                ...prev,
-                                email: e.target.value,
-                              }))
-                            }
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1">
-                            DNI *
-                          </label>
-                          <input
-                            type="text"
-                            value={newCliente.dni}
-                            onChange={(e) =>
-                              setNewCliente((prev) => ({
-                                ...prev,
-                                dni: e.target.value,
-                              }))
-                            }
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="Ej: 12345678A"
-                          />
-                        </div>
+                      ))
+                    ) : (
+                      <div className="px-4 py-2 text-gray-500 text-sm">
+                        No se encontraron clientes
                       </div>
+                    )}
+                  </div>
+                )}
 
-                      {/* Campos de dirección obligatorios para deals */}
-                      <div className="mt-4 pt-4 border-t border-slate-200">
+                {/* Botón crear cliente */}
+                <div className="mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowClienteForm(!showClienteForm)}
+                    className="w-full px-4 py-2 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center space-x-2"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 4v16m8-8H4"
+                      />
+                    </svg>
+                    <span>Crear nuevo cliente</span>
+                  </button>
+                </div>
+
+                {/* Acordeón para crear cliente */}
+                {showClienteForm && (
+                  <div className="mt-4 bg-slate-50 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-slate-900">
+                        Crear Nuevo Cliente
+                      </h3>
+                      <button
+                        onClick={() => setShowClienteForm(false)}
+                        className="text-slate-500 hover:text-slate-700"
+                      >
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="bg-white rounded-lg p-4">
                         <h4 className="font-medium text-slate-900 mb-3">
-                          Dirección *
+                          Información Personal
                         </h4>
-                        <div className="space-y-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">
-                              Calle *
+                              Nombre *
                             </label>
                             <input
                               type="text"
-                              value={newCliente.calle}
+                              value={newCliente.nombre}
                               onChange={(e) =>
                                 setNewCliente((prev) => ({
                                   ...prev,
-                                  calle: e.target.value,
+                                  nombre: e.target.value,
                                 }))
                               }
                               className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              placeholder="Ej: Calle Mayor 123"
                             />
                           </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">
+                              Apellidos *
+                            </label>
+                            <input
+                              type="text"
+                              value={newCliente.apellidos}
+                              onChange={(e) =>
+                                setNewCliente((prev) => ({
+                                  ...prev,
+                                  apellidos: e.target.value,
+                                }))
+                              }
+                              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">
+                              Teléfono *
+                            </label>
+                            <input
+                              type="tel"
+                              value={newCliente.telefono}
+                              onChange={(e) =>
+                                setNewCliente((prev) => ({
+                                  ...prev,
+                                  telefono: e.target.value,
+                                }))
+                              }
+                              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">
+                              Email
+                            </label>
+                            <input
+                              type="email"
+                              value={newCliente.email}
+                              onChange={(e) =>
+                                setNewCliente((prev) => ({
+                                  ...prev,
+                                  email: e.target.value,
+                                }))
+                              }
+                              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">
+                              DNI *
+                            </label>
+                            <input
+                              type="text"
+                              value={newCliente.dni}
+                              onChange={(e) =>
+                                setNewCliente((prev) => ({
+                                  ...prev,
+                                  dni: e.target.value,
+                                }))
+                              }
+                              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="Ej: 12345678A"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Campos de dirección obligatorios para deals */}
+                        <div className="mt-4 pt-4 border-t border-slate-200">
+                          <h4 className="font-medium text-slate-900 mb-3">
+                            Dirección *
+                          </h4>
+                          <div className="space-y-3">
                             <div>
                               <label className="block text-sm font-medium text-slate-700 mb-1">
-                                Código Postal *
+                                Calle *
                               </label>
                               <input
                                 type="text"
-                                value={newCliente.codPostal}
+                                value={newCliente.calle}
                                 onChange={(e) =>
                                   setNewCliente((prev) => ({
                                     ...prev,
-                                    codPostal: e.target.value,
+                                    calle: e.target.value,
                                   }))
                                 }
                                 className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                placeholder="Ej: 28001"
+                                placeholder="Ej: Calle Mayor 123"
                               />
                             </div>
-                            <div>
-                              <label className="block text-sm font-medium text-slate-700 mb-1">
-                                Ciudad *
-                              </label>
-                              <input
-                                type="text"
-                                value={newCliente.ciudad}
-                                onChange={(e) =>
-                                  setNewCliente((prev) => ({
-                                    ...prev,
-                                    ciudad: e.target.value,
-                                  }))
-                                }
-                                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                placeholder="Ej: Madrid"
-                              />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">
+                                  Código Postal *
+                                </label>
+                                <input
+                                  type="text"
+                                  value={newCliente.codPostal}
+                                  onChange={(e) =>
+                                    setNewCliente((prev) => ({
+                                      ...prev,
+                                      codPostal: e.target.value,
+                                    }))
+                                  }
+                                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                  placeholder="Ej: 28001"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">
+                                  Ciudad *
+                                </label>
+                                <input
+                                  type="text"
+                                  value={newCliente.ciudad}
+                                  onChange={(e) =>
+                                    setNewCliente((prev) => ({
+                                      ...prev,
+                                      ciudad: e.target.value,
+                                    }))
+                                  }
+                                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                  placeholder="Ej: Madrid"
+                                />
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex justify-end space-x-2">
-                      <button
-                        type="button"
-                        onClick={() => setShowClienteForm(false)}
-                        className="px-4 py-2 text-slate-600 hover:text-slate-800"
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={createCliente}
-                        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                      >
-                        Crear Cliente
-                      </button>
+                      <div className="flex justify-end space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowClienteForm(false)}
+                          className="px-4 py-2 text-slate-600 hover:text-slate-800"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={createCliente}
+                          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                        >
+                          Crear Cliente
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
 
-            {/* Vehículo */}
-            <div data-vehiculo-search>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Vehículo *
-              </label>
-              <input
-                type="text"
-                placeholder="Escribir marca, modelo, matrícula o referencia..."
-                value={
-                  selectedVehiculo
-                    ? `${selectedVehiculo.marca} ${selectedVehiculo.modelo} - ${selectedVehiculo.matricula}`
-                    : vehiculoSearch
-                }
-                onFocus={() => setShowVehiculoList(true)}
-                onChange={(e) => {
-                  setVehiculoSearch(e.target.value)
-                  if (selectedVehiculo) {
-                    setSelectedVehiculo(null)
+              {/* Vehículo */}
+              <div data-vehiculo-search>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Vehículo *
+                </label>
+                <input
+                  type="text"
+                  placeholder="Escribir marca, modelo, matrícula o referencia..."
+                  value={
+                    selectedVehiculo
+                      ? `${selectedVehiculo.marca} ${selectedVehiculo.modelo} - ${selectedVehiculo.matricula}`
+                      : vehiculoSearch
                   }
-                }}
-                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              {!selectedVehiculo && showVehiculoList && (
-                <div className="mt-2 border border-slate-200 rounded-lg bg-white max-h-48 overflow-y-auto">
-                  {filteredVehiculos.length > 0 ? (
-                    filteredVehiculos.map((vehiculo) => (
-                      <div
-                        key={vehiculo.id}
-                        onClick={() => {
-                          setSelectedVehiculo(vehiculo)
-                          setVehiculoSearch('')
-                          setShowVehiculoList(false)
-                        }}
-                        className="px-4 py-2 hover:bg-gray-50 cursor-pointer border-b border-slate-100 last:border-b-0"
-                      >
-                        {vehiculo.marca} {vehiculo.modelo} -{' '}
-                        {vehiculo.matricula}
+                  onFocus={() => setShowVehiculoList(true)}
+                  onChange={(e) => {
+                    setVehiculoSearch(e.target.value)
+                    if (selectedVehiculo) {
+                      setSelectedVehiculo(null)
+                    }
+                  }}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                {!selectedVehiculo && showVehiculoList && (
+                  <div className="mt-2 border border-slate-200 rounded-lg bg-white max-h-48 overflow-y-auto">
+                    {filteredVehiculos.length > 0 ? (
+                      filteredVehiculos.map((vehiculo) => (
+                        <div
+                          key={vehiculo.id}
+                          onClick={() => {
+                            setSelectedVehiculo(vehiculo)
+                            setVehiculoSearch('')
+                            setShowVehiculoList(false)
+                          }}
+                          className="px-4 py-2 hover:bg-gray-50 cursor-pointer border-b border-slate-100 last:border-b-0"
+                        >
+                          {vehiculo.marca} {vehiculo.modelo} -{' '}
+                          {vehiculo.matricula}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="px-4 py-2 text-gray-500 text-sm">
+                        No se encontraron vehículos
                       </div>
-                    ))
-                  ) : (
-                    <div className="px-4 py-2 text-gray-500 text-sm">
-                      No se encontraron vehículos
-                    </div>
-                  )}
-                </div>
-              )}
+                    )}
+                  </div>
+                )}
 
-              {/* Botón crear vehículo */}
-              <div className="mt-2">
+                {/* Botón crear vehículo */}
+                <div className="mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowVehiculoForm(!showVehiculoForm)}
+                    className="w-full px-4 py-2 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center space-x-2"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 4v16m8-8H4"
+                      />
+                    </svg>
+                    <span>Crear nuevo vehículo</span>
+                  </button>
+                </div>
+
+                {/* Acordeón para crear vehículo */}
+                {showVehiculoForm && (
+                  <div className="mt-4 bg-slate-50 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-slate-900">
+                        Crear Nuevo Vehículo
+                      </h3>
+                      <button
+                        onClick={() => setShowVehiculoForm(false)}
+                        className="text-slate-500 hover:text-slate-700"
+                      >
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="bg-white rounded-lg p-4">
+                        <h4 className="font-medium text-slate-900 mb-3">
+                          Información del Vehículo
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">
+                              Referencia *
+                            </label>
+                            <input
+                              type="text"
+                              value={newVehiculo.referencia}
+                              onChange={(e) =>
+                                setNewVehiculo((prev) => ({
+                                  ...prev,
+                                  referencia: e.target.value,
+                                }))
+                              }
+                              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="Ej: #12345"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">
+                              Marca *
+                            </label>
+                            <input
+                              type="text"
+                              value={newVehiculo.marca}
+                              onChange={(e) =>
+                                setNewVehiculo((prev) => ({
+                                  ...prev,
+                                  marca: e.target.value,
+                                }))
+                              }
+                              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="Ej: Toyota"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">
+                              Modelo *
+                            </label>
+                            <input
+                              type="text"
+                              value={newVehiculo.modelo}
+                              onChange={(e) =>
+                                setNewVehiculo((prev) => ({
+                                  ...prev,
+                                  modelo: e.target.value,
+                                }))
+                              }
+                              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="Ej: Corolla"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">
+                              Matrícula *
+                            </label>
+                            <input
+                              type="text"
+                              value={newVehiculo.matricula}
+                              onChange={(e) =>
+                                setNewVehiculo((prev) => ({
+                                  ...prev,
+                                  matricula: e.target.value,
+                                }))
+                              }
+                              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="Ej: 1234ABC"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">
+                              Bastidor *
+                            </label>
+                            <input
+                              type="text"
+                              value={newVehiculo.bastidor}
+                              onChange={(e) =>
+                                setNewVehiculo((prev) => ({
+                                  ...prev,
+                                  bastidor: e.target.value,
+                                }))
+                              }
+                              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="Ej: 1HGBH41JXMN109186"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">
+                              Kilómetros *
+                            </label>
+                            <input
+                              type="number"
+                              value={newVehiculo.kms}
+                              onChange={(e) =>
+                                setNewVehiculo((prev) => ({
+                                  ...prev,
+                                  kms: e.target.value,
+                                }))
+                              }
+                              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="Ej: 50000"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">
+                              Color
+                            </label>
+                            <input
+                              type="text"
+                              value={newVehiculo.color}
+                              onChange={(e) =>
+                                setNewVehiculo((prev) => ({
+                                  ...prev,
+                                  color: e.target.value,
+                                }))
+                              }
+                              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="Ej: Blanco"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">
+                              Fecha Matriculación
+                            </label>
+                            <input
+                              type="date"
+                              value={newVehiculo.fechaMatriculacion}
+                              onChange={(e) =>
+                                setNewVehiculo((prev) => ({
+                                  ...prev,
+                                  fechaMatriculacion: e.target.value,
+                                }))
+                              }
+                              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowVehiculoForm(false)}
+                          className="px-4 py-2 text-slate-600 hover:text-slate-800"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={createVehiculo}
+                          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                        >
+                          Crear Vehículo
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Importes */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Monto Reserva
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={montoReserva}
+                    onChange={(e) => setMontoReserva(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Seña
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={senna}
+                    onChange={(e) => setSenna(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              {/* Forma de Pago */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Forma de Pago *
+                </label>
+                <select
+                  value={formaPago}
+                  onChange={(e) => setFormaPago(e.target.value)}
+                  required
+                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Seleccionar forma de pago...</option>
+                  <option value="tarjeta">Tarjeta</option>
+                  <option value="transferencia">Transferencia</option>
+                  <option value="efectivo">Efectivo</option>
+                  <option value="bizum">Bizum</option>
+                </select>
+              </div>
+
+              {/* Notas */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Notas
+                </label>
+                <textarea
+                  rows={3}
+                  value={notas}
+                  onChange={(e) => setNotas(e.target.value)}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Notas adicionales del deal..."
+                />
+              </div>
+
+              {/* Botones */}
+              <div className="flex items-center justify-end space-x-4 pt-6 border-t border-slate-200">
                 <button
                   type="button"
-                  onClick={() => setShowVehiculoForm(!showVehiculoForm)}
-                  className="w-full px-4 py-2 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center space-x-2"
+                  onClick={() => router.push('/deals')}
+                  className="px-6 py-3 text-slate-600 hover:text-slate-800 font-medium transition-colors"
                 >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 4v16m8-8H4"
-                    />
-                  </svg>
-                  <span>Crear nuevo vehículo</span>
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+                >
+                  {isLoading ? 'Creando...' : 'Crear Deal'}
                 </button>
               </div>
-
-              {/* Acordeón para crear vehículo */}
-              {showVehiculoForm && (
-                <div className="mt-4 bg-slate-50 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-slate-900">
-                      Crear Nuevo Vehículo
-                    </h3>
-                    <button
-                      onClick={() => setShowVehiculoForm(false)}
-                      className="text-slate-500 hover:text-slate-700"
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="bg-white rounded-lg p-4">
-                      <h4 className="font-medium text-slate-900 mb-3">
-                        Información del Vehículo
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1">
-                            Referencia *
-                          </label>
-                          <input
-                            type="text"
-                            value={newVehiculo.referencia}
-                            onChange={(e) =>
-                              setNewVehiculo((prev) => ({
-                                ...prev,
-                                referencia: e.target.value,
-                              }))
-                            }
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="Ej: #12345"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1">
-                            Marca *
-                          </label>
-                          <input
-                            type="text"
-                            value={newVehiculo.marca}
-                            onChange={(e) =>
-                              setNewVehiculo((prev) => ({
-                                ...prev,
-                                marca: e.target.value,
-                              }))
-                            }
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="Ej: Toyota"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1">
-                            Modelo *
-                          </label>
-                          <input
-                            type="text"
-                            value={newVehiculo.modelo}
-                            onChange={(e) =>
-                              setNewVehiculo((prev) => ({
-                                ...prev,
-                                modelo: e.target.value,
-                              }))
-                            }
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="Ej: Corolla"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1">
-                            Matrícula *
-                          </label>
-                          <input
-                            type="text"
-                            value={newVehiculo.matricula}
-                            onChange={(e) =>
-                              setNewVehiculo((prev) => ({
-                                ...prev,
-                                matricula: e.target.value,
-                              }))
-                            }
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="Ej: 1234ABC"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1">
-                            Bastidor *
-                          </label>
-                          <input
-                            type="text"
-                            value={newVehiculo.bastidor}
-                            onChange={(e) =>
-                              setNewVehiculo((prev) => ({
-                                ...prev,
-                                bastidor: e.target.value,
-                              }))
-                            }
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="Ej: 1HGBH41JXMN109186"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1">
-                            Kilómetros *
-                          </label>
-                          <input
-                            type="number"
-                            value={newVehiculo.kms}
-                            onChange={(e) =>
-                              setNewVehiculo((prev) => ({
-                                ...prev,
-                                kms: e.target.value,
-                              }))
-                            }
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="Ej: 50000"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1">
-                            Color
-                          </label>
-                          <input
-                            type="text"
-                            value={newVehiculo.color}
-                            onChange={(e) =>
-                              setNewVehiculo((prev) => ({
-                                ...prev,
-                                color: e.target.value,
-                              }))
-                            }
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="Ej: Blanco"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1">
-                            Fecha Matriculación
-                          </label>
-                          <input
-                            type="date"
-                            value={newVehiculo.fechaMatriculacion}
-                            onChange={(e) =>
-                              setNewVehiculo((prev) => ({
-                                ...prev,
-                                fechaMatriculacion: e.target.value,
-                              }))
-                            }
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end space-x-2">
-                      <button
-                        type="button"
-                        onClick={() => setShowVehiculoForm(false)}
-                        className="px-4 py-2 text-slate-600 hover:text-slate-800"
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={createVehiculo}
-                        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                      >
-                        Crear Vehículo
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Importes */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Monto Reserva
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={montoReserva}
-                  onChange={(e) => setMontoReserva(e.target.value)}
-                  required
-                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Seña
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={senna}
-                  onChange={(e) => setSenna(e.target.value)}
-                  required
-                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-
-            {/* Forma de Pago */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Forma de Pago *
-              </label>
-              <select
-                value={formaPago}
-                onChange={(e) => setFormaPago(e.target.value)}
-                required
-                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">Seleccionar forma de pago...</option>
-                <option value="tarjeta">Tarjeta</option>
-                <option value="transferencia">Transferencia</option>
-                <option value="efectivo">Efectivo</option>
-                <option value="bizum">Bizum</option>
-              </select>
-            </div>
-
-            {/* Notas */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Notas
-              </label>
-              <textarea
-                rows={3}
-                value={notas}
-                onChange={(e) => setNotas(e.target.value)}
-                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Notas adicionales del deal..."
-              />
-            </div>
-
-            {/* Botones */}
-            <div className="flex items-center justify-end space-x-4 pt-6 border-t border-slate-200">
-              <button
-                type="button"
-                onClick={() => router.push('/deals')}
-                className="px-6 py-3 text-slate-600 hover:text-slate-800 font-medium transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
-              >
-                {isLoading ? 'Creando...' : 'Crear Deal'}
-              </button>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
       </div>
-    </div>
+    </ProtectedRoute>
   )
 }

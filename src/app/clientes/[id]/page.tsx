@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { Cliente } from '@/lib/database'
+import ProtectedRoute from '@/components/ProtectedRoute'
 
 interface NotaCliente {
   id: number
@@ -877,871 +878,882 @@ export default function ClienteDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-primary-50 to-primary-100">
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <button
-                onClick={() => router.push('/clientes')}
-                className="text-gray-500 hover:text-gray-700 mb-2 flex items-center"
-              >
-                <svg
-                  className="w-4 h-4 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-primary-50 to-primary-100">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <button
+                  onClick={() => router.push('/clientes')}
+                  className="text-gray-500 hover:text-gray-700 mb-2 flex items-center"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
-                Volver a Clientes
-              </button>
-              <h1 className="text-3xl font-bold text-slate-800 mb-2">
-                {cliente.nombre} {cliente.apellidos}
-              </h1>
-              <div className="flex items-center space-x-4">
-                <span
-                  className={`px-3 py-1 rounded-full text-sm font-medium ${getEstadoColor(cliente.estado || 'nuevo')}`}
-                >
-                  {(cliente.estado || 'nuevo').replace('_', ' ')}
-                </span>
-                <span
-                  className={`px-3 py-1 rounded-full text-sm font-medium ${getPrioridadColor(cliente.prioridad || 'media')}`}
-                >
-                  Prioridad {cliente.prioridad || 'media'}
-                </span>
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 19l-7-7 7-7"
+                    />
+                  </svg>
+                  Volver a Clientes
+                </button>
+                <h1 className="text-3xl font-bold text-slate-800 mb-2">
+                  {cliente.nombre} {cliente.apellidos}
+                </h1>
+                <div className="flex items-center space-x-4">
+                  <span
+                    className={`px-3 py-1 rounded-full text-sm font-medium ${getEstadoColor(cliente.estado || 'nuevo')}`}
+                  >
+                    {(cliente.estado || 'nuevo').replace('_', ' ')}
+                  </span>
+                  <span
+                    className={`px-3 py-1 rounded-full text-sm font-medium ${getPrioridadColor(cliente.prioridad || 'media')}`}
+                  >
+                    Prioridad {cliente.prioridad || 'media'}
+                  </span>
+                </div>
               </div>
-            </div>
-            <div className="flex space-x-3">
-              <button
-                onClick={() => setIsEditingPersonal(!isEditingPersonal)}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-              >
-                {isEditingPersonal ? 'Cancelar Personal' : 'Editar Personal'}
-              </button>
-              <button
-                onClick={() => setIsEditingIntereses(!isEditingIntereses)}
-                className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
-              >
-                {isEditingIntereses ? 'Cancelar Intereses' : 'Editar Intereses'}
-              </button>
-              <button
-                onClick={() => setShowNotaForm(!showNotaForm)}
-                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-              >
-                Agregar Nota
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Información del Cliente */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Datos Básicos */}
-            <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">
-                  Información Personal
-                </h2>
+              <div className="flex space-x-3">
                 <button
                   onClick={() => setIsEditingPersonal(!isEditingPersonal)}
-                  className="px-3 py-1 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600 transition-colors"
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
                 >
-                  {isEditingPersonal ? 'Cancelar' : 'Editar'}
+                  {isEditingPersonal ? 'Cancelar Personal' : 'Editar Personal'}
                 </button>
-              </div>
-
-              {isEditingPersonal ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Nombre
-                      </label>
-                      <input
-                        type="text"
-                        name="nombre"
-                        value={editData.nombre}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Apellidos
-                      </label>
-                      <input
-                        type="text"
-                        name="apellidos"
-                        value={editData.apellidos}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Teléfono
-                      </label>
-                      <input
-                        type="tel"
-                        name="telefono"
-                        value={editData.telefono}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Email
-                      </label>
-                      <input
-                        type="email"
-                        name="email"
-                        value={editData.email}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        DNI
-                      </label>
-                      <input
-                        type="text"
-                        name="dni"
-                        value={editData.dni}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        placeholder="Ej: 12345678A"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Campos de dirección */}
-                  <div className="border-t border-gray-200 pt-4">
-                    <h4 className="text-sm font-medium text-gray-700 mb-3">
-                      Dirección (opcional)
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Dirección
-                        </label>
-                        <input
-                          type="text"
-                          name="direccion"
-                          value={editData.direccion}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                          placeholder="Ej: Calle Mayor 123"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Ciudad
-                        </label>
-                        <input
-                          type="text"
-                          name="ciudad"
-                          value={editData.ciudad}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                          placeholder="Ej: Valencia"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Provincia
-                        </label>
-                        <input
-                          type="text"
-                          name="provincia"
-                          value={editData.provincia}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                          placeholder="Ej: Valencia"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Código Postal
-                        </label>
-                        <input
-                          type="text"
-                          name="codigoPostal"
-                          value={editData.codigoPostal}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                          placeholder="Ej: 46001"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Cómo llegó
-                      </label>
-                      <select
-                        name="comoLlego"
-                        value={editData.comoLlego}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      >
-                        <option value="Google">Google</option>
-                        <option value="Recomendado">Recomendado</option>
-                        <option value="Visita directa">Visita directa</option>
-                        <option value="Redes sociales">Redes sociales</option>
-                        <option value="Otro">Otro</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Estado
-                      </label>
-                      <select
-                        name="estado"
-                        value={editData.estado}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      >
-                        <option value="nuevo">Nuevo</option>
-                        <option value="en_seguimiento">En Seguimiento</option>
-                        <option value="cita_agendada">Cita Agendada</option>
-                        <option value="cerrado">Cerrado</option>
-                        <option value="descartado">Descartado</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Prioridad
-                      </label>
-                      <select
-                        name="prioridad"
-                        value={editData.prioridad}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      >
-                        <option value="alta">Alta</option>
-                        <option value="media">Media</option>
-                        <option value="baja">Baja</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end space-x-3">
-                    <button
-                      onClick={() => setIsEditingPersonal(false)}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      onClick={handleSavePersonal}
-                      disabled={isSaving}
-                      className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 disabled:opacity-50"
-                    >
-                      {isSaving ? 'Guardando...' : 'Guardar'}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {/* Información básica */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-gray-500">Teléfono</p>
-                      <p className="font-medium text-gray-900">
-                        {cliente.telefono}
-                      </p>
-                    </div>
-                    {cliente.email && (
-                      <div>
-                        <p className="text-sm text-gray-500">Email</p>
-                        <p className="font-medium text-gray-900">
-                          {cliente.email}
-                        </p>
-                      </div>
-                    )}
-                    {cliente.dni && (
-                      <div>
-                        <p className="text-sm text-gray-500">DNI</p>
-                        <p className="font-medium text-gray-900">
-                          {cliente.dni}
-                        </p>
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-sm text-gray-500">Cómo llegó</p>
-                      <p className="font-medium text-gray-900">
-                        {cliente.comoLlego || 'No especificado'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Primer contacto</p>
-                      <p className="font-medium text-gray-900">
-                        {cliente.fechaPrimerContacto
-                          ? new Date(
-                              cliente.fechaPrimerContacto
-                            ).toLocaleDateString('es-ES')
-                          : 'No especificado'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Información de dirección */}
-                  {(cliente.direccion ||
-                    cliente.ciudad ||
-                    cliente.provincia ||
-                    cliente.codigoPostal) && (
-                    <div className="border-t border-gray-200 pt-4">
-                      <h4 className="text-sm font-medium text-gray-700 mb-3">
-                        Dirección
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {cliente.direccion && (
-                          <div>
-                            <p className="text-sm text-gray-500">Dirección</p>
-                            <p className="font-medium text-gray-900">
-                              {cliente.direccion}
-                            </p>
-                          </div>
-                        )}
-                        {cliente.ciudad && (
-                          <div>
-                            <p className="text-sm text-gray-500">Ciudad</p>
-                            <p className="font-medium text-gray-900">
-                              {cliente.ciudad}
-                            </p>
-                          </div>
-                        )}
-                        {cliente.provincia && (
-                          <div>
-                            <p className="text-sm text-gray-500">Provincia</p>
-                            <p className="font-medium text-gray-900">
-                              {cliente.provincia}
-                            </p>
-                          </div>
-                        )}
-                        {cliente.codigoPostal && (
-                          <div>
-                            <p className="text-sm text-gray-500">
-                              Código Postal
-                            </p>
-                            <p className="font-medium text-gray-900">
-                              {cliente.codigoPostal}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Intereses */}
-            <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">
-                  Intereses del Cliente
-                </h2>
                 <button
                   onClick={() => setIsEditingIntereses(!isEditingIntereses)}
-                  className="px-3 py-1 bg-purple-500 text-white text-sm rounded-md hover:bg-purple-600 transition-colors"
+                  className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
                 >
-                  {isEditingIntereses ? 'Cancelar' : 'Editar'}
+                  {isEditingIntereses
+                    ? 'Cancelar Intereses'
+                    : 'Editar Intereses'}
                 </button>
-              </div>
-
-              {isEditingIntereses ? (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Vehículos de interés
-                    </label>
-                    <div className="relative">
-                      {/* Tags existentes */}
-                      <div className="flex flex-wrap gap-2 mb-2 min-h-[40px] p-2 border border-slate-300 rounded-md bg-white">
-                        {(editData.intereses?.vehiculosInteres || [])
-                          .filter((v) => v.trim())
-                          .map((vehiculo, index) => (
-                            <span
-                              key={index}
-                              className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800 border border-blue-200"
-                            >
-                              {vehiculo}
-                              <button
-                                type="button"
-                                onClick={() => removeVehiculoInteres(index)}
-                                className="ml-2 text-blue-600 hover:text-blue-800"
-                              >
-                                ×
-                              </button>
-                            </span>
-                          ))}
-                        {/* Input para agregar nuevos */}
-                        <input
-                          type="text"
-                          value={currentVehiculoInput}
-                          onChange={(e) =>
-                            setCurrentVehiculoInput(e.target.value)
-                          }
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault()
-                              const inputValue = currentVehiculoInput.trim()
-                              if (inputValue) {
-                                // Agregar el vehículo a la lista
-                                setEditData((prev) => ({
-                                  ...prev,
-                                  intereses: {
-                                    ...prev.intereses,
-                                    vehiculosInteres: [
-                                      ...(
-                                        prev.intereses?.vehiculosInteres || []
-                                      ).filter((v) => v.trim()),
-                                      inputValue,
-                                    ],
-                                  },
-                                }))
-                                // Limpiar el input
-                                setCurrentVehiculoInput('')
-                              }
-                            }
-                          }}
-                          className="flex-1 min-w-[200px] px-2 py-1 border-none outline-none bg-transparent text-sm"
-                          placeholder={
-                            (editData.intereses?.vehiculosInteres?.length ||
-                              0) === 0
-                              ? 'Escribe un vehículo y presiona Enter (ej: Fiat Punto)'
-                              : 'Agregar otro vehículo...'
-                          }
-                        />
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        💡 Escribe un vehículo y presiona Enter para agregarlo.
-                        Puedes agregar múltiples vehículos.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Columna izquierda - coincide con el orden de visualización */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Precio máximo (€)
-                      </label>
-                      <input
-                        type="number"
-                        name="intereses.precioMaximo"
-                        value={editData.intereses?.precioMaximo || ''}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Kilometraje máximo
-                      </label>
-                      <input
-                        type="number"
-                        name="intereses.kilometrajeMaximo"
-                        value={editData.intereses?.kilometrajeMaximo || ''}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Combustible preferido
-                      </label>
-                      <select
-                        name="intereses.combustiblePreferido"
-                        value={
-                          editData.intereses?.combustiblePreferido ||
-                          'cualquiera'
-                        }
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      >
-                        <option value="cualquiera">Cualquiera</option>
-                        <option value="diesel">Diésel</option>
-                        <option value="gasolina">Gasolina</option>
-                        <option value="hibrido">Híbrido</option>
-                        <option value="electrico">Eléctrico</option>
-                      </select>
-                    </div>
-
-                    {/* Columna derecha - coincide con el orden de visualización */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Año mínimo
-                      </label>
-                      <input
-                        type="number"
-                        name="intereses.añoMinimo"
-                        value={editData.intereses?.añoMinimo || ''}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Cambio preferido
-                      </label>
-                      <select
-                        name="intereses.cambioPreferido"
-                        value={
-                          editData.intereses?.cambioPreferido || 'cualquiera'
-                        }
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      >
-                        <option value="cualquiera">Cualquiera</option>
-                        <option value="manual">Manual</option>
-                        <option value="automatico">Automático</option>
-                      </select>
-                    </div>
-                    <div>
-                      {/* Espacio vacío para mantener el layout simétrico */}
-                    </div>
-                  </div>
-
-                  {/* Botón de guardar para intereses */}
-                  <div className="flex justify-end pt-4 border-t border-gray-200">
-                    <button
-                      type="button"
-                      onClick={handleSaveIntereses}
-                      disabled={isSaving}
-                      className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-                    >
-                      {isSaving ? (
-                        <>
-                          <svg
-                            className="animate-spin h-4 w-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            ></circle>
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            ></path>
-                          </svg>
-                          Guardando...
-                        </>
-                      ) : (
-                        <>
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                          Guardar Intereses
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-500">
-                      Vehículos de interés
-                    </p>
-                    <div className="font-medium text-gray-900">
-                      {cliente.intereses?.vehiculosInteres &&
-                      cliente.intereses.vehiculosInteres.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {cliente.intereses.vehiculosInteres
-                            .filter((v) => v.trim())
-                            .map((vehiculo, index) => (
-                              <span
-                                key={index}
-                                className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium"
-                              >
-                                {vehiculo}
-                              </span>
-                            ))}
-                        </div>
-                      ) : (
-                        <span className="text-gray-500">No especificado</span>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Precio máximo</p>
-                    <p className="font-medium text-gray-900">
-                      {cliente.intereses?.precioMaximo &&
-                      cliente.intereses.precioMaximo > 0
-                        ? `€${cliente.intereses.precioMaximo.toLocaleString()}`
-                        : 'No especificado'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Kilometraje máximo</p>
-                    <p className="font-medium text-gray-900">
-                      {cliente.intereses?.kilometrajeMaximo &&
-                      cliente.intereses.kilometrajeMaximo > 0
-                        ? `${cliente.intereses.kilometrajeMaximo.toLocaleString()} km`
-                        : 'No especificado'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Año mínimo</p>
-                    <p className="font-medium text-gray-900">
-                      {cliente.intereses?.añoMinimo &&
-                      cliente.intereses.añoMinimo > 0
-                        ? cliente.intereses.añoMinimo
-                        : 'No especificado'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">
-                      Combustible preferido
-                    </p>
-                    <p className="font-medium text-gray-900 capitalize">
-                      {cliente.intereses?.combustiblePreferido ||
-                        'No especificado'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Cambio preferido</p>
-                    <p className="font-medium text-gray-900 capitalize">
-                      {cliente.intereses?.cambioPreferido || 'No especificado'}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Próximo Paso */}
-            {cliente.proximoPaso && (
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-blue-900 mb-2">
-                  Próximo Paso
-                </h3>
-                <p className="text-blue-800">{cliente.proximoPaso}</p>
-              </div>
-            )}
-
-            {/* Notas */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Notas
-              </h2>
-
-              {/* Formulario para agregar nota */}
-              <div className="mb-4">
-                <textarea
-                  value={nuevaNota}
-                  onChange={(e) => setNuevaNota(e.target.value)}
-                  placeholder="Agregar una nueva nota..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                  rows={3}
-                />
                 <button
-                  onClick={handleAgregarNota}
-                  disabled={!nuevaNota.trim()}
-                  className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  onClick={() => setShowNotaForm(!showNotaForm)}
+                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
                 >
                   Agregar Nota
                 </button>
               </div>
+            </div>
+          </div>
 
-              {/* Lista de notas */}
-              <div className="space-y-3">
-                {notasCliente.map((nota) => (
-                  <div
-                    key={nota.id}
-                    className="border border-gray-200 rounded-lg p-3"
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Información del Cliente */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Datos Básicos */}
+              <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Información Personal
+                  </h2>
+                  <button
+                    onClick={() => setIsEditingPersonal(!isEditingPersonal)}
+                    className="px-3 py-1 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600 transition-colors"
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        {editingNotaId === nota.id ? (
-                          <div className="space-y-2">
-                            <textarea
-                              value={editingContent || ''}
-                              onChange={(e) =>
-                                setEditingContent(e.target.value)
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                              rows={3}
-                            />
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={() => handleEditarNota(nota.id)}
-                                className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
-                              >
-                                Guardar
-                              </button>
-                              <button
-                                onClick={cancelEditing}
-                                className="px-3 py-1 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm"
-                              >
-                                Cancelar
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <>
-                            <p className="text-gray-900">{nota.contenido}</p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {nota.usuario} •{' '}
-                              {new Date(nota.fecha).toLocaleDateString('es-ES')}
-                            </p>
-                          </>
-                        )}
+                    {isEditingPersonal ? 'Cancelar' : 'Editar'}
+                  </button>
+                </div>
+
+                {isEditingPersonal ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Nombre
+                        </label>
+                        <input
+                          type="text"
+                          name="nombre"
+                          value={editData.nombre}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        />
                       </div>
-                      {editingNotaId !== nota.id && (
-                        <div className="flex space-x-1 ml-2">
-                          <button
-                            onClick={() => startEditing(nota)}
-                            className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
-                            title="Editar nota"
-                          >
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z"
-                              />
-                            </svg>
-                          </button>
-                          <button
-                            onClick={() => handleEliminarNota(nota.id)}
-                            className="p-1 text-gray-400 hover:text-red-600 transition-colors"
-                            title="Eliminar nota"
-                          >
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                              />
-                            </svg>
-                          </button>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Apellidos
+                        </label>
+                        <input
+                          type="text"
+                          name="apellidos"
+                          value={editData.apellidos}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Teléfono
+                        </label>
+                        <input
+                          type="tel"
+                          name="telefono"
+                          value={editData.telefono}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Email
+                        </label>
+                        <input
+                          type="email"
+                          name="email"
+                          value={editData.email}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          DNI
+                        </label>
+                        <input
+                          type="text"
+                          name="dni"
+                          value={editData.dni}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          placeholder="Ej: 12345678A"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Campos de dirección */}
+                    <div className="border-t border-gray-200 pt-4">
+                      <h4 className="text-sm font-medium text-gray-700 mb-3">
+                        Dirección (opcional)
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Dirección
+                          </label>
+                          <input
+                            type="text"
+                            name="direccion"
+                            value={editData.direccion}
+                            onChange={handleInputChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            placeholder="Ej: Calle Mayor 123"
+                          />
                         </div>
-                      )}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Ciudad
+                          </label>
+                          <input
+                            type="text"
+                            name="ciudad"
+                            value={editData.ciudad}
+                            onChange={handleInputChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            placeholder="Ej: Valencia"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Provincia
+                          </label>
+                          <input
+                            type="text"
+                            name="provincia"
+                            value={editData.provincia}
+                            onChange={handleInputChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            placeholder="Ej: Valencia"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Código Postal
+                          </label>
+                          <input
+                            type="text"
+                            name="codigoPostal"
+                            value={editData.codigoPostal}
+                            onChange={handleInputChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            placeholder="Ej: 46001"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Cómo llegó
+                        </label>
+                        <select
+                          name="comoLlego"
+                          value={editData.comoLlego}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        >
+                          <option value="Google">Google</option>
+                          <option value="Recomendado">Recomendado</option>
+                          <option value="Visita directa">Visita directa</option>
+                          <option value="Redes sociales">Redes sociales</option>
+                          <option value="Otro">Otro</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Estado
+                        </label>
+                        <select
+                          name="estado"
+                          value={editData.estado}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        >
+                          <option value="nuevo">Nuevo</option>
+                          <option value="en_seguimiento">En Seguimiento</option>
+                          <option value="cita_agendada">Cita Agendada</option>
+                          <option value="cerrado">Cerrado</option>
+                          <option value="descartado">Descartado</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Prioridad
+                        </label>
+                        <select
+                          name="prioridad"
+                          value={editData.prioridad}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        >
+                          <option value="alta">Alta</option>
+                          <option value="media">Media</option>
+                          <option value="baja">Baja</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end space-x-3">
+                      <button
+                        onClick={() => setIsEditingPersonal(false)}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={handleSavePersonal}
+                        disabled={isSaving}
+                        className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 disabled:opacity-50"
+                      >
+                        {isSaving ? 'Guardando...' : 'Guardar'}
+                      </button>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Información básica */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-500">Teléfono</p>
+                        <p className="font-medium text-gray-900">
+                          {cliente.telefono}
+                        </p>
+                      </div>
+                      {cliente.email && (
+                        <div>
+                          <p className="text-sm text-gray-500">Email</p>
+                          <p className="font-medium text-gray-900">
+                            {cliente.email}
+                          </p>
+                        </div>
+                      )}
+                      {cliente.dni && (
+                        <div>
+                          <p className="text-sm text-gray-500">DNI</p>
+                          <p className="font-medium text-gray-900">
+                            {cliente.dni}
+                          </p>
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-sm text-gray-500">Cómo llegó</p>
+                        <p className="font-medium text-gray-900">
+                          {cliente.comoLlego || 'No especificado'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Primer contacto</p>
+                        <p className="font-medium text-gray-900">
+                          {cliente.fechaPrimerContacto
+                            ? new Date(
+                                cliente.fechaPrimerContacto
+                              ).toLocaleDateString('es-ES')
+                            : 'No especificado'}
+                        </p>
+                      </div>
+                    </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Resumen */}
-            <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Resumen
-              </h3>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm text-gray-500">Cliente desde</p>
-                  <p className="font-medium text-gray-900">
-                    {new Date(cliente.createdAt).toLocaleDateString('es-ES')}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Última actualización</p>
-                  <p className="font-medium text-gray-900">
-                    {new Date(cliente.updatedAt).toLocaleDateString('es-ES')}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">
-                    Total de interacciones
-                  </p>
-                  <p className="font-medium text-gray-900">
-                    {notasCliente.length}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Recordatorios */}
-            <ClientReminders
-              clienteId={cliente.id}
-              clienteNombre={`${cliente.nombre} ${cliente.apellidos}`}
-            />
-
-            {/* Etiquetas */}
-            {cliente.etiquetas &&
-              (Array.isArray(cliente.etiquetas)
-                ? cliente.etiquetas.length > 0
-                : true) && (
-                <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Etiquetas
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {(Array.isArray(cliente.etiquetas)
-                      ? cliente.etiquetas
-                      : typeof cliente.etiquetas === 'string'
-                        ? (() => {
-                            try {
-                              return JSON.parse(cliente.etiquetas)
-                            } catch {
-                              return []
-                            }
-                          })()
-                        : []
-                    ).map((etiqueta, index) => (
-                      <span
-                        key={index}
-                        className="px-2 py-1 bg-gray-100 text-gray-800 text-sm rounded-full"
-                      >
-                        {etiqueta}
-                      </span>
-                    ))}
+                    {/* Información de dirección */}
+                    {(cliente.direccion ||
+                      cliente.ciudad ||
+                      cliente.provincia ||
+                      cliente.codigoPostal) && (
+                      <div className="border-t border-gray-200 pt-4">
+                        <h4 className="text-sm font-medium text-gray-700 mb-3">
+                          Dirección
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {cliente.direccion && (
+                            <div>
+                              <p className="text-sm text-gray-500">Dirección</p>
+                              <p className="font-medium text-gray-900">
+                                {cliente.direccion}
+                              </p>
+                            </div>
+                          )}
+                          {cliente.ciudad && (
+                            <div>
+                              <p className="text-sm text-gray-500">Ciudad</p>
+                              <p className="font-medium text-gray-900">
+                                {cliente.ciudad}
+                              </p>
+                            </div>
+                          )}
+                          {cliente.provincia && (
+                            <div>
+                              <p className="text-sm text-gray-500">Provincia</p>
+                              <p className="font-medium text-gray-900">
+                                {cliente.provincia}
+                              </p>
+                            </div>
+                          )}
+                          {cliente.codigoPostal && (
+                            <div>
+                              <p className="text-sm text-gray-500">
+                                Código Postal
+                              </p>
+                              <p className="font-medium text-gray-900">
+                                {cliente.codigoPostal}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
+                )}
+              </div>
+
+              {/* Intereses */}
+              <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Intereses del Cliente
+                  </h2>
+                  <button
+                    onClick={() => setIsEditingIntereses(!isEditingIntereses)}
+                    className="px-3 py-1 bg-purple-500 text-white text-sm rounded-md hover:bg-purple-600 transition-colors"
+                  >
+                    {isEditingIntereses ? 'Cancelar' : 'Editar'}
+                  </button>
+                </div>
+
+                {isEditingIntereses ? (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Vehículos de interés
+                      </label>
+                      <div className="relative">
+                        {/* Tags existentes */}
+                        <div className="flex flex-wrap gap-2 mb-2 min-h-[40px] p-2 border border-slate-300 rounded-md bg-white">
+                          {(editData.intereses?.vehiculosInteres || [])
+                            .filter((v) => v.trim())
+                            .map((vehiculo, index) => (
+                              <span
+                                key={index}
+                                className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800 border border-blue-200"
+                              >
+                                {vehiculo}
+                                <button
+                                  type="button"
+                                  onClick={() => removeVehiculoInteres(index)}
+                                  className="ml-2 text-blue-600 hover:text-blue-800"
+                                >
+                                  ×
+                                </button>
+                              </span>
+                            ))}
+                          {/* Input para agregar nuevos */}
+                          <input
+                            type="text"
+                            value={currentVehiculoInput}
+                            onChange={(e) =>
+                              setCurrentVehiculoInput(e.target.value)
+                            }
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault()
+                                const inputValue = currentVehiculoInput.trim()
+                                if (inputValue) {
+                                  // Agregar el vehículo a la lista
+                                  setEditData((prev) => ({
+                                    ...prev,
+                                    intereses: {
+                                      ...prev.intereses,
+                                      vehiculosInteres: [
+                                        ...(
+                                          prev.intereses?.vehiculosInteres || []
+                                        ).filter((v) => v.trim()),
+                                        inputValue,
+                                      ],
+                                    },
+                                  }))
+                                  // Limpiar el input
+                                  setCurrentVehiculoInput('')
+                                }
+                              }
+                            }}
+                            className="flex-1 min-w-[200px] px-2 py-1 border-none outline-none bg-transparent text-sm"
+                            placeholder={
+                              (editData.intereses?.vehiculosInteres?.length ||
+                                0) === 0
+                                ? 'Escribe un vehículo y presiona Enter (ej: Fiat Punto)'
+                                : 'Agregar otro vehículo...'
+                            }
+                          />
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          💡 Escribe un vehículo y presiona Enter para
+                          agregarlo. Puedes agregar múltiples vehículos.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Columna izquierda - coincide con el orden de visualización */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Precio máximo (€)
+                        </label>
+                        <input
+                          type="number"
+                          name="intereses.precioMaximo"
+                          value={editData.intereses?.precioMaximo || ''}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Kilometraje máximo
+                        </label>
+                        <input
+                          type="number"
+                          name="intereses.kilometrajeMaximo"
+                          value={editData.intereses?.kilometrajeMaximo || ''}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Combustible preferido
+                        </label>
+                        <select
+                          name="intereses.combustiblePreferido"
+                          value={
+                            editData.intereses?.combustiblePreferido ||
+                            'cualquiera'
+                          }
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        >
+                          <option value="cualquiera">Cualquiera</option>
+                          <option value="diesel">Diésel</option>
+                          <option value="gasolina">Gasolina</option>
+                          <option value="hibrido">Híbrido</option>
+                          <option value="electrico">Eléctrico</option>
+                        </select>
+                      </div>
+
+                      {/* Columna derecha - coincide con el orden de visualización */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Año mínimo
+                        </label>
+                        <input
+                          type="number"
+                          name="intereses.añoMinimo"
+                          value={editData.intereses?.añoMinimo || ''}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Cambio preferido
+                        </label>
+                        <select
+                          name="intereses.cambioPreferido"
+                          value={
+                            editData.intereses?.cambioPreferido || 'cualquiera'
+                          }
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        >
+                          <option value="cualquiera">Cualquiera</option>
+                          <option value="manual">Manual</option>
+                          <option value="automatico">Automático</option>
+                        </select>
+                      </div>
+                      <div>
+                        {/* Espacio vacío para mantener el layout simétrico */}
+                      </div>
+                    </div>
+
+                    {/* Botón de guardar para intereses */}
+                    <div className="flex justify-end pt-4 border-t border-gray-200">
+                      <button
+                        type="button"
+                        onClick={handleSaveIntereses}
+                        disabled={isSaving}
+                        className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                      >
+                        {isSaving ? (
+                          <>
+                            <svg
+                              className="animate-spin h-4 w-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                              ></circle>
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                              ></path>
+                            </svg>
+                            Guardando...
+                          </>
+                        ) : (
+                          <>
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M5 13l4 4L19 7"
+                              />
+                            </svg>
+                            Guardar Intereses
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        Vehículos de interés
+                      </p>
+                      <div className="font-medium text-gray-900">
+                        {cliente.intereses?.vehiculosInteres &&
+                        cliente.intereses.vehiculosInteres.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {cliente.intereses.vehiculosInteres
+                              .filter((v) => v.trim())
+                              .map((vehiculo, index) => (
+                                <span
+                                  key={index}
+                                  className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium"
+                                >
+                                  {vehiculo}
+                                </span>
+                              ))}
+                          </div>
+                        ) : (
+                          <span className="text-gray-500">No especificado</span>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Precio máximo</p>
+                      <p className="font-medium text-gray-900">
+                        {cliente.intereses?.precioMaximo &&
+                        cliente.intereses.precioMaximo > 0
+                          ? `€${cliente.intereses.precioMaximo.toLocaleString()}`
+                          : 'No especificado'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        Kilometraje máximo
+                      </p>
+                      <p className="font-medium text-gray-900">
+                        {cliente.intereses?.kilometrajeMaximo &&
+                        cliente.intereses.kilometrajeMaximo > 0
+                          ? `${cliente.intereses.kilometrajeMaximo.toLocaleString()} km`
+                          : 'No especificado'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Año mínimo</p>
+                      <p className="font-medium text-gray-900">
+                        {cliente.intereses?.añoMinimo &&
+                        cliente.intereses.añoMinimo > 0
+                          ? cliente.intereses.añoMinimo
+                          : 'No especificado'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        Combustible preferido
+                      </p>
+                      <p className="font-medium text-gray-900 capitalize">
+                        {cliente.intereses?.combustiblePreferido ||
+                          'No especificado'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Cambio preferido</p>
+                      <p className="font-medium text-gray-900 capitalize">
+                        {cliente.intereses?.cambioPreferido ||
+                          'No especificado'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Próximo Paso */}
+              {cliente.proximoPaso && (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-blue-900 mb-2">
+                    Próximo Paso
+                  </h3>
+                  <p className="text-blue-800">{cliente.proximoPaso}</p>
                 </div>
               )}
-          </div>
-        </div>
-      </main>
 
-      <ToastContainer />
-      <ConfirmModalComponent />
-    </div>
+              {/* Notas */}
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Notas
+                </h2>
+
+                {/* Formulario para agregar nota */}
+                <div className="mb-4">
+                  <textarea
+                    value={nuevaNota}
+                    onChange={(e) => setNuevaNota(e.target.value)}
+                    placeholder="Agregar una nueva nota..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    rows={3}
+                  />
+                  <button
+                    onClick={handleAgregarNota}
+                    disabled={!nuevaNota.trim()}
+                    className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  >
+                    Agregar Nota
+                  </button>
+                </div>
+
+                {/* Lista de notas */}
+                <div className="space-y-3">
+                  {notasCliente.map((nota) => (
+                    <div
+                      key={nota.id}
+                      className="border border-gray-200 rounded-lg p-3"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          {editingNotaId === nota.id ? (
+                            <div className="space-y-2">
+                              <textarea
+                                value={editingContent || ''}
+                                onChange={(e) =>
+                                  setEditingContent(e.target.value)
+                                }
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                                rows={3}
+                              />
+                              <div className="flex space-x-2">
+                                <button
+                                  onClick={() => handleEditarNota(nota.id)}
+                                  className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                                >
+                                  Guardar
+                                </button>
+                                <button
+                                  onClick={cancelEditing}
+                                  className="px-3 py-1 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm"
+                                >
+                                  Cancelar
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <p className="text-gray-900">{nota.contenido}</p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {nota.usuario} •{' '}
+                                {new Date(nota.fecha).toLocaleDateString(
+                                  'es-ES'
+                                )}
+                              </p>
+                            </>
+                          )}
+                        </div>
+                        {editingNotaId !== nota.id && (
+                          <div className="flex space-x-1 ml-2">
+                            <button
+                              onClick={() => startEditing(nota)}
+                              className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                              title="Editar nota"
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z"
+                                />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => handleEliminarNota(nota.id)}
+                              className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                              title="Eliminar nota"
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Sidebar */}
+            <div className="space-y-6">
+              {/* Resumen */}
+              <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Resumen
+                </h3>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm text-gray-500">Cliente desde</p>
+                    <p className="font-medium text-gray-900">
+                      {new Date(cliente.createdAt).toLocaleDateString('es-ES')}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">
+                      Última actualización
+                    </p>
+                    <p className="font-medium text-gray-900">
+                      {new Date(cliente.updatedAt).toLocaleDateString('es-ES')}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">
+                      Total de interacciones
+                    </p>
+                    <p className="font-medium text-gray-900">
+                      {notasCliente.length}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recordatorios */}
+              <ClientReminders
+                clienteId={cliente.id}
+                clienteNombre={`${cliente.nombre} ${cliente.apellidos}`}
+              />
+
+              {/* Etiquetas */}
+              {cliente.etiquetas &&
+                (Array.isArray(cliente.etiquetas)
+                  ? cliente.etiquetas.length > 0
+                  : true) && (
+                  <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      Etiquetas
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {(Array.isArray(cliente.etiquetas)
+                        ? cliente.etiquetas
+                        : typeof cliente.etiquetas === 'string'
+                          ? (() => {
+                              try {
+                                return JSON.parse(cliente.etiquetas)
+                              } catch {
+                                return []
+                              }
+                            })()
+                          : []
+                      ).map((etiqueta, index) => (
+                        <span
+                          key={index}
+                          className="px-2 py-1 bg-gray-100 text-gray-800 text-sm rounded-full"
+                        >
+                          {etiqueta}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+            </div>
+          </div>
+        </main>
+
+        <ToastContainer />
+        <ConfirmModalComponent />
+      </div>
+    </ProtectedRoute>
   )
 }

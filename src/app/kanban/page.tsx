@@ -7,6 +7,7 @@ import { useConfirmModal } from '@/components/ConfirmModal'
 import { useAutoSync } from '@/hooks/useAutoSync'
 import { KanbanLoadingSkeleton } from '@/components/LoadingSkeleton'
 import { formatVehicleReference } from '@/lib/utils'
+import ProtectedRoute from '@/components/ProtectedRoute'
 
 interface Vehiculo {
   id: number
@@ -323,63 +324,45 @@ export default function KanbanPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* Header fijo */}
-      <div className="bg-white border-b border-slate-200 px-6 py-4 flex-shrink-0">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col space-y-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-xl font-bold text-slate-800">
-                  Tablero de Procesos
-                </h1>
-                <p className="text-sm text-slate-600">
-                  Arrastra y suelta los vehículos entre las diferentes etapas
-                </p>
+    <ProtectedRoute>
+      <div className="min-h-screen bg-slate-50 flex flex-col">
+        {/* Header fijo */}
+        <div className="bg-white border-b border-slate-200 px-6 py-4 flex-shrink-0">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex flex-col space-y-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h1 className="text-xl font-bold text-slate-800">
+                    Tablero de Procesos
+                  </h1>
+                  <p className="text-sm text-slate-600">
+                    Arrastra y suelta los vehículos entre las diferentes etapas
+                  </p>
+                </div>
+                <button
+                  onClick={handleManualSync}
+                  disabled={isLoading}
+                  className="bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                >
+                  <span>🔄</span>
+                  <span>Actualizar Datos</span>
+                </button>
               </div>
-              <button
-                onClick={handleManualSync}
-                disabled={isLoading}
-                className="bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-              >
-                <span>🔄</span>
-                <span>Actualizar Datos</span>
-              </button>
-            </div>
 
-            {/* Barra de búsqueda */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-1">
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Buscar vehículos en el tablero..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full px-4 py-2 pl-10 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white transition-all duration-300"
-                  />
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg
-                      className="h-4 w-4 text-slate-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                      />
-                    </svg>
-                  </div>
-                  {searchTerm && (
-                    <button
-                      onClick={() => setSearchTerm('')}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
-                    >
+              {/* Barra de búsqueda */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-1">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Buscar vehículos en el tablero..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full px-4 py-2 pl-10 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white transition-all duration-300"
+                    />
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <svg
-                        className="h-4 w-4"
+                        className="h-4 w-4 text-slate-400"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -388,255 +371,275 @@ export default function KanbanPage() {
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                         />
                       </svg>
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <select
-                value={searchField}
-                onChange={(e) => setSearchField(e.target.value as any)}
-                className="px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white transition-all duration-300 min-w-[150px]"
-              >
-                <option value="todos">Todos los campos</option>
-                <option value="referencia">Referencia</option>
-                <option value="marca">Marca</option>
-                <option value="modelo">Modelo</option>
-                <option value="matricula">Matrícula</option>
-                <option value="bastidor">Bastidor</option>
-                <option value="tipo">Tipo</option>
-              </select>
-
-              <div className="flex items-center space-x-2 text-sm text-slate-600">
-                <span>Total: {vehiculos.length}</span>
-                <span>•</span>
-                <span>Mostrando: {filteredVehiculos.length}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Tablero Kanban - Ancho completo */}
-      <div className="flex-1 overflow-hidden p-4">
-        <div className="w-full h-full">
-          <KanbanBoard
-            vehiculos={filteredVehiculos}
-            onUpdateVehiculos={handleUpdateVehiculos}
-          />
-        </div>
-      </div>
-
-      {/* Modal de Edición */}
-      {showEditModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            {/* Header del Modal */}
-            <div className="bg-green-600 px-6 py-4 rounded-t-lg">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold text-white">
-                  Editar Vehículo
-                </h2>
-                <button
-                  onClick={closeEditModal}
-                  className="text-white hover:text-green-100 transition-colors"
-                >
-                  <svg
-                    className="w-6 h-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            {/* Formulario de Edición */}
-            <form onSubmit={handleUpdate} className="p-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label
-                    htmlFor="edit-referencia"
-                    className="block text-sm font-medium text-slate-700 mb-1"
-                  >
-                    Referencia *
-                  </label>
-                  <input
-                    type="text"
-                    id="edit-referencia"
-                    name="referencia"
-                    value={editFormData.referencia}
-                    onChange={handleEditInputChange}
-                    required
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                    placeholder="Ej: #1040"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="edit-tipo"
-                    className="block text-sm font-medium text-slate-700 mb-1"
-                  >
-                    Tipo *
-                  </label>
-                  <select
-                    id="edit-tipo"
-                    name="tipo"
-                    value={editFormData.tipo}
-                    onChange={handleEditInputChange}
-                    required
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                  >
-                    <option value="">Seleccionar tipo</option>
-                    <option value="Compra">Compra</option>
-                    <option value="Coche R">Coche R</option>
-                    <option value="Deposito Venta">Deposito Venta</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label
-                    htmlFor="edit-marca"
-                    className="block text-sm font-medium text-slate-700 mb-1"
-                  >
-                    Marca *
-                  </label>
-                  <input
-                    type="text"
-                    id="edit-marca"
-                    name="marca"
-                    value={editFormData.marca}
-                    onChange={handleEditInputChange}
-                    required
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                    placeholder="Ej: Opel"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="edit-modelo"
-                    className="block text-sm font-medium text-slate-700 mb-1"
-                  >
-                    Modelo *
-                  </label>
-                  <input
-                    type="text"
-                    id="edit-modelo"
-                    name="modelo"
-                    value={editFormData.modelo}
-                    onChange={handleEditInputChange}
-                    required
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                    placeholder="Ej: Corsa"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label
-                    htmlFor="edit-matricula"
-                    className="block text-sm font-medium text-slate-700 mb-1"
-                  >
-                    Matrícula *
-                  </label>
-                  <input
-                    type="text"
-                    id="edit-matricula"
-                    name="matricula"
-                    value={editFormData.matricula}
-                    onChange={handleEditInputChange}
-                    required
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors font-mono"
-                    placeholder="Ej: 1234ABC"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="edit-bastidor"
-                    className="block text-sm font-medium text-slate-700 mb-1"
-                  >
-                    Bastidor *
-                  </label>
-                  <input
-                    type="text"
-                    id="edit-bastidor"
-                    name="bastidor"
-                    value={editFormData.bastidor}
-                    onChange={handleEditInputChange}
-                    required
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors font-mono"
-                    placeholder="Ej: W0L00000000000000"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="edit-kms"
-                  className="block text-sm font-medium text-slate-700 mb-1"
-                >
-                  Kilómetros *
-                </label>
-                <input
-                  type="number"
-                  id="edit-kms"
-                  name="kms"
-                  value={editFormData.kms}
-                  onChange={handleEditInputChange}
-                  required
-                  min="0"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                  placeholder="Ej: 50000"
-                />
-              </div>
-
-              {/* Botones del Modal */}
-              <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={closeEditModal}
-                  className="px-4 py-2 bg-slate-200 text-slate-700 rounded-md hover:bg-slate-300 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isUpdating}
-                  className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {isUpdating ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                      <span>Actualizando...</span>
                     </div>
-                  ) : (
-                    'Actualizar'
-                  )}
-                </button>
+                    {searchTerm && (
+                      <button
+                        onClick={() => setSearchTerm('')}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+                      >
+                        <svg
+                          className="h-4 w-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <select
+                  value={searchField}
+                  onChange={(e) => setSearchField(e.target.value as any)}
+                  className="px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white transition-all duration-300 min-w-[150px]"
+                >
+                  <option value="todos">Todos los campos</option>
+                  <option value="referencia">Referencia</option>
+                  <option value="marca">Marca</option>
+                  <option value="modelo">Modelo</option>
+                  <option value="matricula">Matrícula</option>
+                  <option value="bastidor">Bastidor</option>
+                  <option value="tipo">Tipo</option>
+                </select>
+
+                <div className="flex items-center space-x-2 text-sm text-slate-600">
+                  <span>Total: {vehiculos.length}</span>
+                  <span>•</span>
+                  <span>Mostrando: {filteredVehiculos.length}</span>
+                </div>
               </div>
-            </form>
+            </div>
           </div>
         </div>
-      )}
 
-      <ToastContainer />
-      <ConfirmModalComponent />
-    </div>
+        {/* Tablero Kanban - Ancho completo */}
+        <div className="flex-1 overflow-hidden p-4">
+          <div className="w-full h-full">
+            <KanbanBoard
+              vehiculos={filteredVehiculos}
+              onUpdateVehiculos={handleUpdateVehiculos}
+            />
+          </div>
+        </div>
+
+        {/* Modal de Edición */}
+        {showEditModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              {/* Header del Modal */}
+              <div className="bg-green-600 px-6 py-4 rounded-t-lg">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-xl font-bold text-white">
+                    Editar Vehículo
+                  </h2>
+                  <button
+                    onClick={closeEditModal}
+                    className="text-white hover:text-green-100 transition-colors"
+                  >
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Formulario de Edición */}
+              <form onSubmit={handleUpdate} className="p-6 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      htmlFor="edit-referencia"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Referencia *
+                    </label>
+                    <input
+                      type="text"
+                      id="edit-referencia"
+                      name="referencia"
+                      value={editFormData.referencia}
+                      onChange={handleEditInputChange}
+                      required
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                      placeholder="Ej: #1040"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="edit-tipo"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Tipo *
+                    </label>
+                    <select
+                      id="edit-tipo"
+                      name="tipo"
+                      value={editFormData.tipo}
+                      onChange={handleEditInputChange}
+                      required
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    >
+                      <option value="">Seleccionar tipo</option>
+                      <option value="Compra">Compra</option>
+                      <option value="Coche R">Coche R</option>
+                      <option value="Deposito Venta">Deposito Venta</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      htmlFor="edit-marca"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Marca *
+                    </label>
+                    <input
+                      type="text"
+                      id="edit-marca"
+                      name="marca"
+                      value={editFormData.marca}
+                      onChange={handleEditInputChange}
+                      required
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                      placeholder="Ej: Opel"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="edit-modelo"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Modelo *
+                    </label>
+                    <input
+                      type="text"
+                      id="edit-modelo"
+                      name="modelo"
+                      value={editFormData.modelo}
+                      onChange={handleEditInputChange}
+                      required
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                      placeholder="Ej: Corsa"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      htmlFor="edit-matricula"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Matrícula *
+                    </label>
+                    <input
+                      type="text"
+                      id="edit-matricula"
+                      name="matricula"
+                      value={editFormData.matricula}
+                      onChange={handleEditInputChange}
+                      required
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors font-mono"
+                      placeholder="Ej: 1234ABC"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="edit-bastidor"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Bastidor *
+                    </label>
+                    <input
+                      type="text"
+                      id="edit-bastidor"
+                      name="bastidor"
+                      value={editFormData.bastidor}
+                      onChange={handleEditInputChange}
+                      required
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors font-mono"
+                      placeholder="Ej: W0L00000000000000"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="edit-kms"
+                    className="block text-sm font-medium text-slate-700 mb-1"
+                  >
+                    Kilómetros *
+                  </label>
+                  <input
+                    type="number"
+                    id="edit-kms"
+                    name="kms"
+                    value={editFormData.kms}
+                    onChange={handleEditInputChange}
+                    required
+                    min="0"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    placeholder="Ej: 50000"
+                  />
+                </div>
+
+                {/* Botones del Modal */}
+                <div className="flex justify-end space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={closeEditModal}
+                    className="px-4 py-2 bg-slate-200 text-slate-700 rounded-md hover:bg-slate-300 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isUpdating}
+                    className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {isUpdating ? (
+                      <div className="flex items-center space-x-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                        <span>Actualizando...</span>
+                      </div>
+                    ) : (
+                      'Actualizar'
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        <ToastContainer />
+        <ConfirmModalComponent />
+      </div>
+    </ProtectedRoute>
   )
 }
