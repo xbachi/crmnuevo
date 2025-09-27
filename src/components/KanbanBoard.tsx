@@ -103,9 +103,7 @@ const KanbanBoard = memo(function KanbanBoard({
   console.log(
     '🎬 [KANBAN] Component rendered with',
     vehiculos.length,
-    'vehicles',
-    'Render count:',
-    Date.now()
+    'vehicles'
   )
 
   const [activeId, setActiveId] = useState<number | null>(null)
