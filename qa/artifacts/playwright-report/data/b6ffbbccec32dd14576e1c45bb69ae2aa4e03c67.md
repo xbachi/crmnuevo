@@ -1,0 +1,132 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+    - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+        - img [ref=e8] [cursor=pointer]
+    - alert [ref=e12]
+    - main [ref=e14]:
+        - generic [ref=e15]:
+            - generic [ref=e18]:
+                - generic [ref=e19]:
+                    - img [ref=e21]
+                    - generic [ref=e23]:
+                        - heading "Clientes" [level=1] [ref=e24]
+                        - paragraph [ref=e25]: 3 registrados • 3 mostrados
+                - generic [ref=e26]:
+                    - button "Actualizar" [ref=e27]:
+                        - img [ref=e28]
+                        - generic [ref=e30]: Actualizar
+                    - button "Notificaciones" [ref=e31]:
+                        - img [ref=e32]
+                        - generic [ref=e34]: Notificaciones
+                    - button "Exportar" [ref=e36]:
+                        - img [ref=e37]
+                        - generic [ref=e39]: Exportar
+                    - button "Dashboard" [ref=e40]:
+                        - img [ref=e41]
+                        - generic [ref=e43]: Dashboard
+                    - button "Nuevo" [ref=e44]:
+                        - img [ref=e45]
+                        - generic [ref=e47]: Nuevo
+            - generic [ref=e48]:
+                - generic [ref=e49]:
+                    - generic [ref=e51]:
+                        - textbox "Buscar clientes por nombre, apellidos..." [ref=e52]
+                        - img [ref=e53]
+                    - generic [ref=e56]:
+                        - textbox "Buscar por coche interesado..." [ref=e57]
+                        - img [ref=e58]
+                    - generic [ref=e60]:
+                        - generic [ref=e61]: '👁️ Vista:'
+                        - generic [ref=e62]:
+                            - button "Vista de cartas" [ref=e63]:
+                                - img [ref=e64]
+                            - button "Vista de lista" [ref=e66]:
+                                - img [ref=e67]
+                - generic [ref=e69]:
+                    - generic [ref=e70]:
+                        - generic [ref=e71]: 'Estado:'
+                        - combobox [ref=e72]:
+                            - option "Todos los estados" [selected]
+                            - option "Nuevo"
+                            - option "En Seguimiento"
+                            - option "Cita Agendada"
+                            - option "Cerrado"
+                            - option "Descartado"
+                    - generic [ref=e73]:
+                        - generic [ref=e74]: 'Prioridad:'
+                        - combobox [ref=e75]:
+                            - option "Todas las prioridades" [selected]
+                            - option "Alta"
+                            - option "Media"
+                            - option "Baja"
+                    - button "Filtros Avanzados" [ref=e76]:
+                        - img [ref=e77]
+                        - generic [ref=e79]: Filtros Avanzados
+        - table [ref=e82]:
+            - rowgroup [ref=e83]:
+                - row "Cliente Contacto Estado Prioridad Interés Presupuesto Acciones" [ref=e84]:
+                    - cell "Cliente" [ref=e85]
+                    - cell "Contacto" [ref=e86]
+                    - cell "Estado" [ref=e87]
+                    - cell "Prioridad" [ref=e88]
+                    - cell "Interés" [ref=e89]
+                    - cell "Presupuesto" [ref=e90]
+                    - cell "Acciones" [ref=e91]
+            - rowgroup [ref=e92]:
+                - 'row "test12 test12 34939489 spelella@gmail.com DNI: 88566365 nuevo media No especificado €0" [ref=e93] [cursor=pointer]':
+                    - cell "test12 test12" [ref=e94] [cursor=pointer]:
+                        - generic [ref=e95] [cursor=pointer]: test12 test12
+                    - 'cell "34939489 spelella@gmail.com DNI: 88566365" [ref=e96] [cursor=pointer]':
+                        - generic [ref=e97] [cursor=pointer]: '34939489'
+                        - generic [ref=e98] [cursor=pointer]: spelella@gmail.com
+                        - generic [ref=e99] [cursor=pointer]: 'DNI: 88566365'
+                    - cell "nuevo" [ref=e100] [cursor=pointer]:
+                        - generic [ref=e101] [cursor=pointer]: nuevo
+                    - cell "media" [ref=e102] [cursor=pointer]:
+                        - generic [ref=e103] [cursor=pointer]: media
+                    - cell "No especificado" [ref=e104] [cursor=pointer]:
+                        - generic [ref=e105] [cursor=pointer]: No especificado
+                    - cell "€0" [ref=e106] [cursor=pointer]:
+                        - generic [ref=e107] [cursor=pointer]: €0
+                    - cell [ref=e108] [cursor=pointer]:
+                        - button "Eliminar cliente" [ref=e110]:
+                            - img [ref=e111]
+                - 'row "prueba7 prueba 24893943 spelella@gmail.com DNI: z015465 nuevo media No especificado €0" [ref=e113] [cursor=pointer]':
+                    - cell "prueba7 prueba" [ref=e114] [cursor=pointer]:
+                        - generic [ref=e115] [cursor=pointer]: prueba7 prueba
+                    - 'cell "24893943 spelella@gmail.com DNI: z015465" [ref=e116] [cursor=pointer]':
+                        - generic [ref=e117] [cursor=pointer]: '24893943'
+                        - generic [ref=e118] [cursor=pointer]: spelella@gmail.com
+                        - generic [ref=e119] [cursor=pointer]: 'DNI: z015465'
+                    - cell "nuevo" [ref=e120] [cursor=pointer]:
+                        - generic [ref=e121] [cursor=pointer]: nuevo
+                    - cell "media" [ref=e122] [cursor=pointer]:
+                        - generic [ref=e123] [cursor=pointer]: media
+                    - cell "No especificado" [ref=e124] [cursor=pointer]:
+                        - generic [ref=e125] [cursor=pointer]: No especificado
+                    - cell "€0" [ref=e126] [cursor=pointer]:
+                        - generic [ref=e127] [cursor=pointer]: €0
+                    - cell [ref=e128] [cursor=pointer]:
+                        - button "Eliminar cliente" [ref=e130]:
+                            - img [ref=e131]
+                - 'row "cliente prueba prueba 67446549 aasd@asd.com DNI: z0147474c nuevo media No especificado €0" [ref=e133] [cursor=pointer]':
+                    - cell "cliente prueba prueba" [ref=e134] [cursor=pointer]:
+                        - generic [ref=e135] [cursor=pointer]: cliente prueba prueba
+                    - 'cell "67446549 aasd@asd.com DNI: z0147474c" [ref=e136] [cursor=pointer]':
+                        - generic [ref=e137] [cursor=pointer]: '67446549'
+                        - generic [ref=e138] [cursor=pointer]: aasd@asd.com
+                        - generic [ref=e139] [cursor=pointer]: 'DNI: z0147474c'
+                    - cell "nuevo" [ref=e140] [cursor=pointer]:
+                        - generic [ref=e141] [cursor=pointer]: nuevo
+                    - cell "media" [ref=e142] [cursor=pointer]:
+                        - generic [ref=e143] [cursor=pointer]: media
+                    - cell "No especificado" [ref=e144] [cursor=pointer]:
+                        - generic [ref=e145] [cursor=pointer]: No especificado
+                    - cell "€0" [ref=e146] [cursor=pointer]:
+                        - generic [ref=e147] [cursor=pointer]: €0
+                    - cell [ref=e148] [cursor=pointer]:
+                        - button "Eliminar cliente" [ref=e150]:
+                            - img [ref=e151]
+```
