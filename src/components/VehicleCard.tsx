@@ -333,7 +333,7 @@ const VehicleCard = memo(function VehicleCard({
 
   return (
     <div
-      className={`rounded-xl border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group bg-white border-gray-200 w-full ${
+      className={`rounded-xl border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group bg-white border-gray-200 w-full min-w-[350px] ${
         vehiculoVendido ? 'opacity-60 grayscale' : ''
       } ${vehiculoReservado ? 'opacity-75' : ''}`}
     >
@@ -488,7 +488,7 @@ const VehicleCard = memo(function VehicleCard({
                 vehiculoReservado ? 'text-gray-500' : 'text-gray-900'
               }`}
             >
-              {truncateText(vehiculo.bastidor, 15)}
+              {vehiculo.bastidor}
             </span>
           </div>
 
