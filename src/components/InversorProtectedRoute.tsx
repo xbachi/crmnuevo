@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useInversorAuth } from '@/contexts/InversorAuthContext'
+import { isCrmUserAuthenticated } from '@/lib/auth-utils'
 
 interface InversorProtectedRouteProps {
   children: React.ReactNode
@@ -14,24 +15,29 @@ export default function InversorProtectedRoute({
   const { inversor, isLoading } = useInversorAuth()
   const router = useRouter()
   const pathname = usePathname()
-  const [isCrmUser, setIsCrmUser] = useState(false)
+  const [isCrmUser, setIsCrmUser] = useState<boolean | null>(null)
 
-  // Verificar si el usuario es un usuario CRM (no inversor)
+  // Verificar si el usuario es un usuario CRM (admin/asesor)
   useEffect(() => {
-    // Si no hay inversor autenticado, asumimos que es un usuario CRM
-    if (!isLoading && !inversor) {
-      setIsCrmUser(true)
-    } else {
-      setIsCrmUser(false)
+    const checkCrmAuth = () => {
+      const crmAuth = isCrmUserAuthenticated()
+      setIsCrmUser(crmAuth)
     }
-  }, [inversor, isLoading])
+
+    // Verificar inmediatamente
+    checkCrmAuth()
+
+    // También verificar después de un pequeño delay para asegurar que el contexto esté listo
+    const timer = setTimeout(checkCrmAuth, 100)
+    return () => clearTimeout(timer)
+  }, [])
 
   useEffect(() => {
     // Solo redirigir si no es usuario CRM y no hay inversor autenticado
     if (
       !isLoading &&
       !inversor &&
-      !isCrmUser &&
+      isCrmUser === false &&
       pathname.startsWith('/inversores/')
     ) {
       router.push('/logininv')
@@ -39,7 +45,7 @@ export default function InversorProtectedRoute({
   }, [inversor, isLoading, isCrmUser, router, pathname])
 
   // Mostrar loading mientras se verifica la autenticación
-  if (isLoading) {
+  if (isLoading || isCrmUser === null) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -47,7 +53,7 @@ export default function InversorProtectedRoute({
     )
   }
 
-  // Permitir acceso si es usuario CRM o si hay inversor autenticado
+  // Permitir acceso si es usuario CRM (admin/asesor) o si hay inversor autenticado
   if (isCrmUser || inversor) {
     return <>{children}</>
   }
