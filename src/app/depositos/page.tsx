@@ -403,7 +403,7 @@ export default function DepositosPage() {
   return (
     <ProtectedRoute>
       <div className="min-h-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-        <main className="w-[90%] mx-auto px-6 py-8">
+        <main className="w-full xl:w-[90%] mx-auto px-4 xl:px-6 py-4 xl:py-8">
           {/* Header Moderno - Estilo Navegación */}
           <div className="mb-6">
             {/* Título y stats compactos */}

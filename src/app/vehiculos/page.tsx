@@ -618,7 +618,7 @@ export default function ListaVehiculos() {
   return (
     <ProtectedRoute>
       <div className="min-h-full bg-gradient-to-br from-slate-50 via-green-50 to-emerald-100">
-        <div className="w-full px-8 sm:px-12 lg:px-16 py-4 sm:py-8">
+        <div className="w-full px-4 sm:px-8 xl:px-12 py-4 sm:py-8">
           {/* Header Moderno - Estilo Navegación */}
           <div className="mb-4 sm:mb-6">
             {/* Título y stats compactos */}
@@ -731,10 +731,10 @@ export default function ListaVehiculos() {
               </div>
             </div>
 
-            {/* Barra de filtros mejorada - Responsive */}
-            <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/60 p-3 sm:p-4 space-y-3 sm:space-y-4">
+            {/* Barra de filtros mejorada - Mobile First */}
+            <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/60 p-3 xl:p-4 space-y-3 xl:space-y-4">
               {/* LÍNEA 1: Búsqueda + Botón Nuevo + Vista */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+              <div className="flex flex-col xl:flex-row items-stretch xl:items-center gap-3 xl:gap-4">
                 {/* Búsqueda */}
                 <div className="flex-1">
                   <div className="relative">
@@ -784,10 +784,10 @@ export default function ListaVehiculos() {
                 {/* Botón Nuevo Vehículo */}
                 <a
                   href="/cargar-vehiculo"
-                  className="px-3 sm:px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-all shadow-lg flex items-center justify-center space-x-1 sm:space-x-2"
+                  className="px-3 xl:px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg text-xs xl:text-sm font-medium transition-all shadow-lg flex items-center justify-center space-x-1 xl:space-x-2"
                 >
                   <svg
-                    className="w-3 h-3 sm:w-4 sm:h-4"
+                    className="w-3 h-3 xl:w-4 xl:h-4"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -799,22 +799,22 @@ export default function ListaVehiculos() {
                       d="M12 4v16m8-8H4"
                     />
                   </svg>
-                  <span className="hidden sm:inline">Nuevo Vehículo</span>
-                  <span className="sm:hidden">Nuevo</span>
+                  <span className="hidden xl:inline">Nuevo Vehículo</span>
+                  <span className="xl:hidden">Nuevo</span>
                 </a>
 
                 {/* Vista con iconos */}
                 <div className="flex items-center gap-2">
-                  <span className="text-xs sm:text-sm font-medium text-slate-600 hidden sm:inline">
+                  <span className="text-xs xl:text-sm font-medium text-slate-600 hidden xl:inline">
                     👁️ Vista:
                   </span>
-                  <span className="text-xs sm:text-sm font-medium text-slate-600 sm:hidden">
+                  <span className="text-xs xl:text-sm font-medium text-slate-600 xl:hidden">
                     👁️
                   </span>
                   <div className="flex bg-slate-100 rounded-xl p-1">
                     <button
                       onClick={() => setViewMode('cartas')}
-                      className={`px-2 sm:px-3 py-2 rounded-lg transition-all flex items-center space-x-1 sm:space-x-2 ${
+                      className={`px-2 xl:px-3 py-2 rounded-lg transition-all flex items-center space-x-1 xl:space-x-2 ${
                         viewMode === 'cartas'
                           ? 'bg-white text-slate-800 shadow-sm'
                           : 'text-slate-600 hover:text-slate-800'
@@ -822,7 +822,7 @@ export default function ListaVehiculos() {
                       title="Vista de cartas"
                     >
                       <svg
-                        className="w-3 h-3 sm:w-4 sm:h-4"
+                        className="w-3 h-3 xl:w-4 xl:h-4"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -837,7 +837,7 @@ export default function ListaVehiculos() {
                     </button>
                     <button
                       onClick={() => setViewMode('lista')}
-                      className={`px-2 sm:px-3 py-2 rounded-lg transition-all flex items-center space-x-1 sm:space-x-2 ${
+                      className={`px-2 xl:px-3 py-2 rounded-lg transition-all flex items-center space-x-1 xl:space-x-2 ${
                         viewMode === 'lista'
                           ? 'bg-white text-slate-800 shadow-sm'
                           : 'text-slate-600 hover:text-slate-800'
@@ -845,7 +845,7 @@ export default function ListaVehiculos() {
                       title="Vista de lista"
                     >
                       <svg
-                        className="w-3 h-3 sm:w-4 sm:h-4"
+                        className="w-3 h-3 xl:w-4 xl:h-4"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -863,16 +863,16 @@ export default function ListaVehiculos() {
               </div>
 
               {/* LÍNEA 2: Filtros responsive */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-4 sm:gap-8 lg:gap-12">
+              <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-center gap-3 xl:gap-8">
                 {/* Filtros de tipo sin iconos */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
-                  <span className="text-xs sm:text-sm font-semibold text-slate-700">
+                <div className="flex flex-col xl:flex-row items-start xl:items-center gap-2 xl:gap-4">
+                  <span className="text-xs xl:text-sm font-semibold text-slate-700">
                     Tipo:
                   </span>
                   <div className="flex flex-wrap bg-slate-50 rounded-lg p-1 border border-slate-200 gap-1">
                     <button
                       onClick={() => setTypeFilter('todos')}
-                      className={`px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
+                      className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm font-medium rounded-md transition-all ${
                         typeFilter === 'todos'
                           ? 'bg-white text-slate-800 shadow-sm border border-slate-200'
                           : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
@@ -882,7 +882,7 @@ export default function ListaVehiculos() {
                     </button>
                     <button
                       onClick={() => setTypeFilter('Compra')}
-                      className={`px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
+                      className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm font-medium rounded-md transition-all ${
                         typeFilter === 'Compra'
                           ? 'bg-green-50 text-green-700 shadow-sm border border-green-200'
                           : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
@@ -892,7 +892,7 @@ export default function ListaVehiculos() {
                     </button>
                     <button
                       onClick={() => setTypeFilter('R')}
-                      className={`px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
+                      className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm font-medium rounded-md transition-all ${
                         typeFilter === 'R'
                           ? 'bg-red-50 text-red-700 shadow-sm border border-red-200'
                           : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
@@ -902,7 +902,7 @@ export default function ListaVehiculos() {
                     </button>
                     <button
                       onClick={() => setTypeFilter('Depósito')}
-                      className={`px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
+                      className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm font-medium rounded-md transition-all ${
                         typeFilter === 'Depósito'
                           ? 'bg-orange-50 text-orange-700 shadow-sm border border-orange-200'
                           : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
@@ -912,7 +912,7 @@ export default function ListaVehiculos() {
                     </button>
                     <button
                       onClick={() => setTypeFilter('inversores')}
-                      className={`px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
+                      className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm font-medium rounded-md transition-all ${
                         typeFilter === 'inversores'
                           ? 'bg-amber-50 text-amber-700 shadow-sm border border-amber-200'
                           : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
@@ -924,75 +924,75 @@ export default function ListaVehiculos() {
                 </div>
 
                 {/* Filtros de estado con iconos - Orden: Activos, Vendidos, Todos */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
-                  <span className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                <div className="flex flex-col xl:flex-row items-start xl:items-center gap-2 xl:gap-4">
+                  <span className="text-xs xl:text-sm font-semibold text-slate-700 flex items-center gap-1">
                     📊 Estado:
                   </span>
                   <div className="flex flex-wrap bg-slate-50 rounded-lg p-1 border border-slate-200 gap-1">
                     <button
                       onClick={() => setStatusFilter('activos')}
-                      className={`px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all flex items-center gap-1 ${
+                      className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm font-medium rounded-md transition-all flex items-center gap-1 ${
                         statusFilter === 'activos'
                           ? 'bg-green-50 text-green-700 shadow-sm border border-green-200'
                           : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                       }`}
                     >
                       <span className="text-xs">✅</span>
-                      <span className="hidden sm:inline">Activos</span>
+                      <span className="hidden xl:inline">Activos</span>
                     </button>
                     <button
                       onClick={() => setStatusFilter('vendidos')}
-                      className={`px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all flex items-center gap-1 ${
+                      className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm font-medium rounded-md transition-all flex items-center gap-1 ${
                         statusFilter === 'vendidos'
                           ? 'bg-red-50 text-red-700 shadow-sm border border-red-200'
                           : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                       }`}
                     >
                       <span className="text-xs">💰</span>
-                      <span className="hidden sm:inline">Vendidos</span>
+                      <span className="hidden xl:inline">Vendidos</span>
                     </button>
                     <button
                       onClick={() => setStatusFilter('reservados')}
-                      className={`px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all flex items-center gap-1 ${
+                      className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm font-medium rounded-md transition-all flex items-center gap-1 ${
                         statusFilter === 'reservados'
                           ? 'bg-yellow-50 text-yellow-700 shadow-sm border border-yellow-200'
                           : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                       }`}
                     >
                       <span className="text-xs">🔒</span>
-                      <span className="hidden sm:inline">Reservados</span>
+                      <span className="hidden xl:inline">Reservados</span>
                     </button>
                     <button
                       onClick={() => setStatusFilter('todos')}
-                      className={`px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all flex items-center gap-1 ${
+                      className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm font-medium rounded-md transition-all flex items-center gap-1 ${
                         statusFilter === 'todos'
                           ? 'bg-white text-slate-800 shadow-sm border border-slate-200'
                           : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                       }`}
                     >
                       <span className="text-xs">⚪</span>
-                      <span className="hidden sm:inline">Todos</span>
+                      <span className="hidden xl:inline">Todos</span>
                     </button>
                   </div>
                 </div>
 
                 {/* Ordenamiento */}
                 <div className="flex items-center gap-2">
-                  <span className="text-xs sm:text-sm font-medium text-slate-600">
+                  <span className="text-xs xl:text-sm font-medium text-slate-600">
                     📊 Orden:
                   </span>
                   <button
                     onClick={() =>
                       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
                     }
-                    className={`px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-medium rounded-lg border-2 transition-all flex items-center space-x-1 sm:space-x-2 ${
+                    className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm font-medium rounded-lg border-2 transition-all flex items-center space-x-1 xl:space-x-2 ${
                       sortOrder === 'asc'
                         ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-sm'
                         : 'bg-orange-50 border-orange-200 text-orange-700 shadow-sm'
                     }`}
                   >
-                    <span className="hidden sm:inline">Ref.</span>
-                    <span className="sm:hidden">#</span>
+                    <span className="hidden xl:inline">Ref.</span>
+                    <span className="xl:hidden">#</span>
                     {sortOrder === 'asc' ? (
                       <svg
                         className="w-4 h-4"
@@ -1345,7 +1345,7 @@ export default function ListaVehiculos() {
             </div>
           ) : (
             /* Vista de Cartas */
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8 items-start">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6 xl:gap-8 items-start">
               {filteredVehiculos.map((vehiculo, index) => (
                 <VehicleCard
                   key={`${vehiculo.id}-${vehiculo.updatedAt}-${index}`}

@@ -333,7 +333,7 @@ const VehicleCard = memo(function VehicleCard({
 
   return (
     <div
-      className={`rounded-xl border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group bg-white border-gray-200 min-w-[380px] ${
+      className={`rounded-xl border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group bg-white border-gray-200 w-full max-w-sm xl:max-w-none ${
         vehiculoVendido ? 'opacity-60 grayscale' : ''
       } ${vehiculoReservado ? 'opacity-75' : ''}`}
     >
@@ -341,7 +341,7 @@ const VehicleCard = memo(function VehicleCard({
 
       {/* Header con gradiente - CLICKEABLE COMPLETO */}
       <div
-        className={`px-4 sm:px-6 py-4 sm:py-5 min-h-[100px] sm:min-h-[115px] border-b cursor-pointer hover:opacity-90 transition-opacity ${
+        className={`px-3 xl:px-6 py-3 xl:py-5 min-h-[80px] xl:min-h-[115px] border-b cursor-pointer hover:opacity-90 transition-opacity ${
           esDeposito
             ? 'bg-gradient-to-r from-orange-200 to-orange-300 border-orange-300'
             : esTipoR
@@ -360,9 +360,9 @@ const VehicleCard = memo(function VehicleCard({
       >
         <div className="flex items-start justify-between">
           {/* Logo del vehículo */}
-          <div className="flex items-start space-x-2 sm:space-x-4">
+          <div className="flex items-start space-x-2 xl:space-x-4">
             <div
-              className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0 ${
+              className={`w-8 h-8 xl:w-12 xl:h-12 rounded-lg xl:rounded-xl flex items-center justify-center shadow-sm flex-shrink-0 ${
                 esDeposito
                   ? 'bg-gradient-to-br from-orange-500 to-orange-600'
                   : esTipoR
@@ -372,13 +372,13 @@ const VehicleCard = memo(function VehicleCard({
                       : 'bg-gradient-to-br from-green-500 to-green-600'
               }`}
             >
-              <span className="text-white font-bold text-xs sm:text-sm">
+              <span className="text-white font-bold text-xs">
                 {formatVehicleReference(vehiculo.referencia, vehiculo.tipo)}
               </span>
             </div>
             <div className="flex-1 min-w-0">
               <h3
-                className={`text-base sm:text-lg font-bold truncate ${
+                className={`text-sm xl:text-lg font-bold truncate ${
                   vehiculoReservado ? 'text-gray-500' : 'text-gray-900'
                 }`}
               >
@@ -455,19 +455,19 @@ const VehicleCard = memo(function VehicleCard({
       </div>
 
       {/* Información principal */}
-      <div className="px-4 sm:px-6 py-4 sm:py-5">
+      <div className="px-3 xl:px-6 py-3 xl:py-5">
         {/* Información del vehículo en formato limpio */}
-        <div className="space-y-3 sm:space-y-4">
+        <div className="space-y-2 xl:space-y-4">
           <div className="flex justify-between items-center">
             <span
-              className={`text-sm sm:text-base ${
+              className={`text-xs xl:text-base ${
                 vehiculoReservado ? 'text-gray-400' : 'text-gray-600'
               }`}
             >
               Matrícula
             </span>
             <span
-              className={`text-sm sm:text-base font-semibold font-mono ${
+              className={`text-xs xl:text-base font-semibold font-mono ${
                 vehiculoReservado ? 'text-gray-500' : 'text-gray-900'
               }`}
             >
@@ -477,14 +477,14 @@ const VehicleCard = memo(function VehicleCard({
 
           <div className="flex justify-between items-center">
             <span
-              className={`text-sm sm:text-base ${
+              className={`text-xs xl:text-base ${
                 vehiculoReservado ? 'text-gray-400' : 'text-gray-600'
               }`}
             >
               Bastidor
             </span>
             <span
-              className={`text-sm sm:text-base font-semibold font-mono ${
+              className={`text-xs xl:text-base font-semibold font-mono ${
                 vehiculoReservado ? 'text-gray-500' : 'text-gray-900'
               }`}
             >
@@ -494,14 +494,14 @@ const VehicleCard = memo(function VehicleCard({
 
           <div className="flex justify-between items-center">
             <span
-              className={`text-sm sm:text-base ${
+              className={`text-xs xl:text-base ${
                 vehiculoReservado ? 'text-gray-400' : 'text-gray-600'
               }`}
             >
               Kilómetros
             </span>
             <span
-              className={`text-sm sm:text-base font-semibold ${
+              className={`text-xs xl:text-base font-semibold ${
                 vehiculoReservado ? 'text-gray-500' : 'text-gray-900'
               }`}
             >
@@ -511,14 +511,14 @@ const VehicleCard = memo(function VehicleCard({
 
           <div className="flex justify-between items-center">
             <span
-              className={`text-sm sm:text-base ${
+              className={`text-xs xl:text-base ${
                 vehiculoReservado ? 'text-gray-400' : 'text-gray-600'
               }`}
             >
               Fecha Matric
             </span>
             <span
-              className={`text-sm sm:text-base font-semibold ${
+              className={`text-xs xl:text-base font-semibold ${
                 vehiculoReservado ? 'text-gray-500' : 'text-gray-900'
               }`}
             >
@@ -551,14 +551,14 @@ const VehicleCard = memo(function VehicleCard({
 
           <div className="flex justify-between items-center">
             <span
-              className={`text-sm sm:text-base ${
+              className={`text-xs xl:text-base ${
                 vehiculoReservado ? 'text-gray-400' : 'text-gray-600'
               }`}
             >
               Color
             </span>
             <span
-              className={`text-sm sm:text-base font-semibold ${
+              className={`text-xs xl:text-base font-semibold ${
                 vehiculoReservado ? 'text-gray-500' : 'text-gray-900'
               }`}
             >
@@ -568,15 +568,15 @@ const VehicleCard = memo(function VehicleCard({
         </div>
 
         {/* Información adicional colapsable */}
-        <div className="border-t border-gray-100 pt-3 sm:pt-4">
+        <div className="border-t border-gray-100 pt-2 xl:pt-4">
           <div className="flex items-center justify-between">
             <button
               onClick={() => setIsExpanded(!isExpanded)}
-              className="flex items-center space-x-1 sm:space-x-2 text-left text-xs sm:text-sm font-semibold text-blue-700 hover:text-blue-800 hover:bg-blue-50 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-blue-200 bg-blue-50/50 transition-all duration-200 shadow-sm hover:shadow-md"
+              className="flex items-center space-x-1 xl:space-x-2 text-left text-xs xl:text-sm font-semibold text-blue-700 hover:text-blue-800 hover:bg-blue-50 px-2 xl:px-3 py-1.5 xl:py-2 rounded-lg border border-blue-200 bg-blue-50/50 transition-all duration-200 shadow-sm hover:shadow-md"
             >
               <span>Información adicional</span>
               <svg
-                className={`w-3 h-3 sm:w-4 sm:h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                className={`w-3 h-3 xl:w-4 xl:h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"

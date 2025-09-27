@@ -315,7 +315,7 @@ export default function ClientesPage() {
   return (
     <ProtectedRoute>
       <div className="min-h-full bg-gradient-to-br from-slate-50 via-orange-50 to-red-100">
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+        <main className="max-w-7xl mx-auto px-4 xl:px-6 py-4 xl:py-8">
           {/* Header Moderno - Estilo Navegación */}
           <div className="mb-4 sm:mb-6">
             {/* Título y stats compactos */}

@@ -175,7 +175,7 @@ export default function DraggableVehicleCard({
     >
       {/* Header del acordeón - Siempre visible */}
       <div
-        className={`p-3 transition-colors ${
+        className={`p-2 xl:p-3 transition-colors ${
           detectVehicleType(vehiculo.referencia) === 'Depósito'
             ? 'hover:bg-orange-100'
             : detectVehicleType(vehiculo.referencia) === 'R'
@@ -189,7 +189,7 @@ export default function DraggableVehicleCard({
           <div className="flex items-center space-x-3 flex-1 min-w-0">
             {/* Logo del vehículo - últimos 2 números */}
             <div
-              className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+              className={`w-6 h-6 xl:w-8 xl:h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
                 detectVehicleType(vehiculo.referencia) === 'Depósito'
                   ? 'bg-gradient-to-br from-orange-500 to-orange-600'
                   : detectVehicleType(vehiculo.referencia) === 'R'
@@ -208,11 +208,11 @@ export default function DraggableVehicleCard({
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1">
-                <h3 className="text-sm font-bold text-gray-900 min-w-0 flex-1">
+                <h3 className="text-xs xl:text-sm font-bold text-gray-900 min-w-0 flex-1">
                   {vehiculo.marca} {vehiculo.modelo}
                 </h3>
                 <span
-                  className={`px-2 py-0.5 text-xs font-medium rounded-lg border ${getTipoColor(vehiculo.referencia)} flex-shrink-0 ml-2`}
+                  className={`px-1.5 xl:px-2 py-0.5 text-xs font-medium rounded-lg border ${getTipoColor(vehiculo.referencia)} flex-shrink-0 ml-1 xl:ml-2`}
                 >
                   {getTipoLetra(vehiculo.referencia)}
                 </span>

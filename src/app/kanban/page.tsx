@@ -327,7 +327,7 @@ export default function KanbanPage() {
     <ProtectedRoute>
       <div className="min-h-screen bg-slate-50 flex flex-col">
         {/* Header fijo */}
-        <div className="bg-white border-b border-slate-200 px-6 py-4 flex-shrink-0">
+        <div className="bg-white border-b border-slate-200 px-4 xl:px-6 py-4 flex-shrink-0">
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col space-y-4">
               <div className="flex justify-between items-center">
