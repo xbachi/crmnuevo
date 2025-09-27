@@ -361,7 +361,14 @@ const KanbanBoard = memo(function KanbanBoard({
         {/* DndContext rendered */}
         <div className="flex flex-col gap-4 h-full">
           {/* Todas las columnas juntas incluyendo Publicado */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 xl:gap-3 flex-1 overflow-x-auto">
+          <div
+            className="flex-1 overflow-x-auto"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+              gap: '12px',
+            }}
+          >
             {ESTADOS.map((estado) => (
               <KanbanColumn
                 key={estado.id}

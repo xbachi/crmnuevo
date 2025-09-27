@@ -41,7 +41,7 @@ export default function KanbanColumn({
   const { setNodeRef, isOver } = useDroppable({ id })
 
   return (
-    <div className="flex flex-col h-full w-full">
+    <div className="flex flex-col h-full w-full min-w-[250px]">
       {/* Header de la columna - Estilo Trello */}
       <div
         className={`${color} px-2 xl:px-3 py-1.5 xl:py-2 rounded-t-md flex items-center justify-between flex-shrink-0`}

@@ -169,7 +169,7 @@ export default function DraggableVehicleCard({
       style={style}
       {...attributes}
       {...listeners}
-      className={`rounded-xl border shadow-sm hover:shadow-md transition-all bg-white border-gray-200 ${
+      className={`rounded-xl border shadow-sm hover:shadow-md transition-all bg-white border-gray-200 min-w-[220px] ${
         isDragging ? 'opacity-50 shadow-lg' : ''
       }`}
     >
