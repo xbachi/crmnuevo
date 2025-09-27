@@ -1069,31 +1069,31 @@ export default function ListaVehiculos() {
             /* Vista de Lista */
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-2xl border border-slate-200/60 overflow-hidden max-w-[1400px] mx-auto">
               <div className="overflow-x-auto">
-                <table className="w-full divide-y divide-slate-200 table-fixed min-w-[800px]">
+                <table className="w-full divide-y divide-slate-200 min-w-[600px]">
                   <thead className="bg-gradient-to-r from-slate-50 to-slate-100">
                     <tr>
-                      <th className="w-24 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      <th className="px-2 lg:px-3 py-2 lg:py-4 text-left text-xs lg:text-sm font-bold text-slate-700 uppercase tracking-wider">
                         Ref.
                       </th>
-                      <th className="w-48 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      <th className="px-2 lg:px-3 py-2 lg:py-4 text-left text-xs lg:text-sm font-bold text-slate-700 uppercase tracking-wider">
                         Vehículo
                       </th>
-                      <th className="w-32 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      <th className="px-2 lg:px-3 py-2 lg:py-4 text-left text-xs lg:text-sm font-bold text-slate-700 uppercase tracking-wider hidden xl:table-cell">
                         Matrícula
                       </th>
-                      <th className="w-40 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider hidden md:table-cell">
+                      <th className="px-2 lg:px-3 py-2 lg:py-4 text-left text-xs lg:text-sm font-bold text-slate-700 uppercase tracking-wider hidden md:table-cell">
                         Bastidor
                       </th>
-                      <th className="w-24 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider hidden lg:table-cell">
+                      <th className="px-2 lg:px-3 py-2 lg:py-4 text-left text-xs lg:text-sm font-bold text-slate-700 uppercase tracking-wider hidden lg:table-cell">
                         KMs
                       </th>
-                      <th className="w-32 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider hidden xl:table-cell">
+                      <th className="px-2 lg:px-3 py-2 lg:py-4 text-left text-xs lg:text-sm font-bold text-slate-700 uppercase tracking-wider hidden xl:table-cell">
                         Tipo
                       </th>
-                      <th className="w-28 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider hidden 2xl:table-cell">
+                      <th className="px-2 lg:px-3 py-2 lg:py-4 text-left text-xs lg:text-sm font-bold text-slate-700 uppercase tracking-wider hidden 2xl:table-cell">
                         Fecha
                       </th>
-                      <th className="w-32 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider hidden xl:table-cell">
+                      <th className="px-2 lg:px-3 py-2 lg:py-4 text-left text-xs lg:text-sm font-bold text-slate-700 uppercase tracking-wider hidden xl:table-cell">
                         Acciones
                       </th>
                     </tr>
@@ -1143,10 +1143,10 @@ export default function ListaVehiculos() {
                             )
                           }
                         >
-                          <td className="px-3 py-4">
+                          <td className="px-2 lg:px-3 py-2 lg:py-4">
                             <div className="flex items-center">
                               <div
-                                className={`w-12 h-10 rounded-lg flex items-center justify-center mr-2 ${
+                                className={`w-8 h-6 lg:w-12 lg:h-10 rounded-lg flex items-center justify-center mr-1 lg:mr-2 ${
                                   vehiculoVendido
                                     ? 'bg-red-600'
                                     : detectVehicleType(vehiculo.referencia) ===
@@ -1163,7 +1163,7 @@ export default function ListaVehiculos() {
                                           : 'bg-gradient-to-br from-green-500 to-green-600'
                                 }`}
                               >
-                                <span className="text-white font-bold text-xs">
+                                <span className="text-white font-bold text-xs lg:text-sm">
                                   {formatVehicleReference(
                                     vehiculo.referencia,
                                     vehiculo.tipo
@@ -1172,12 +1172,24 @@ export default function ListaVehiculos() {
                               </div>
                             </div>
                           </td>
-                          <td className="px-3 py-4">
+                          <td className="px-2 lg:px-3 py-2 lg:py-4">
                             <div>
                               <div
-                                className={`font-semibold text-sm truncate ${vehiculoVendido ? 'text-gray-500' : 'text-slate-900'}`}
+                                className={`font-semibold text-xs lg:text-sm truncate ${vehiculoVendido ? 'text-gray-500' : 'text-slate-900'}`}
                               >
                                 {vehiculo.marca} {vehiculo.modelo}
+                              </div>
+                              {/* Mostrar matrícula debajo del nombre en pantallas <1280px */}
+                              <div className="xl:hidden mt-1">
+                                <span
+                                  className={`font-mono text-xs px-1 py-0.5 rounded ${
+                                    vehiculoVendido
+                                      ? 'bg-gray-200 text-gray-500'
+                                      : 'bg-slate-100 text-slate-600'
+                                  }`}
+                                >
+                                  {vehiculo.matricula}
+                                </span>
                               </div>
                               {/* Indicador de VENDIDO o Alerta de ITV vencida o info básica */}
                               {(() => {
@@ -1231,14 +1243,14 @@ export default function ListaVehiculos() {
                               })()}
                             </div>
                           </td>
-                          <td className="px-3 py-4">
+                          <td className="px-2 lg:px-3 py-2 lg:py-4 hidden xl:table-cell">
                             <div
-                              className={`rounded-lg px-2 py-1 inline-block ${
+                              className={`rounded-lg px-1 lg:px-2 py-1 inline-block ${
                                 vehiculoVendido ? 'bg-gray-200' : 'bg-slate-100'
                               }`}
                             >
                               <span
-                                className={`font-mono font-bold text-sm ${
+                                className={`font-mono font-bold text-xs lg:text-sm ${
                                   vehiculoVendido
                                     ? 'text-gray-500'
                                     : 'text-slate-800'
@@ -1248,9 +1260,9 @@ export default function ListaVehiculos() {
                               </span>
                             </div>
                           </td>
-                          <td className="px-3 py-4 hidden md:table-cell">
+                          <td className="px-2 lg:px-3 py-2 lg:py-4 hidden md:table-cell">
                             <span
-                              className={`font-mono text-xs px-2 py-1 rounded truncate block ${
+                              className={`font-mono text-xs px-1 lg:px-2 py-1 rounded truncate block ${
                                 vehiculoVendido
                                   ? 'text-gray-500 bg-gray-200'
                                   : 'text-slate-600 bg-slate-50'
