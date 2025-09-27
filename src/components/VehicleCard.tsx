@@ -333,7 +333,7 @@ const VehicleCard = memo(function VehicleCard({
 
   return (
     <div
-      className={`rounded-xl border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group bg-white border-gray-200 w-full min-w-[355px] mx-[10px] my-[10px] ${
+      className={`rounded-xl border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group bg-white border-gray-200 w-full min-w-[360px] mx-[10px] my-[10px] ${
         vehiculoVendido ? 'opacity-60 grayscale' : ''
       } ${vehiculoReservado ? 'opacity-75' : ''}`}
     >
