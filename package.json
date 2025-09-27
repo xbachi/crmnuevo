@@ -34,7 +34,7 @@
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f",
-    "prepare": "husky install || true",
+    "prepare": "node -e \"if (process.env.NODE_ENV !== 'production') { require('child_process').execSync('husky install', {stdio: 'inherit'}) }\"",
     "pre-commit": "lint-staged"
   },
   "lint-staged": {
