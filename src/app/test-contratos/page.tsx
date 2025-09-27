@@ -40,7 +40,9 @@ export default function TestContratosPage() {
     importeSena: 5000,
     formaPagoSena: 'transferencia',
     fechaReservaDesde: new Date(),
-    fechaReservaExpira: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 días
+    fechaReservaExpira: new Date(
+      new Date().getTime() + 7 * 24 * 60 * 60 * 1000
+    ), // 7 días
   }
 
   // Datos de prueba para depósito
@@ -117,7 +119,7 @@ export default function TestContratosPage() {
       const url = window.URL.createObjectURL(pdfBlob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `test-${tipo}-${Date.now()}.pdf`
+      link.download = `test-${tipo}-${new Date().getTime()}.pdf`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)

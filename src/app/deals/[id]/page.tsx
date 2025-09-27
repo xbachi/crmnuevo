@@ -657,7 +657,7 @@ export default function DealDetail() {
                     tipo: 'otro',
                     prioridad: 'alta',
                     fechaRecordatorio: new Date(
-                      Date.now() + 7 * 24 * 60 * 60 * 1000
+                      new Date().getTime() + 7 * 24 * 60 * 60 * 1000
                     ).toISOString(), // 7 días desde ahora
                     dealId: deal.id,
                   }),

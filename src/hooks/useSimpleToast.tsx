@@ -12,19 +12,23 @@ interface Toast {
 export function useSimpleToast() {
   const [toasts, setToasts] = useState<Toast[]>([])
 
-  const showToast = (message: string, type: Toast['type'] = 'info', duration = 3000) => {
-    const id = Math.random().toString(36).substr(2, 9)
+  const showToast = (
+    message: string,
+    type: Toast['type'] = 'info',
+    duration = 3000
+  ) => {
+    const id = `toast-${toasts.length + 1}`
     const newToast: Toast = { id, message, type, duration }
-    
-    setToasts(prev => [...prev, newToast])
-    
+
+    setToasts((prev) => [...prev, newToast])
+
     setTimeout(() => {
-      setToasts(prev => prev.filter(toast => toast.id !== id))
+      setToasts((prev) => prev.filter((toast) => toast.id !== id))
     }, duration)
   }
 
   const removeToast = (id: string) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id))
+    setToasts((prev) => prev.filter((toast) => toast.id !== id))
   }
 
   const ToastContainer = () => {
@@ -32,7 +36,7 @@ export function useSimpleToast() {
 
     return (
       <div className="fixed top-4 right-4 z-50 space-y-2">
-        {toasts.map(toast => (
+        {toasts.map((toast) => (
           <div
             key={toast.id}
             className={`

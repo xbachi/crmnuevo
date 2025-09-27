@@ -21,22 +21,26 @@ export function useToast() {
   if (!context) {
     throw new Error('useToast must be used within a ToastProvider')
   }
-  
+
   const [toasts, setToasts] = useState<Toast[]>([])
-  
-  const showToast = (message: string, type: Toast['type'] = 'info', duration = 3000) => {
-    const id = Math.random().toString(36).substr(2, 9)
+
+  const showToast = (
+    message: string,
+    type: Toast['type'] = 'info',
+    duration = 3000
+  ) => {
+    const id = `toast-${toasts.length + 1}`
     const newToast: Toast = { id, message, type, duration }
-    
-    setToasts(prev => [...prev, newToast])
-    
+
+    setToasts((prev) => [...prev, newToast])
+
     setTimeout(() => {
-      setToasts(prev => prev.filter(toast => toast.id !== id))
+      setToasts((prev) => prev.filter((toast) => toast.id !== id))
     }, duration)
   }
 
   const removeToast = (id: string) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id))
+    setToasts((prev) => prev.filter((toast) => toast.id !== id))
   }
 
   const ToastContainerComponent = () => (
@@ -53,28 +57,33 @@ interface ToastProviderProps {
 export function ToastProvider({ children }: ToastProviderProps) {
   const [toasts, setToasts] = useState<Toast[]>([])
 
-  const showToast = (message: string, type: Toast['type'] = 'info', duration = 3000) => {
-    const id = Math.random().toString(36).substr(2, 9)
+  const showToast = (
+    message: string,
+    type: Toast['type'] = 'info',
+    duration = 3000
+  ) => {
+    const id = `toast-${toasts.length + 1}`
     const newToast: Toast = { id, message, type, duration }
-    
-    setToasts(prev => [...prev, newToast])
-    
+
+    setToasts((prev) => [...prev, newToast])
+
     setTimeout(() => {
-      setToasts(prev => prev.filter(toast => toast.id !== id))
+      setToasts((prev) => prev.filter((toast) => toast.id !== id))
     }, duration)
   }
 
   const removeToast = (id: string) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id))
+    setToasts((prev) => prev.filter((toast) => toast.id !== id))
   }
 
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      {typeof window !== 'undefined' && createPortal(
-        <ToastContainer toasts={toasts} onRemove={removeToast} />,
-        document.body
-      )}
+      {typeof window !== 'undefined' &&
+        createPortal(
+          <ToastContainer toasts={toasts} onRemove={removeToast} />,
+          document.body
+        )}
     </ToastContext.Provider>
   )
 }
@@ -89,7 +98,7 @@ export function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
 
   return (
     <div className="fixed top-4 right-4 z-50 space-y-2">
-      {toasts.map(toast => (
+      {toasts.map((toast) => (
         <ToastItem
           key={toast.id}
           toast={toast}

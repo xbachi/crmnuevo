@@ -252,7 +252,7 @@ export default function ListaVehiculos() {
       // Verificar si hay un timestamp reciente de creación de vehículo
       const lastVehicleCreation = localStorage.getItem('lastVehicleCreation')
       if (lastVehicleCreation) {
-        const now = Date.now()
+        const now = new Date().getTime()
         const timeDiff = now - parseInt(lastVehicleCreation)
         // Si fue hace menos de 10 segundos, refrescar
         if (timeDiff < 10000) {
