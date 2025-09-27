@@ -295,6 +295,7 @@ export default function Navigation() {
               ? 'w-16'
               : 'w-56'
         }
+        ${isMobile ? 'hidden' : 'block'}
       `}
       >
         {/* Header con Logo */}
