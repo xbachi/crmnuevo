@@ -1072,7 +1072,7 @@ export default function ListaVehiculos() {
                 <table className="w-full divide-y divide-slate-200 min-w-[600px]">
                   <thead className="bg-gradient-to-r from-slate-50 to-slate-100">
                     <tr>
-                      <th className="px-2 lg:px-3 py-2 lg:py-4 text-left text-xs lg:text-sm font-bold text-slate-700 uppercase tracking-wider max-md:w-auto">
+                      <th className="px-2 lg:px-3 py-2 lg:py-4 text-left text-xs lg:text-sm font-bold text-slate-700 uppercase tracking-wider max-[900px]:w-auto">
                         Ref.
                       </th>
                       <th className="px-2 lg:px-3 py-2 lg:py-4 text-left text-xs lg:text-sm font-bold text-slate-700 uppercase tracking-wider">
@@ -1143,7 +1143,7 @@ export default function ListaVehiculos() {
                             )
                           }
                         >
-                          <td className="px-2 lg:px-3 py-2 lg:py-4 max-md:w-auto">
+                          <td className="px-2 lg:px-3 py-2 lg:py-4 max-[900px]:w-auto">
                             <div className="flex items-center">
                               <div
                                 className={`w-8 h-6 lg:w-12 lg:h-10 rounded-lg flex items-center justify-center mr-1 lg:mr-2 ${
