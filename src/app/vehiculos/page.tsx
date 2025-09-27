@@ -1084,16 +1084,16 @@ export default function ListaVehiculos() {
                       <th className="w-40 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider hidden md:table-cell">
                         Bastidor
                       </th>
-                      <th className="w-24 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      <th className="w-24 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider hidden lg:table-cell">
                         KMs
                       </th>
-                      <th className="w-32 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider hidden sm:table-cell">
+                      <th className="w-32 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider hidden xl:table-cell">
                         Tipo
                       </th>
-                      <th className="w-28 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider hidden xl:table-cell">
+                      <th className="w-28 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider hidden 2xl:table-cell">
                         Fecha
                       </th>
-                      <th className="w-32 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider hidden md:table-cell">
+                      <th className="w-32 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider hidden xl:table-cell">
                         Acciones
                       </th>
                     </tr>
@@ -1270,7 +1270,7 @@ export default function ListaVehiculos() {
                               {vehiculo.kms.toLocaleString()}
                             </span>
                           </td>
-                          <td className="px-2 py-4 hidden sm:table-cell">
+                          <td className="px-2 py-4 hidden xl:table-cell">
                             <span
                               className={`inline-flex px-2 py-1 text-xs font-semibold rounded ${
                                 vehiculoVendido
@@ -1283,7 +1283,7 @@ export default function ListaVehiculos() {
                                 : getTipoText(vehiculo.tipo)}
                             </span>
                           </td>
-                          <td className="px-3 py-4 hidden xl:table-cell text-xs">
+                          <td className="px-3 py-4 hidden 2xl:table-cell text-xs">
                             <span
                               className={
                                 vehiculoVendido
@@ -1296,7 +1296,7 @@ export default function ListaVehiculos() {
                               ).toLocaleDateString()}
                             </span>
                           </td>
-                          <td className="px-3 py-4 hidden md:table-cell">
+                          <td className="px-3 py-4 hidden xl:table-cell">
                             <div className="flex space-x-2">
                               <button
                                 onClick={() => handleEdit(vehiculo)}
