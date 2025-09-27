@@ -1349,7 +1349,7 @@ export default function ListaVehiculos() {
               className="grid gap-4 items-start justify-items-stretch justify-center"
               style={{
                 gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-                maxWidth: 'calc(5 * 320px + 4 * 16px + 2 * 20px)',
+                maxWidth: '100%',
               }}
             >
               {filteredVehiculos.map((vehiculo, index) => (
