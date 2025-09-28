@@ -8,21 +8,13 @@ import { useSafeInversorAuth } from '@/hooks/useSafeInversorAuth'
 
 // Iconos SVG para una mejor apariencia
 const DashboardIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
-  <svg
-    className={isCollapsed ? 'w-10 h-10' : 'w-6 h-6'}
-    fill="currentColor"
-    viewBox="0 0 20 20"
-  >
+  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
     <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
   </svg>
 )
 
 const VehiculosIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
-  <svg
-    className={isCollapsed ? 'w-10 h-10' : 'w-6 h-6'}
-    fill="currentColor"
-    viewBox="0 0 20 20"
-  >
+  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
     <path
       fillRule="evenodd"
       d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
@@ -32,21 +24,13 @@ const VehiculosIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
 )
 
 const ClientesIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
-  <svg
-    className={isCollapsed ? 'w-10 h-10' : 'w-6 h-6'}
-    fill="currentColor"
-    viewBox="0 0 20 20"
-  >
+  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
     <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
   </svg>
 )
 
 const InversoresIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
-  <svg
-    className={isCollapsed ? 'w-10 h-10' : 'w-6 h-6'}
-    fill="currentColor"
-    viewBox="0 0 20 20"
-  >
+  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
     <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
     <path
       fillRule="evenodd"
@@ -57,11 +41,7 @@ const InversoresIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
 )
 
 const KanbanIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
-  <svg
-    className={isCollapsed ? 'w-10 h-10' : 'w-6 h-6'}
-    fill="currentColor"
-    viewBox="0 0 20 20"
-  >
+  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
     <path
       fillRule="evenodd"
       d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V8zm8 0a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1h-4a1 1 0 01-1-1V8z"
@@ -71,11 +51,7 @@ const KanbanIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
 )
 
 const UserIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
-  <svg
-    className={isCollapsed ? 'w-10 h-10' : 'w-6 h-6'}
-    fill="currentColor"
-    viewBox="0 0 20 20"
-  >
+  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
     <path
       fillRule="evenodd"
       d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
@@ -85,11 +61,7 @@ const UserIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
 )
 
 const DealsIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
-  <svg
-    className={isCollapsed ? 'w-10 h-10' : 'w-6 h-6'}
-    fill="currentColor"
-    viewBox="0 0 20 20"
-  >
+  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
     <path
       fillRule="evenodd"
       d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"
@@ -99,11 +71,7 @@ const DealsIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
 )
 
 const ImportIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
-  <svg
-    className={isCollapsed ? 'w-10 h-10' : 'w-6 h-6'}
-    fill="currentColor"
-    viewBox="0 0 20 20"
-  >
+  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
     <path
       fillRule="evenodd"
       d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
@@ -114,7 +82,7 @@ const ImportIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
 
 const DocumentacionIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
   <svg
-    className={isCollapsed ? 'w-10 h-10' : 'w-6 h-6'}
+    className="w-6 h-6"
     fill="none"
     stroke="currentColor"
     viewBox="0 0 24 24"
@@ -129,11 +97,7 @@ const DocumentacionIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
 )
 
 const DepositosIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
-  <svg
-    className={isCollapsed ? 'w-10 h-10' : 'w-6 h-6'}
-    fill="currentColor"
-    viewBox="0 0 20 20"
-  >
+  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
     <path
       fillRule="evenodd"
       d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h4a2 2 0 012 2v2a2 2 0 01-2 2H8a2 2 0 01-2-2v-2z"
@@ -144,7 +108,7 @@ const DepositosIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
 
 const LogoutIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
   <svg
-    className={isCollapsed ? 'w-10 h-10' : 'w-6 h-6'}
+    className="w-6 h-6"
     fill="none"
     stroke="currentColor"
     viewBox="0 0 24 24"
@@ -277,118 +241,109 @@ export default function Navigation() {
       {/* Mobile Overlay */}
       {isMobile && isMobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black bg-opacity-30 z-40 lg:hidden"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
-      {/* Navigation */}
-      <div
-        className={`
-        bg-gray-50 border-r border-gray-200 transition-all duration-300 flex flex-col h-screen sticky top-0 z-30 relative
-        ${
-          isMobile
-            ? `fixed left-0 top-0 transform transition-transform duration-300 ${
-                isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-              } w-64`
-            : shouldShowCollapsed
-              ? 'w-16'
-              : 'w-56'
-        }
-        ${isMobile ? 'hidden' : 'block'}
-      `}
-      >
-        {/* Header con Logo */}
-        <div className="p-4 sm:p-6 border-b border-gray-200">
-          <Link
-            href="/"
-            className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
-            onClick={() => isMobile && setIsMobileMenuOpen(false)}
-          >
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-              <span className="text-white font-bold text-sm sm:text-lg">
-                SC
-              </span>
-            </div>
-            {!shouldShowCollapsed && (
-              <div>
-                <h1 className="text-lg sm:text-xl font-bold text-gray-900">
-                  SevenCars
-                </h1>
-                <p className="text-xs sm:text-sm text-gray-500">CRM Platform</p>
-              </div>
-            )}
-          </Link>
-        </div>
-
-        {/* Navigation Links */}
-        <nav className="flex-1 px-2 sm:px-4 py-4 sm:py-6">
-          <div className="space-y-1 sm:space-y-2">
-            {filteredNavItems.map((item) => {
-              const Icon = item.icon
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center ${shouldShowCollapsed ? 'justify-center px-3 py-4' : 'space-x-2 sm:space-x-3 px-2 sm:px-3 py-2 sm:py-3'} rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 ${
-                    isActive(item.href)
-                      ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-white hover:shadow-sm'
-                  }`}
-                  title={shouldShowCollapsed ? item.label : undefined}
-                  onClick={() => isMobile && setIsMobileMenuOpen(false)}
-                >
-                  <Icon isCollapsed={shouldShowCollapsed} />
-                  {!shouldShowCollapsed && (
-                    <span className="truncate">{item.label}</span>
-                  )}
-                </Link>
-              )
-            })}
-          </div>
-        </nav>
-
-        {/* User Profile Section */}
-        <div className="p-2 sm:p-4 border-t border-gray-200">
-          <div className="bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg p-3 sm:p-4 text-white">
-            <div
-              className={`flex items-center ${shouldShowCollapsed ? 'justify-center' : 'space-x-2 sm:space-x-3'}`}
+      {/* Desktop Navigation */}
+      {!isMobile && (
+        <div
+          className={`
+          bg-white border-r border-gray-200 transition-all duration-300 flex flex-col h-screen sticky top-0 z-30 relative
+          ${shouldShowCollapsed ? 'w-16' : 'w-56'}
+        `}
+        >
+          {/* Header con Logo */}
+          <div className="p-4 sm:p-6 border-b border-gray-200">
+            <Link
+              href="/"
+              className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
             >
-              <div
-                className={`${shouldShowCollapsed ? 'w-12 h-12' : 'w-6 h-6 sm:w-8 sm:h-8'} bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0`}
-              >
-                <UserIcon isCollapsed={shouldShowCollapsed} />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                <span className="text-white font-bold text-sm sm:text-lg">
+                  SC
+                </span>
               </div>
-              {!shouldShowCollapsed && (user || inversor) && (
-                <div className="min-w-0">
-                  <p className="font-medium text-xs sm:text-sm truncate">
-                    {inversor ? inversor.nombre : user?.name}
-                  </p>
-                  <p className="text-xs text-white/80 truncate capitalize">
-                    {inversor ? 'Inversor' : user?.role}
+              {!shouldShowCollapsed && (
+                <div>
+                  <h1 className="text-lg sm:text-xl font-bold text-gray-900">
+                    SevenCars
+                  </h1>
+                  <p className="text-xs sm:text-sm text-gray-500">
+                    CRM Platform
                   </p>
                 </div>
               )}
-            </div>
+            </Link>
           </div>
 
-          {/* Logout Button */}
-          {(user || inversor) && (
-            <button
-              onClick={inversor ? logoutInversor : logout}
-              className={`w-full mt-2 flex items-center ${shouldShowCollapsed ? 'justify-center px-3 py-2' : 'space-x-2 px-2 py-2'} rounded-lg text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-white hover:shadow-sm transition-all duration-200`}
-              title={shouldShowCollapsed ? 'Cerrar sesión' : undefined}
-            >
-              <LogoutIcon isCollapsed={shouldShowCollapsed} />
-              {!shouldShowCollapsed && (
-                <span className="truncate">Cerrar sesión</span>
-              )}
-            </button>
-          )}
-        </div>
+          {/* Navigation Links */}
+          <nav className="flex-1 px-2 sm:px-4 py-4 sm:py-6">
+            <div className="space-y-1 sm:space-y-2">
+              {filteredNavItems.map((item) => {
+                const Icon = item.icon
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center ${shouldShowCollapsed ? 'justify-center px-3 py-4' : 'space-x-2 sm:space-x-3 px-2 sm:px-3 py-2 sm:py-3'} rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 ${
+                      isActive(item.href)
+                        ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-white hover:shadow-sm'
+                    }`}
+                    title={shouldShowCollapsed ? item.label : undefined}
+                  >
+                    <Icon isCollapsed={shouldShowCollapsed} />
+                    {!shouldShowCollapsed && (
+                      <span className="truncate">{item.label}</span>
+                    )}
+                  </Link>
+                )
+              })}
+            </div>
+          </nav>
 
-        {/* Collapse Button - Solo en desktop */}
-        {!isMobile && (
+          {/* User Profile Section */}
+          <div className="p-2 sm:p-4 border-t border-gray-200">
+            <div className="bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg p-3 sm:p-4 text-white">
+              <div
+                className={`flex items-center ${shouldShowCollapsed ? 'justify-center' : 'space-x-2 sm:space-x-3'}`}
+              >
+                <div
+                  className={`${shouldShowCollapsed ? 'w-12 h-12' : 'w-8 h-8'} bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0`}
+                >
+                  <UserIcon isCollapsed={shouldShowCollapsed} />
+                </div>
+                {!shouldShowCollapsed && (user || inversor) && (
+                  <div className="min-w-0">
+                    <p className="font-medium text-xs sm:text-sm truncate">
+                      {inversor ? inversor.nombre : user?.name}
+                    </p>
+                    <p className="text-xs text-white/80 truncate capitalize">
+                      {inversor ? 'Inversor' : user?.role}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Logout Button */}
+            {(user || inversor) && (
+              <button
+                onClick={inversor ? logoutInversor : logout}
+                className={`w-full mt-2 flex items-center ${shouldShowCollapsed ? 'justify-center px-3 py-2' : 'space-x-2 px-2 py-2'} rounded-lg text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-white hover:shadow-sm transition-all duration-200`}
+                title={shouldShowCollapsed ? 'Cerrar sesión' : undefined}
+              >
+                <LogoutIcon isCollapsed={shouldShowCollapsed} />
+                {!shouldShowCollapsed && (
+                  <span className="truncate">Cerrar sesión</span>
+                )}
+              </button>
+            )}
+          </div>
+
+          {/* Collapse Button - Solo en desktop */}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
             className="absolute top-1/2 -right-2 w-6 h-6 bg-white border border-gray-200 rounded-full flex items-center justify-center shadow-sm hover:shadow-md transition-shadow z-10"
@@ -408,8 +363,95 @@ export default function Navigation() {
               />
             </svg>
           </button>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Mobile Navigation */}
+      {isMobile && (
+        <div
+          className={`
+          fixed left-0 top-0 transform transition-transform duration-300 w-64 h-screen bg-white border-r border-gray-200 z-50
+          ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}
+        >
+          {/* Header con Logo */}
+          <div className="p-4 sm:p-6 border-b border-gray-200">
+            <Link
+              href="/"
+              className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                <span className="text-white font-bold text-sm sm:text-lg">
+                  SC
+                </span>
+              </div>
+              <div>
+                <h1 className="text-lg sm:text-xl font-bold text-gray-900">
+                  SevenCars
+                </h1>
+                <p className="text-xs sm:text-sm text-gray-500">CRM Platform</p>
+              </div>
+            </Link>
+          </div>
+
+          {/* Navigation Links */}
+          <nav className="flex-1 px-2 sm:px-4 py-4 sm:py-6">
+            <div className="space-y-1 sm:space-y-2">
+              {filteredNavItems.map((item) => {
+                const Icon = item.icon
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center space-x-2 sm:space-x-3 px-2 sm:px-3 py-2 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 ${
+                      isActive(item.href)
+                        ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-white hover:shadow-sm'
+                    }`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Icon isCollapsed={false} />
+                    <span className="truncate">{item.label}</span>
+                  </Link>
+                )
+              })}
+            </div>
+          </nav>
+
+          {/* User Profile Section */}
+          <div className="p-2 sm:p-4 border-t border-gray-200">
+            <div className="bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg p-3 sm:p-4 text-white">
+              <div className="flex items-center space-x-2 sm:space-x-3">
+                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <UserIcon isCollapsed={false} />
+                </div>
+                {(user || inversor) && (
+                  <div className="min-w-0">
+                    <p className="font-medium text-xs sm:text-sm truncate">
+                      {inversor ? inversor.nombre : user?.name}
+                    </p>
+                    <p className="text-xs text-white/80 truncate capitalize">
+                      {inversor ? 'Inversor' : user?.role}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Logout Button */}
+            {(user || inversor) && (
+              <button
+                onClick={inversor ? logoutInversor : logout}
+                className="w-full mt-2 flex items-center space-x-2 px-2 py-2 rounded-lg text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-white hover:shadow-sm transition-all duration-200"
+              >
+                <LogoutIcon isCollapsed={false} />
+                <span className="truncate">Cerrar sesión</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </>
   )
 }

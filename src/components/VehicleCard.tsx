@@ -14,7 +14,17 @@ interface Vehiculo {
   bastidor: string
   kms: number
   tipo: string
-  estado: 'ACTIVO' | 'VENDIDO' | 'RESERVADO' | 'BORRADOR' | 'FINALIZADO'
+  estado:
+    | 'SIN_ESTADO'
+    | 'REVI_INIC'
+    | 'MECAUTO'
+    | 'REVI_PINTURA'
+    | 'PINTURA'
+    | 'LIMPIEZA'
+    | 'FOTOS'
+    | 'PUBLICADO'
+    | 'VENDIDO'
+    | 'RESERVADO'
   orden: number
   createdAt: string
   esCocheInversor?: boolean
@@ -333,7 +343,7 @@ const VehicleCard = memo(function VehicleCard({
 
   return (
     <div
-      className={`rounded-xl border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group bg-white border-gray-200 w-full min-w-[360px] mx-[10px] my-[10px] ${
+      className={`rounded-xl border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group bg-white border-gray-200 w-full max-w-[500px] min-w-[360px] mx-[10px] my-[10px] ${
         vehiculoVendido ? 'opacity-60 grayscale' : ''
       } ${vehiculoReservado ? 'opacity-75' : ''}`}
     >
@@ -872,7 +882,7 @@ const VehicleCard = memo(function VehicleCard({
                   Estado:
                 </span>
                 <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                  {vehiculo.estado || 'Inicial'}
+                  {vehiculo.estado || 'INICIAL'}
                 </span>
               </>
             )}

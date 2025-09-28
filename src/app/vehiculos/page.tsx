@@ -18,7 +18,17 @@ interface Vehiculo {
   bastidor: string
   kms: number
   tipo: string
-  estado: 'ACTIVO' | 'VENDIDO' | 'RESERVADO' | 'BORRADOR' | 'FINALIZADO'
+  estado:
+    | 'SIN_ESTADO'
+    | 'REVI_INIC'
+    | 'MECAUTO'
+    | 'REVI_PINTURA'
+    | 'PINTURA'
+    | 'LIMPIEZA'
+    | 'FOTOS'
+    | 'PUBLICADO'
+    | 'VENDIDO'
+    | 'RESERVADO'
   orden: number
   createdAt: string
   updatedAt?: string
@@ -75,8 +85,8 @@ export default function ListaVehiculos() {
     | 'tipo'
   >('todos')
   const [statusFilter, setStatusFilter] = useState<
-    'todos' | 'activos' | 'vendidos' | 'reservados'
-  >('activos')
+    'todos' | 'publicados' | 'enProceso' | 'vendidos' | 'reservados'
+  >('publicados')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [typeFilter, setTypeFilter] = useState<
     'todos' | 'Compra' | 'R' | 'Depósito' | 'inversores'
@@ -91,7 +101,7 @@ export default function ListaVehiculos() {
     bastidor: '',
     kms: '',
     tipo: '',
-    estado: 'ACTIVO',
+    estado: 'SIN_ESTADO',
     color: '',
     fechaMatriculacion: '',
     inversorId: '',
@@ -318,8 +328,34 @@ export default function ListaVehiculos() {
           return normalized === 'reservado'
         }
 
-        if (statusFilter === 'activos') {
-          return !isVendido(vehiculo.estado) && !isReservado(vehiculo.estado)
+        const isPublicado = (estado: string | null | undefined): boolean => {
+          if (!estado) return false
+          const normalized = estado.toString().toLowerCase().trim()
+          return normalized === 'publicado'
+        }
+
+        const isEnProceso = (estado: string | null | undefined): boolean => {
+          // Incluir vehículos sin estado (null, undefined, vacío) como "inicial"
+          if (!estado || estado.trim() === '') return true
+          const normalized = estado.toString().toLowerCase().trim()
+          // Estados del proceso de venta que no sean vendido, reservado ni publicado
+          const estadosProceso = [
+            'sin_estado',
+            'inicial',
+            'revi_inic',
+            'mecauto',
+            'revi_pintura',
+            'pintura',
+            'limpieza',
+            'fotos',
+          ]
+          return estadosProceso.includes(normalized)
+        }
+
+        if (statusFilter === 'publicados') {
+          return isPublicado(vehiculo.estado)
+        } else if (statusFilter === 'enProceso') {
+          return isEnProceso(vehiculo.estado)
         } else if (statusFilter === 'vendidos') {
           return isVendido(vehiculo.estado)
         } else if (statusFilter === 'reservados') {
@@ -383,6 +419,68 @@ export default function ListaVehiculos() {
     })
 
     setFilteredVehiculos(filtered)
+  }
+
+  // Funciones para contar vehículos por estado (filtrado por tipo)
+  const getStatusCounts = () => {
+    // Filtrar vehículos por tipo primero
+    let vehiculosFiltrados = vehiculos
+
+    if (typeFilter !== 'todos') {
+      vehiculosFiltrados = vehiculos.filter((vehiculo) => {
+        if (typeFilter === 'inversores') {
+          return vehiculo.esCocheInversor === true
+        } else {
+          return vehiculo.tipo === typeFilter
+        }
+      })
+    }
+
+    const isVendido = (estado: string | null | undefined): boolean => {
+      if (!estado) return false
+      const normalized = estado.toString().toLowerCase().trim()
+      return normalized === 'vendido'
+    }
+
+    const isReservado = (estado: string | null | undefined): boolean => {
+      if (!estado) return false
+      const normalized = estado.toString().toLowerCase().trim()
+      return normalized === 'reservado'
+    }
+
+    const isPublicado = (estado: string | null | undefined): boolean => {
+      if (!estado) return false
+      const normalized = estado.toString().toLowerCase().trim()
+      return normalized === 'publicado'
+    }
+
+    const isEnProceso = (estado: string | null | undefined): boolean => {
+      // Incluir vehículos sin estado (null, undefined, vacío) como "inicial"
+      if (!estado || estado.trim() === '') return true
+      const normalized = estado.toString().toLowerCase().trim()
+      // Estados del proceso de venta que no sean vendido, reservado ni publicado
+      const estadosProceso = [
+        'sin_estado',
+        'inicial',
+        'revi_inic',
+        'mecauto',
+        'revi_pintura',
+        'pintura',
+        'limpieza',
+        'fotos',
+      ]
+      return estadosProceso.includes(normalized)
+    }
+
+    return {
+      publicados: vehiculosFiltrados.filter((v) => isPublicado(v.estado))
+        .length,
+      enProceso: vehiculosFiltrados.filter((v) => isEnProceso(v.estado)).length,
+      vendidos: vehiculosFiltrados.filter((v) => isVendido(v.estado)).length,
+      reservados: vehiculosFiltrados.filter((v) => isReservado(v.estado))
+        .length,
+      todos: vehiculosFiltrados.length,
+    }
   }
 
   const fetchVehiculos = async (page = 1, forceRefresh = false) => {
@@ -590,7 +688,7 @@ export default function ListaVehiculos() {
       bastidor: '',
       kms: '',
       tipo: '',
-      estado: 'ACTIVO',
+      estado: 'SIN_ESTADO',
       color: '',
       fechaMatriculacion: '',
       inversorId: '',
@@ -923,22 +1021,39 @@ export default function ListaVehiculos() {
                   </div>
                 </div>
 
-                {/* Filtros de estado con iconos - Orden: Activos, Vendidos, Todos */}
+                {/* Filtros de estado con iconos - Orden: Publicados, En Proceso, Vendidos, Reservados, Todos */}
                 <div className="flex flex-col xl:flex-row items-start xl:items-center gap-2 xl:gap-4">
                   <span className="text-xs xl:text-sm font-semibold text-slate-700 flex items-center gap-1">
                     📊 Estado:
                   </span>
                   <div className="flex flex-wrap bg-slate-50 rounded-lg p-1 border border-slate-200 gap-1">
                     <button
-                      onClick={() => setStatusFilter('activos')}
+                      onClick={() => setStatusFilter('publicados')}
                       className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm font-medium rounded-md transition-all flex items-center gap-1 ${
-                        statusFilter === 'activos'
+                        statusFilter === 'publicados'
                           ? 'bg-green-50 text-green-700 shadow-sm border border-green-200'
                           : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                       }`}
                     >
                       <span className="text-xs">✅</span>
-                      <span className="hidden xl:inline">Activos</span>
+                      <span className="hidden xl:inline">Publicados</span>
+                      <span className="text-xs">
+                        ({getStatusCounts().publicados})
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => setStatusFilter('enProceso')}
+                      className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm font-medium rounded-md transition-all flex items-center gap-1 ${
+                        statusFilter === 'enProceso'
+                          ? 'bg-orange-50 text-orange-700 shadow-sm border border-orange-200'
+                          : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
+                      }`}
+                    >
+                      <span className="text-xs">🔧</span>
+                      <span className="hidden xl:inline">En Proceso</span>
+                      <span className="text-xs">
+                        ({getStatusCounts().enProceso})
+                      </span>
                     </button>
                     <button
                       onClick={() => setStatusFilter('vendidos')}
@@ -950,6 +1065,9 @@ export default function ListaVehiculos() {
                     >
                       <span className="text-xs">💰</span>
                       <span className="hidden xl:inline">Vendidos</span>
+                      <span className="text-xs">
+                        ({getStatusCounts().vendidos})
+                      </span>
                     </button>
                     <button
                       onClick={() => setStatusFilter('reservados')}
@@ -961,6 +1079,9 @@ export default function ListaVehiculos() {
                     >
                       <span className="text-xs">🔒</span>
                       <span className="hidden xl:inline">Reservados</span>
+                      <span className="text-xs">
+                        ({getStatusCounts().reservados})
+                      </span>
                     </button>
                     <button
                       onClick={() => setStatusFilter('todos')}
@@ -972,6 +1093,9 @@ export default function ListaVehiculos() {
                     >
                       <span className="text-xs">⚪</span>
                       <span className="hidden xl:inline">Todos</span>
+                      <span className="text-xs">
+                        ({getStatusCounts().todos})
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -1435,29 +1559,6 @@ export default function ListaVehiculos() {
               Mostrando {vehiculos.length} de {pagination.total} vehículos
             </div>
           )}
-
-          {/* Botón flotante para agregar vehículo */}
-          <div className="fixed bottom-6 right-6 z-50">
-            <a
-              href="/cargar-vehiculo"
-              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-2xl p-4 shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-110 hover:-translate-y-1"
-              title="Cargar nuevo vehículo"
-            >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                />
-              </svg>
-            </a>
-          </div>
 
           {/* Modal de Edición */}
           {showEditModal && (

@@ -498,17 +498,17 @@ export default function InvestorDashboardPage() {
 
   return (
     <InversorProtectedRoute>
-      <div className="min-h-screen bg-gray-100">
-        <main className="w-[90%] mx-auto px-6 py-4">
+      <div className="min-h-screen bg-gray-50">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
           {/* Header */}
           <div className="mb-6">
-            <div className="flex items-center space-x-4 mb-4">
+            <div className="flex items-center space-x-3 sm:space-x-4 mb-4">
               <button
                 onClick={() => router.push('/inversores')}
                 className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <svg
-                  className="w-6 h-6"
+                  className="w-5 h-5 sm:w-6 sm:h-6"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -522,23 +522,25 @@ export default function InvestorDashboardPage() {
                 </svg>
               </button>
               <div>
-                <h1 className="text-3xl font-bold text-slate-800">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-800">
                   {inversorData?.nombre}
                 </h1>
-                <p className="text-slate-600">Dashboard del inversor</p>
+                <p className="text-sm sm:text-base text-slate-600">
+                  Dashboard del inversor
+                </p>
               </div>
             </div>
 
             {/* Información del inversor */}
-            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 mb-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4 sm:p-6 lg:p-8 mb-6">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
                   Información del Inversor
                 </h2>
                 {!isEditing && !isInvestorUser && (
                   <button
                     onClick={handleEdit}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2"
+                    className="px-3 sm:px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2 text-sm sm:text-base"
                   >
                     <svg
                       className="w-4 h-4"
@@ -1015,10 +1017,10 @@ export default function InvestorDashboardPage() {
             </div>
           </div>
 
-          {/* Layout principal con dos columnas */}
-          <div className="flex gap-6">
-            {/* Contenido principal - 70% del ancho */}
-            <div className="w-[70%]">
+          {/* Layout principal */}
+          <div className="flex flex-col xl:flex-row gap-6">
+            {/* Contenido principal */}
+            <div className="w-full xl:w-[70%]">
               {/* Filtros y controles */}
               <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-8">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0 lg:space-x-4">
@@ -1170,8 +1172,8 @@ export default function InvestorDashboardPage() {
               )}
             </div>
 
-            {/* Sidebar derecho - 30% del ancho */}
-            <div className="w-[30%]">
+            {/* Sidebar derecho - Solo visible en desktop */}
+            <div className="hidden xl:block w-[30%]">
               {/* Bloque de Notas */}
               {inversorData?.id ? (
                 <NotasSection
@@ -1351,6 +1353,246 @@ export default function InvestorDashboardPage() {
                   )}
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Secciones móviles - Solo visible en mobile */}
+          <div className="xl:hidden space-y-6 mt-6">
+            {/* Acordeón de Notas */}
+            {inversorData?.id && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+                <details className="group">
+                  <summary className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                        <svg
+                          className="w-4 h-4 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                          />
+                        </svg>
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        Notas
+                      </h3>
+                    </div>
+                    <svg
+                      className="w-5 h-5 text-gray-400 group-open:rotate-180 transition-transform"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </summary>
+                  <div className="p-4 pt-0">
+                    <NotasSection
+                      notas={notas}
+                      onNotasChange={setNotas}
+                      entityId={inversorData.id}
+                      entityType="inversores"
+                      isReadOnly={isInvestorUser}
+                    />
+                  </div>
+                </details>
+              </div>
+            )}
+
+            {/* Acordeón de Documentos */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+              <details className="group">
+                <summary className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                      <svg
+                        className="w-4 h-4 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Documentos
+                    </h3>
+                  </div>
+                  <svg
+                    className="w-5 h-5 text-gray-400 group-open:rotate-180 transition-transform"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </summary>
+                <div className="p-4 pt-0">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                        <svg
+                          className="w-4 h-4 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                      </div>
+                      <h2 className="text-lg font-semibold text-gray-900">
+                        Documentos
+                      </h2>
+                    </div>
+                    {!isInvestorUser && (
+                      <label className="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors cursor-pointer">
+                        <svg
+                          className="w-4 h-4 inline mr-1"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                          />
+                        </svg>
+                        Subir Archivo
+                        <input
+                          type="file"
+                          multiple
+                          className="hidden"
+                          onChange={handleFileUpload}
+                        />
+                      </label>
+                    )}
+                  </div>
+
+                  {/* Lista de archivos */}
+                  <div className="space-y-2">
+                    {documentos.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        <svg
+                          className="w-12 h-12 mx-auto mb-4 text-gray-300"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                        <p>No hay documentos subidos</p>
+                        <p className="text-sm">
+                          Sube archivos para organizarlos aquí
+                        </p>
+                      </div>
+                    ) : (
+                      documentos.map((doc) => (
+                        <div
+                          key={doc.id}
+                          className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors"
+                        >
+                          <div className="flex items-center space-x-3 flex-1 min-w-0">
+                            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <svg
+                                className="w-4 h-4 text-blue-600"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                />
+                              </svg>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p
+                                className="font-medium text-gray-900 truncate"
+                                title={doc.name}
+                              >
+                                {doc.name.length > 30
+                                  ? `${doc.name.substring(0, 30)}...`
+                                  : doc.name}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {doc.tamañoFormateado} •{' '}
+                                {new Date(doc.uploadDate).toLocaleDateString(
+                                  'es-ES'
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2 flex-shrink-0">
+                            <button
+                              onClick={() => handleDownloadFile(doc.id)}
+                              className="px-3 py-1 bg-green-100 text-green-700 rounded-md text-sm font-medium hover:bg-green-200 transition-colors"
+                              title="Descargar"
+                            >
+                              Descargar
+                            </button>
+                            {!isInvestorUser && (
+                              <button
+                                onClick={() => handleDeleteFile(doc.id)}
+                                className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                                title="Eliminar"
+                              >
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                  />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </details>
             </div>
           </div>
         </main>

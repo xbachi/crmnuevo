@@ -120,7 +120,9 @@ export default function NuevoDealPage() {
       const vehiculosDisponibles = todosVehiculos.filter((vehiculo) => {
         // Filtrar por estado del vehículo directamente
         const estadoDisponible =
-          vehiculo.estado === 'disponible' || vehiculo.estado === 'ACTIVO'
+          vehiculo.estado === 'inicial' ||
+          vehiculo.estado === 'disponible' ||
+          vehiculo.estado === 'ACTIVO'
 
         // También verificar que no tenga un deal activo
         const tieneDealActivo = dealsData.some(
@@ -561,6 +563,7 @@ export default function NuevoDealPage() {
                                   </div>
                                   <div
                                     className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                      vehiculo.estado === 'inicial' ||
                                       vehiculo.estado === 'disponible'
                                         ? 'bg-green-100 text-green-700'
                                         : vehiculo.estado === 'reservado'

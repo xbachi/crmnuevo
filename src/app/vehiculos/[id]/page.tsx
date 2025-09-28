@@ -1147,7 +1147,7 @@ export default function VehiculoDetailPage() {
 
   // Función para determinar la condición del vehículo basada en el estado
   const getCondicionVehiculo = () => {
-    if (!vehiculo?.estado) return 'disponible'
+    if (!vehiculo?.estado) return 'INICIAL'
 
     const estado = vehiculo.estado.toLowerCase()
 
