@@ -469,7 +469,7 @@ export default function InvestorDashboardPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-primary-50 to-primary-100">
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="w-[90%] mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <LoadingSkeleton />
         </main>
       </div>
@@ -479,7 +479,7 @@ export default function InvestorDashboardPage() {
   if (!inversorData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-primary-50 to-primary-100">
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="w-[90%] mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center py-12">
             <h1 className="text-2xl font-bold text-gray-900 mb-4">
               Inversor no encontrado
@@ -499,7 +499,7 @@ export default function InvestorDashboardPage() {
   return (
     <InversorProtectedRoute>
       <div className="min-h-screen bg-gray-50">
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+        <main className="w-[90%] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
           {/* Header */}
           <div className="mb-6">
             <div className="flex items-center space-x-3 sm:space-x-4 mb-4">
@@ -841,6 +841,24 @@ export default function InvestorDashboardPage() {
                   {/* Resumen de Capital - Centro (60%) */}
                   {metrics && (
                     <div className="w-full lg:w-3/5 mb-6 lg:mb-0 lg:mr-6">
+                      {/* Indicadores de Stock - Arriba del Resumen de Capital */}
+                      <div className="flex justify-center mb-6">
+                        <div className="flex items-center space-x-6">
+                          <div className="flex items-center space-x-2 bg-blue-50 px-4 py-2 rounded-lg border border-blue-200">
+                            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                            <span className="text-sm font-medium text-blue-700">
+                              En Stock: {metrics.totalEnStock}
+                            </span>
+                          </div>
+                          <div className="flex items-center space-x-2 bg-green-50 px-4 py-2 rounded-lg border border-green-200">
+                            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                            <span className="text-sm font-medium text-green-700">
+                              Vendidos: {metrics.totalVendidos}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
                       <h3 className="text-xl font-semibold text-gray-700 mb-6 text-center">
                         Resumen de Capital
                       </h3>
@@ -1096,26 +1114,6 @@ export default function InvestorDashboardPage() {
                       </div>
                     </div>
                   </div>
-
-                  <div className="flex items-center space-x-4">
-                    {/* Indicadores de Stock */}
-                    {metrics && (
-                      <div className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-2 bg-blue-50 px-3 py-2 rounded-lg">
-                          <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                          <span className="text-sm font-medium text-blue-700">
-                            En Stock: {metrics.totalEnStock}
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-2 bg-green-50 px-3 py-2 rounded-lg">
-                          <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                          <span className="text-sm font-medium text-green-700">
-                            Vendidos: {metrics.totalVendidos}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
                 </div>
               </div>
 
@@ -1194,13 +1192,15 @@ export default function InvestorDashboardPage() {
 
               {/* Bloque de Recordatorios */}
               {inversorData?.id ? (
-                <InversorReminders
-                  inversorId={inversorData.id}
-                  inversorNombre={inversorData.nombre}
-                  isReadOnly={isInvestorUser}
-                />
+                <div className="mt-8">
+                  <InversorReminders
+                    inversorId={inversorData.id}
+                    inversorNombre={inversorData.nombre}
+                    isReadOnly={isInvestorUser}
+                  />
+                </div>
               ) : (
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mt-6">
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mt-8">
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">
                     Recordatorios
                   </h2>
