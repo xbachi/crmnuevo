@@ -968,17 +968,17 @@ export async function updateVehiculo(
       .map((field, index) => `"${field}" = $${index + 2}`)
       .join(', ')
 
-    console.log('🔄 Actualizando vehículo ID:', id)
-    console.log('📋 Campos a actualizar:', fields)
-    console.log('💾 Valores:', values)
-    console.log('🔧 SET clause:', setClause)
-    console.log('🔍 vehiculoData completo:', vehiculoData)
-    console.log('🔍 Campos de documentación:', {
-      itv: vehiculoData.itv,
-      seguro: vehiculoData.seguro,
-      segundaLlave: vehiculoData.segundaLlave,
-      documentacion: vehiculoData.documentacion,
-    })
+    // console.log('🔄 Actualizando vehículo ID:', id)
+    // console.log('📋 Campos a actualizar:', fields)
+    // console.log('💾 Valores:', values)
+    // console.log('🔧 SET clause:', setClause)
+    // console.log('🔍 vehiculoData completo:', vehiculoData)
+    // console.log('🔍 Campos de documentación:', {
+    //   itv: vehiculoData.itv,
+    //   seguro: vehiculoData.seguro,
+    //   segundaLlave: vehiculoData.segundaLlave,
+    //   documentacion: vehiculoData.documentacion,
+    // })
 
     console.log('🔧 Ejecutando query SQL...')
     console.log(
@@ -1575,7 +1575,7 @@ export async function getInversorMetrics(inversorId: number) {
 export async function cleanupOrphanVehicles() {
   const client = await pool.connect()
   try {
-    console.log('🧹 Iniciando limpieza de vehículos huérfanos...')
+    // console.log('🧹 Iniciando limpieza de vehículos huérfanos...')
 
     // Buscar vehículos que tienen dealActivoId pero el deal no existe
     const orphanVehicles = await client.query(`
@@ -1601,7 +1601,7 @@ export async function cleanupOrphanVehicles() {
         orphanVehicles.rows.map((v) => v.id)
       )
 
-      console.log(`✅ Liberados ${updateResult.rowCount} vehículos huérfanos`)
+      // console.log(`✅ Liberados ${updateResult.rowCount} vehículos huérfanos`)
 
       // Log de los vehículos liberados
       orphanVehicles.rows.forEach((vehicle) => {

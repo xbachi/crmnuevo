@@ -293,12 +293,12 @@ export default function DealDetail() {
 
   const fetchNotas = async () => {
     try {
-      console.log(`📝 [DEAL] Obteniendo notas para deal ${params.id}`)
+      // console.log(`📝 [DEAL] Obteniendo notas para deal ${params.id}`)
       const response = await fetch(`/api/deals/${params.id}/notas`)
       if (response.ok) {
         const data = await response.json()
         setNotas(data)
-        console.log(`✅ [DEAL] Notas cargadas:`, data.length)
+        // console.log(`✅ [DEAL] Notas cargadas:`, data.length)
       } else {
         console.error('Error al obtener notas:', response.statusText)
         setNotas([])
@@ -815,7 +815,7 @@ export default function DealDetail() {
     if (!nuevaNota.trim() || !params.id) return
 
     try {
-      console.log(`📝 [DEAL NOTA] Agregando nota para deal ${params.id}`)
+      // console.log(`📝 [DEAL NOTA] Agregando nota para deal ${params.id}`)
       const response = await fetch(`/api/deals/${params.id}/notas`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1614,7 +1614,7 @@ export default function DealDetail() {
                 }}
                 onUpdate={(data) => {
                   // Aquí podrías actualizar el estado del deal si es necesario
-                  console.log('Venta info updated:', data)
+                  // console.log('Venta info updated:', data)
                 }}
               />
 

@@ -117,8 +117,8 @@ export async function GET() {
             NULL as cliente_apellidos,
             NULL as vehiculo_marca,
             NULL as vehiculo_modelo
-          FROM DepositoRecordatorios dr
-          LEFT JOIN depositos d ON dr.deposito_id = d.id
+          FROM "DepositoRecordatorios" dr
+          LEFT JOIN "depositos" d ON dr.deposito_id = d.id
           WHERE dr.completado = false
           ORDER BY dr.fecha_recordatorio ASC
         `)

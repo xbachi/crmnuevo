@@ -6,12 +6,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { cliente, vehiculo, deposito, tipo } = body
 
-    console.log('📄 Generando contrato de venta:', {
-      cliente,
-      vehiculo,
-      deposito,
-      tipo,
-    })
+    // console.log('📄 Generando contrato de venta:', {
+    //   cliente,
+    //   vehiculo,
+    //   deposito,
+    //   tipo,
+    // })
 
     // Generar el PDF del contrato de venta
     await generarContratoVenta({

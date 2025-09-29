@@ -230,7 +230,7 @@ export default function VehiculoDetailPage() {
 
   // Función para obtener datos del vehículo
   const fetchVehiculo = async () => {
-    console.log('🔍 [FETCH] ===== INICIANDO CARGA DE VEHÍCULO =====')
+    // console.log('🔍 [FETCH] ===== INICIANDO CARGA DE VEHÍCULO =====')
     try {
       console.log(`🔍 [FETCH] Slug completo: "${vehiculoSlug}"`)
       console.log(`🔢 [FETCH] ID extraído: "${vehiculoId}"`)
@@ -265,56 +265,56 @@ export default function VehiculoDetailPage() {
           matricula: data.matricula,
           bastidor: data.bastidor,
         })
-        console.log(`✅ [FETCH] Estado del vehículo:`, {
-          estado: data.estado,
-          tipo: typeof data.estado,
-          esNull: data.estado === null,
-          esUndefined: data.estado === undefined,
-        })
-        console.log(`✅ [FETCH] Datos completos del vehículo:`, data)
+        // console.log(`✅ [FETCH] Estado del vehículo:`, {
+        //   estado: data.estado,
+        //   tipo: typeof data.estado,
+        //   esNull: data.estado === null,
+        //   esUndefined: data.estado === undefined,
+        // })
+        // console.log(`✅ [FETCH] Datos completos del vehículo:`, data)
 
         // Actualizar estado del vehículo
-        console.log('🔄 [FETCH] Actualizando estado del vehículo...')
-        console.log('🔄 [FETCH] Datos recibidos del servidor:', {
-          id: data.id,
-          marca: data.marca,
-          modelo: data.modelo,
-          color: data.color,
-          estado: data.estado,
-        })
+        // console.log('🔄 [FETCH] Actualizando estado del vehículo...')
+        // console.log('🔄 [FETCH] Datos recibidos del servidor:', {
+        //   id: data.id,
+        //   marca: data.marca,
+        //   modelo: data.modelo,
+        //   color: data.color,
+        //   estado: data.estado,
+        // })
         setVehiculo(data)
         setError(null)
-        console.log('✅ [FETCH] Estado del vehículo actualizado')
-        console.log('✅ [FETCH] Color actualizado a:', data.color)
+        // console.log('✅ [FETCH] Estado del vehículo actualizado')
+        // console.log('✅ [FETCH] Color actualizado a:', data.color)
 
         // Verificar si la URL es correcta y redirigir si es necesario
         const correctSlug = generateVehicleSlug(data)
-        console.log(`🔗 [FETCH] Slug correcto calculado: "${correctSlug}"`)
-        console.log(`🔗 [FETCH] Slug actual: "${vehiculoSlug}"`)
+        // console.log(`🔗 [FETCH] Slug correcto calculado: "${correctSlug}"`)
+        // console.log(`🔗 [FETCH] Slug actual: "${vehiculoSlug}"`)
 
         if (vehiculoSlug !== correctSlug) {
-          console.log(
-            `🔄 [FETCH] Redirigiendo a slug correcto: /vehiculos/${correctSlug}`
-          )
+          // console.log(
+          //   `🔄 [FETCH] Redirigiendo a slug correcto: /vehiculos/${correctSlug}`
+          // )
           router.replace(`/vehiculos/${correctSlug}`)
         } else {
-          console.log(
-            `✅ [FETCH] URL es correcta, mostrando página del vehículo`
-          )
+          // console.log(
+          //   `✅ [FETCH] URL es correcta, mostrando página del vehículo`
+          // )
         }
 
-        console.log(
-          '✅ [FETCH] ===== CARGA DE VEHÍCULO COMPLETADA EXITOSAMENTE ====='
-        )
+        // console.log(
+        //   '✅ [FETCH] ===== CARGA DE VEHÍCULO COMPLETADA EXITOSAMENTE ====='
+        // )
         return data
       } else {
         const errorData = await response.json().catch(() => ({}))
-        console.error(`❌ [FETCH] Error al cargar el vehículo:`, {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorData,
-        })
-        console.log(`🔄 [FETCH] Redirigiendo a /vehiculos`)
+        // console.error(`❌ [FETCH] Error al cargar el vehículo:`, {
+        //   status: response.status,
+        //   statusText: response.statusText,
+        //   error: errorData,
+        // })
+        // console.log(`🔄 [FETCH] Redirigiendo a /vehiculos`)
         router.push('/vehiculos')
         setError('Error al cargar vehículo')
         return null
@@ -568,10 +568,10 @@ export default function VehiculoDetailPage() {
 
   // Funciones para edición
   const startEditingGeneral = () => {
-    console.log('🔧 [EDIT] ===== INICIANDO EDICIÓN GENERAL =====')
-    console.log('🔧 [EDIT] Vehículo actual:', vehiculo)
-    console.log('🔧 [EDIT] ID del vehículo:', vehiculo?.id)
-    console.log('🔧 [EDIT] Estado actual del vehículo:', vehiculo?.estado)
+    // console.log('🔧 [EDIT] ===== INICIANDO EDICIÓN GENERAL =====')
+    // console.log('🔧 [EDIT] Vehículo actual:', vehiculo)
+    // console.log('🔧 [EDIT] ID del vehículo:', vehiculo?.id)
+    // console.log('🔧 [EDIT] Estado actual del vehículo:', vehiculo?.estado)
 
     if (vehiculo) {
       const newEditingData = {
@@ -603,11 +603,11 @@ export default function VehiculoDetailPage() {
         fechaMatriculacion: newEditingData.fechaMatriculacion,
       })
 
-      console.log('🔄 [EDIT] Actualizando estado de edición...')
+      // console.log('🔄 [EDIT] Actualizando estado de edición...')
       setEditingData(newEditingData)
       setIsEditingGeneral(true)
-      console.log('✅ [EDIT] Modo edición general activado')
-      console.log('✅ [EDIT] ===== EDICIÓN GENERAL INICIADA EXITOSAMENTE =====')
+      // console.log('✅ [EDIT] Modo edición general activado')
+      // console.log('✅ [EDIT] ===== EDICIÓN GENERAL INICIADA EXITOSAMENTE =====')
     } else {
       console.error('❌ [EDIT] No hay vehículo para editar')
       showToast('Error: No hay vehículo para editar', 'error')
@@ -668,27 +668,27 @@ export default function VehiculoDetailPage() {
   }
 
   const saveEditing = async () => {
-    console.log('🔧 [SAVE] ===== INICIANDO GUARDADO =====')
-    console.log('🔧 [SAVE] ID del vehículo:', vehiculo?.id)
-    console.log('🔧 [SAVE] Datos a guardar:', editingData)
-    console.log('🔧 [SAVE] Campos específicos a guardar:', {
-      marca: editingData.marca,
-      modelo: editingData.modelo,
-      color: editingData.color,
-      kms: editingData.kms,
-      fechaMatriculacion: editingData.fechaMatriculacion,
-      itv: editingData.itv,
-      seguro: editingData.seguro,
-      segundaLlave: editingData.segundaLlave,
-      documentacion: editingData.documentacion,
-    })
-    console.log('🔧 [SAVE] Modo edición general:', isEditingGeneral)
-    console.log('🔧 [SAVE] Modo edición documentación:', isEditingDocumentacion)
-    console.log('🔧 [SAVE] Modo edición financiero:', isEditingFinanciero)
-    console.log(
-      '🔧 [SAVE] ¿Hay datos para guardar?',
-      Object.keys(editingData).length > 0
-    )
+    // console.log('🔧 [SAVE] ===== INICIANDO GUARDADO =====')
+    // console.log('🔧 [SAVE] ID del vehículo:', vehiculo?.id)
+    // console.log('🔧 [SAVE] Datos a guardar:', editingData)
+    // console.log('🔧 [SAVE] Campos específicos a guardar:', {
+    //   marca: editingData.marca,
+    //   modelo: editingData.modelo,
+    //   color: editingData.color,
+    //   kms: editingData.kms,
+    //   fechaMatriculacion: editingData.fechaMatriculacion,
+    //   itv: editingData.itv,
+    //   seguro: editingData.seguro,
+    //   segundaLlave: editingData.segundaLlave,
+    //   documentacion: editingData.documentacion,
+    // })
+    // console.log('🔧 [SAVE] Modo edición general:', isEditingGeneral)
+    // console.log('🔧 [SAVE] Modo edición documentación:', isEditingDocumentacion)
+    // console.log('🔧 [SAVE] Modo edición financiero:', isEditingFinanciero)
+    // console.log(
+    //   '🔧 [SAVE] ¿Hay datos para guardar?',
+    //   Object.keys(editingData).length > 0
+    // )
 
     if (!vehiculo?.id) {
       console.error('❌ [SAVE] No hay ID de vehículo')
@@ -784,60 +784,60 @@ export default function VehiculoDetailPage() {
 
       if (response.ok) {
         const responseData = await response.json()
-        console.log('✅ [SAVE] Respuesta exitosa del servidor:', responseData)
-        console.log('✅ [SAVE] Cambios guardados en base de datos')
+        // console.log('✅ [SAVE] Respuesta exitosa del servidor:', responseData)
+        // console.log('✅ [SAVE] Cambios guardados en base de datos')
 
         // Recargar datos del vehículo
-        console.log('🔄 [SAVE] Recargando datos del vehículo...')
+        // console.log('🔄 [SAVE] Recargando datos del vehículo...')
         const vehiculoActualizado = await fetchVehiculo()
 
         if (vehiculoActualizado) {
-          console.log('✅ [SAVE] Datos del vehículo recargados exitosamente')
-          console.log(
-            '✅ [SAVE] Nuevo estado del vehículo:',
-            vehiculoActualizado.estado
-          )
-          console.log('✅ [SAVE] Nueva marca:', vehiculoActualizado.marca)
-          console.log('✅ [SAVE] Nuevo modelo:', vehiculoActualizado.modelo)
-          console.log('✅ [SAVE] Nuevo color:', vehiculoActualizado.color)
-          console.log('✅ [SAVE] Datos completos recargados:', {
-            id: vehiculoActualizado.id,
-            marca: vehiculoActualizado.marca,
-            modelo: vehiculoActualizado.modelo,
-            color: vehiculoActualizado.color,
-            estado: vehiculoActualizado.estado,
-          })
+          // console.log('✅ [SAVE] Datos del vehículo recargados exitosamente')
+          // console.log(
+          //   '✅ [SAVE] Nuevo estado del vehículo:',
+          //   vehiculoActualizado.estado
+          // )
+          // console.log('✅ [SAVE] Nueva marca:', vehiculoActualizado.marca)
+          // console.log('✅ [SAVE] Nuevo modelo:', vehiculoActualizado.modelo)
+          // console.log('✅ [SAVE] Nuevo color:', vehiculoActualizado.color)
+          // console.log('✅ [SAVE] Datos completos recargados:', {
+          //   id: vehiculoActualizado.id,
+          //   marca: vehiculoActualizado.marca,
+          //   modelo: vehiculoActualizado.modelo,
+          //   color: vehiculoActualizado.color,
+          //   estado: vehiculoActualizado.estado,
+          // })
         } else {
-          console.warn(
-            '⚠️ [SAVE] No se pudieron recargar los datos del vehículo'
-          )
+          // console.warn(
+          //   '⚠️ [SAVE] No se pudieron recargar los datos del vehículo'
+          // )
         }
 
         // Desactivar modo edición
-        console.log('🔧 [SAVE] Desactivando modo edición...')
+        // console.log('🔧 [SAVE] Desactivando modo edición...')
         setIsEditingGeneral(false)
         setIsEditingDocumentacion(false)
         setIsEditingFinanciero(false)
-        console.log('✅ [SAVE] Modo edición desactivado')
+        // console.log('✅ [SAVE] Modo edición desactivado')
 
         showToast('Cambios guardados exitosamente', 'success')
-        console.log('✅ [SAVE] ===== GUARDADO COMPLETADO EXITOSAMENTE =====')
+        // console.log('✅ [SAVE] ===== GUARDADO COMPLETADO EXITOSAMENTE =====')
       } else {
         const errorData = await response.json().catch(() => ({}))
-        console.error('❌ [SAVE] Error en respuesta del servidor:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorData,
-        })
+        // console.error('❌ [SAVE] Error en respuesta del servidor:', {
+        //   status: response.status,
+        //   statusText: response.statusText,
+        //   error: errorData,
+        // })
         showToast(`Error al guardar cambios: ${response.status}`, 'error')
       }
     } catch (error) {
-      console.error('❌ [SAVE] Error al guardar:', error)
-      console.error('❌ [SAVE] Tipo de error:', typeof error)
-      console.error(
-        '❌ [SAVE] Mensaje de error:',
-        error instanceof Error ? error.message : 'Error desconocido'
-      )
+      // console.error('❌ [SAVE] Error al guardar:', error)
+      // console.error('❌ [SAVE] Tipo de error:', typeof error)
+      // console.error(
+      //   '❌ [SAVE] Mensaje de error:',
+      //   error instanceof Error ? error.message : 'Error desconocido'
+      // )
       showToast('Error al guardar cambios', 'error')
     }
   }
@@ -1228,7 +1228,7 @@ export default function VehiculoDetailPage() {
   }
 
   if (!vehiculo) {
-    console.log(`⚠️ [VEHICULO PAGE] No hay datos de vehículo para mostrar`)
+    // console.log(`⚠️ [VEHICULO PAGE] No hay datos de vehículo para mostrar`)
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
@@ -1256,14 +1256,14 @@ export default function VehiculoDetailPage() {
         {/* Header */}
         <div className="bg-white shadow-sm border-b border-slate-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              <div className="flex items-center space-x-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 py-4">
+              <div className="flex items-center space-x-3 sm:space-x-4">
                 <button
                   onClick={() => router.push('/vehiculos')}
-                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
                 >
                   <svg
-                    className="w-5 h-5"
+                    className="w-4 h-4 sm:w-5 sm:h-5"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -1276,12 +1276,12 @@ export default function VehiculoDetailPage() {
                     />
                   </svg>
                 </button>
-                <div>
-                  <h1 className="text-xl font-semibold text-gray-900">
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">
                     {formatVehicleReference(vehiculo.referencia, vehiculo.tipo)}{' '}
                     - {vehiculo.marca} {vehiculo.modelo}
                   </h1>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-xs sm:text-sm text-gray-500 truncate">
                     {vehiculo.matricula} • {vehiculo.kms?.toLocaleString()} km •{' '}
                     {vehiculo.fechaMatriculacion
                       ? new Date(vehiculo.fechaMatriculacion).getFullYear()
@@ -1289,14 +1289,14 @@ export default function VehiculoDetailPage() {
                   </p>
                 </div>
               </div>
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2 sm:space-x-3">
                 <span
-                  className={`px-3 py-1 rounded-full text-sm font-medium ${getEstadoColor(vehiculo.estado || 'inicial')}`}
+                  className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${getEstadoColor(vehiculo.estado || 'inicial')}`}
                 >
                   {(vehiculo.estado || 'inicial').toUpperCase()}
                 </span>
                 <span
-                  className={`px-3 py-1 rounded-full text-sm font-medium border ${getTipoColor(vehiculo.tipo)}`}
+                  className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium border ${getTipoColor(vehiculo.tipo)}`}
                 >
                   {vehiculo.tipo === 'C'
                     ? 'COMPRA'
@@ -1313,18 +1313,18 @@ export default function VehiculoDetailPage() {
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-2 sm:py-4 lg:py-6 xl:py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-4 lg:gap-6 xl:gap-8">
             {/* Panel Principal */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="lg:col-span-2 space-y-2 sm:space-y-4 lg:space-y-6">
               {/* Tabs de Información */}
               <div className="bg-white rounded-xl shadow-sm border border-slate-200">
                 {/* Tab Headers */}
                 <div className="border-b border-gray-200">
-                  <nav className="flex space-x-8 px-6">
+                  <nav className="flex space-x-4 sm:space-x-8 px-4 sm:px-6 overflow-x-auto">
                     <button
                       onClick={() => setActiveTab('general')}
-                      className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                      className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                         activeTab === 'general'
                           ? 'border-green-500 text-green-600'
                           : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -1335,7 +1335,7 @@ export default function VehiculoDetailPage() {
                     {isAdmin && (
                       <button
                         onClick={() => setActiveTab('financiero')}
-                        className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                        className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                           activeTab === 'financiero'
                             ? 'border-green-500 text-green-600'
                             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -1348,7 +1348,7 @@ export default function VehiculoDetailPage() {
                 </div>
 
                 {/* Tab Content */}
-                <div className="p-6">
+                <div className="p-4 sm:p-6">
                   {/* Información General */}
                   {activeTab === 'general' && (
                     <div className="space-y-6">
@@ -1418,13 +1418,13 @@ export default function VehiculoDetailPage() {
                         )}
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-3 lg:gap-6">
                         {/* Marca y Modelo */}
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                          <div className="flex items-center space-x-2 mb-3">
-                            <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
+                          <div className="flex items-center space-x-1 sm:space-x-2 mb-1 lg:mb-3">
+                            <div className="w-4 h-4 sm:w-5 sm:h-5 lg:w-8 lg:h-8 bg-blue-500 rounded-lg flex items-center justify-center">
                               <svg
-                                className="w-4 h-4 text-white"
+                                className="w-2 h-2 sm:w-3 sm:h-3 lg:w-4 lg:h-4 text-white"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -1437,64 +1437,62 @@ export default function VehiculoDetailPage() {
                                 />
                               </svg>
                             </div>
-                            <h3 className="font-semibold text-blue-900">
+                            <h3 className="text-xs sm:text-sm lg:text-base font-semibold text-orange-900 text-xs sm:text-sm lg:text-base font-semibold text-orange-900">
                               Identificación
                             </h3>
                           </div>
-                          <div className="space-y-3">
-                            <div>
-                              <label className="block text-xs font-medium text-blue-700 mb-1">
-                                Marca
-                              </label>
-                              {isEditingGeneral ? (
-                                <input
-                                  type="text"
-                                  value={editingData.marca}
-                                  onChange={(e) =>
-                                    setEditingData((prev) => ({
-                                      ...prev,
-                                      marca: e.target.value,
-                                    }))
-                                  }
-                                  className="w-full text-blue-900 bg-white border border-blue-300 rounded px-2 py-1 text-sm font-medium"
-                                />
-                              ) : (
-                                <p className="text-blue-900 font-semibold">
-                                  {vehiculo.marca}
-                                </p>
-                              )}
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-blue-700 mb-1">
-                                Modelo
-                              </label>
-                              {isEditingGeneral ? (
-                                <input
-                                  type="text"
-                                  value={editingData.modelo}
-                                  onChange={(e) =>
-                                    setEditingData((prev) => ({
-                                      ...prev,
-                                      modelo: e.target.value,
-                                    }))
-                                  }
-                                  className="w-full text-blue-900 bg-white border border-blue-300 rounded px-2 py-1 text-sm font-medium"
-                                />
-                              ) : (
-                                <p className="text-blue-900 font-semibold">
-                                  {vehiculo.modelo}
-                                </p>
-                              )}
+                          <div className="text-xs lg:text-sm">
+                            <div className="flex items-center gap-2">
+                              <span className="text-blue-700 font-medium">
+                                Marca:{' '}
+                                {isEditingGeneral ? (
+                                  <input
+                                    type="text"
+                                    value={editingData.marca}
+                                    onChange={(e) =>
+                                      setEditingData((prev) => ({
+                                        ...prev,
+                                        marca: e.target.value,
+                                      }))
+                                    }
+                                    className="ml-1 text-blue-900 bg-white border border-blue-300 rounded px-1 py-0.5 text-xs font-medium w-16"
+                                  />
+                                ) : (
+                                  <span className="text-blue-900 font-semibold ml-1">
+                                    {vehiculo.marca}
+                                  </span>
+                                )}
+                              </span>
+                              <span className="text-blue-700 font-medium">
+                                Modelo:{' '}
+                                {isEditingGeneral ? (
+                                  <input
+                                    type="text"
+                                    value={editingData.modelo}
+                                    onChange={(e) =>
+                                      setEditingData((prev) => ({
+                                        ...prev,
+                                        modelo: e.target.value,
+                                      }))
+                                    }
+                                    className="ml-1 text-blue-900 bg-white border border-blue-300 rounded px-1 py-0.5 text-xs font-medium w-16"
+                                  />
+                                ) : (
+                                  <span className="text-blue-900 font-semibold ml-1">
+                                    {vehiculo.modelo}
+                                  </span>
+                                )}
+                              </span>
                             </div>
                           </div>
                         </div>
 
                         {/* Matrícula y Bastidor */}
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                          <div className="flex items-center space-x-2 mb-3">
-                            <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
+                          <div className="flex items-center space-x-1 sm:space-x-2 mb-1 lg:mb-3">
+                            <div className="w-4 h-4 sm:w-5 sm:h-5 lg:w-8 lg:h-8 bg-green-500 rounded-lg flex items-center justify-center">
                               <svg
-                                className="w-4 h-4 text-white"
+                                className="w-2 h-2 sm:w-3 sm:h-3 lg:w-4 lg:h-4 text-white"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -1507,64 +1505,62 @@ export default function VehiculoDetailPage() {
                                 />
                               </svg>
                             </div>
-                            <h3 className="font-semibold text-green-900">
+                            <h3 className="text-xs sm:text-sm lg:text-base font-semibold text-orange-900 text-xs sm:text-sm lg:text-base font-semibold text-orange-900">
                               Documentación
                             </h3>
                           </div>
-                          <div className="space-y-3">
-                            <div>
-                              <label className="block text-xs font-medium text-green-700 mb-1">
-                                Matrícula
-                              </label>
-                              {isEditingGeneral ? (
-                                <input
-                                  type="text"
-                                  value={editingData.matricula}
-                                  onChange={(e) =>
-                                    setEditingData((prev) => ({
-                                      ...prev,
-                                      matricula: e.target.value,
-                                    }))
-                                  }
-                                  className="w-full text-green-900 bg-white border border-green-300 rounded px-2 py-1 text-sm font-medium font-mono"
-                                />
-                              ) : (
-                                <p className="text-green-900 font-mono font-semibold">
-                                  {vehiculo.matricula}
-                                </p>
-                              )}
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-green-700 mb-1">
-                                Bastidor
-                              </label>
-                              {isEditingGeneral ? (
-                                <input
-                                  type="text"
-                                  value={editingData.bastidor}
-                                  onChange={(e) =>
-                                    setEditingData((prev) => ({
-                                      ...prev,
-                                      bastidor: e.target.value,
-                                    }))
-                                  }
-                                  className="w-full text-green-900 bg-white border border-green-300 rounded px-2 py-1 text-sm font-medium font-mono"
-                                />
-                              ) : (
-                                <p className="text-green-900 font-mono text-sm break-all">
-                                  {vehiculo.bastidor}
-                                </p>
-                              )}
+                          <div className="text-xs lg:text-sm">
+                            <div className="flex items-center gap-2">
+                              <span className="text-green-700 font-medium">
+                                Matrícula:{' '}
+                                {isEditingGeneral ? (
+                                  <input
+                                    type="text"
+                                    value={editingData.matricula}
+                                    onChange={(e) =>
+                                      setEditingData((prev) => ({
+                                        ...prev,
+                                        matricula: e.target.value,
+                                      }))
+                                    }
+                                    className="ml-1 text-green-900 bg-white border border-green-300 rounded px-1 py-0.5 text-xs font-medium font-mono w-16"
+                                  />
+                                ) : (
+                                  <span className="text-green-900 font-mono font-semibold ml-1">
+                                    {vehiculo.matricula}
+                                  </span>
+                                )}
+                              </span>
+                              <span className="text-green-700 font-medium">
+                                Bastidor:{' '}
+                                {isEditingGeneral ? (
+                                  <input
+                                    type="text"
+                                    value={editingData.bastidor}
+                                    onChange={(e) =>
+                                      setEditingData((prev) => ({
+                                        ...prev,
+                                        bastidor: e.target.value,
+                                      }))
+                                    }
+                                    className="ml-1 text-green-900 bg-white border border-green-300 rounded px-1 py-0.5 text-xs font-medium font-mono w-16"
+                                  />
+                                ) : (
+                                  <span className="text-green-900 font-mono text-xs break-all ml-1">
+                                    {vehiculo.bastidor?.substring(0, 8)}...
+                                  </span>
+                                )}
+                              </span>
                             </div>
                           </div>
                         </div>
 
                         {/* KMs, Fecha y Color */}
-                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                          <div className="flex items-center space-x-2 mb-3">
-                            <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
+                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
+                          <div className="flex items-center space-x-1 sm:space-x-2 mb-1 lg:mb-3">
+                            <div className="w-4 h-4 sm:w-5 sm:h-5 lg:w-8 lg:h-8 bg-orange-500 rounded-lg flex items-center justify-center">
                               <svg
-                                className="w-4 h-4 text-white"
+                                className="w-2 h-2 sm:w-3 sm:h-3 lg:w-4 lg:h-4 text-white"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -1577,80 +1573,54 @@ export default function VehiculoDetailPage() {
                                 />
                               </svg>
                             </div>
-                            <h3 className="font-semibold text-orange-900">
+                            <h3 className="text-xs sm:text-sm lg:text-base font-semibold text-orange-900 text-xs sm:text-sm lg:text-base font-semibold text-orange-900">
                               Características
                             </h3>
                           </div>
-                          <div className="space-y-3">
-                            <div>
-                              <label className="block text-xs font-medium text-orange-700 mb-1">
-                                Kilómetros
-                              </label>
-                              {isEditingGeneral ? (
-                                <input
-                                  type="number"
-                                  value={editingData.kms}
-                                  onChange={(e) =>
-                                    setEditingData((prev) => ({
-                                      ...prev,
-                                      kms: parseInt(e.target.value) || 0,
-                                    }))
-                                  }
-                                  className="w-full text-orange-900 bg-white border border-orange-300 rounded px-2 py-1 text-sm font-medium"
-                                  placeholder="Ingrese kilómetros"
-                                />
-                              ) : (
-                                <p className="text-orange-900 font-semibold">
-                                  {vehiculo.kms?.toLocaleString() || 'N/A'} km
-                                </p>
-                              )}
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-orange-700 mb-1">
-                                Fecha Matriculación
-                              </label>
-                              {isEditingGeneral ? (
-                                <input
-                                  type="date"
-                                  value={editingData.fechaMatriculacion}
-                                  onChange={(e) =>
-                                    setEditingData((prev) => ({
-                                      ...prev,
-                                      fechaMatriculacion: e.target.value,
-                                    }))
-                                  }
-                                  className="w-full text-orange-900 bg-white border border-orange-300 rounded px-2 py-1 text-sm font-medium"
-                                />
-                              ) : (
-                                <p className="text-orange-900 font-medium">
-                                  {vehiculo.fechaMatriculacion
-                                    ? formatDate(vehiculo.fechaMatriculacion)
-                                    : 'N/A'}
-                                </p>
-                              )}
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-orange-700 mb-1">
-                                Color
-                              </label>
-                              {isEditingGeneral ? (
-                                <input
-                                  type="text"
-                                  value={editingData.color}
-                                  onChange={(e) =>
-                                    setEditingData((prev) => ({
-                                      ...prev,
-                                      color: e.target.value,
-                                    }))
-                                  }
-                                  className="w-full text-orange-900 bg-white border border-orange-300 rounded px-2 py-1 text-sm font-medium"
-                                  placeholder="Ingrese color"
-                                />
-                              ) : (
-                                <p className="text-orange-900 font-medium">
-                                  {vehiculo.color || 'N/A'}
-                                </p>
-                              )}
+                          <div className="text-xs lg:text-sm">
+                            <div className="flex items-center gap-2">
+                              <span className="text-orange-700 font-medium">
+                                KMs:{' '}
+                                {isEditingGeneral ? (
+                                  <input
+                                    type="number"
+                                    value={editingData.kms}
+                                    onChange={(e) =>
+                                      setEditingData((prev) => ({
+                                        ...prev,
+                                        kms: parseInt(e.target.value) || 0,
+                                      }))
+                                    }
+                                    className="ml-1 text-orange-900 bg-white border border-orange-300 rounded px-1 py-0.5 text-xs font-medium w-16"
+                                    placeholder="KMs"
+                                  />
+                                ) : (
+                                  <span className="text-orange-900 font-semibold ml-1">
+                                    {vehiculo.kms?.toLocaleString() || 'N/A'} km
+                                  </span>
+                                )}
+                              </span>
+                              <span className="text-orange-700 font-medium">
+                                Color:{' '}
+                                {isEditingGeneral ? (
+                                  <input
+                                    type="text"
+                                    value={editingData.color}
+                                    onChange={(e) =>
+                                      setEditingData((prev) => ({
+                                        ...prev,
+                                        color: e.target.value,
+                                      }))
+                                    }
+                                    className="ml-1 text-orange-900 bg-white border border-orange-300 rounded px-1 py-0.5 text-xs font-medium w-16"
+                                    placeholder="Color"
+                                  />
+                                ) : (
+                                  <span className="text-orange-900 font-medium ml-1">
+                                    {vehiculo.color || 'N/A'}
+                                  </span>
+                                )}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -1677,14 +1647,14 @@ export default function VehiculoDetailPage() {
                             />
                           </svg>
                         </div>
-                        <h3 className="text-lg font-semibold text-green-900">
+                        <h3 className="text-lg text-xs sm:text-sm lg:text-base font-semibold text-orange-900">
                           Información de Venta
                         </h3>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Cliente */}
-                        <div className="bg-white rounded-lg p-4 border border-green-200">
+                        <div className="bg-white rounded-lg p-1.5 sm:p-2 lg:p-4 border border-green-200">
                           <h4 className="font-medium text-green-800 mb-3 flex items-center">
                             <svg
                               className="w-4 h-4 mr-2"
@@ -1724,7 +1694,7 @@ export default function VehiculoDetailPage() {
                         </div>
 
                         {/* Deal */}
-                        <div className="bg-white rounded-lg p-4 border border-green-200">
+                        <div className="bg-white rounded-lg p-1.5 sm:p-2 lg:p-4 border border-green-200">
                           <h4 className="font-medium text-green-800 mb-3 flex items-center">
                             <svg
                               className="w-4 h-4 mr-2"
@@ -1835,10 +1805,10 @@ export default function VehiculoDetailPage() {
                       </div>
 
                       {/* Resumen Financiero con Iconos y Colores */}
-                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
-                        <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-3 border border-blue-200">
+                        <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center">
                           <svg
-                            className="w-6 h-6 mr-3 text-blue-600"
+                            className="w-3 h-3 sm:w-4 sm:h-4 lg:w-6 lg:h-6 mr-3 text-blue-600"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -1870,107 +1840,115 @@ export default function VehiculoDetailPage() {
                           const beneficio = precioVenta - iva - totalInvertido
 
                           return (
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                               {/* Total Invertido */}
-                              <div className="bg-white rounded-lg p-4 border border-gray-200">
-                                <div className="flex items-center mb-2">
-                                  <svg
-                                    className="w-5 h-5 text-red-500 mr-2"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                    />
-                                  </svg>
-                                  <span className="text-sm font-medium text-gray-600">
-                                    Total Invertido
+                              <div className="bg-white rounded-lg p-1.5 sm:p-2 lg:p-3 border border-gray-200">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center">
+                                    <svg
+                                      className="w-4 h-4 text-red-500 mr-2"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                      />
+                                    </svg>
+                                    <span className="text-sm font-medium text-gray-600">
+                                      Total Invertido:
+                                    </span>
+                                  </div>
+                                  <span className="text-lg font-bold text-gray-900">
+                                    {formatCurrency(totalInvertido)}
                                   </span>
                                 </div>
-                                <p className="text-2xl font-bold text-gray-900">
-                                  {formatCurrency(totalInvertido)}
-                                </p>
                               </div>
 
                               {/* Precio de Venta */}
-                              <div className="bg-white rounded-lg p-4 border border-gray-200">
-                                <div className="flex items-center mb-2">
-                                  <svg
-                                    className="w-5 h-5 text-green-500 mr-2"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
-                                    />
-                                  </svg>
-                                  <span className="text-sm font-medium text-gray-600">
-                                    Precio de Venta
+                              <div className="bg-white rounded-lg p-1.5 sm:p-2 lg:p-3 border border-gray-200">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center">
+                                    <svg
+                                      className="w-4 h-4 text-green-500 mr-2"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
+                                      />
+                                    </svg>
+                                    <span className="text-sm font-medium text-gray-600">
+                                      Precio de Venta:
+                                    </span>
+                                  </div>
+                                  <span className="text-lg font-bold text-gray-900">
+                                    {formatCurrency(precioVenta)}
                                   </span>
                                 </div>
-                                <p className="text-2xl font-bold text-gray-900">
-                                  {formatCurrency(precioVenta)}
-                                </p>
                               </div>
 
                               {/* IVA */}
-                              <div className="bg-white rounded-lg p-4 border border-gray-200">
-                                <div className="flex items-center mb-2">
-                                  <svg
-                                    className="w-5 h-5 text-yellow-500 mr-2"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                                    />
-                                  </svg>
-                                  <span className="text-sm font-medium text-gray-600">
-                                    IVA (21%)
+                              <div className="bg-white rounded-lg p-1.5 sm:p-2 lg:p-3 border border-gray-200">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center">
+                                    <svg
+                                      className="w-4 h-4 text-yellow-500 mr-2"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                                      />
+                                    </svg>
+                                    <span className="text-sm font-medium text-gray-600">
+                                      IVA (21%):
+                                    </span>
+                                  </div>
+                                  <span className="text-lg font-bold text-gray-900">
+                                    {formatCurrency(iva)}
                                   </span>
                                 </div>
-                                <p className="text-2xl font-bold text-gray-900">
-                                  {formatCurrency(iva)}
-                                </p>
                               </div>
 
                               {/* Beneficio Neto */}
-                              <div className="bg-white rounded-lg p-4 border border-gray-200">
-                                <div className="flex items-center mb-2">
-                                  <svg
-                                    className="w-5 h-5 text-blue-500 mr-2"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
+                              <div className="bg-white rounded-lg p-1.5 sm:p-2 lg:p-3 border border-gray-200">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center">
+                                    <svg
+                                      className="w-4 h-4 text-blue-500 mr-2"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                                      />
+                                    </svg>
+                                    <span className="text-sm font-medium text-gray-600">
+                                      Beneficio Neto:
+                                    </span>
+                                  </div>
+                                  <span
+                                    className={`text-lg font-bold ${beneficio >= 0 ? 'text-green-600' : 'text-red-600'}`}
                                   >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                                    />
-                                  </svg>
-                                  <span className="text-sm font-medium text-gray-600">
-                                    Beneficio Neto
+                                    {formatCurrency(beneficio)}
                                   </span>
                                 </div>
-                                <p
-                                  className={`text-2xl font-bold ${beneficio >= 0 ? 'text-green-600' : 'text-red-600'}`}
-                                >
-                                  {formatCurrency(beneficio)}
-                                </p>
                               </div>
                             </div>
                           )
@@ -1981,7 +1959,7 @@ export default function VehiculoDetailPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Costos de Adquisición */}
                         <div className="bg-gray-50 rounded-lg p-6">
-                          <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                          <h4 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center">
                             <svg
                               className="w-5 h-5 mr-2 text-red-500"
                               fill="none"
@@ -2190,7 +2168,7 @@ export default function VehiculoDetailPage() {
 
                         {/* Información de Venta */}
                         <div className="bg-gray-50 rounded-lg p-6">
-                          <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                          <h4 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center">
                             <svg
                               className="w-5 h-5 mr-2 text-green-500"
                               fill="none"
@@ -2325,7 +2303,7 @@ export default function VehiculoDetailPage() {
                         />
                       </svg>
                     </div>
-                    <h2 className="text-lg font-semibold text-gray-900">
+                    <h2 className="text-base sm:text-lg font-semibold text-gray-900">
                       Documentación Legal
                     </h2>
                   </div>
@@ -2393,13 +2371,13 @@ export default function VehiculoDetailPage() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 lg:gap-6">
                   {/* ITV */}
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <div className="flex items-center space-x-2 mb-3">
-                      <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
+                    <div className="flex items-center space-x-1 sm:space-x-2 mb-1 lg:mb-3">
+                      <div className="w-3 h-3 sm:w-4 sm:h-4 lg:w-6 lg:h-6 bg-red-500 rounded-full flex items-center justify-center">
                         <svg
-                          className="w-3 h-3 text-white"
+                          className="w-1.5 h-1.5 sm:w-2 sm:h-2 lg:w-3 lg:h-3 text-white"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -2412,77 +2390,78 @@ export default function VehiculoDetailPage() {
                           />
                         </svg>
                       </div>
-                      <h3 className="font-semibold text-red-900">ITV</h3>
+                      <h3 className="font-semibold text-red-900 text-xs sm:text-sm lg:text-base font-semibold text-orange-900">
+                        ITV
+                      </h3>
                     </div>
-                    <div className="space-y-2">
-                      <div>
-                        <label className="block text-xs font-medium text-red-700 mb-1">
-                          Estado
-                        </label>
-                        {isEditingDocumentacion ? (
-                          <select
-                            value={
-                              editingData.itv === null ||
-                              editingData.itv === undefined ||
-                              editingData.itv === ''
-                                ? 'chequear'
-                                : editingData.itv === 'Sí' ||
-                                    editingData.itv === 'si'
-                                  ? 'si'
-                                  : 'no'
-                            }
-                            onChange={(e) => {
-                              if (e.target.value === 'chequear') {
-                                setEditingData((prev) => ({
-                                  ...prev,
-                                  itv: null,
-                                }))
-                              } else {
-                                setEditingData((prev) => ({
-                                  ...prev,
-                                  itv: e.target.value === 'si' ? 'Sí' : 'No',
-                                }))
+                    <div className="text-xs lg:text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="text-red-700 font-medium">
+                          Estado:{' '}
+                          {isEditingDocumentacion ? (
+                            <select
+                              value={
+                                editingData.itv === null ||
+                                editingData.itv === undefined ||
+                                editingData.itv === ''
+                                  ? 'chequear'
+                                  : editingData.itv === 'Sí' ||
+                                      editingData.itv === 'si'
+                                    ? 'si'
+                                    : 'no'
                               }
-                            }}
-                            className="w-full text-red-900 bg-white border border-red-300 rounded px-2 py-1 text-sm font-medium"
-                          >
-                            <option value="chequear">Chequear</option>
-                            <option value="si">Sí</option>
-                            <option value="no">No</option>
-                          </select>
-                        ) : (
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              vehiculo.itv === 'Sí' || vehiculo.itv === 'si'
-                                ? 'bg-green-100 text-green-800'
-                                : vehiculo.itv === 'No' || vehiculo.itv === 'no'
-                                  ? 'bg-red-100 text-red-800'
-                                  : 'bg-gray-100 text-gray-800'
-                            }`}
-                          >
-                            {vehiculo.itv || 'Chequear'}
+                              onChange={(e) => {
+                                if (e.target.value === 'chequear') {
+                                  setEditingData((prev) => ({
+                                    ...prev,
+                                    itv: null,
+                                  }))
+                                } else {
+                                  setEditingData((prev) => ({
+                                    ...prev,
+                                    itv: e.target.value === 'si' ? 'Sí' : 'No',
+                                  }))
+                                }
+                              }}
+                              className="ml-1 text-red-900 bg-white border border-red-300 rounded px-1 py-0.5 text-xs font-medium w-16"
+                            >
+                              <option value="chequear">Chequear</option>
+                              <option value="si">Sí</option>
+                              <option value="no">No</option>
+                            </select>
+                          ) : (
+                            <span
+                              className={`ml-1 px-1 py-0.5 rounded-full text-xs font-medium ${
+                                vehiculo.itv === 'Sí' || vehiculo.itv === 'si'
+                                  ? 'bg-green-100 text-green-800'
+                                  : vehiculo.itv === 'No' ||
+                                      vehiculo.itv === 'no'
+                                    ? 'bg-red-100 text-red-800'
+                                    : 'bg-gray-100 text-gray-800'
+                              }`}
+                            >
+                              {vehiculo.itv || 'Chequear'}
+                            </span>
+                          )}
+                        </span>
+                        {vehiculo.fechaVencimientoItv && (
+                          <span className="text-red-700 font-medium">
+                            Vencimiento:{' '}
+                            <span className="text-red-900 font-medium ml-1">
+                              {formatDate(vehiculo.fechaVencimientoItv)}
+                            </span>
                           </span>
                         )}
                       </div>
-                      {vehiculo.fechaVencimientoItv && (
-                        <div>
-                          <label className="block text-xs font-medium text-red-700 mb-1">
-                            Vencimiento
-                          </label>
-                          <p className="text-red-900 text-sm font-medium">
-                            {formatDate(vehiculo.fechaVencimientoItv)}
-                          </p>
-                        </div>
-                      )}
                     </div>
                   </div>
 
                   {/* Seguro */}
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="flex items-center space-x-2 mb-3">
-                      <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
+                    <div className="flex items-center space-x-1 sm:space-x-2 mb-1 lg:mb-3">
+                      <div className="w-3 h-3 sm:w-4 sm:h-4 lg:w-6 lg:h-6 bg-blue-500 rounded-full flex items-center justify-center">
                         <svg
-                          className="w-3 h-3 text-white"
+                          className="w-1.5 h-1.5 sm:w-2 sm:h-2 lg:w-3 lg:h-3 text-white"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -2495,65 +2474,71 @@ export default function VehiculoDetailPage() {
                           />
                         </svg>
                       </div>
-                      <h3 className="font-semibold text-blue-900">Seguro</h3>
+                      <h3 className="text-xs sm:text-sm lg:text-base font-semibold text-orange-900 text-xs sm:text-sm lg:text-base font-semibold text-orange-900">
+                        Seguro
+                      </h3>
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium text-blue-700 mb-1">
-                        Estado
-                      </label>
-                      {isEditingDocumentacion ? (
-                        <select
-                          value={
-                            editingData.seguro === 'Sí' ||
-                            editingData.seguro === 'si'
-                              ? 'si'
-                              : editingData.seguro === 'No' ||
-                                  editingData.seguro === 'no'
-                                ? 'no'
-                                : 'chequear'
-                          }
-                          onChange={(e) => {
-                            if (e.target.value === 'chequear') {
-                              setEditingData((prev) => ({
-                                ...prev,
-                                seguro: null,
-                              }))
-                            } else {
-                              setEditingData((prev) => ({
-                                ...prev,
-                                seguro: e.target.value === 'si' ? 'Sí' : 'No',
-                              }))
-                            }
-                          }}
-                          className="w-full text-blue-900 bg-white border border-blue-300 rounded px-2 py-1 text-sm font-medium"
-                        >
-                          <option value="chequear">Chequear</option>
-                          <option value="no">No</option>
-                          <option value="si">Sí</option>
-                        </select>
-                      ) : (
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            vehiculo.seguro === 'Sí' || vehiculo.seguro === 'si'
-                              ? 'bg-green-100 text-green-800'
-                              : vehiculo.seguro === 'No' ||
-                                  vehiculo.seguro === 'no'
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-yellow-100 text-yellow-800'
-                          }`}
-                        >
-                          {getDocumentacionValue(vehiculo.seguro)}
+                    <div className="text-xs lg:text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="text-blue-700 font-medium">
+                          Estado:{' '}
+                          {isEditingDocumentacion ? (
+                            <select
+                              value={
+                                editingData.seguro === 'Sí' ||
+                                editingData.seguro === 'si'
+                                  ? 'si'
+                                  : editingData.seguro === 'No' ||
+                                      editingData.seguro === 'no'
+                                    ? 'no'
+                                    : 'chequear'
+                              }
+                              onChange={(e) => {
+                                if (e.target.value === 'chequear') {
+                                  setEditingData((prev) => ({
+                                    ...prev,
+                                    seguro: null,
+                                  }))
+                                } else {
+                                  setEditingData((prev) => ({
+                                    ...prev,
+                                    seguro:
+                                      e.target.value === 'si' ? 'Sí' : 'No',
+                                  }))
+                                }
+                              }}
+                              className="ml-1 text-blue-900 bg-white border border-blue-300 rounded px-1 py-0.5 text-xs font-medium w-16"
+                            >
+                              <option value="chequear">Chequear</option>
+                              <option value="no">No</option>
+                              <option value="si">Sí</option>
+                            </select>
+                          ) : (
+                            <span
+                              className={`ml-1 px-1 py-0.5 rounded-full text-xs font-medium ${
+                                vehiculo.seguro === 'Sí' ||
+                                vehiculo.seguro === 'si'
+                                  ? 'bg-green-100 text-green-800'
+                                  : vehiculo.seguro === 'No' ||
+                                      vehiculo.seguro === 'no'
+                                    ? 'bg-red-100 text-red-800'
+                                    : 'bg-yellow-100 text-yellow-800'
+                              }`}
+                            >
+                              {getDocumentacionValue(vehiculo.seguro)}
+                            </span>
+                          )}
                         </span>
-                      )}
+                      </div>
                     </div>
                   </div>
 
                   {/* Segunda Llave */}
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <div className="flex items-center space-x-2 mb-3">
-                      <div className="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center">
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
+                    <div className="flex items-center space-x-1 sm:space-x-2 mb-1 lg:mb-3">
+                      <div className="w-3 h-3 sm:w-4 sm:h-4 lg:w-6 lg:h-6 bg-yellow-500 rounded-full flex items-center justify-center">
                         <svg
-                          className="w-3 h-3 text-white"
+                          className="w-1.5 h-1.5 sm:w-2 sm:h-2 lg:w-3 lg:h-3 text-white"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -2566,69 +2551,71 @@ export default function VehiculoDetailPage() {
                           />
                         </svg>
                       </div>
-                      <h3 className="font-semibold text-yellow-900">
+                      <h3 className="text-xs sm:text-sm lg:text-base font-semibold text-orange-900 font-semibold text-yellow-900">
                         2ª Llave
                       </h3>
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium text-yellow-700 mb-1">
-                        Disponible
-                      </label>
-                      {isEditingDocumentacion ? (
-                        <select
-                          value={
-                            editingData.segundaLlave === 'Sí' ||
-                            editingData.segundaLlave === 'si'
-                              ? 'si'
-                              : editingData.segundaLlave === 'No' ||
-                                  editingData.segundaLlave === 'no'
-                                ? 'no'
-                                : 'chequear'
-                          }
-                          onChange={(e) => {
-                            if (e.target.value === 'chequear') {
-                              setEditingData((prev) => ({
-                                ...prev,
-                                segundaLlave: null,
-                              }))
-                            } else {
-                              setEditingData((prev) => ({
-                                ...prev,
-                                segundaLlave:
-                                  e.target.value === 'si' ? 'Sí' : 'No',
-                              }))
-                            }
-                          }}
-                          className="w-full text-yellow-900 bg-white border border-yellow-300 rounded px-2 py-1 text-sm font-medium"
-                        >
-                          <option value="chequear">Chequear</option>
-                          <option value="no">No</option>
-                          <option value="si">Sí</option>
-                        </select>
-                      ) : (
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            vehiculo.segundaLlave === 'si' ||
-                            vehiculo.segundaLlave === 'Sí'
-                              ? 'bg-green-100 text-green-800'
-                              : vehiculo.segundaLlave === 'no' ||
-                                  vehiculo.segundaLlave === 'No'
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-yellow-100 text-yellow-800'
-                          }`}
-                        >
-                          {getDocumentacionValue(vehiculo.segundaLlave)}
+                    <div className="text-xs lg:text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="text-yellow-700 font-medium">
+                          Disponible:{' '}
+                          {isEditingDocumentacion ? (
+                            <select
+                              value={
+                                editingData.segundaLlave === 'Sí' ||
+                                editingData.segundaLlave === 'si'
+                                  ? 'si'
+                                  : editingData.segundaLlave === 'No' ||
+                                      editingData.segundaLlave === 'no'
+                                    ? 'no'
+                                    : 'chequear'
+                              }
+                              onChange={(e) => {
+                                if (e.target.value === 'chequear') {
+                                  setEditingData((prev) => ({
+                                    ...prev,
+                                    segundaLlave: null,
+                                  }))
+                                } else {
+                                  setEditingData((prev) => ({
+                                    ...prev,
+                                    segundaLlave:
+                                      e.target.value === 'si' ? 'Sí' : 'No',
+                                  }))
+                                }
+                              }}
+                              className="ml-1 text-yellow-900 bg-white border border-yellow-300 rounded px-1 py-0.5 text-xs font-medium w-16"
+                            >
+                              <option value="chequear">Chequear</option>
+                              <option value="no">No</option>
+                              <option value="si">Sí</option>
+                            </select>
+                          ) : (
+                            <span
+                              className={`ml-1 px-1 py-0.5 rounded-full text-xs font-medium ${
+                                vehiculo.segundaLlave === 'si' ||
+                                vehiculo.segundaLlave === 'Sí'
+                                  ? 'bg-green-100 text-green-800'
+                                  : vehiculo.segundaLlave === 'no' ||
+                                      vehiculo.segundaLlave === 'No'
+                                    ? 'bg-red-100 text-red-800'
+                                    : 'bg-yellow-100 text-yellow-800'
+                              }`}
+                            >
+                              {getDocumentacionValue(vehiculo.segundaLlave)}
+                            </span>
+                          )}
                         </span>
-                      )}
+                      </div>
                     </div>
                   </div>
 
                   {/* Documentación */}
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <div className="flex items-center space-x-2 mb-3">
-                      <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
+                    <div className="flex items-center space-x-1 sm:space-x-2 mb-1 lg:mb-3">
+                      <div className="w-3 h-3 sm:w-4 sm:h-4 lg:w-6 lg:h-6 bg-green-500 rounded-full flex items-center justify-center">
                         <svg
-                          className="w-3 h-3 text-white"
+                          className="w-1.5 h-1.5 sm:w-2 sm:h-2 lg:w-3 lg:h-3 text-white"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -2641,69 +2628,71 @@ export default function VehiculoDetailPage() {
                           />
                         </svg>
                       </div>
-                      <h3 className="font-semibold text-green-900">
+                      <h3 className="text-xs sm:text-sm lg:text-base font-semibold text-orange-900 font-semibold text-green-900">
                         Documentación
                       </h3>
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium text-green-700 mb-1">
-                        Estado
-                      </label>
-                      {isEditingDocumentacion ? (
-                        <select
-                          value={
-                            editingData.documentacion === 'Sí' ||
-                            editingData.documentacion === 'si'
-                              ? 'si'
-                              : editingData.documentacion === 'No' ||
-                                  editingData.documentacion === 'no'
-                                ? 'no'
-                                : 'chequear'
-                          }
-                          onChange={(e) => {
-                            if (e.target.value === 'chequear') {
-                              setEditingData((prev) => ({
-                                ...prev,
-                                documentacion: null,
-                              }))
-                            } else {
-                              setEditingData((prev) => ({
-                                ...prev,
-                                documentacion:
-                                  e.target.value === 'si' ? 'Sí' : 'No',
-                              }))
-                            }
-                          }}
-                          className="w-full text-green-900 bg-white border border-green-300 rounded px-2 py-1 text-sm font-medium"
-                        >
-                          <option value="chequear">Chequear</option>
-                          <option value="no">No</option>
-                          <option value="si">Sí</option>
-                        </select>
-                      ) : (
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            vehiculo.documentacion === 'Sí' ||
-                            vehiculo.documentacion === 'si'
-                              ? 'bg-green-100 text-green-800'
-                              : vehiculo.documentacion === 'No' ||
-                                  vehiculo.documentacion === 'no'
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-yellow-100 text-yellow-800'
-                          }`}
-                        >
-                          {getDocumentacionValue(vehiculo.documentacion)}
+                    <div className="text-xs lg:text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="text-green-700 font-medium">
+                          Estado:{' '}
+                          {isEditingDocumentacion ? (
+                            <select
+                              value={
+                                editingData.documentacion === 'Sí' ||
+                                editingData.documentacion === 'si'
+                                  ? 'si'
+                                  : editingData.documentacion === 'No' ||
+                                      editingData.documentacion === 'no'
+                                    ? 'no'
+                                    : 'chequear'
+                              }
+                              onChange={(e) => {
+                                if (e.target.value === 'chequear') {
+                                  setEditingData((prev) => ({
+                                    ...prev,
+                                    documentacion: null,
+                                  }))
+                                } else {
+                                  setEditingData((prev) => ({
+                                    ...prev,
+                                    documentacion:
+                                      e.target.value === 'si' ? 'Sí' : 'No',
+                                  }))
+                                }
+                              }}
+                              className="ml-1 text-green-900 bg-white border border-green-300 rounded px-1 py-0.5 text-xs font-medium w-16"
+                            >
+                              <option value="chequear">Chequear</option>
+                              <option value="no">No</option>
+                              <option value="si">Sí</option>
+                            </select>
+                          ) : (
+                            <span
+                              className={`ml-1 px-1 py-0.5 rounded-full text-xs font-medium ${
+                                vehiculo.documentacion === 'Sí' ||
+                                vehiculo.documentacion === 'si'
+                                  ? 'bg-green-100 text-green-800'
+                                  : vehiculo.documentacion === 'No' ||
+                                      vehiculo.documentacion === 'no'
+                                    ? 'bg-red-100 text-red-800'
+                                    : 'bg-yellow-100 text-yellow-800'
+                              }`}
+                            >
+                              {getDocumentacionValue(vehiculo.documentacion)}
+                            </span>
+                          )}
                         </span>
-                      )}
+                      </div>
                     </div>
                   </div>
 
                   {/* Master */}
-                  <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
-                    <div className="flex items-center space-x-2 mb-3">
-                      <div className="w-6 h-6 bg-indigo-500 rounded-full flex items-center justify-center">
+                  <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
+                    <div className="flex items-center space-x-1 sm:space-x-2 mb-1 lg:mb-3">
+                      <div className="w-3 h-3 sm:w-4 sm:h-4 lg:w-6 lg:h-6 bg-indigo-500 rounded-full flex items-center justify-center">
                         <svg
-                          className="w-3 h-3 text-white"
+                          className="w-1.5 h-1.5 sm:w-2 sm:h-2 lg:w-3 lg:h-3 text-white"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -2716,65 +2705,71 @@ export default function VehiculoDetailPage() {
                           />
                         </svg>
                       </div>
-                      <h3 className="font-semibold text-indigo-900">Master</h3>
+                      <h3 className="text-xs sm:text-sm lg:text-base font-semibold text-orange-900">
+                        Master
+                      </h3>
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium text-indigo-700 mb-1">
-                        Estado
-                      </label>
-                      {isEditingDocumentacion ? (
-                        <select
-                          value={
-                            editingData.master === 'Sí' ||
-                            editingData.master === 'si'
-                              ? 'si'
-                              : editingData.master === 'No' ||
-                                  editingData.master === 'no'
-                                ? 'no'
-                                : 'chequear'
-                          }
-                          onChange={(e) => {
-                            if (e.target.value === 'chequear') {
-                              setEditingData((prev) => ({
-                                ...prev,
-                                master: null,
-                              }))
-                            } else {
-                              setEditingData((prev) => ({
-                                ...prev,
-                                master: e.target.value === 'si' ? 'Sí' : 'No',
-                              }))
-                            }
-                          }}
-                          className="w-full text-indigo-900 bg-white border border-indigo-300 rounded px-2 py-1 text-sm font-medium"
-                        >
-                          <option value="chequear">Chequear</option>
-                          <option value="no">No</option>
-                          <option value="si">Sí</option>
-                        </select>
-                      ) : (
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            vehiculo.master === 'Sí' || vehiculo.master === 'si'
-                              ? 'bg-green-100 text-green-800'
-                              : vehiculo.master === 'No' ||
-                                  vehiculo.master === 'no'
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-yellow-100 text-yellow-800'
-                          }`}
-                        >
-                          {getDocumentacionValue(vehiculo.master)}
+                    <div className="text-xs lg:text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="text-indigo-700 font-medium">
+                          Estado:{' '}
+                          {isEditingDocumentacion ? (
+                            <select
+                              value={
+                                editingData.master === 'Sí' ||
+                                editingData.master === 'si'
+                                  ? 'si'
+                                  : editingData.master === 'No' ||
+                                      editingData.master === 'no'
+                                    ? 'no'
+                                    : 'chequear'
+                              }
+                              onChange={(e) => {
+                                if (e.target.value === 'chequear') {
+                                  setEditingData((prev) => ({
+                                    ...prev,
+                                    master: null,
+                                  }))
+                                } else {
+                                  setEditingData((prev) => ({
+                                    ...prev,
+                                    master:
+                                      e.target.value === 'si' ? 'Sí' : 'No',
+                                  }))
+                                }
+                              }}
+                              className="ml-1 text-indigo-900 bg-white border border-indigo-300 rounded px-1 py-0.5 text-xs font-medium w-16"
+                            >
+                              <option value="chequear">Chequear</option>
+                              <option value="no">No</option>
+                              <option value="si">Sí</option>
+                            </select>
+                          ) : (
+                            <span
+                              className={`ml-1 px-1 py-0.5 rounded-full text-xs font-medium ${
+                                vehiculo.master === 'Sí' ||
+                                vehiculo.master === 'si'
+                                  ? 'bg-green-100 text-green-800'
+                                  : vehiculo.master === 'No' ||
+                                      vehiculo.master === 'no'
+                                    ? 'bg-red-100 text-red-800'
+                                    : 'bg-yellow-100 text-yellow-800'
+                              }`}
+                            >
+                              {getDocumentacionValue(vehiculo.master)}
+                            </span>
+                          )}
                         </span>
-                      )}
+                      </div>
                     </div>
                   </div>
 
                   {/* Carpeta */}
-                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                    <div className="flex items-center space-x-2 mb-3">
-                      <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 sm:w-4 sm:h-4 lg:w-6 lg:h-6 bg-orange-500 rounded-full flex items-center justify-center">
                         <svg
-                          className="w-3 h-3 text-white"
+                          className="w-1.5 h-1.5 sm:w-2 sm:h-2 lg:w-3 lg:h-3 text-white"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -2787,12 +2782,9 @@ export default function VehiculoDetailPage() {
                           />
                         </svg>
                       </div>
-                      <h3 className="font-semibold text-orange-900">Carpeta</h3>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-orange-700 mb-1">
-                        Estado
-                      </label>
+                      <span className="text-xs lg:text-sm font-medium text-orange-700">
+                        Estado:
+                      </span>
                       {isEditingDocumentacion ? (
                         <select
                           value={
@@ -2817,7 +2809,7 @@ export default function VehiculoDetailPage() {
                               }))
                             }
                           }}
-                          className="w-full text-orange-900 bg-white border border-orange-300 rounded px-2 py-1 text-sm font-medium"
+                          className="w-16 text-orange-900 bg-white border border-orange-300 rounded px-1 py-0.5 text-xs font-medium"
                         >
                           <option value="chequear">Chequear</option>
                           <option value="no">No</option>
@@ -2825,7 +2817,7 @@ export default function VehiculoDetailPage() {
                         </select>
                       ) : (
                         <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          className={`px-1 py-0.5 rounded-full text-xs font-medium ${
                             vehiculo.carpeta === 'Sí' ||
                             vehiculo.carpeta === 'si'
                               ? 'bg-green-100 text-green-800'
@@ -2842,11 +2834,11 @@ export default function VehiculoDetailPage() {
                   </div>
 
                   {/* Hojas A */}
-                  <div className="bg-pink-50 border border-pink-200 rounded-lg p-4">
-                    <div className="flex items-center space-x-2 mb-3">
-                      <div className="w-6 h-6 bg-pink-500 rounded-full flex items-center justify-center">
+                  <div className="bg-pink-50 border border-pink-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 sm:w-4 sm:h-4 lg:w-6 lg:h-6 bg-pink-500 rounded-full flex items-center justify-center">
                         <svg
-                          className="w-3 h-3 text-white"
+                          className="w-1.5 h-1.5 sm:w-2 sm:h-2 lg:w-3 lg:h-3 text-white"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -2859,12 +2851,9 @@ export default function VehiculoDetailPage() {
                           />
                         </svg>
                       </div>
-                      <h3 className="font-semibold text-pink-900">Hojas A</h3>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-pink-700 mb-1">
-                        Estado
-                      </label>
+                      <span className="text-xs lg:text-sm font-medium text-pink-700">
+                        Estado:
+                      </span>
                       {isEditingDocumentacion ? (
                         <select
                           value={
@@ -2889,7 +2878,7 @@ export default function VehiculoDetailPage() {
                               }))
                             }
                           }}
-                          className="w-full text-pink-900 bg-white border border-pink-300 rounded px-2 py-1 text-sm font-medium"
+                          className="w-16 text-pink-900 bg-white border border-pink-300 rounded px-1 py-0.5 text-xs font-medium"
                         >
                           <option value="chequear">Chequear</option>
                           <option value="no">No</option>
@@ -2897,7 +2886,7 @@ export default function VehiculoDetailPage() {
                         </select>
                       ) : (
                         <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          className={`px-1 py-0.5 rounded-full text-xs font-medium ${
                             vehiculo.hojasA === 'Sí' || vehiculo.hojasA === 'si'
                               ? 'bg-green-100 text-green-800'
                               : vehiculo.hojasA === 'No' ||
@@ -2923,8 +2912,8 @@ export default function VehiculoDetailPage() {
                   entityType="vehiculo"
                 />
               ) : (
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-3 sm:p-4 lg:p-6">
+                  <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
                     Notas
                   </h2>
                   <p className="text-gray-500 text-center py-4">Cargando...</p>
@@ -2933,13 +2922,13 @@ export default function VehiculoDetailPage() {
             </div>
 
             {/* Sidebar Derecha */}
-            <div className="space-y-6">
-              {/* Estado del Vehículo */}
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <div className="space-y-2 sm:space-y-4 lg:space-y-6">
+              {/* Estado del Vehículo - Solo visible en pantallas >= 1024px */}
+              <div className="hidden lg:block bg-white rounded-xl shadow-sm border border-slate-200 p-3 sm:p-4 lg:p-6">
                 <div className="flex items-center space-x-2 mb-4">
-                  <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
+                  <div className="w-3 h-3 sm:w-4 sm:h-4 lg:w-6 lg:h-6 sm:w-8 sm:h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
                     <svg
-                      className="w-4 h-4 text-white"
+                      className="w-3 h-3 sm:w-4 sm:h-4 text-white"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -2952,7 +2941,7 @@ export default function VehiculoDetailPage() {
                       />
                     </svg>
                   </div>
-                  <h2 className="text-lg font-semibold text-gray-900">
+                  <h2 className="text-base sm:text-lg font-semibold text-gray-900">
                     Estado
                   </h2>
                 </div>
@@ -2975,13 +2964,13 @@ export default function VehiculoDetailPage() {
                           <p className="text-xs text-gray-600 font-medium">
                             Marcar como:
                           </p>
-                          <div className="flex space-x-2">
+                          <div className="flex flex-col space-y-2 xl:flex-row xl:space-y-0 xl:space-x-2">
                             {getCondicionVehiculo() !== 'reservado' && (
                               <button
                                 onClick={() =>
                                   cambiarCondicionVehiculo('reservado')
                                 }
-                                className="px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors text-xs font-medium flex items-center space-x-1"
+                                className="px-2 sm:px-3 py-1 sm:py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors text-xs sm:text-sm font-medium flex items-center space-x-1"
                               >
                                 <svg
                                   className="w-3 h-3"
@@ -3005,7 +2994,7 @@ export default function VehiculoDetailPage() {
                                 onClick={() =>
                                   cambiarCondicionVehiculo('vendido')
                                 }
-                                className="px-3 py-1 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-xs font-medium flex items-center space-x-1"
+                                className="px-2 sm:px-3 py-1 sm:py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-xs sm:text-sm font-medium flex items-center space-x-1"
                               >
                                 <svg
                                   className="w-3 h-3"
@@ -3029,7 +3018,7 @@ export default function VehiculoDetailPage() {
                                 onClick={() =>
                                   cambiarCondicionVehiculo('disponible')
                                 }
-                                className="px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-xs font-medium flex items-center space-x-1"
+                                className="px-2 sm:px-3 py-1 sm:py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-xs sm:text-sm font-medium flex items-center space-x-1"
                               >
                                 <svg
                                   className="w-3 h-3"
@@ -3069,11 +3058,11 @@ export default function VehiculoDetailPage() {
 
                   {/* Alerta de ITV vencida */}
                   {vehiculo.itv === 'No' && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
                       <div className="flex items-center space-x-2">
-                        <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
+                        <div className="w-3 h-3 sm:w-4 sm:h-4 lg:w-6 lg:h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
                           <svg
-                            className="w-3 h-3 text-white"
+                            className="w-1.5 h-1.5 sm:w-2 sm:h-2 lg:w-3 lg:h-3 text-white"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -3131,14 +3120,14 @@ export default function VehiculoDetailPage() {
                         />
                       </svg>
                     </div>
-                    <h3 className="text-lg font-semibold text-green-900">
+                    <h3 className="text-lg text-xs sm:text-sm lg:text-base font-semibold text-orange-900">
                       Información de Venta
                     </h3>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Cliente */}
-                    <div className="bg-white rounded-lg p-4 border border-green-200">
+                    <div className="bg-white rounded-lg p-1.5 sm:p-2 lg:p-4 border border-green-200">
                       <h4 className="font-medium text-green-800 mb-3 flex items-center">
                         <svg
                           className="w-4 h-4 mr-2"
@@ -3178,7 +3167,7 @@ export default function VehiculoDetailPage() {
                     </div>
 
                     {/* Deal */}
-                    <div className="bg-white rounded-lg p-4 border border-green-200">
+                    <div className="bg-white rounded-lg p-1.5 sm:p-2 lg:p-4 border border-green-200">
                       <h4 className="font-medium text-green-800 mb-3 flex items-center">
                         <svg
                           className="w-4 h-4 mr-2"
@@ -3217,8 +3206,8 @@ export default function VehiculoDetailPage() {
                 </div>
               )}
 
-              {/* Documentos del Vehículo */}
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+              {/* Documentos del Vehículo - Solo visible en pantallas >= 1024px */}
+              <div className="hidden lg:block bg-white rounded-xl shadow-sm border border-slate-200 p-3 sm:p-4 lg:p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center space-x-2">
                     <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
@@ -3236,7 +3225,7 @@ export default function VehiculoDetailPage() {
                         />
                       </svg>
                     </div>
-                    <h2 className="text-lg font-semibold text-gray-900">
+                    <h2 className="text-base sm:text-lg font-semibold text-gray-900">
                       Documentos
                     </h2>
                   </div>
@@ -3360,9 +3349,9 @@ export default function VehiculoDetailPage() {
               </div>
 
               {/* Recordatorios */}
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-3 sm:p-4 lg:p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-gray-900">
+                  <h2 className="text-base sm:text-lg font-semibold text-gray-900">
                     Recordatorios ({recordatorios.length})
                   </h2>
                   {!showAddRecordatorioForm && (

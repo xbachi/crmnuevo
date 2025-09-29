@@ -315,7 +315,7 @@ export default function ClientesPage() {
   return (
     <ProtectedRoute>
       <div className="min-h-full bg-gradient-to-br from-slate-50 via-orange-50 to-red-100">
-        <main className="max-w-7xl mx-auto px-4 xl:px-6 py-4 xl:py-8">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
           {/* Header Moderno - Estilo Navegación */}
           <div className="mb-4 sm:mb-6">
             {/* Título y stats compactos */}
@@ -342,26 +342,7 @@ export default function ClientesPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2 sm:space-x-3">
-                    <button
-                      onClick={() => fetchClientes()}
-                      className="px-2 sm:px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors flex items-center space-x-1 sm:space-x-2"
-                    >
-                      <svg
-                        className="w-3 h-3 sm:w-4 sm:h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                        />
-                      </svg>
-                      <span className="hidden sm:inline">Actualizar</span>
-                    </button>
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                     <button
                       onClick={() => setShowNotifications(true)}
                       className="relative px-2 sm:px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors flex items-center space-x-1 sm:space-x-2"
@@ -403,10 +384,10 @@ export default function ClientesPage() {
                     </button>
                     <button
                       onClick={() => router.push('/clientes/dashboard')}
-                      className="px-3 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center space-x-2"
+                      className="px-2 sm:px-3 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors flex items-center space-x-1 sm:space-x-2"
                     >
                       <svg
-                        className="w-4 h-4"
+                        className="w-3 h-3 sm:w-4 sm:h-4"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -418,14 +399,14 @@ export default function ClientesPage() {
                           d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
                         />
                       </svg>
-                      <span>Dashboard</span>
+                      <span className="hidden sm:inline">Dashboard</span>
                     </button>
                     <button
                       onClick={handleCreate}
-                      className="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg text-sm font-medium transition-all shadow-lg flex items-center space-x-2"
+                      className="px-3 sm:px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-all shadow-lg flex items-center space-x-1 sm:space-x-2"
                     >
                       <svg
-                        className="w-4 h-4"
+                        className="w-3 h-3 sm:w-4 sm:h-4"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -597,16 +578,16 @@ export default function ClientesPage() {
               </div>
 
               {/* LÍNEA 2: Dropdowns de filtros */}
-              <div className="flex items-center justify-center gap-8">
+              <div className="flex items-center justify-center gap-4 lg:gap-8">
                 {/* Dropdown de Estado */}
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-semibold text-slate-700">
+                <div className="flex items-center gap-2 lg:gap-3">
+                  <span className="hidden lg:inline text-sm font-semibold text-slate-700">
                     Estado:
                   </span>
                   <select
                     value={estadoFilter}
                     onChange={(e) => setEstadoFilter(e.target.value)}
-                    className="px-4 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition-all shadow-sm"
+                    className="px-3 lg:px-4 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition-all shadow-sm"
                   >
                     <option value="">Todos los estados</option>
                     <option value="nuevo">Nuevo</option>
@@ -618,14 +599,14 @@ export default function ClientesPage() {
                 </div>
 
                 {/* Dropdown de Prioridad */}
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-semibold text-slate-700">
+                <div className="flex items-center gap-2 lg:gap-3">
+                  <span className="hidden lg:inline text-sm font-semibold text-slate-700">
                     Prioridad:
                   </span>
                   <select
                     value={prioridadFilter}
                     onChange={(e) => setPrioridadFilter(e.target.value)}
-                    className="px-4 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition-all shadow-sm"
+                    className="px-3 lg:px-4 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition-all shadow-sm"
                   >
                     <option value="">Todas las prioridades</option>
                     <option value="alta">Alta</option>
@@ -637,7 +618,7 @@ export default function ClientesPage() {
                 {/* Filtros avanzados */}
                 <button
                   onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all flex items-center space-x-2 ${
+                  className={`px-3 lg:px-4 py-2 text-sm font-medium rounded-lg transition-all flex items-center space-x-1 lg:space-x-2 ${
                     showAdvancedFilters
                       ? 'bg-orange-100 text-orange-700 border border-orange-200'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'
@@ -656,7 +637,8 @@ export default function ClientesPage() {
                       d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"
                     />
                   </svg>
-                  <span>Filtros Avanzados</span>
+                  <span className="hidden lg:inline">Filtros Avanzados</span>
+                  <span className="lg:hidden">Avanzados</span>
                 </button>
               </div>
 
@@ -927,16 +909,13 @@ export default function ClientesPage() {
                       <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Estado
                       </th>
-                      <th className="hidden md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Prioridad
-                      </th>
                       <th className="hidden lg:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Interés
                       </th>
                       <th className="hidden xl:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Presupuesto
                       </th>
-                      <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="hidden xl:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Acciones
                       </th>
                     </tr>
@@ -975,13 +954,6 @@ export default function ClientesPage() {
                             {(cliente.estado || 'nuevo').replace('_', ' ')}
                           </span>
                         </td>
-                        <td className="hidden md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${getPrioridadColor(cliente.prioridad || 'media')}`}
-                          >
-                            {cliente.prioridad || 'media'}
-                          </span>
-                        </td>
                         <td className="hidden lg:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
                           <div className="text-xs sm:text-sm text-gray-600">
                             {cliente.intereses?.vehiculosInteres?.join(', ') ||
@@ -996,7 +968,7 @@ export default function ClientesPage() {
                             ).toLocaleString()}
                           </div>
                         </td>
-                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm font-medium">
+                        <td className="hidden xl:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm font-medium">
                           <div
                             className="flex space-x-1 sm:space-x-2"
                             onClick={(e) => e.stopPropagation()}

@@ -355,7 +355,7 @@ export default function CrearDeal() {
         responsableComercial: 'Usuario', // Por ahora hardcodeado
       }
 
-      console.log('📤 Enviando deal:', dealData)
+      // console.log('📤 Enviando deal:', dealData)
 
       // Enviar a la API
       const response = await fetch('/api/deals', {

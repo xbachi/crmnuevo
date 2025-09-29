@@ -372,7 +372,7 @@ const VehicleCard = memo(function VehicleCard({
           {/* Logo del vehículo */}
           <div className="flex items-start space-x-3">
             <div
-              className={`w-10 h-10 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0 ${
+              className={`min-w-12 h-10 px-2 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0 ${
                 esDeposito
                   ? 'bg-gradient-to-br from-orange-500 to-orange-600'
                   : esTipoR
@@ -382,7 +382,7 @@ const VehicleCard = memo(function VehicleCard({
                       : 'bg-gradient-to-br from-green-500 to-green-600'
               }`}
             >
-              <span className="text-white font-bold text-sm">
+              <span className="text-white font-bold text-sm whitespace-nowrap">
                 {formatVehicleReference(vehiculo.referencia, vehiculo.tipo)}
               </span>
             </div>

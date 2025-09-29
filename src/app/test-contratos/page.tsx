@@ -93,7 +93,7 @@ export default function TestContratosPage() {
           pdfBuffer = await generarContratoReserva(dealData)
           break
         case 'venta':
-          console.log('📋 Generando contrato de venta...')
+          // console.log('📋 Generando contrato de venta...')
           pdfBuffer = await generarContratoVenta(dealData)
           break
         case 'factura':

@@ -151,7 +151,7 @@ const KanbanBoard = memo(function KanbanBoard({
   const handleDragOver = (event: DragOverEvent) => {
     const { over } = event
     if (over) {
-      console.log('🔄 [DRAG OVER] Over ID:', over.id, 'Type:', typeof over.id)
+      // console.log('🔄 [DRAG OVER] Over ID:', over.id, 'Type:', typeof over.id)
     }
   }
 

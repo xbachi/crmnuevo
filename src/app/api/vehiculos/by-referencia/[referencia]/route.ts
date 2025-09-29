@@ -11,13 +11,15 @@ export async function GET(
 ) {
   try {
     const { referencia } = await params
-    
-    console.log(`🔍 [ENDPOINT] Buscando vehículo por referencia: "${referencia}"`)
-    
+
+    // console.log(`🔍 [ENDPOINT] Buscando vehículo por referencia: "${referencia}"`)
+
     // Limpiar la referencia para búsqueda (quitar prefijos)
-    const cleanReferencia = referencia.replace(/^[#IDR-]+/, '').replace(/[^0-9]/g, '')
-    console.log(`🧹 [ENDPOINT] Referencia limpia: "${cleanReferencia}"`)
-    
+    const cleanReferencia = referencia
+      .replace(/^[#IDR-]+/, '')
+      .replace(/[^0-9]/g, '')
+    // console.log(`🧹 [ENDPOINT] Referencia limpia: "${cleanReferencia}"`)
+
     // Usar exactamente las mismas columnas que funcionan en getVehiculos
     const query = `
       SELECT 
@@ -38,45 +40,48 @@ export async function GET(
          OR v.referencia = $5
       LIMIT 1
     `
-    
+
     // Buscar con diferentes formatos posibles
     const searchTerms = [
-      cleanReferencia,           // Solo número
-      `#${cleanReferencia}`,     // Con #
-      `I-${cleanReferencia}`,    // Con I-
-      `D-${cleanReferencia}`,    // Con D-
-      `R-${cleanReferencia}`     // Con R-
+      cleanReferencia, // Solo número
+      `#${cleanReferencia}`, // Con #
+      `I-${cleanReferencia}`, // Con I-
+      `D-${cleanReferencia}`, // Con D-
+      `R-${cleanReferencia}`, // Con R-
     ]
-    
+
     console.log(`🔎 [ENDPOINT] Términos de búsqueda:`, searchTerms)
     console.log(`📝 [ENDPOINT] Query SQL:`, query)
-    
+
     const result = await pool.query(query, searchTerms)
-    
-    console.log(`📊 [ENDPOINT] Resultados encontrados: ${result.rows.length}`)
-    
+
+    // console.log(`📊 [ENDPOINT] Resultados encontrados: ${result.rows.length}`)
+
     if (result.rows.length === 0) {
-      console.log(`❌ [ENDPOINT] Vehículo no encontrado para referencia: ${referencia}`)
+      // console.log(`❌ [ENDPOINT] Vehículo no encontrado para referencia: ${referencia}`)
       return NextResponse.json(
         { error: 'Vehículo no encontrado' },
         { status: 404 }
       )
     }
-    
-    console.log(`✅ [ENDPOINT] Vehículo encontrado:`, {
-      id: result.rows[0].id,
-      referencia: result.rows[0].referencia,
-      marca: result.rows[0].marca,
-      modelo: result.rows[0].modelo
-    })
-    
+
+    // console.log(`✅ [ENDPOINT] Vehículo encontrado:`, {
+    //   id: result.rows[0].id,
+    //   referencia: result.rows[0].referencia,
+    //   marca: result.rows[0].marca,
+    //   modelo: result.rows[0].modelo
+    // })
+
     return NextResponse.json(result.rows[0])
   } catch (error) {
-    console.error('❌ [ENDPOINT] Error al buscar vehículo por referencia:', error)
+    console.error(
+      '❌ [ENDPOINT] Error al buscar vehículo por referencia:',
+      error
+    )
     console.error('❌ [ENDPOINT] Detalles del error:', {
       message: error.message,
       code: error.code,
-      detail: error.detail
+      detail: error.detail,
     })
     return NextResponse.json(
       { error: 'Error interno del servidor' },

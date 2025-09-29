@@ -526,8 +526,8 @@ export default function ListaVehiculos() {
   }
 
   const handleEdit = (vehiculo: Vehiculo) => {
-    console.log('✏️ Abriendo modal de edición para vehículo:', vehiculo.id)
-    console.log('✏️ Color del vehículo:', vehiculo.color)
+    // console.log('✏️ Abriendo modal de edición para vehículo:', vehiculo.id)
+    // console.log('✏️ Color del vehículo:', vehiculo.color)
     setEditingVehiculo(vehiculo)
     const formData = {
       referencia: vehiculo.referencia,
@@ -552,19 +552,19 @@ export default function ListaVehiculos() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target
-    console.log('🔄 Cambiando campo:', name, 'a valor:', value)
-    if (name === 'color') {
-      console.log('🎨 CAMBIO DE COLOR DETECTADO:', value)
-    }
+    // console.log('🔄 Cambiando campo:', name, 'a valor:', value)
+    // if (name === 'color') {
+    //   console.log('🎨 CAMBIO DE COLOR DETECTADO:', value)
+    // }
     setEditFormData((prev) => {
       const newData = {
         ...prev,
         [name]: value,
       }
-      console.log('📝 Nuevos datos del formulario:', newData)
-      if (name === 'color') {
-        console.log('🎨 Color en formulario:', newData.color)
-      }
+      // console.log('📝 Nuevos datos del formulario:', newData)
+      // if (name === 'color') {
+      //   console.log('🎨 Color en formulario:', newData.color)
+      // }
       return newData
     })
   }
@@ -605,8 +605,8 @@ export default function ListaVehiculos() {
     e.preventDefault()
     if (!editingVehiculo) return
 
-    console.log('🚀 Iniciando actualización de vehículo:', editingVehiculo.id)
-    console.log('📋 Datos del formulario:', editFormData)
+    // console.log('🚀 Iniciando actualización de vehículo:', editingVehiculo.id)
+    // console.log('📋 Datos del formulario:', editFormData)
 
     setIsUpdating(true)
     try {
@@ -629,10 +629,10 @@ export default function ListaVehiculos() {
             : undefined,
       }
 
-      console.log('📤 Enviando a API:', updatedVehiculo)
-      console.log('🔗 URL de la API:', `/api/vehiculos/${editingVehiculo.id}`)
-      console.log('🎨 COLOR ENVIADO:', updatedVehiculo.color)
-      console.log('🎨 editFormData.color:', editFormData.color)
+      // console.log('📤 Enviando a API:', updatedVehiculo)
+      // console.log('🔗 URL de la API:', `/api/vehiculos/${editingVehiculo.id}`)
+      // console.log('🎨 COLOR ENVIADO:', updatedVehiculo.color)
+      // console.log('🎨 editFormData.color:', editFormData.color)
 
       const response = await fetch(`/api/vehiculos/${editingVehiculo.id}`, {
         method: 'PUT',
@@ -650,16 +650,16 @@ export default function ListaVehiculos() {
 
       if (response.ok) {
         const result = await response.json()
-        console.log('✅ Vehículo actualizado exitosamente:', result)
-        console.log('🔍 result.vehiculo:', result.vehiculo)
-        console.log('🔍 result.vehiculo.color:', result.vehiculo?.color)
-        console.log(
-          '🔍 result.vehiculo.fechaMatriculacion:',
-          result.vehiculo?.fechaMatriculacion
-        )
+        // console.log('✅ Vehículo actualizado exitosamente:', result)
+        // console.log('🔍 result.vehiculo:', result.vehiculo)
+        // console.log('🔍 result.vehiculo.color:', result.vehiculo?.color)
+        // console.log(
+        //   '🔍 result.vehiculo.fechaMatriculacion:',
+        //   result.vehiculo?.fechaMatriculacion
+        // )
 
         // Recargar datos frescos de la base de datos inmediatamente
-        console.log('🔄 Recargando datos frescos...')
+        // console.log('🔄 Recargando datos frescos...')
         await fetchVehiculos(1, true)
 
         setShowEditModal(false)
@@ -748,25 +748,6 @@ export default function ListaVehiculos() {
                     </div>
                   </div>
                   <div className="flex items-center space-x-2 sm:space-x-3">
-                    <button
-                      onClick={refreshVehiculos}
-                      className="px-2 sm:px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors flex items-center space-x-1 sm:space-x-2"
-                    >
-                      <svg
-                        className="w-3 h-3 sm:w-4 sm:h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                        />
-                      </svg>
-                      <span className="hidden sm:inline">Actualizar</span>
-                    </button>
                     <button
                       onClick={() => {
                         showConfirm(
@@ -1270,7 +1251,7 @@ export default function ListaVehiculos() {
                           <td className="px-2 lg:px-3 py-2 lg:py-4 max-[900px]:w-auto">
                             <div className="flex items-center">
                               <div
-                                className={`w-8 h-6 lg:w-12 lg:h-10 rounded-lg flex items-center justify-center mr-1 lg:mr-2 ${
+                                className={`min-w-8 h-6 lg:min-w-12 lg:h-10 px-1 lg:px-2 rounded-lg flex items-center justify-center mr-1 lg:mr-2 ${
                                   vehiculoVendido
                                     ? 'bg-red-600'
                                     : detectVehicleType(vehiculo.referencia) ===
@@ -1287,7 +1268,7 @@ export default function ListaVehiculos() {
                                           : 'bg-gradient-to-br from-green-500 to-green-600'
                                 }`}
                               >
-                                <span className="text-white font-bold text-xs lg:text-sm">
+                                <span className="text-white font-bold text-xs lg:text-sm whitespace-nowrap">
                                   {formatVehicleReference(
                                     vehiculo.referencia,
                                     vehiculo.tipo

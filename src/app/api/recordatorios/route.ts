@@ -260,6 +260,10 @@ export async function GET() {
               categoria: 'manuales_vehiculos',
               vehiculo_slug: vehiculo_slug,
               vehiculo_id: recordatorio.vehiculo_id,
+              vehiculo_referencia: recordatorio.vehiculo_referencia,
+              vehiculo_marca: recordatorio.vehiculo_marca,
+              vehiculo_modelo: recordatorio.vehiculo_modelo,
+              vehiculo_matricula: recordatorio.vehiculo_matricula,
             }
           })
         )

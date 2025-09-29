@@ -189,7 +189,7 @@ export default function DraggableVehicleCard({
           <div className="flex items-center space-x-3 flex-1 min-w-0">
             {/* Logo del vehículo - últimos 2 números */}
             <div
-              className={`w-6 h-6 xl:w-8 xl:h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+              className={`min-w-6 h-6 xl:min-w-8 xl:h-8 px-1 xl:px-2 rounded-lg flex items-center justify-center flex-shrink-0 ${
                 detectVehicleType(vehiculo.referencia) === 'Depósito'
                   ? 'bg-gradient-to-br from-orange-500 to-orange-600'
                   : detectVehicleType(vehiculo.referencia) === 'R'
@@ -199,7 +199,7 @@ export default function DraggableVehicleCard({
                       : 'bg-gradient-to-br from-green-500 to-green-600'
               }`}
             >
-              <span className="text-white font-bold text-xs">
+              <span className="text-white font-bold text-xs whitespace-nowrap">
                 {formatVehicleReferenceShort(
                   vehiculo.referencia,
                   vehiculo.tipo

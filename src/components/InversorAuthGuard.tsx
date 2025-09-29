@@ -40,7 +40,7 @@ export default function InversorAuthGuard({
 
     // Si es usuario CRM, permitir acceso completo
     if (isCrmUser) {
-      console.log('Usuario CRM detectado, permitiendo acceso completo')
+      // console.log('Usuario CRM detectado, permitiendo acceso completo')
       return
     }
 
