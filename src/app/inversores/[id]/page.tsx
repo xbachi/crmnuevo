@@ -38,6 +38,7 @@ export default function InvestorDashboardPage() {
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards')
   const [searchTerm, setSearchTerm] = useState('')
   const [estadoFilter, setEstadoFilter] = useState('')
+  const [stockFilter, setStockFilter] = useState('activos')
   const [periodo, setPeriodo] = useState('all')
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -451,7 +452,12 @@ export default function InvestorDashboardPage() {
 
     const matchesEstado = !estadoFilter || vehiculo.estado === estadoFilter
 
-    return matchesSearch && matchesEstado
+    const matchesStock =
+      !stockFilter ||
+      (stockFilter === 'activos' && vehiculo.estado !== 'VENDIDO') ||
+      (stockFilter === 'vendidos' && vehiculo.estado === 'VENDIDO')
+
+    return matchesSearch && matchesEstado && matchesStock
   })
 
   const estados = [
@@ -841,32 +847,14 @@ export default function InvestorDashboardPage() {
                   {/* Resumen de Capital - Centro (60%) */}
                   {metrics && (
                     <div className="w-full lg:w-3/5 mb-6 lg:mb-0 lg:mr-6">
-                      {/* Indicadores de Stock - Arriba del Resumen de Capital */}
-                      <div className="flex justify-center mb-6">
-                        <div className="flex items-center space-x-6">
-                          <div className="flex items-center space-x-2 bg-blue-50 px-4 py-2 rounded-lg border border-blue-200">
-                            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                            <span className="text-sm font-medium text-blue-700">
-                              En Stock: {metrics.totalEnStock}
-                            </span>
-                          </div>
-                          <div className="flex items-center space-x-2 bg-green-50 px-4 py-2 rounded-lg border border-green-200">
-                            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                            <span className="text-sm font-medium text-green-700">
-                              Vendidos: {metrics.totalVendidos}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <h3 className="text-xl font-semibold text-gray-700 mb-6 text-center">
+                      <h3 className="text-lg font-semibold text-gray-700 mb-3 text-center">
                         Resumen de Capital
                       </h3>
-                      <div className="grid grid-cols-3 gap-6">
-                        <div className="text-center bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-200">
-                          <div className="w-16 h-16 bg-orange-200 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="text-center bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-2 border border-orange-200">
+                          <div className="w-8 h-8 bg-orange-200 rounded-full flex items-center justify-center mx-auto mb-2">
                             <svg
-                              className="w-8 h-8 text-orange-600"
+                              className="w-4 h-4 text-orange-600"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -879,18 +867,18 @@ export default function InvestorDashboardPage() {
                               />
                             </svg>
                           </div>
-                          <p className="text-sm font-semibold text-gray-600 mb-2">
+                          <p className="text-xs font-semibold text-gray-600 mb-1">
                             Capital Aportado
                           </p>
-                          <p className="text-xl font-bold text-orange-700">
+                          <p className="text-sm font-bold text-orange-700">
                             €{metrics.capitalAportado.toLocaleString()}
                           </p>
                         </div>
 
-                        <div className="text-center bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
-                          <div className="w-16 h-16 bg-blue-200 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <div className="text-center bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-2 border border-blue-200">
+                          <div className="w-8 h-8 bg-blue-200 rounded-full flex items-center justify-center mx-auto mb-2">
                             <svg
-                              className="w-8 h-8 text-blue-600"
+                              className="w-4 h-4 text-blue-600"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -903,18 +891,18 @@ export default function InvestorDashboardPage() {
                               />
                             </svg>
                           </div>
-                          <p className="text-sm font-semibold text-gray-600 mb-2">
+                          <p className="text-xs font-semibold text-gray-600 mb-1">
                             Capital Invertido
                           </p>
-                          <p className="text-xl font-bold text-blue-700">
+                          <p className="text-sm font-bold text-blue-700">
                             €{metrics.capitalInvertido.toLocaleString()}
                           </p>
                         </div>
 
-                        <div className="text-center bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl p-4 border border-emerald-200">
-                          <div className="w-16 h-16 bg-emerald-200 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <div className="text-center bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg p-2 border border-emerald-200">
+                          <div className="w-8 h-8 bg-emerald-200 rounded-full flex items-center justify-center mx-auto mb-2">
                             <svg
-                              className="w-8 h-8 text-emerald-600"
+                              className="w-4 h-4 text-emerald-600"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -927,11 +915,11 @@ export default function InvestorDashboardPage() {
                               />
                             </svg>
                           </div>
-                          <p className="text-sm font-semibold text-gray-600 mb-2">
+                          <p className="text-xs font-semibold text-gray-600 mb-1">
                             Capital Disponible
                           </p>
                           <p
-                            className={`text-xl font-bold ${metrics.capitalDisponible >= 0 ? 'text-emerald-700' : 'text-red-700'}`}
+                            className={`text-sm font-bold ${metrics.capitalDisponible >= 0 ? 'text-emerald-700' : 'text-red-700'}`}
                           >
                             €{metrics.capitalDisponible.toLocaleString()}
                           </p>
@@ -1038,80 +1026,121 @@ export default function InvestorDashboardPage() {
           {/* Layout principal */}
           <div className="flex flex-col xl:flex-row gap-6">
             {/* Contenido principal */}
-            <div className="w-full xl:w-[70%]">
+            <div className="w-full xl:w-[76%]">
               {/* Filtros y controles */}
               <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-8">
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0 lg:space-x-4">
-                  <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+                <div className="flex flex-col lg:flex-row lg:items-center space-y-4 lg:space-y-0">
+                  {/* Search - 40% del espacio */}
+                  <div className="lg:w-2/5">
                     <input
                       type="text"
                       placeholder="Buscar vehículos..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     />
-                    <div className="flex items-center space-x-2">
-                      <select
-                        value={estadoFilter}
-                        onChange={(e) => setEstadoFilter(e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      >
-                        {estados.map((estado) => (
-                          <option key={estado.value} value={estado.value}>
-                            {estado.label}
-                          </option>
-                        ))}
-                      </select>
+                  </div>
 
-                      {/* Controles de Vista */}
-                      <div className="flex bg-gray-100 rounded-lg p-1">
-                        <button
-                          onClick={() => setViewMode('cards')}
-                          className={`px-3 py-1 text-sm rounded-md transition-colors flex items-center space-x-1 ${
-                            viewMode === 'cards'
-                              ? 'bg-white text-gray-900 shadow-sm'
-                              : 'text-gray-500 hover:text-gray-700'
-                          }`}
+                  {/* Botones de filtro y controles - 60% del espacio */}
+                  <div className="lg:w-3/5 flex flex-row items-center justify-between space-x-2">
+                    {/* Botones de filtro Activos/Vendidos */}
+                    <div className="flex space-x-1 lg:space-x-2">
+                      <button
+                        onClick={() => setStockFilter('activos')}
+                        className={`px-2 lg:px-4 py-1 lg:py-2 text-xs lg:text-sm rounded-lg transition-all duration-200 flex items-center space-x-1 lg:space-x-2 whitespace-nowrap ${
+                          stockFilter === 'activos'
+                            ? 'bg-green-100 text-green-700 border-2 border-green-300 shadow-md'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800 border-2 border-transparent'
+                        }`}
+                      >
+                        <svg
+                          className="w-3 h-3 lg:w-4 lg:h-4 flex-shrink-0"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
                         >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
-                            />
-                          </svg>
-                          <span>Cards</span>
-                        </button>
-                        <button
-                          onClick={() => setViewMode('list')}
-                          className={`px-3 py-1 text-sm rounded-md transition-colors flex items-center space-x-1 ${
-                            viewMode === 'list'
-                              ? 'bg-white text-gray-900 shadow-sm'
-                              : 'text-gray-500 hover:text-gray-700'
-                          }`}
+                          <path
+                            fillRule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        <span className="flex items-center">
+                          Activos ({metrics?.totalEnStock || 0})
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => setStockFilter('vendidos')}
+                        className={`px-2 lg:px-4 py-1 lg:py-2 text-xs lg:text-sm rounded-lg transition-all duration-200 flex items-center space-x-1 lg:space-x-2 whitespace-nowrap ${
+                          stockFilter === 'vendidos'
+                            ? 'bg-red-100 text-red-700 border-2 border-red-300 shadow-md'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800 border-2 border-transparent'
+                        }`}
+                      >
+                        <svg
+                          className="w-3 h-3 lg:w-4 lg:h-4 flex-shrink-0"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
                         >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M4 6h16M4 10h16M4 14h16M4 18h16"
-                            />
-                          </svg>
-                          <span>Lista</span>
-                        </button>
-                      </div>
+                          <path
+                            fillRule="evenodd"
+                            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        <span className="flex items-center">
+                          Vendidos ({metrics?.totalVendidos || 0})
+                        </span>
+                      </button>
+                    </div>
+
+                    {/* Controles de Vista */}
+                    <div className="flex bg-gray-100 rounded-lg p-1">
+                      <button
+                        onClick={() => setViewMode('cards')}
+                        className={`px-3 py-1 text-sm rounded-md transition-colors flex items-center space-x-1 ${
+                          viewMode === 'cards'
+                            ? 'bg-white text-gray-900 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+                          />
+                        </svg>
+                        <span className="hidden 2xl:inline">Cards</span>
+                      </button>
+                      <button
+                        onClick={() => setViewMode('list')}
+                        className={`px-3 py-1 text-sm rounded-md transition-colors flex items-center space-x-1 ${
+                          viewMode === 'list'
+                            ? 'bg-white text-gray-900 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 6h16M4 10h16M4 14h16M4 18h16"
+                          />
+                        </svg>
+                        <span className="hidden 2xl:inline">Lista</span>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -1171,7 +1200,7 @@ export default function InvestorDashboardPage() {
             </div>
 
             {/* Sidebar derecho - Solo visible en desktop */}
-            <div className="hidden xl:block w-[30%]">
+            <div className="hidden xl:block w-[24%]">
               {/* Bloque de Notas */}
               {inversorData?.id ? (
                 <NotasSection

@@ -189,9 +189,15 @@ export default function Navigation() {
       roles: ['admin', 'asesor'],
     },
     {
-      href: '/vehiculos',
-      label: 'Vehículos',
-      icon: VehiculosIcon,
+      href: '/kanban',
+      label: 'Proceso Venta',
+      icon: KanbanIcon,
+      roles: ['admin', 'asesor'],
+    },
+    {
+      href: '/deals',
+      label: 'Ventas',
+      icon: DealsIcon,
       roles: ['admin', 'asesor'],
     },
     {
@@ -201,39 +207,27 @@ export default function Navigation() {
       roles: ['admin', 'asesor'],
     },
     {
-      href: '/inversores',
-      label: 'Inversores',
-      icon: InversoresIcon,
-      roles: ['admin'],
-    },
-    {
-      href: '/kanban',
-      label: 'Kanban',
-      icon: KanbanIcon,
-      roles: ['admin', 'asesor'],
-    },
-    {
-      href: '/deals',
-      label: 'Deals',
-      icon: DealsIcon,
-      roles: ['admin', 'asesor'],
-    },
-    {
-      href: '/importar-csv',
-      label: 'Importar CSV',
-      icon: ImportIcon,
-      roles: ['admin'],
-    },
-    {
-      href: '/documentacion',
-      label: 'Documentación',
-      icon: DocumentacionIcon,
+      href: '/vehiculos',
+      label: 'Vehículos',
+      icon: VehiculosIcon,
       roles: ['admin', 'asesor'],
     },
     {
       href: '/depositos',
       label: 'Depósitos',
       icon: DepositosIcon,
+      roles: ['admin', 'asesor'],
+    },
+    {
+      href: '/inversores',
+      label: 'Inversores',
+      icon: InversoresIcon,
+      roles: ['admin'],
+    },
+    {
+      href: '/documentacion',
+      label: 'Documentación',
+      icon: DocumentacionIcon,
       roles: ['admin', 'asesor'],
     },
   ]
