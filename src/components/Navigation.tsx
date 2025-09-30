@@ -307,12 +307,16 @@ export default function Navigation() {
           >
             {!shouldShowCollapsed && (
               <>
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">SC</span>
+                <div
+                  className="flex items-center justify-center"
+                  style={{ width: '200px', height: 'auto' }}
+                >
+                  <img
+                    src="/logocontrato.png"
+                    alt="SevenCars Logo"
+                    className="w-full h-full object-contain"
+                  />
                 </div>
-                <span className="ml-3 text-xl font-bold text-gray-900 hidden lg:block">
-                  SevenCars
-                </span>
               </>
             )}
           </div>

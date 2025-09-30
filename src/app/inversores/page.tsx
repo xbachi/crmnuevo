@@ -198,7 +198,7 @@ export default function InversoresPage() {
   return (
     <ProtectedRoute requiredRole="admin">
       <div className="min-h-screen bg-gray-50">
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+        <main className="w-[80%] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
           {/* Header */}
           <div className="mb-6">
             <div className="bg-blue-600 rounded-xl shadow-lg border border-blue-700 mb-4">

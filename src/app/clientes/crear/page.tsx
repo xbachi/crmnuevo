@@ -407,7 +407,7 @@ export default function CrearClientePage() {
                 <div className="p-4 bg-white rounded-lg border border-gray-200">
                   {/* Vehículos de interés */}
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">
                       🚗 Vehículos de interés
                     </label>
                     <div className="relative">

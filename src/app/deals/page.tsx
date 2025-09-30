@@ -407,7 +407,7 @@ export default function DealsPage() {
   return (
     <ProtectedRoute>
       <div className="min-h-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+        <main className="w-[80%] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
           {/* Header Moderno - Estilo Navegación */}
           <div className="mb-6">
             {/* Título y stats compactos */}

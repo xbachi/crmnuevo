@@ -258,14 +258,33 @@ export default function CargarVehiculo() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-full bg-slate-50">
-        <div className="max-w-2xl mx-auto px-6 py-8">
+      <div
+        className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative"
+        style={{
+          backgroundImage: 'url(/fondo.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+        }}
+      >
+        {/* Overlay para mejorar la legibilidad */}
+        <div className="absolute inset-0 bg-black/80"></div>
+
+        {/* Contenido principal */}
+        <div className="relative z-10 w-full max-w-4xl">
           {/* Título minimalista */}
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-slate-800 mb-2">
+            <div className="mx-auto h-16 w-16 flex items-center justify-center mb-4">
+              <img
+                src="/logocontrato.png"
+                alt="SevenCars Logo"
+                className="w-full h-full object-contain"
+              />
+            </div>
+            <h1 className="text-3xl font-bold text-white mb-2">
               Cargar Vehículo Nuevo
             </h1>
-            <p className="text-slate-600">
+            <p className="text-white/90">
               Registra un nuevo vehículo en el sistema
             </p>
           </div>
