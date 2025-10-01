@@ -1344,7 +1344,9 @@ export async function generarFactura(
   )
 
   // Datos de la tabla (sin cantidad) - ajustar posición para no superponerse con detalles
-  doc.text(formatCurrency(subtotal), margin + 120, yPosition + 20)
+  // Para REBU mostrar el precio total directamente, para IVA mostrar subtotal
+  const precioMostrar = tipoFactura === 'REBU' ? total : subtotal
+  doc.text(formatCurrency(precioMostrar), margin + 120, yPosition + 20)
   doc.text(formatCurrency(total), margin + 160, yPosition + 20)
   yPosition += 30
 
@@ -1354,25 +1356,37 @@ export async function generarFactura(
 
   // Totales
   doc.setFont('helvetica', 'bold')
-  doc.text('SUBTOTAL:', margin + 120, yPosition)
-  doc.text(formatCurrency(subtotal), margin + 160, yPosition)
-  yPosition += 5
 
-  if (tipoFactura === 'IVA') {
+  if (tipoFactura === 'REBU') {
+    // REBU: Solo mostrar el total, sin desglosar IVA
+    doc.text('TOTAL:', margin + 120, yPosition)
+    doc.text(formatCurrency(total), margin + 160, yPosition)
+    yPosition += 5
+  } else {
+    // IVA: Mostrar subtotal e IVA por separado
+    doc.text('SUBTOTAL:', margin + 120, yPosition)
+    doc.text(formatCurrency(subtotal), margin + 160, yPosition)
+    yPosition += 5
+
     doc.text('IVA (21%):', margin + 120, yPosition)
     doc.text(formatCurrency(iva), margin + 160, yPosition)
     yPosition += 5
   }
 
-  // Línea de total final
-  doc.setLineWidth(1)
-  doc.line(margin + 120, yPosition, pageWidth - margin, yPosition)
-  yPosition += 5
+  // Línea de total final (solo para IVA, REBU ya tiene su total arriba)
+  if (tipoFactura === 'IVA') {
+    doc.setLineWidth(1)
+    doc.line(margin + 120, yPosition, pageWidth - margin, yPosition)
+    yPosition += 5
 
-  doc.setFontSize(12)
-  doc.text('TOTAL:', margin + 120, yPosition)
-  doc.text(formatCurrency(total), margin + 160, yPosition)
-  yPosition += 15
+    doc.setFontSize(12)
+    doc.text('TOTAL:', margin + 120, yPosition)
+    doc.text(formatCurrency(total), margin + 160, yPosition)
+    yPosition += 15
+  } else {
+    // Para REBU, solo agregar espacio
+    yPosition += 15
+  }
 
   // Información adicional
   doc.setFontSize(8)
