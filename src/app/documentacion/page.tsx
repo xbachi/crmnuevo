@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useSimpleToast } from '@/hooks/useSimpleToast'
+import ProtectedRoute from '@/components/ProtectedRoute'
 
 interface DocumentFile {
   id: string
@@ -200,124 +201,131 @@ export default function DocumentacionPage() {
   }
 
   return (
-    <div className="min-h-full bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Documentación</h1>
-          <p className="mt-2 text-gray-600">
-            Gestiona los documentos plantilla que se utilizan en todos los deals
-          </p>
-        </div>
+    <ProtectedRoute>
+      <div className="min-h-full bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900">Documentación</h1>
+            <p className="mt-2 text-gray-600">
+              Gestiona los documentos plantilla que se utilizan en todos los
+              deals
+            </p>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {documentTypes.map((docType) => {
-            const file = getFileForType(docType.type)
-            const colors = getColorClasses(docType.color)
-            const isUploading = uploadingType === docType.type
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {documentTypes.map((docType) => {
+              const file = getFileForType(docType.type)
+              const colors = getColorClasses(docType.color)
+              const isUploading = uploadingType === docType.type
 
-            return (
-              <div
-                key={docType.type}
-                className={`bg-white rounded-xl shadow-sm border border-slate-200 p-6 ${colors.bg}`}
-              >
-                <div className="flex items-center space-x-3 mb-4">
-                  <div
-                    className={`w-10 h-10 ${colors.bg} rounded-lg flex items-center justify-center`}
-                  >
-                    <svg
-                      className={`w-5 h-5 ${colors.icon}`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+              return (
+                <div
+                  key={docType.type}
+                  className={`bg-white rounded-xl shadow-sm border border-slate-200 p-6 ${colors.bg}`}
+                >
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div
+                      className={`w-10 h-10 ${colors.bg} rounded-lg flex items-center justify-center`}
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d={docType.icon}
-                      />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className={`font-semibold ${colors.text}`}>
-                      {docType.label}
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      {docType.description}
-                    </p>
-                  </div>
-                </div>
-
-                {file ? (
-                  <div className="space-y-3">
-                    <div className={`p-3 rounded-lg border ${colors.border}`}>
-                      <div className="flex items-center space-x-2 mb-2">
-                        <svg
-                          className="w-4 h-4"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        <span className="text-sm font-medium">{file.name}</span>
-                      </div>
-                      <p className="text-xs text-gray-500">
-                        {formatFileSize(file.size)} •{' '}
-                        {new Date(file.uploadedAt).toLocaleDateString('es-ES')}
+                      <svg
+                        className={`w-5 h-5 ${colors.icon}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d={docType.icon}
+                        />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className={`font-semibold ${colors.text}`}>
+                        {docType.label}
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        {docType.description}
                       </p>
                     </div>
+                  </div>
 
-                    <div className="flex space-x-2">
-                      <a
-                        href={file.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`flex-1 px-3 py-2 text-sm font-medium rounded-md ${colors.button} transition-colors`}
-                      >
-                        Ver
-                      </a>
+                  {file ? (
+                    <div className="space-y-3">
+                      <div className={`p-3 rounded-lg border ${colors.border}`}>
+                        <div className="flex items-center space-x-2 mb-2">
+                          <svg
+                            className="w-4 h-4"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          <span className="text-sm font-medium">
+                            {file.name}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {formatFileSize(file.size)} •{' '}
+                          {new Date(file.uploadedAt).toLocaleDateString(
+                            'es-ES'
+                          )}
+                        </p>
+                      </div>
+
+                      <div className="flex space-x-2">
+                        <a
+                          href={file.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`flex-1 px-3 py-2 text-sm font-medium rounded-md ${colors.button} transition-colors`}
+                        >
+                          Ver
+                        </a>
+                        <button
+                          onClick={() => handleDeleteFile(file.id)}
+                          className="px-3 py-2 text-sm font-medium text-red-600 hover:text-red-800 transition-colors"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <p className="text-sm text-gray-500 mb-4">
+                        No hay archivo subido
+                      </p>
                       <button
-                        onClick={() => handleDeleteFile(file.id)}
-                        className="px-3 py-2 text-sm font-medium text-red-600 hover:text-red-800 transition-colors"
+                        onClick={() => handleFileInput(docType.type)}
+                        disabled={isUploading}
+                        className={`w-full px-4 py-2 text-sm font-medium rounded-md ${colors.button} transition-colors disabled:opacity-50`}
                       >
-                        Eliminar
+                        {isUploading ? 'Subiendo...' : 'Subir Archivo'}
                       </button>
                     </div>
-                  </div>
-                ) : (
-                  <div className="text-center">
-                    <p className="text-sm text-gray-500 mb-4">
-                      No hay archivo subido
-                    </p>
-                    <button
-                      onClick={() => handleFileInput(docType.type)}
-                      disabled={isUploading}
-                      className={`w-full px-4 py-2 text-sm font-medium rounded-md ${colors.button} transition-colors disabled:opacity-50`}
-                    >
-                      {isUploading ? 'Subiendo...' : 'Subir Archivo'}
-                    </button>
-                  </div>
-                )}
+                  )}
 
-                {/* Input oculto para cada tipo de documento */}
-                <input
-                  ref={(el) => (fileInputRefs.current[docType.type] = el)}
-                  type="file"
-                  accept=".pdf"
-                  onChange={(e) => handleFileChange(e, docType.type)}
-                  className="hidden"
-                />
-              </div>
-            )
-          })}
+                  {/* Input oculto para cada tipo de documento */}
+                  <input
+                    ref={(el) => (fileInputRefs.current[docType.type] = el)}
+                    type="file"
+                    accept=".pdf"
+                    onChange={(e) => handleFileChange(e, docType.type)}
+                    className="hidden"
+                  />
+                </div>
+              )
+            })}
+          </div>
+
+          <ToastContainer />
         </div>
-
-        <ToastContainer />
       </div>
-    </div>
+    </ProtectedRoute>
   )
 }

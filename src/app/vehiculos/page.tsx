@@ -18,7 +18,17 @@ interface Vehiculo {
   bastidor: string
   kms: number
   tipo: string
-  estado: 'ACTIVO' | 'VENDIDO' | 'RESERVADO' | 'BORRADOR' | 'FINALIZADO'
+  estado:
+    | 'SIN_ESTADO'
+    | 'REVI_INIC'
+    | 'MECAUTO'
+    | 'REVI_PINTURA'
+    | 'PINTURA'
+    | 'LIMPIEZA'
+    | 'FOTOS'
+    | 'PUBLICADO'
+    | 'VENDIDO'
+    | 'RESERVADO'
   orden: number
   createdAt: string
   updatedAt?: string
@@ -75,8 +85,8 @@ export default function ListaVehiculos() {
     | 'tipo'
   >('todos')
   const [statusFilter, setStatusFilter] = useState<
-    'todos' | 'activos' | 'vendidos' | 'reservados'
-  >('activos')
+    'todos' | 'publicados' | 'enProceso' | 'vendidos' | 'reservados'
+  >('publicados')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [typeFilter, setTypeFilter] = useState<
     'todos' | 'Compra' | 'R' | 'Depósito' | 'inversores'
@@ -91,7 +101,7 @@ export default function ListaVehiculos() {
     bastidor: '',
     kms: '',
     tipo: '',
-    estado: 'ACTIVO',
+    estado: 'SIN_ESTADO',
     color: '',
     fechaMatriculacion: '',
     inversorId: '',
@@ -252,7 +262,7 @@ export default function ListaVehiculos() {
       // Verificar si hay un timestamp reciente de creación de vehículo
       const lastVehicleCreation = localStorage.getItem('lastVehicleCreation')
       if (lastVehicleCreation) {
-        const now = Date.now()
+        const now = new Date().getTime()
         const timeDiff = now - parseInt(lastVehicleCreation)
         // Si fue hace menos de 10 segundos, refrescar
         if (timeDiff < 10000) {
@@ -318,8 +328,34 @@ export default function ListaVehiculos() {
           return normalized === 'reservado'
         }
 
-        if (statusFilter === 'activos') {
-          return !isVendido(vehiculo.estado) && !isReservado(vehiculo.estado)
+        const isPublicado = (estado: string | null | undefined): boolean => {
+          if (!estado) return false
+          const normalized = estado.toString().toLowerCase().trim()
+          return normalized === 'publicado'
+        }
+
+        const isEnProceso = (estado: string | null | undefined): boolean => {
+          // Incluir vehículos sin estado (null, undefined, vacío) como "inicial"
+          if (!estado || estado.trim() === '') return true
+          const normalized = estado.toString().toLowerCase().trim()
+          // Estados del proceso de venta que no sean vendido, reservado ni publicado
+          const estadosProceso = [
+            'sin_estado',
+            'inicial',
+            'revi_inic',
+            'mecauto',
+            'revi_pintura',
+            'pintura',
+            'limpieza',
+            'fotos',
+          ]
+          return estadosProceso.includes(normalized)
+        }
+
+        if (statusFilter === 'publicados') {
+          return isPublicado(vehiculo.estado)
+        } else if (statusFilter === 'enProceso') {
+          return isEnProceso(vehiculo.estado)
         } else if (statusFilter === 'vendidos') {
           return isVendido(vehiculo.estado)
         } else if (statusFilter === 'reservados') {
@@ -385,6 +421,68 @@ export default function ListaVehiculos() {
     setFilteredVehiculos(filtered)
   }
 
+  // Funciones para contar vehículos por estado (filtrado por tipo)
+  const getStatusCounts = () => {
+    // Filtrar vehículos por tipo primero
+    let vehiculosFiltrados = vehiculos
+
+    if (typeFilter !== 'todos') {
+      vehiculosFiltrados = vehiculos.filter((vehiculo) => {
+        if (typeFilter === 'inversores') {
+          return vehiculo.esCocheInversor === true
+        } else {
+          return vehiculo.tipo === typeFilter
+        }
+      })
+    }
+
+    const isVendido = (estado: string | null | undefined): boolean => {
+      if (!estado) return false
+      const normalized = estado.toString().toLowerCase().trim()
+      return normalized === 'vendido'
+    }
+
+    const isReservado = (estado: string | null | undefined): boolean => {
+      if (!estado) return false
+      const normalized = estado.toString().toLowerCase().trim()
+      return normalized === 'reservado'
+    }
+
+    const isPublicado = (estado: string | null | undefined): boolean => {
+      if (!estado) return false
+      const normalized = estado.toString().toLowerCase().trim()
+      return normalized === 'publicado'
+    }
+
+    const isEnProceso = (estado: string | null | undefined): boolean => {
+      // Incluir vehículos sin estado (null, undefined, vacío) como "inicial"
+      if (!estado || estado.trim() === '') return true
+      const normalized = estado.toString().toLowerCase().trim()
+      // Estados del proceso de venta que no sean vendido, reservado ni publicado
+      const estadosProceso = [
+        'sin_estado',
+        'inicial',
+        'revi_inic',
+        'mecauto',
+        'revi_pintura',
+        'pintura',
+        'limpieza',
+        'fotos',
+      ]
+      return estadosProceso.includes(normalized)
+    }
+
+    return {
+      publicados: vehiculosFiltrados.filter((v) => isPublicado(v.estado))
+        .length,
+      enProceso: vehiculosFiltrados.filter((v) => isEnProceso(v.estado)).length,
+      vendidos: vehiculosFiltrados.filter((v) => isVendido(v.estado)).length,
+      reservados: vehiculosFiltrados.filter((v) => isReservado(v.estado))
+        .length,
+      todos: vehiculosFiltrados.length,
+    }
+  }
+
   const fetchVehiculos = async (page = 1, forceRefresh = false) => {
     try {
       if (page === 1) {
@@ -428,8 +526,8 @@ export default function ListaVehiculos() {
   }
 
   const handleEdit = (vehiculo: Vehiculo) => {
-    console.log('✏️ Abriendo modal de edición para vehículo:', vehiculo.id)
-    console.log('✏️ Color del vehículo:', vehiculo.color)
+    // console.log('✏️ Abriendo modal de edición para vehículo:', vehiculo.id)
+    // console.log('✏️ Color del vehículo:', vehiculo.color)
     setEditingVehiculo(vehiculo)
     const formData = {
       referencia: vehiculo.referencia,
@@ -454,19 +552,19 @@ export default function ListaVehiculos() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target
-    console.log('🔄 Cambiando campo:', name, 'a valor:', value)
-    if (name === 'color') {
-      console.log('🎨 CAMBIO DE COLOR DETECTADO:', value)
-    }
+    // console.log('🔄 Cambiando campo:', name, 'a valor:', value)
+    // if (name === 'color') {
+    //   console.log('🎨 CAMBIO DE COLOR DETECTADO:', value)
+    // }
     setEditFormData((prev) => {
       const newData = {
         ...prev,
         [name]: value,
       }
-      console.log('📝 Nuevos datos del formulario:', newData)
-      if (name === 'color') {
-        console.log('🎨 Color en formulario:', newData.color)
-      }
+      // console.log('📝 Nuevos datos del formulario:', newData)
+      // if (name === 'color') {
+      //   console.log('🎨 Color en formulario:', newData.color)
+      // }
       return newData
     })
   }
@@ -507,8 +605,8 @@ export default function ListaVehiculos() {
     e.preventDefault()
     if (!editingVehiculo) return
 
-    console.log('🚀 Iniciando actualización de vehículo:', editingVehiculo.id)
-    console.log('📋 Datos del formulario:', editFormData)
+    // console.log('🚀 Iniciando actualización de vehículo:', editingVehiculo.id)
+    // console.log('📋 Datos del formulario:', editFormData)
 
     setIsUpdating(true)
     try {
@@ -531,10 +629,10 @@ export default function ListaVehiculos() {
             : undefined,
       }
 
-      console.log('📤 Enviando a API:', updatedVehiculo)
-      console.log('🔗 URL de la API:', `/api/vehiculos/${editingVehiculo.id}`)
-      console.log('🎨 COLOR ENVIADO:', updatedVehiculo.color)
-      console.log('🎨 editFormData.color:', editFormData.color)
+      // console.log('📤 Enviando a API:', updatedVehiculo)
+      // console.log('🔗 URL de la API:', `/api/vehiculos/${editingVehiculo.id}`)
+      // console.log('🎨 COLOR ENVIADO:', updatedVehiculo.color)
+      // console.log('🎨 editFormData.color:', editFormData.color)
 
       const response = await fetch(`/api/vehiculos/${editingVehiculo.id}`, {
         method: 'PUT',
@@ -552,16 +650,16 @@ export default function ListaVehiculos() {
 
       if (response.ok) {
         const result = await response.json()
-        console.log('✅ Vehículo actualizado exitosamente:', result)
-        console.log('🔍 result.vehiculo:', result.vehiculo)
-        console.log('🔍 result.vehiculo.color:', result.vehiculo?.color)
-        console.log(
-          '🔍 result.vehiculo.fechaMatriculacion:',
-          result.vehiculo?.fechaMatriculacion
-        )
+        // console.log('✅ Vehículo actualizado exitosamente:', result)
+        // console.log('🔍 result.vehiculo:', result.vehiculo)
+        // console.log('🔍 result.vehiculo.color:', result.vehiculo?.color)
+        // console.log(
+        //   '🔍 result.vehiculo.fechaMatriculacion:',
+        //   result.vehiculo?.fechaMatriculacion
+        // )
 
         // Recargar datos frescos de la base de datos inmediatamente
-        console.log('🔄 Recargando datos frescos...')
+        // console.log('🔄 Recargando datos frescos...')
         await fetchVehiculos(1, true)
 
         setShowEditModal(false)
@@ -590,7 +688,7 @@ export default function ListaVehiculos() {
       bastidor: '',
       kms: '',
       tipo: '',
-      estado: 'ACTIVO',
+      estado: 'SIN_ESTADO',
       color: '',
       fechaMatriculacion: '',
       inversorId: '',
@@ -618,7 +716,7 @@ export default function ListaVehiculos() {
   return (
     <ProtectedRoute>
       <div className="min-h-full bg-gradient-to-br from-slate-50 via-green-50 to-emerald-100">
-        <div className="w-full px-8 sm:px-12 lg:px-16 py-4 sm:py-8">
+        <div className="w-full px-4 sm:px-8 xl:px-12 py-4 sm:py-8 md:ml-0">
           {/* Header Moderno - Estilo Navegación */}
           <div className="mb-4 sm:mb-6">
             {/* Título y stats compactos */}
@@ -650,25 +748,6 @@ export default function ListaVehiculos() {
                     </div>
                   </div>
                   <div className="flex items-center space-x-2 sm:space-x-3">
-                    <button
-                      onClick={refreshVehiculos}
-                      className="px-2 sm:px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors flex items-center space-x-1 sm:space-x-2"
-                    >
-                      <svg
-                        className="w-3 h-3 sm:w-4 sm:h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                        />
-                      </svg>
-                      <span className="hidden sm:inline">Actualizar</span>
-                    </button>
                     <button
                       onClick={() => {
                         showConfirm(
@@ -731,10 +810,10 @@ export default function ListaVehiculos() {
               </div>
             </div>
 
-            {/* Barra de filtros mejorada - Responsive */}
-            <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/60 p-3 sm:p-4 space-y-3 sm:space-y-4">
+            {/* Barra de filtros mejorada - Mobile First */}
+            <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/60 p-3 xl:p-4 space-y-3 xl:space-y-4">
               {/* LÍNEA 1: Búsqueda + Botón Nuevo + Vista */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+              <div className="flex flex-col xl:flex-row items-stretch xl:items-center gap-3 xl:gap-4">
                 {/* Búsqueda */}
                 <div className="flex-1">
                   <div className="relative">
@@ -784,10 +863,10 @@ export default function ListaVehiculos() {
                 {/* Botón Nuevo Vehículo */}
                 <a
                   href="/cargar-vehiculo"
-                  className="px-3 sm:px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-all shadow-lg flex items-center justify-center space-x-1 sm:space-x-2"
+                  className="px-3 xl:px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg text-xs xl:text-sm font-medium transition-all shadow-lg flex items-center justify-center space-x-1 xl:space-x-2"
                 >
                   <svg
-                    className="w-3 h-3 sm:w-4 sm:h-4"
+                    className="w-3 h-3 xl:w-4 xl:h-4"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -799,22 +878,22 @@ export default function ListaVehiculos() {
                       d="M12 4v16m8-8H4"
                     />
                   </svg>
-                  <span className="hidden sm:inline">Nuevo Vehículo</span>
-                  <span className="sm:hidden">Nuevo</span>
+                  <span className="hidden xl:inline">Nuevo Vehículo</span>
+                  <span className="xl:hidden">Nuevo</span>
                 </a>
 
                 {/* Vista con iconos */}
                 <div className="flex items-center gap-2">
-                  <span className="text-xs sm:text-sm font-medium text-slate-600 hidden sm:inline">
+                  <span className="text-xs xl:text-sm font-medium text-slate-600 hidden xl:inline">
                     👁️ Vista:
                   </span>
-                  <span className="text-xs sm:text-sm font-medium text-slate-600 sm:hidden">
+                  <span className="text-xs xl:text-sm font-medium text-slate-600 xl:hidden">
                     👁️
                   </span>
                   <div className="flex bg-slate-100 rounded-xl p-1">
                     <button
                       onClick={() => setViewMode('cartas')}
-                      className={`px-2 sm:px-3 py-2 rounded-lg transition-all flex items-center space-x-1 sm:space-x-2 ${
+                      className={`px-2 xl:px-3 py-2 rounded-lg transition-all flex items-center space-x-1 xl:space-x-2 ${
                         viewMode === 'cartas'
                           ? 'bg-white text-slate-800 shadow-sm'
                           : 'text-slate-600 hover:text-slate-800'
@@ -822,7 +901,7 @@ export default function ListaVehiculos() {
                       title="Vista de cartas"
                     >
                       <svg
-                        className="w-3 h-3 sm:w-4 sm:h-4"
+                        className="w-3 h-3 xl:w-4 xl:h-4"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -837,7 +916,7 @@ export default function ListaVehiculos() {
                     </button>
                     <button
                       onClick={() => setViewMode('lista')}
-                      className={`px-2 sm:px-3 py-2 rounded-lg transition-all flex items-center space-x-1 sm:space-x-2 ${
+                      className={`px-2 xl:px-3 py-2 rounded-lg transition-all flex items-center space-x-1 xl:space-x-2 ${
                         viewMode === 'lista'
                           ? 'bg-white text-slate-800 shadow-sm'
                           : 'text-slate-600 hover:text-slate-800'
@@ -845,7 +924,7 @@ export default function ListaVehiculos() {
                       title="Vista de lista"
                     >
                       <svg
-                        className="w-3 h-3 sm:w-4 sm:h-4"
+                        className="w-3 h-3 xl:w-4 xl:h-4"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -863,16 +942,16 @@ export default function ListaVehiculos() {
               </div>
 
               {/* LÍNEA 2: Filtros responsive */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-4 sm:gap-8 lg:gap-12">
+              <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-center gap-3 xl:gap-8">
                 {/* Filtros de tipo sin iconos */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
-                  <span className="text-xs sm:text-sm font-semibold text-slate-700">
+                <div className="flex flex-col xl:flex-row items-start xl:items-center gap-2 xl:gap-4">
+                  <span className="text-xs xl:text-sm font-semibold text-slate-700">
                     Tipo:
                   </span>
                   <div className="flex flex-wrap bg-slate-50 rounded-lg p-1 border border-slate-200 gap-1">
                     <button
                       onClick={() => setTypeFilter('todos')}
-                      className={`px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
+                      className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm font-medium rounded-md transition-all ${
                         typeFilter === 'todos'
                           ? 'bg-white text-slate-800 shadow-sm border border-slate-200'
                           : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
@@ -882,7 +961,7 @@ export default function ListaVehiculos() {
                     </button>
                     <button
                       onClick={() => setTypeFilter('Compra')}
-                      className={`px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
+                      className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm font-medium rounded-md transition-all ${
                         typeFilter === 'Compra'
                           ? 'bg-green-50 text-green-700 shadow-sm border border-green-200'
                           : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
@@ -892,7 +971,7 @@ export default function ListaVehiculos() {
                     </button>
                     <button
                       onClick={() => setTypeFilter('R')}
-                      className={`px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
+                      className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm font-medium rounded-md transition-all ${
                         typeFilter === 'R'
                           ? 'bg-red-50 text-red-700 shadow-sm border border-red-200'
                           : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
@@ -902,7 +981,7 @@ export default function ListaVehiculos() {
                     </button>
                     <button
                       onClick={() => setTypeFilter('Depósito')}
-                      className={`px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
+                      className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm font-medium rounded-md transition-all ${
                         typeFilter === 'Depósito'
                           ? 'bg-orange-50 text-orange-700 shadow-sm border border-orange-200'
                           : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
@@ -912,7 +991,7 @@ export default function ListaVehiculos() {
                     </button>
                     <button
                       onClick={() => setTypeFilter('inversores')}
-                      className={`px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
+                      className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm font-medium rounded-md transition-all ${
                         typeFilter === 'inversores'
                           ? 'bg-amber-50 text-amber-700 shadow-sm border border-amber-200'
                           : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
@@ -923,76 +1002,102 @@ export default function ListaVehiculos() {
                   </div>
                 </div>
 
-                {/* Filtros de estado con iconos - Orden: Activos, Vendidos, Todos */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
-                  <span className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                {/* Filtros de estado con iconos - Orden: Publicados, En Proceso, Vendidos, Reservados, Todos */}
+                <div className="flex flex-col xl:flex-row items-start xl:items-center gap-2 xl:gap-4">
+                  <span className="text-xs xl:text-sm font-semibold text-slate-700 flex items-center gap-1">
                     📊 Estado:
                   </span>
                   <div className="flex flex-wrap bg-slate-50 rounded-lg p-1 border border-slate-200 gap-1">
                     <button
-                      onClick={() => setStatusFilter('activos')}
-                      className={`px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all flex items-center gap-1 ${
-                        statusFilter === 'activos'
+                      onClick={() => setStatusFilter('publicados')}
+                      className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm font-medium rounded-md transition-all flex items-center gap-1 ${
+                        statusFilter === 'publicados'
                           ? 'bg-green-50 text-green-700 shadow-sm border border-green-200'
                           : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                       }`}
                     >
                       <span className="text-xs">✅</span>
-                      <span className="hidden sm:inline">Activos</span>
+                      <span className="hidden xl:inline">Publicados</span>
+                      <span className="text-xs">
+                        ({getStatusCounts().publicados})
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => setStatusFilter('enProceso')}
+                      className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm font-medium rounded-md transition-all flex items-center gap-1 ${
+                        statusFilter === 'enProceso'
+                          ? 'bg-orange-50 text-orange-700 shadow-sm border border-orange-200'
+                          : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
+                      }`}
+                    >
+                      <span className="text-xs">🔧</span>
+                      <span className="hidden xl:inline">En Proceso</span>
+                      <span className="text-xs">
+                        ({getStatusCounts().enProceso})
+                      </span>
                     </button>
                     <button
                       onClick={() => setStatusFilter('vendidos')}
-                      className={`px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all flex items-center gap-1 ${
+                      className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm font-medium rounded-md transition-all flex items-center gap-1 ${
                         statusFilter === 'vendidos'
                           ? 'bg-red-50 text-red-700 shadow-sm border border-red-200'
                           : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                       }`}
                     >
                       <span className="text-xs">💰</span>
-                      <span className="hidden sm:inline">Vendidos</span>
+                      <span className="hidden xl:inline">Vendidos</span>
+                      <span className="text-xs">
+                        ({getStatusCounts().vendidos})
+                      </span>
                     </button>
                     <button
                       onClick={() => setStatusFilter('reservados')}
-                      className={`px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all flex items-center gap-1 ${
+                      className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm font-medium rounded-md transition-all flex items-center gap-1 ${
                         statusFilter === 'reservados'
                           ? 'bg-yellow-50 text-yellow-700 shadow-sm border border-yellow-200'
                           : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                       }`}
                     >
                       <span className="text-xs">🔒</span>
-                      <span className="hidden sm:inline">Reservados</span>
+                      <span className="hidden xl:inline">Reservados</span>
+                      <span className="text-xs">
+                        ({getStatusCounts().reservados})
+                      </span>
                     </button>
                     <button
                       onClick={() => setStatusFilter('todos')}
-                      className={`px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all flex items-center gap-1 ${
+                      className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm font-medium rounded-md transition-all flex items-center gap-1 ${
                         statusFilter === 'todos'
                           ? 'bg-white text-slate-800 shadow-sm border border-slate-200'
                           : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
                       }`}
                     >
                       <span className="text-xs">⚪</span>
-                      <span className="hidden sm:inline">Todos</span>
+                      <span className="hidden xl:inline">Todos</span>
+                      <span className="text-xs">
+                        ({getStatusCounts().todos})
+                      </span>
                     </button>
                   </div>
                 </div>
 
                 {/* Ordenamiento */}
                 <div className="flex items-center gap-2">
-                  <span className="text-xs sm:text-sm font-medium text-slate-600">
+                  <span className="text-xs xl:text-sm font-medium text-slate-600">
                     📊 Orden:
                   </span>
                   <button
                     onClick={() =>
                       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
                     }
-                    className={`px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-medium rounded-lg border-2 transition-all flex items-center space-x-1 sm:space-x-2 ${
+                    className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm font-medium rounded-lg border-2 transition-all flex items-center space-x-1 xl:space-x-2 ${
                       sortOrder === 'asc'
                         ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-sm'
                         : 'bg-orange-50 border-orange-200 text-orange-700 shadow-sm'
                     }`}
                   >
-                    <span className="hidden sm:inline">Ref.</span>
-                    <span className="sm:hidden">#</span>
+                    <span className="hidden xl:inline">Ref.</span>
+                    <span className="xl:hidden">#</span>
                     {sortOrder === 'asc' ? (
                       <svg
                         className="w-4 h-4"
@@ -1067,33 +1172,33 @@ export default function ListaVehiculos() {
             </div>
           ) : viewMode === 'lista' ? (
             /* Vista de Lista */
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-2xl border border-slate-200/60 overflow-hidden">
-              <div className="overflow-hidden">
-                <table className="w-full divide-y divide-slate-200 table-fixed">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-2xl border border-slate-200/60 overflow-hidden max-w-[1400px] mx-auto">
+              <div className="overflow-x-auto">
+                <table className="w-full divide-y divide-slate-200 min-w-[600px]">
                   <thead className="bg-gradient-to-r from-slate-50 to-slate-100">
                     <tr>
-                      <th className="w-24 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      <th className="px-2 lg:px-3 py-2 lg:py-4 text-left text-xs lg:text-sm font-bold text-slate-700 uppercase tracking-wider max-[900px]:w-auto">
                         Ref.
                       </th>
-                      <th className="w-48 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      <th className="px-2 lg:px-3 py-2 lg:py-4 text-left text-xs lg:text-sm font-bold text-slate-700 uppercase tracking-wider">
                         Vehículo
                       </th>
-                      <th className="w-32 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      <th className="px-2 lg:px-3 py-2 lg:py-4 text-left text-xs lg:text-sm font-bold text-slate-700 uppercase tracking-wider hidden xl:table-cell">
                         Matrícula
                       </th>
-                      <th className="w-40 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider hidden md:table-cell">
+                      <th className="px-2 lg:px-3 py-2 lg:py-4 text-left text-xs lg:text-sm font-bold text-slate-700 uppercase tracking-wider">
                         Bastidor
                       </th>
-                      <th className="w-24 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      <th className="px-2 lg:px-3 py-2 lg:py-4 text-left text-xs lg:text-sm font-bold text-slate-700 uppercase tracking-wider hidden lg:table-cell">
                         KMs
                       </th>
-                      <th className="w-32 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider hidden sm:table-cell">
+                      <th className="px-2 lg:px-3 py-2 lg:py-4 text-left text-xs lg:text-sm font-bold text-slate-700 uppercase tracking-wider hidden xl:table-cell">
                         Tipo
                       </th>
-                      <th className="w-28 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider hidden lg:table-cell">
+                      <th className="px-2 lg:px-3 py-2 lg:py-4 text-left text-xs lg:text-sm font-bold text-slate-700 uppercase tracking-wider hidden 2xl:table-cell">
                         Fecha
                       </th>
-                      <th className="w-32 px-3 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      <th className="px-2 lg:px-3 py-2 lg:py-4 text-left text-xs lg:text-sm font-bold text-slate-700 uppercase tracking-wider hidden xl:table-cell">
                         Acciones
                       </th>
                     </tr>
@@ -1143,10 +1248,10 @@ export default function ListaVehiculos() {
                             )
                           }
                         >
-                          <td className="px-3 py-4">
+                          <td className="px-2 lg:px-3 py-2 lg:py-4 max-[900px]:w-auto">
                             <div className="flex items-center">
                               <div
-                                className={`w-12 h-10 rounded-lg flex items-center justify-center mr-2 ${
+                                className={`min-w-8 h-6 lg:min-w-12 lg:h-10 px-1 lg:px-2 rounded-lg flex items-center justify-center mr-1 lg:mr-2 ${
                                   vehiculoVendido
                                     ? 'bg-red-600'
                                     : detectVehicleType(vehiculo.referencia) ===
@@ -1163,7 +1268,7 @@ export default function ListaVehiculos() {
                                           : 'bg-gradient-to-br from-green-500 to-green-600'
                                 }`}
                               >
-                                <span className="text-white font-bold text-xs">
+                                <span className="text-white font-bold text-xs lg:text-sm whitespace-nowrap">
                                   {formatVehicleReference(
                                     vehiculo.referencia,
                                     vehiculo.tipo
@@ -1172,12 +1277,24 @@ export default function ListaVehiculos() {
                               </div>
                             </div>
                           </td>
-                          <td className="px-3 py-4">
+                          <td className="px-2 lg:px-3 py-2 lg:py-4 w-1/4">
                             <div>
                               <div
-                                className={`font-semibold text-sm truncate ${vehiculoVendido ? 'text-gray-500' : 'text-slate-900'}`}
+                                className={`font-semibold text-xs lg:text-sm truncate ${vehiculoVendido ? 'text-gray-500' : 'text-slate-900'}`}
                               >
                                 {vehiculo.marca} {vehiculo.modelo}
+                              </div>
+                              {/* Mostrar matrícula debajo del nombre en pantallas <1280px */}
+                              <div className="xl:hidden mt-1">
+                                <span
+                                  className={`font-mono text-xs px-1 py-0.5 rounded ${
+                                    vehiculoVendido
+                                      ? 'bg-gray-200 text-gray-500'
+                                      : 'bg-slate-100 text-slate-600'
+                                  }`}
+                                >
+                                  {vehiculo.matricula}
+                                </span>
                               </div>
                               {/* Indicador de VENDIDO o Alerta de ITV vencida o info básica */}
                               {(() => {
@@ -1223,22 +1340,18 @@ export default function ListaVehiculos() {
                                     </div>
                                   )
                                 }
-                                return (
-                                  <div className="text-slate-500 text-xs">
-                                    Vehículo
-                                  </div>
-                                )
+                                return null
                               })()}
                             </div>
                           </td>
-                          <td className="px-3 py-4">
+                          <td className="px-2 lg:px-3 py-2 lg:py-4 hidden xl:table-cell">
                             <div
-                              className={`rounded-lg px-2 py-1 inline-block ${
+                              className={`rounded-lg px-1 lg:px-2 py-1 inline-block ${
                                 vehiculoVendido ? 'bg-gray-200' : 'bg-slate-100'
                               }`}
                             >
                               <span
-                                className={`font-mono font-bold text-sm ${
+                                className={`font-mono font-bold text-xs lg:text-sm ${
                                   vehiculoVendido
                                     ? 'text-gray-500'
                                     : 'text-slate-800'
@@ -1248,9 +1361,9 @@ export default function ListaVehiculos() {
                               </span>
                             </div>
                           </td>
-                          <td className="px-3 py-4 hidden md:table-cell">
+                          <td className="px-2 lg:px-3 py-2 lg:py-4 w-1/3">
                             <span
-                              className={`font-mono text-xs px-2 py-1 rounded truncate block ${
+                              className={`font-mono text-xs px-1 lg:px-2 py-1 rounded inline-block ${
                                 vehiculoVendido
                                   ? 'text-gray-500 bg-gray-200'
                                   : 'text-slate-600 bg-slate-50'
@@ -1259,7 +1372,7 @@ export default function ListaVehiculos() {
                               {vehiculo.bastidor}
                             </span>
                           </td>
-                          <td className="px-3 py-4">
+                          <td className="px-3 py-4 hidden lg:table-cell">
                             <span
                               className={`font-bold text-sm ${
                                 vehiculoVendido
@@ -1270,7 +1383,7 @@ export default function ListaVehiculos() {
                               {vehiculo.kms.toLocaleString()}
                             </span>
                           </td>
-                          <td className="px-2 py-4 hidden sm:table-cell">
+                          <td className="px-2 py-4 hidden xl:table-cell">
                             <span
                               className={`inline-flex px-2 py-1 text-xs font-semibold rounded ${
                                 vehiculoVendido
@@ -1283,7 +1396,7 @@ export default function ListaVehiculos() {
                                 : getTipoText(vehiculo.tipo)}
                             </span>
                           </td>
-                          <td className="px-3 py-4 hidden lg:table-cell text-xs">
+                          <td className="px-3 py-4 hidden 2xl:table-cell text-xs">
                             <span
                               className={
                                 vehiculoVendido
@@ -1296,7 +1409,7 @@ export default function ListaVehiculos() {
                               ).toLocaleDateString()}
                             </span>
                           </td>
-                          <td className="px-3 py-4">
+                          <td className="px-3 py-4 hidden xl:table-cell">
                             <div className="flex space-x-2">
                               <button
                                 onClick={() => handleEdit(vehiculo)}
@@ -1345,7 +1458,12 @@ export default function ListaVehiculos() {
             </div>
           ) : (
             /* Vista de Cartas */
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8 items-start">
+            <div
+              className="grid gap-4 items-start justify-items-stretch w-full"
+              style={{
+                gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+              }}
+            >
               {filteredVehiculos.map((vehiculo, index) => (
                 <VehicleCard
                   key={`${vehiculo.id}-${vehiculo.updatedAt}-${index}`}
@@ -1422,29 +1540,6 @@ export default function ListaVehiculos() {
               Mostrando {vehiculos.length} de {pagination.total} vehículos
             </div>
           )}
-
-          {/* Botón flotante para agregar vehículo */}
-          <div className="fixed bottom-6 right-6 z-50">
-            <a
-              href="/cargar-vehiculo"
-              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-2xl p-4 shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-110 hover:-translate-y-1"
-              title="Cargar nuevo vehículo"
-            >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                />
-              </svg>
-            </a>
-          </div>
 
           {/* Modal de Edición */}
           {showEditModal && (

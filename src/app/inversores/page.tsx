@@ -197,18 +197,17 @@ export default function InversoresPage() {
 
   return (
     <ProtectedRoute requiredRole="admin">
-      <div className="min-h-full bg-gradient-to-br from-slate-50 via-purple-50 to-indigo-100">
-        <main className="max-w-7xl mx-auto px-6 py-8">
-          {/* Header Moderno - Estilo Navegación */}
+      <div className="min-h-screen bg-gray-50">
+        <main className="w-[80%] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+          {/* Header */}
           <div className="mb-6">
-            {/* Título y stats compactos */}
-            <div className="bg-slate-800 rounded-xl shadow-xl border border-slate-700 mb-4">
-              <div className="px-6 py-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center">
+            <div className="bg-blue-600 rounded-xl shadow-lg border border-blue-700 mb-4">
+              <div className="px-4 sm:px-6 py-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
                       <svg
-                        className="w-6 h-6 text-white"
+                        className="w-5 h-5 sm:w-6 sm:h-6 text-white"
                         fill="currentColor"
                         viewBox="0 0 20 20"
                       >
@@ -216,38 +215,19 @@ export default function InversoresPage() {
                       </svg>
                     </div>
                     <div>
-                      <h1 className="text-xl font-bold text-white">
+                      <h1 className="text-lg sm:text-xl font-bold text-white">
                         Inversores
                       </h1>
-                      <p className="text-slate-300 text-sm">
+                      <p className="text-blue-100 text-xs sm:text-sm">
                         {inversores.length} registrados •{' '}
                         {filteredInversores.length} mostrados
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-3">
-                    <button
-                      onClick={() => fetchInversores()}
-                      className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center space-x-2"
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                        />
-                      </svg>
-                      <span>Actualizar</span>
-                    </button>
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                     <button
                       onClick={() => router.push('/dashboard-inversores')}
-                      className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center space-x-2"
+                      className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors flex items-center space-x-2"
                     >
                       <svg
                         className="w-4 h-4"
@@ -262,11 +242,11 @@ export default function InversoresPage() {
                           d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
                         />
                       </svg>
-                      <span>Dashboard</span>
+                      <span className="hidden sm:inline">Dashboard</span>
                     </button>
                     <button
                       onClick={handleCreate}
-                      className="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg text-sm font-medium transition-all shadow-lg flex items-center space-x-2"
+                      className="px-3 sm:px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-all shadow-lg flex items-center space-x-2"
                     >
                       <svg
                         className="w-4 h-4"
@@ -288,22 +268,21 @@ export default function InversoresPage() {
               </div>
             </div>
 
-            {/* Barra de filtros mejorada - Dos líneas */}
-            <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/60 p-4 space-y-4">
-              {/* LÍNEA 1: Búsqueda + Vista */}
-              <div className="flex items-center gap-4">
-                {/* Búsqueda más grande */}
+            {/* Barra de filtros */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+              <div className="flex flex-col sm:flex-row gap-4">
+                {/* Búsqueda */}
                 <div className="flex-1">
                   <div className="relative">
                     <input
                       type="text"
-                      placeholder="Buscar inversores por nombre o email..."
+                      placeholder="Buscar inversores..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-12 pr-4 py-3 text-base border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white transition-all shadow-sm"
+                      className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                     <svg
-                      className="absolute left-4 top-3.5 h-5 w-5 text-slate-400"
+                      className="absolute left-3 top-2.5 h-4 w-4 text-gray-400"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -318,10 +297,10 @@ export default function InversoresPage() {
                     {searchTerm && (
                       <button
                         onClick={() => setSearchTerm('')}
-                        className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600"
+                        className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
                       >
                         <svg
-                          className="h-5 w-5"
+                          className="h-4 w-4"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -338,18 +317,18 @@ export default function InversoresPage() {
                   </div>
                 </div>
 
-                {/* Vista con iconos */}
+                {/* Vista */}
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-slate-600">
-                    👁️ Vista:
+                  <span className="text-sm font-medium text-gray-600 hidden sm:inline">
+                    Vista:
                   </span>
-                  <div className="flex bg-slate-100 rounded-xl p-1">
+                  <div className="flex bg-gray-100 rounded-lg p-1">
                     <button
                       onClick={() => setViewMode('cards')}
-                      className={`px-3 py-2 rounded-lg transition-all flex items-center space-x-2 ${
+                      className={`px-3 py-1.5 rounded-md transition-all flex items-center space-x-1 ${
                         viewMode === 'cards'
-                          ? 'bg-white text-slate-800 shadow-sm'
-                          : 'text-slate-600 hover:text-slate-800'
+                          ? 'bg-white text-gray-800 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-800'
                       }`}
                       title="Vista de cartas"
                     >
@@ -366,13 +345,14 @@ export default function InversoresPage() {
                           d="M19 11H5m14-7v16l-2-2v-12a2 2 0 00-2-2H9a2 2 0 00-2 2v12l-2 2V4a2 2 0 012-2h10a2 2 0 012 2z"
                         />
                       </svg>
+                      <span className="hidden sm:inline text-xs">Cartas</span>
                     </button>
                     <button
                       onClick={() => setViewMode('list')}
-                      className={`px-3 py-2 rounded-lg transition-all flex items-center space-x-2 ${
+                      className={`px-3 py-1.5 rounded-md transition-all flex items-center space-x-1 ${
                         viewMode === 'list'
-                          ? 'bg-white text-slate-800 shadow-sm'
-                          : 'text-slate-600 hover:text-slate-800'
+                          ? 'bg-white text-gray-800 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-800'
                       }`}
                       title="Vista de lista"
                     >
@@ -389,6 +369,7 @@ export default function InversoresPage() {
                           d="M4 6h16M4 10h16M4 14h16M4 18h16"
                         />
                       </svg>
+                      <span className="hidden sm:inline text-xs">Lista</span>
                     </button>
                   </div>
                 </div>
@@ -626,12 +607,18 @@ export default function InversoresPage() {
               </p>
             </div>
           ) : viewMode === 'cards' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div
+              className="grid gap-4 justify-center"
+              style={{
+                gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                maxWidth: '100%',
+              }}
+            >
               {filteredInversores.map((inversor) => (
                 <div
                   key={inversor.id}
                   onClick={() => handleView(inversor)}
-                  className="bg-white rounded-xl shadow-md border border-gray-200 p-6 hover:shadow-xl transition-all duration-200 cursor-pointer"
+                  className="bg-white rounded-xl shadow-md border border-gray-200 p-6 hover:shadow-xl transition-all duration-200 cursor-pointer max-w-[500px]"
                 >
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex-1">
@@ -741,25 +728,22 @@ export default function InversoresPage() {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Nombre
+                      <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">
+                        Inversor
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell w-1/4">
                         Email
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">
                         Capital Aportado
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell w-1/6">
                         Fecha Aporte
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Capital Comprometido
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden xl:table-cell w-1/6">
                         Capital Disponible
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">
                         Acciones
                       </th>
                     </tr>

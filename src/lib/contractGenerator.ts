@@ -1669,7 +1669,7 @@ export async function generarContratoCompraventa(
 
     // Retornar el buffer del PDF
     const pdfBuffer = doc.output('arraybuffer')
-    console.log('✅ Contrato de compraventa generado exitosamente')
+    // console.log('✅ Contrato de compraventa generado exitosamente')
     return new Uint8Array(pdfBuffer)
   } catch (error) {
     console.error('❌ Error generando contrato de compraventa:', error)

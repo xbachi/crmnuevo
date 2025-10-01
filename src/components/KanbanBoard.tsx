@@ -103,9 +103,7 @@ const KanbanBoard = memo(function KanbanBoard({
   console.log(
     '🎬 [KANBAN] Component rendered with',
     vehiculos.length,
-    'vehicles',
-    'Render count:',
-    Date.now()
+    'vehicles'
   )
 
   const [activeId, setActiveId] = useState<number | null>(null)
@@ -153,7 +151,7 @@ const KanbanBoard = memo(function KanbanBoard({
   const handleDragOver = (event: DragOverEvent) => {
     const { over } = event
     if (over) {
-      console.log('🔄 [DRAG OVER] Over ID:', over.id, 'Type:', typeof over.id)
+      // console.log('🔄 [DRAG OVER] Over ID:', over.id, 'Type:', typeof over.id)
     }
   }
 
@@ -363,7 +361,14 @@ const KanbanBoard = memo(function KanbanBoard({
         {/* DndContext rendered */}
         <div className="flex flex-col gap-4 h-full">
           {/* Todas las columnas juntas incluyendo Publicado */}
-          <div className="grid grid-cols-8 gap-3 flex-1">
+          <div
+            className="flex-1 overflow-x-auto"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+              gap: '12px',
+            }}
+          >
             {ESTADOS.map((estado) => (
               <KanbanColumn
                 key={estado.id}

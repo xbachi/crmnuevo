@@ -1,0 +1,380 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+    - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+        - img [ref=e8] [cursor=pointer]
+    - alert [ref=e13]: Tablero de Procesos
+    - generic [ref=e14]:
+        - generic [ref=e17]:
+            - generic [ref=e18]:
+                - generic [ref=e19]:
+                    - heading "Tablero de Procesos" [level=1] [ref=e20]
+                    - paragraph [ref=e21]: Arrastra y suelta los vehículos entre las diferentes etapas
+                - button "🔄 Actualizar Datos" [ref=e22]:
+                    - generic [ref=e23]: 🔄
+                    - generic [ref=e24]: Actualizar Datos
+            - generic [ref=e25]:
+                - generic [ref=e27]:
+                    - textbox "Buscar vehículos en el tablero..." [ref=e28]
+                    - generic:
+                        - img
+                - combobox [ref=e29]:
+                    - option "Todos los campos" [selected]
+                    - option "Referencia"
+                    - option "Marca"
+                    - option "Modelo"
+                    - option "Matrícula"
+                    - option "Bastidor"
+                    - option "Tipo"
+                - generic [ref=e30]:
+                    - generic [ref=e31]: 'Total: 50'
+                    - generic [ref=e32]: •
+                    - generic [ref=e33]: 'Mostrando: 25'
+        - generic [ref=e36]:
+            - generic [ref=e38]:
+                - generic [ref=e39]:
+                    - generic [ref=e40]:
+                        - heading "Inicial" [level=3]
+                        - generic [ref=e41]: '3'
+                    - generic [ref=e43]:
+                        - button "#D-9 Seat Leon FR D 6570LVF" [ref=e44]:
+                            - generic [ref=e45]:
+                                - generic:
+                                    - generic:
+                                        - generic [ref=e47]: '#D-9'
+                                        - generic:
+                                            - generic:
+                                                - heading "Seat Leon FR" [level=3]
+                                                - generic [ref=e48]: D
+                                            - generic: 6570LVF
+                                    - button "Ver detalles" [ref=e50]:
+                                        - img [ref=e51]
+                        - button "#37 FORD PUMA C 1050LTG" [ref=e53]:
+                            - generic [ref=e54]:
+                                - generic:
+                                    - generic:
+                                        - generic [ref=e56]: '#37'
+                                        - generic:
+                                            - generic:
+                                                - heading "FORD PUMA" [level=3]
+                                                - generic [ref=e57]: C
+                                            - generic: 1050LTG
+                                    - button "Ver detalles" [ref=e59]:
+                                        - img [ref=e60]
+                        - button "R-08 Citroën C4 COCHE R 0539GNZ" [ref=e62]:
+                            - generic [ref=e63]:
+                                - generic:
+                                    - generic:
+                                        - generic [ref=e65]: R-08
+                                        - generic:
+                                            - generic:
+                                                - heading "Citroën C4" [level=3]
+                                                - generic [ref=e66]: COCHE R
+                                            - generic: 0539GNZ
+                                    - button "Ver detalles" [ref=e68]:
+                                        - img [ref=e69]
+                - generic [ref=e71]:
+                    - generic [ref=e72]:
+                        - heading "Revisión Inicial" [level=3]
+                        - generic [ref=e73]: '0'
+                    - generic [ref=e76]:
+                        - generic [ref=e77]: 📋
+                        - paragraph [ref=e78]: Sin vehículos
+                - generic [ref=e79]:
+                    - generic [ref=e80]:
+                        - heading "Mecauto" [level=3]
+                        - generic [ref=e81]: '1'
+                    - button "#26 Audi Q2 C 2202KSC" [ref=e84]:
+                        - generic [ref=e85]:
+                            - generic:
+                                - generic:
+                                    - generic [ref=e87]: '#26'
+                                    - generic:
+                                        - generic:
+                                            - heading "Audi Q2" [level=3]
+                                            - generic [ref=e88]: C
+                                        - generic: 2202KSC
+                                - button "Ver detalles" [ref=e90]:
+                                    - img [ref=e91]
+                - generic [ref=e93]:
+                    - generic [ref=e94]:
+                        - heading "Revisión Pintura" [level=3]
+                        - generic [ref=e95]: '0'
+                    - generic [ref=e98]:
+                        - generic [ref=e99]: 📋
+                        - paragraph [ref=e100]: Sin vehículos
+                - generic [ref=e101]:
+                    - generic [ref=e102]:
+                        - heading "Pintura" [level=3]
+                        - generic [ref=e103]: '1'
+                    - button "#40 Jeep Renegade C 1958MHR" [ref=e106]:
+                        - generic [ref=e107]:
+                            - generic:
+                                - generic:
+                                    - generic [ref=e109]: '#40'
+                                    - generic:
+                                        - generic:
+                                            - heading "Jeep Renegade" [level=3]
+                                            - generic [ref=e110]: C
+                                        - generic: 1958MHR
+                                - button "Ver detalles" [ref=e112]:
+                                    - img [ref=e113]
+                - generic [ref=e115]:
+                    - generic [ref=e116]:
+                        - heading "Limpieza" [level=3]
+                        - generic [ref=e117]: '1'
+                    - button "#35 Opel Corsa C 5131MBM" [ref=e120]:
+                        - generic [ref=e121]:
+                            - generic:
+                                - generic:
+                                    - generic [ref=e123]: '#35'
+                                    - generic:
+                                        - generic:
+                                            - heading "Opel Corsa" [level=3]
+                                            - generic [ref=e124]: C
+                                        - generic: 5131MBM
+                                - button "Ver detalles" [ref=e126]:
+                                    - img [ref=e127]
+                - generic [ref=e129]:
+                    - generic [ref=e130]:
+                        - heading "Fotos" [level=3]
+                        - generic [ref=e131]: '0'
+                    - generic [ref=e134]:
+                        - generic [ref=e135]: 📋
+                        - paragraph [ref=e136]: Sin vehículos
+                - generic [ref=e137]:
+                    - generic [ref=e138]:
+                        - heading "Publicado" [level=3]
+                        - generic [ref=e139]: '19'
+                    - generic [ref=e141]:
+                        - button "#D-4 Audi A4 Avant D 1187MGT" [ref=e142]:
+                            - generic [ref=e143]:
+                                - generic:
+                                    - generic:
+                                        - generic [ref=e145]: '#D-4'
+                                        - generic:
+                                            - generic:
+                                                - heading "Audi A4 Avant" [level=3]
+                                                - generic [ref=e146]: D
+                                            - generic: 1187MGT
+                                    - button "Ver detalles" [ref=e148]:
+                                        - img [ref=e149]
+                        - button "#D-5 Kia Sportage D 3455KPT" [ref=e151]:
+                            - generic [ref=e152]:
+                                - generic:
+                                    - generic:
+                                        - generic [ref=e154]: '#D-5'
+                                        - generic:
+                                            - generic:
+                                                - heading "Kia Sportage" [level=3]
+                                                - generic [ref=e155]: D
+                                            - generic: 3455KPT
+                                    - button "Ver detalles" [ref=e157]:
+                                        - img [ref=e158]
+                        - button "#D-3 Mercedes CLA 200 D D 8670KNK" [ref=e160]:
+                            - generic [ref=e161]:
+                                - generic:
+                                    - generic:
+                                        - generic [ref=e163]: '#D-3'
+                                        - generic:
+                                            - generic:
+                                                - heading "Mercedes CLA 200 D" [level=3]
+                                                - generic [ref=e164]: D
+                                            - generic: 8670KNK
+                                    - button "Ver detalles" [ref=e166]:
+                                        - img [ref=e167]
+                        - button "#D-8 Ford Mondeo D 4651KBL" [ref=e169]:
+                            - generic [ref=e170]:
+                                - generic:
+                                    - generic:
+                                        - generic [ref=e172]: '#D-8'
+                                        - generic:
+                                            - generic:
+                                                - heading "Ford Mondeo" [level=3]
+                                                - generic [ref=e173]: D
+                                            - generic: 4651KBL
+                                    - button "Ver detalles" [ref=e175]:
+                                        - img [ref=e176]
+                        - button "#36 VW T-roc C 8083LRT" [ref=e178]:
+                            - generic [ref=e179]:
+                                - generic:
+                                    - generic:
+                                        - generic [ref=e181]: '#36'
+                                        - generic:
+                                            - generic:
+                                                - heading "VW T-roc" [level=3]
+                                                - generic [ref=e182]: C
+                                            - generic: 8083LRT
+                                    - button "Ver detalles" [ref=e184]:
+                                        - img [ref=e185]
+                        - button "#32 Opel Crossland C 5582LWY" [ref=e187]:
+                            - generic [ref=e188]:
+                                - generic:
+                                    - generic:
+                                        - generic [ref=e190]: '#32'
+                                        - generic:
+                                            - generic:
+                                                - heading "Opel Crossland" [level=3]
+                                                - generic [ref=e191]: C
+                                            - generic: 5582LWY
+                                    - button "Ver detalles" [ref=e193]:
+                                        - img [ref=e194]
+                        - button "#31 Smart Fortwo C 8282KVZ" [ref=e196]:
+                            - generic [ref=e197]:
+                                - generic:
+                                    - generic:
+                                        - generic [ref=e199]: '#31'
+                                        - generic:
+                                            - generic:
+                                                - heading "Smart Fortwo" [level=3]
+                                                - generic [ref=e200]: C
+                                            - generic: 8282KVZ
+                                    - button "Ver detalles" [ref=e202]:
+                                        - img [ref=e203]
+                        - button "#30 Nissan Qashqai C 4383LPP" [ref=e205]:
+                            - generic [ref=e206]:
+                                - generic:
+                                    - generic:
+                                        - generic [ref=e208]: '#30'
+                                        - generic:
+                                            - generic:
+                                                - heading "Nissan Qashqai" [level=3]
+                                                - generic [ref=e209]: C
+                                            - generic: 4383LPP
+                                    - button "Ver detalles" [ref=e211]:
+                                        - img [ref=e212]
+                        - button "#33 Renault Captur C 6913MDM" [ref=e214]:
+                            - generic [ref=e215]:
+                                - generic:
+                                    - generic:
+                                        - generic [ref=e217]: '#33'
+                                        - generic:
+                                            - generic:
+                                                - heading "Renault Captur" [level=3]
+                                                - generic [ref=e218]: C
+                                            - generic: 6913MDM
+                                    - button "Ver detalles" [ref=e220]:
+                                        - img [ref=e221]
+                        - button "#25 Dacia Sandero C 4309JGM" [ref=e223]:
+                            - generic [ref=e224]:
+                                - generic:
+                                    - generic:
+                                        - generic [ref=e226]: '#25'
+                                        - generic:
+                                            - generic:
+                                                - heading "Dacia Sandero" [level=3]
+                                                - generic [ref=e227]: C
+                                            - generic: 4309JGM
+                                    - button "Ver detalles" [ref=e229]:
+                                        - img [ref=e230]
+                        - button "#20 Jeep Compass C 2037KPL" [ref=e232]:
+                            - generic [ref=e233]:
+                                - generic:
+                                    - generic:
+                                        - generic [ref=e235]: '#20'
+                                        - generic:
+                                            - generic:
+                                                - heading "Jeep Compass" [level=3]
+                                                - generic [ref=e236]: C
+                                            - generic: 2037KPL
+                                    - button "Ver detalles" [ref=e238]:
+                                        - img [ref=e239]
+                        - button "#08 Seat Ateca C 5976LFS" [ref=e241]:
+                            - generic [ref=e242]:
+                                - generic:
+                                    - generic:
+                                        - generic [ref=e244]: '#08'
+                                        - generic:
+                                            - generic:
+                                                - heading "Seat Ateca" [level=3]
+                                                - generic [ref=e245]: C
+                                            - generic: 5976LFS
+                                    - button "Ver detalles" [ref=e247]:
+                                        - img [ref=e248]
+                        - button "#18 VW Golf C 6111LDT" [ref=e250]:
+                            - generic [ref=e251]:
+                                - generic:
+                                    - generic:
+                                        - generic [ref=e253]: '#18'
+                                        - generic:
+                                            - generic:
+                                                - heading "VW Golf" [level=3]
+                                                - generic [ref=e254]: C
+                                            - generic: 6111LDT
+                                    - button "Ver detalles" [ref=e256]:
+                                        - img [ref=e257]
+                        - button "#05 Jeep Compass C 8574KHB" [ref=e259]:
+                            - generic [ref=e260]:
+                                - generic:
+                                    - generic:
+                                        - generic [ref=e262]: '#05'
+                                        - generic:
+                                            - generic:
+                                                - heading "Jeep Compass" [level=3]
+                                                - generic [ref=e263]: C
+                                            - generic: 8574KHB
+                                    - button "Ver detalles" [ref=e265]:
+                                        - img [ref=e266]
+                        - button "#06 Peugeot 508 C 2839KTK" [ref=e268]:
+                            - generic [ref=e269]:
+                                - generic:
+                                    - generic:
+                                        - generic [ref=e271]: '#06'
+                                        - generic:
+                                            - generic:
+                                                - heading "Peugeot 508" [level=3]
+                                                - generic [ref=e272]: C
+                                            - generic: 2839KTK
+                                    - button "Ver detalles" [ref=e274]:
+                                        - img [ref=e275]
+                        - button "#24 Citroen C3 C 0884LNJ" [ref=e277]:
+                            - generic [ref=e278]:
+                                - generic:
+                                    - generic:
+                                        - generic [ref=e280]: '#24'
+                                        - generic:
+                                            - generic:
+                                                - heading "Citroen C3" [level=3]
+                                                - generic [ref=e281]: C
+                                            - generic: 0884LNJ
+                                    - button "Ver detalles" [ref=e283]:
+                                        - img [ref=e284]
+                        - button "#34 Nissan Qashqai C 0550LLP" [ref=e286]:
+                            - generic [ref=e287]:
+                                - generic:
+                                    - generic:
+                                        - generic [ref=e289]: '#34'
+                                        - generic:
+                                            - generic:
+                                                - heading "Nissan Qashqai" [level=3]
+                                                - generic [ref=e290]: C
+                                            - generic: 0550LLP
+                                    - button "Ver detalles" [ref=e292]:
+                                        - img [ref=e293]
+                        - button "#D-7 Volkswagen Golf GTI D 0808 MVD" [ref=e295]:
+                            - generic [ref=e296]:
+                                - generic:
+                                    - generic:
+                                        - generic [ref=e298]: '#D-7'
+                                        - generic:
+                                            - generic:
+                                                - heading "Volkswagen Golf GTI" [level=3]
+                                                - generic [ref=e299]: D
+                                            - generic: 0808 MVD
+                                    - button "Ver detalles" [ref=e301]:
+                                        - img [ref=e302]
+                        - button "#38 PEUGEOT 3008 C 7112LMM" [ref=e304]:
+                            - generic [ref=e305]:
+                                - generic:
+                                    - generic:
+                                        - generic [ref=e307]: '#38'
+                                        - generic:
+                                            - generic:
+                                                - heading "PEUGEOT 3008" [level=3]
+                                                - generic [ref=e308]: C
+                                            - generic: 7112LMM
+                                    - button "Ver detalles" [ref=e310]:
+                                        - img [ref=e311]
+            - status [ref=e313]
+```

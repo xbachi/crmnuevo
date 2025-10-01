@@ -9,7 +9,12 @@ interface ToastProps {
   onClose: () => void
 }
 
-export default function Toast({ message, type, duration = 3000, onClose }: ToastProps) {
+export default function Toast({
+  message,
+  type,
+  duration = 3000,
+  onClose,
+}: ToastProps) {
   const [isVisible, setIsVisible] = useState(true)
 
   useEffect(() => {
@@ -38,20 +43,50 @@ export default function Toast({ message, type, duration = 3000, onClose }: Toast
     switch (type) {
       case 'success':
         return (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M5 13l4 4L19 7"
+            />
           </svg>
         )
       case 'error':
         return (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         )
       case 'info':
         return (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
           </svg>
         )
     }
@@ -63,7 +98,9 @@ export default function Toast({ message, type, duration = 3000, onClose }: Toast
         isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
       }`}
     >
-      <div className={`flex items-center space-x-3 px-4 py-3 rounded-lg shadow-lg border ${getToastStyles()}`}>
+      <div
+        className={`flex items-center space-x-3 px-4 py-3 rounded-lg shadow-lg border ${getToastStyles()}`}
+      >
         {getIcon()}
         <span className="font-medium">{message}</span>
         <button
@@ -73,8 +110,18 @@ export default function Toast({ message, type, duration = 3000, onClose }: Toast
           }}
           className="ml-2 hover:bg-white/20 rounded-full p-1 transition-colors"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         </button>
       </div>
@@ -84,20 +131,26 @@ export default function Toast({ message, type, duration = 3000, onClose }: Toast
 
 // Hook para usar toasts
 export function useToast() {
-  const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: 'success' | 'error' | 'info' }>>([])
+  const [toasts, setToasts] = useState<
+    Array<{ id: string; message: string; type: 'success' | 'error' | 'info' }>
+  >([])
 
-  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
-    const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-    setToasts(prev => [...prev, { id, message, type }])
+  const showToast = (
+    message: string,
+    type: 'success' | 'error' | 'info' = 'info'
+  ) => {
+    // Usar un contador en lugar de Date.now() y Math.random() para evitar errores de hidratación
+    const id = `toast-${toasts.length + 1}`
+    setToasts((prev) => [...prev, { id, message, type }])
   }
 
   const removeToast = (id: string) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id))
+    setToasts((prev) => prev.filter((toast) => toast.id !== id))
   }
 
   const ToastContainer = () => (
     <div className="fixed top-4 right-4 z-50 space-y-2">
-      {toasts.map(toast => (
+      {toasts.map((toast) => (
         <Toast
           key={toast.id}
           message={toast.message}

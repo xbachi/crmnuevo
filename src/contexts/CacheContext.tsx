@@ -90,7 +90,7 @@ export const CacheProvider: React.FC<CacheProviderProps> = ({ children }) => {
         // La API devuelve { vehiculos: [...], pagination: {...} }
         const vehiculosArray = data.vehiculos || data
         setVehiculos(vehiculosArray)
-        console.log(`📊 [CACHE] Vehículos cargados: ${vehiculosArray.length}`)
+        // console.log(`📊 [CACHE] Vehículos cargados: ${vehiculosArray.length}`)
       } else {
         throw new Error('Error al cargar vehículos')
       }

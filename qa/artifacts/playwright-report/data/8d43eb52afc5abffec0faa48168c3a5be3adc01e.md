@@ -1,0 +1,111 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+    - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+        - img [ref=e8] [cursor=pointer]
+    - alert [ref=e12]
+    - main [ref=e14]:
+        - generic [ref=e15]:
+            - generic [ref=e18]:
+                - generic [ref=e19]:
+                    - img [ref=e21]
+                    - generic [ref=e23]:
+                        - heading "Deals" [level=1] [ref=e24]
+                        - paragraph [ref=e25]: 0 registrados • 0 mostrados
+                - button "Actualizar" [ref=e27]:
+                    - img [ref=e28]
+                    - generic [ref=e30]: Actualizar
+            - generic [ref=e31]:
+                - generic [ref=e32]:
+                    - generic [ref=e34]:
+                        - textbox "Buscar en todos los deals por cliente, vehículo..." [ref=e35]
+                        - img [ref=e36]
+                    - button "Nuevo Deal" [ref=e38]:
+                        - img [ref=e39]
+                        - generic [ref=e41]: Nuevo Deal
+                - generic [ref=e42]:
+                    - generic [ref=e43]:
+                        - generic [ref=e44]: 'Estado:'
+                        - generic [ref=e45]:
+                            - button "Nuevo 0" [ref=e46]:
+                                - generic [ref=e47]: Nuevo
+                                - generic [ref=e48]: '0'
+                            - button "Reservado 0" [ref=e49]:
+                                - generic [ref=e50]: Reservado
+                                - generic [ref=e51]: '0'
+                            - button "Vendido 0" [ref=e52]:
+                                - generic [ref=e53]: Vendido
+                                - generic [ref=e54]: '0'
+                            - button "Facturado 0" [ref=e55]:
+                                - generic [ref=e56]: Facturado
+                                - generic [ref=e57]: '0'
+                    - button "Todos 0" [ref=e59]:
+                        - generic [ref=e60]: Todos
+                        - generic [ref=e61]: '0'
+        - generic [ref=e63]:
+            - generic [ref=e64]:
+                - generic [ref=e68]:
+                    - generic [ref=e69]:
+                        - generic [ref=e71]: 'Deal #'
+                        - generic [ref=e73]: Cliente
+                        - generic [ref=e75]: Vehículo
+                        - generic [ref=e77]: Total
+                        - generic [ref=e79]: Seña
+                        - generic [ref=e81]: Creado
+                        - generic [ref=e83]: Estado
+                    - generic [ref=e85]: Acciones
+                - generic [ref=e87]:
+                    - img [ref=e89]
+                    - heading "No hay deals" [level=3] [ref=e91]
+                    - paragraph [ref=e92]: No se encontraron deals en el estado "todos"
+            - generic [ref=e94]:
+                - heading "Dashboard" [level=3] [ref=e95]
+                - generic [ref=e96]:
+                    - heading "Período de Análisis" [level=4] [ref=e97]:
+                        - img [ref=e98]
+                        - text: Período de Análisis
+                    - generic [ref=e100]:
+                        - button "📊 Todos" [ref=e101]:
+                            - generic [ref=e102]: 📊
+                            - generic [ref=e103]: Todos
+                        - button "📅 7 días" [ref=e104]:
+                            - generic [ref=e105]: 📅
+                            - generic [ref=e106]: 7 días
+                        - button "🗓️ 30 días" [ref=e107]:
+                            - generic [ref=e108]: 🗓️
+                            - generic [ref=e109]: 30 días
+                        - button "📆 3 meses" [ref=e110]:
+                            - generic [ref=e111]: 📆
+                            - generic [ref=e112]: 3 meses
+                        - button "📈 6 meses" [ref=e113]:
+                            - generic [ref=e114]: 📈
+                            - generic [ref=e115]: 6 meses
+                - generic [ref=e116]:
+                    - generic [ref=e117]:
+                        - generic [ref=e118]: Total Deals
+                        - generic [ref=e119]: '0'
+                    - generic [ref=e120]:
+                        - generic [ref=e121]: Valor Total
+                        - generic [ref=e122]: 0,00 €
+                    - generic [ref=e123]:
+                        - generic [ref=e124]: Valor Promedio
+                        - generic [ref=e125]: 0,00 €
+                - generic [ref=e126]:
+                    - heading "Distribución por Estado" [level=4] [ref=e127]:
+                        - img [ref=e128]
+                        - text: Distribución por Estado
+                    - generic [ref=e130]:
+                        - generic [ref=e131]:
+                            - generic [ref=e134]: Nuevos
+                            - generic [ref=e135]: '0'
+                        - generic [ref=e136]:
+                            - generic [ref=e139]: Reservados
+                            - generic [ref=e140]: '0'
+                        - generic [ref=e141]:
+                            - generic [ref=e144]: Vendidos
+                            - generic [ref=e145]: '0'
+                        - generic [ref=e146]:
+                            - generic [ref=e149]: Facturados
+                            - generic [ref=e150]: '0'
+```

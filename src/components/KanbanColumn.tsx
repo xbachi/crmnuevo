@@ -41,13 +41,15 @@ export default function KanbanColumn({
   const { setNodeRef, isOver } = useDroppable({ id })
 
   return (
-    <div className="flex flex-col h-full w-full">
+    <div className="flex flex-col h-full w-full min-w-[250px]">
       {/* Header de la columna - Estilo Trello */}
       <div
-        className={`${color} px-3 py-2 rounded-t-md flex items-center justify-between flex-shrink-0`}
+        className={`${color} px-2 xl:px-3 py-1.5 xl:py-2 rounded-t-md flex items-center justify-between flex-shrink-0`}
       >
-        <h3 className="text-sm font-semibold text-white truncate">{title}</h3>
-        <div className="text-xs text-white/80 bg-white/20 px-2 py-1 rounded-full flex-shrink-0 ml-2">
+        <h3 className="text-xs xl:text-sm font-semibold text-white truncate">
+          {title}
+        </h3>
+        <div className="text-xs text-white/80 bg-white/20 px-1.5 xl:px-2 py-0.5 xl:py-1 rounded-full flex-shrink-0 ml-1 xl:ml-2">
           {vehiculos.length}
         </div>
       </div>
@@ -55,7 +57,7 @@ export default function KanbanColumn({
       {/* Área de drop */}
       <div
         ref={setNodeRef}
-        className={`flex-1 p-2 rounded-b-md min-h-[300px] max-h-[600px] overflow-y-auto transition-colors ${
+        className={`flex-1 p-1 xl:p-2 rounded-b-md min-h-[200px] xl:min-h-[300px] max-h-[400px] xl:max-h-[600px] overflow-y-auto transition-colors ${
           isOver
             ? 'bg-blue-100 border-2 border-blue-400 border-dashed'
             : 'bg-slate-100'

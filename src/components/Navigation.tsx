@@ -6,10 +6,10 @@ import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useSafeInversorAuth } from '@/hooks/useSafeInversorAuth'
 
-// Iconos SVG para una mejor apariencia
-const DashboardIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
+// Iconos SVG optimizados para mobile-first
+const DashboardIcon = () => (
   <svg
-    className={isCollapsed ? 'w-10 h-10' : 'w-6 h-6'}
+    className="w-6 h-6 md:w-7 md:h-7"
     fill="currentColor"
     viewBox="0 0 20 20"
   >
@@ -17,9 +17,9 @@ const DashboardIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
   </svg>
 )
 
-const VehiculosIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
+const VehiculosIcon = () => (
   <svg
-    className={isCollapsed ? 'w-10 h-10' : 'w-6 h-6'}
+    className="w-6 h-6 md:w-7 md:h-7"
     fill="currentColor"
     viewBox="0 0 20 20"
   >
@@ -31,9 +31,9 @@ const VehiculosIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
   </svg>
 )
 
-const ClientesIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
+const ClientesIcon = () => (
   <svg
-    className={isCollapsed ? 'w-10 h-10' : 'w-6 h-6'}
+    className="w-6 h-6 md:w-7 md:h-7"
     fill="currentColor"
     viewBox="0 0 20 20"
   >
@@ -41,9 +41,9 @@ const ClientesIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
   </svg>
 )
 
-const InversoresIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
+const InversoresIcon = () => (
   <svg
-    className={isCollapsed ? 'w-10 h-10' : 'w-6 h-6'}
+    className="w-6 h-6 md:w-7 md:h-7"
     fill="currentColor"
     viewBox="0 0 20 20"
   >
@@ -56,9 +56,9 @@ const InversoresIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
   </svg>
 )
 
-const KanbanIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
+const KanbanIcon = () => (
   <svg
-    className={isCollapsed ? 'w-10 h-10' : 'w-6 h-6'}
+    className="w-6 h-6 md:w-7 md:h-7"
     fill="currentColor"
     viewBox="0 0 20 20"
   >
@@ -70,9 +70,9 @@ const KanbanIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
   </svg>
 )
 
-const UserIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
+const UserIcon = () => (
   <svg
-    className={isCollapsed ? 'w-10 h-10' : 'w-6 h-6'}
+    className="w-6 h-6 md:w-7 md:h-7"
     fill="currentColor"
     viewBox="0 0 20 20"
   >
@@ -84,9 +84,9 @@ const UserIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
   </svg>
 )
 
-const DealsIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
+const DealsIcon = () => (
   <svg
-    className={isCollapsed ? 'w-10 h-10' : 'w-6 h-6'}
+    className="w-6 h-6 md:w-7 md:h-7"
     fill="currentColor"
     viewBox="0 0 20 20"
   >
@@ -98,9 +98,9 @@ const DealsIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
   </svg>
 )
 
-const ImportIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
+const ImportIcon = () => (
   <svg
-    className={isCollapsed ? 'w-10 h-10' : 'w-6 h-6'}
+    className="w-6 h-6 md:w-7 md:h-7"
     fill="currentColor"
     viewBox="0 0 20 20"
   >
@@ -112,9 +112,9 @@ const ImportIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
   </svg>
 )
 
-const DocumentacionIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
+const DocumentacionIcon = () => (
   <svg
-    className={isCollapsed ? 'w-10 h-10' : 'w-6 h-6'}
+    className="w-6 h-6 md:w-7 md:h-7"
     fill="none"
     stroke="currentColor"
     viewBox="0 0 24 24"
@@ -128,9 +128,9 @@ const DocumentacionIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
   </svg>
 )
 
-const DepositosIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
+const DepositosIcon = () => (
   <svg
-    className={isCollapsed ? 'w-10 h-10' : 'w-6 h-6'}
+    className="w-6 h-6 md:w-7 md:h-7"
     fill="currentColor"
     viewBox="0 0 20 20"
   >
@@ -142,9 +142,9 @@ const DepositosIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
   </svg>
 )
 
-const LogoutIcon = ({ isCollapsed }: { isCollapsed: boolean }) => (
+const LogoutIcon = () => (
   <svg
-    className={isCollapsed ? 'w-10 h-10' : 'w-6 h-6'}
+    className="w-6 h-6 md:w-7 md:h-7"
     fill="none"
     stroke="currentColor"
     viewBox="0 0 24 24"
@@ -162,18 +162,16 @@ export default function Navigation() {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const pathname = usePathname()
-  const { user, logout, isAdmin, isAsesor } = useAuth()
-  const inversorAuth = useSafeInversorAuth()
-  const inversor = inversorAuth?.inversor || null
-  const logoutInversor = inversorAuth?.logout || (() => {})
+  const { user, logout } = useAuth()
+  const { inversor, logout: logoutInversor } = useSafeInversorAuth()
 
   // Detectar si es móvil
   const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768)
-      if (window.innerWidth >= 768) {
+      setIsMobile(window.innerWidth < 1024)
+      if (window.innerWidth >= 1024) {
         setIsMobileMenuOpen(false)
       }
     }
@@ -192,20 +190,8 @@ export default function Navigation() {
     },
     {
       href: '/kanban',
-      label: 'Procesos de venta',
+      label: 'Proceso Venta',
       icon: KanbanIcon,
-      roles: ['admin', 'asesor'],
-    },
-    {
-      href: '/vehiculos',
-      label: 'Vehículos',
-      icon: VehiculosIcon,
-      roles: ['admin', 'asesor'],
-    },
-    {
-      href: '/clientes',
-      label: 'Clientes',
-      icon: ClientesIcon,
       roles: ['admin', 'asesor'],
     },
     {
@@ -215,8 +201,20 @@ export default function Navigation() {
       roles: ['admin', 'asesor'],
     },
     {
+      href: '/clientes',
+      label: 'Clientes',
+      icon: ClientesIcon,
+      roles: ['admin', 'asesor'],
+    },
+    {
+      href: '/vehiculos',
+      label: 'Vehículos',
+      icon: VehiculosIcon,
+      roles: ['admin', 'asesor'],
+    },
+    {
       href: '/depositos',
-      label: 'Depósito de venta',
+      label: 'Depósitos',
       icon: DepositosIcon,
       roles: ['admin', 'asesor'],
     },
@@ -225,7 +223,7 @@ export default function Navigation() {
       label: 'Inversores',
       icon: InversoresIcon,
       roles: ['admin'],
-    }, // Solo admin
+    },
     {
       href: '/documentacion',
       label: 'Documentación',
@@ -234,17 +232,17 @@ export default function Navigation() {
     },
   ]
 
-  // Filtrar elementos de navegación según el rol del usuario
-  const filteredNavItems = inversor
-    ? navItems.filter((item) => item.href === '/inversores') // Solo mostrar Inversores para inversores autenticados
-    : navItems.filter((item) => user && item.roles.includes(user.role)) // Filtro normal para usuarios del CRM
-
   const isActive = (href: string) => {
-    if (href === '/') {
-      return pathname === '/'
-    }
-    return pathname.startsWith(href)
+    return pathname === href || (href !== '/' && pathname.startsWith(href))
   }
+
+  const hasPermission = (roles: string[]) => {
+    if (inversor) return false
+    if (!user) return false
+    return roles.includes(user.role)
+  }
+
+  const filteredNavItems = navItems.filter((item) => hasPermission(item.roles))
 
   // En móvil, siempre mostrar el menú colapsado o como overlay
   const shouldShowCollapsed = isMobile ? !isMobileMenuOpen : isCollapsed
@@ -268,7 +266,11 @@ export default function Navigation() {
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth={2}
-              d="M4 6h16M4 12h16M4 18h16"
+              d={
+                isMobileMenuOpen
+                  ? 'M6 18L18 6M6 6l12 12'
+                  : 'M4 6h16M4 12h16M4 18h16'
+              }
             />
           </svg>
         </button>
@@ -282,133 +284,152 @@ export default function Navigation() {
         />
       )}
 
-      {/* Navigation */}
+      {/* Sidebar */}
       <div
         className={`
-        bg-gray-50 border-r border-gray-200 transition-all duration-300 flex flex-col h-screen sticky top-0 z-30 relative
-        ${
-          isMobile
-            ? `fixed left-0 top-0 transform transition-transform duration-300 ${
-                isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-              } w-64`
-            : shouldShowCollapsed
-              ? 'w-16'
-              : 'w-56'
-        }
-      `}
+          fixed top-0 left-0 h-full bg-white border-r border-gray-200 shadow-lg z-50 transition-all duration-300 ease-in-out
+          ${
+            isMobile
+              ? isMobileMenuOpen
+                ? 'w-64'
+                : 'w-0 -translate-x-full'
+              : shouldShowCollapsed
+                ? 'w-16'
+                : 'w-64'
+          }
+          lg:translate-x-0
+        `}
       >
-        {/* Header con Logo */}
-        <div className="p-4 sm:p-6 border-b border-gray-200">
-          <Link
-            href="/"
-            className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
-            onClick={() => isMobile && setIsMobileMenuOpen(false)}
+        <div className="flex flex-col h-full">
+          {/* Logo */}
+          <div
+            className={`flex items-center p-4 border-b border-gray-200 ${shouldShowCollapsed ? 'justify-center' : 'justify-start'}`}
           >
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-              <span className="text-white font-bold text-sm sm:text-lg">
-                SC
-              </span>
-            </div>
             {!shouldShowCollapsed && (
-              <div>
-                <h1 className="text-lg sm:text-xl font-bold text-gray-900">
-                  SevenCars
-                </h1>
-                <p className="text-xs sm:text-sm text-gray-500">CRM Platform</p>
+              <>
+                <div
+                  className="flex items-center justify-center"
+                  style={{ width: '200px', height: 'auto' }}
+                >
+                  <img
+                    src="/logocontrato.png"
+                    alt="SevenCars Logo"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Navigation Links */}
+          <nav className="flex-1 px-2 py-4 overflow-y-auto">
+            <div className="space-y-1">
+              {filteredNavItems.map((item) => {
+                const Icon = item.icon
+                const active = isActive(item.href)
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`
+                      flex items-center rounded-lg px-3 py-3 text-sm font-medium transition-all duration-200
+                      ${
+                        active && !shouldShowCollapsed
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                          : active && shouldShowCollapsed
+                            ? 'text-blue-700'
+                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      }
+                      ${shouldShowCollapsed ? 'justify-center' : 'space-x-3'}
+                    `}
+                    title={shouldShowCollapsed ? item.label : undefined}
+                    onClick={() => isMobile && setIsMobileMenuOpen(false)}
+                  >
+                    <Icon />
+                    {!shouldShowCollapsed && (
+                      <span className="truncate">{item.label}</span>
+                    )}
+                  </Link>
+                )
+              })}
+            </div>
+          </nav>
+
+          {/* User Info & Logout */}
+          <div className="p-4 border-t border-gray-200">
+            {/* User Info */}
+            {(user || inversor) && !shouldShowCollapsed && (
+              <div className="mb-3 p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
+                    <UserIcon />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {inversor ? inversor.nombre : user?.nombre}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {inversor ? 'Inversor' : user?.role}
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
-          </Link>
-        </div>
 
-        {/* Navigation Links */}
-        <nav className="flex-1 px-2 sm:px-4 py-4 sm:py-6">
-          <div className="space-y-1 sm:space-y-2">
-            {filteredNavItems.map((item) => {
-              const Icon = item.icon
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center ${shouldShowCollapsed ? 'justify-center px-3 py-4' : 'space-x-2 sm:space-x-3 px-2 sm:px-3 py-2 sm:py-3'} rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 ${
-                    isActive(item.href)
-                      ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-white hover:shadow-sm'
-                  }`}
-                  title={shouldShowCollapsed ? item.label : undefined}
-                  onClick={() => isMobile && setIsMobileMenuOpen(false)}
-                >
-                  <Icon isCollapsed={shouldShowCollapsed} />
-                  {!shouldShowCollapsed && (
-                    <span className="truncate">{item.label}</span>
-                  )}
-                </Link>
-              )
-            })}
-          </div>
-        </nav>
-
-        {/* User Profile Section */}
-        <div className="p-2 sm:p-4 border-t border-gray-200">
-          <div className="bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg p-3 sm:p-4 text-white">
-            <div
-              className={`flex items-center ${shouldShowCollapsed ? 'justify-center' : 'space-x-2 sm:space-x-3'}`}
-            >
-              <div
-                className={`${shouldShowCollapsed ? 'w-12 h-12' : 'w-6 h-6 sm:w-8 sm:h-8'} bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0`}
+            {/* Logout Button */}
+            {(user || inversor) && (
+              <button
+                onClick={inversor ? logoutInversor : logout}
+                className={`
+                  w-full flex items-center rounded-lg px-3 py-3 text-sm font-medium text-gray-600 
+                  hover:text-gray-900 hover:bg-gray-50 transition-all duration-200
+                  ${shouldShowCollapsed ? 'justify-center' : 'space-x-3'}
+                `}
+                title={shouldShowCollapsed ? 'Cerrar sesión' : undefined}
               >
-                <UserIcon isCollapsed={shouldShowCollapsed} />
-              </div>
-              {!shouldShowCollapsed && (user || inversor) && (
-                <div className="min-w-0">
-                  <p className="font-medium text-xs sm:text-sm truncate">
-                    {inversor ? inversor.nombre : user?.name}
-                  </p>
-                  <p className="text-xs text-white/80 truncate capitalize">
-                    {inversor ? 'Inversor' : user?.role}
-                  </p>
-                </div>
-              )}
-            </div>
+                <LogoutIcon />
+                {!shouldShowCollapsed && (
+                  <span className="truncate">Cerrar sesión</span>
+                )}
+              </button>
+            )}
           </div>
 
-          {/* Logout Button */}
-          {(user || inversor) && (
+          {/* Collapse Button - Solo en desktop */}
+          {!isMobile && (
             <button
-              onClick={inversor ? logoutInversor : logout}
-              className={`w-full mt-2 flex items-center ${shouldShowCollapsed ? 'justify-center px-3 py-2' : 'space-x-2 px-2 py-2'} rounded-lg text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-white hover:shadow-sm transition-all duration-200`}
-              title={shouldShowCollapsed ? 'Cerrar sesión' : undefined}
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="absolute top-1/2 -right-3 w-6 h-6 bg-white border border-gray-200 rounded-full flex items-center justify-center shadow-sm hover:shadow-md transition-shadow z-10"
+              title={isCollapsed ? 'Expandir' : 'Contraer'}
             >
-              <LogoutIcon isCollapsed={shouldShowCollapsed} />
-              {!shouldShowCollapsed && (
-                <span className="truncate">Cerrar sesión</span>
-              )}
+              <svg
+                className={`w-4 h-4 text-gray-600 transition-transform duration-200 ${
+                  isCollapsed ? 'rotate-180' : ''
+                }`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
             </button>
           )}
         </div>
-
-        {/* Collapse Button - Solo en desktop */}
-        {!isMobile && (
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="absolute top-1/2 -right-2 w-6 h-6 bg-white border border-gray-200 rounded-full flex items-center justify-center shadow-sm hover:shadow-md transition-shadow z-10"
-            title={isCollapsed ? 'Expandir' : 'Contraer'}
-          >
-            <svg
-              className={`w-4 h-4 text-gray-500 transition-transform ${isCollapsed ? 'rotate-180' : ''}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-          </button>
-        )}
       </div>
+
+      {/* Main Content Spacer */}
+      <div
+        className={`
+          transition-all duration-300 ease-in-out
+          ${isMobile ? 'ml-0' : shouldShowCollapsed ? 'ml-16' : 'ml-64'}
+        `}
+      />
     </>
   )
 }

@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useToast } from '@/hooks/useToast'
 import { useConfirmModal } from '@/components/ConfirmModal'
+import ProtectedRoute from '@/components/ProtectedRoute'
 import {
   generarContratoDeposito,
   generarContratoCompraventa,
@@ -790,847 +791,859 @@ export default function DepositoDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="bg-slate-800 rounded-xl shadow-xl border border-slate-700 mb-4">
-            <div className="px-6 py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <button
-                    onClick={() => router.push('/depositos')}
-                    className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
-                  >
-                    <svg
-                      className="w-6 h-6 text-white"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 19l-7-7 7-7"
-                      />
-                    </svg>
-                  </button>
-                  <div>
-                    <h1 className="text-xl font-bold text-white">
-                      Depósito #{deposito.id}
-                    </h1>
-                    <p className="text-slate-300 text-sm">
-                      {deposito.cliente?.nombre} {deposito.cliente?.apellidos} •{' '}
-                      {deposito.vehiculo?.marca} {deposito.vehiculo?.modelo}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <div
-                    className={`px-3 py-1 rounded-full text-sm font-medium ${getEstadoColor(deposito.estado)}`}
-                  >
-                    {deposito.estado}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="flex gap-6">
-          {/* Main Content */}
-          <div className="w-[70%] space-y-4">
-            {/* Documentos */}
-            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Documentos
-              </h3>
-              <div className="flex space-x-3">
-                <button
-                  onClick={handleGenerarContratoDeposito}
-                  disabled={isGeneratingContrato || deposito.contrato_deposito}
-                  className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-colors ${
-                    deposito.contrato_deposito
-                      ? 'bg-green-100 text-green-700 cursor-not-allowed'
-                      : isGeneratingContrato
-                        ? 'bg-yellow-100 text-yellow-700 cursor-not-allowed'
-                        : 'bg-green-600 text-white hover:bg-green-700'
-                  }`}
-                >
-                  {deposito.contrato_deposito ? (
-                    <div className="flex items-center space-x-2">
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      <span>Contrato de Depósito Generado</span>
-                    </div>
-                  ) : isGeneratingContrato ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div>
-                      <span>Generando...</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center space-x-2">
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                        />
-                      </svg>
-                      <span>Generar Contrato de Depósito</span>
-                    </div>
-                  )}
-                </button>
-                <button
-                  onClick={handleGenerarContrato}
-                  disabled={
-                    deposito.estado !== 'VENDIDO' || deposito.contrato_compra
-                  }
-                  className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-colors ${
-                    deposito.contrato_compra
-                      ? 'bg-green-100 text-green-700 cursor-not-allowed'
-                      : deposito.estado === 'VENDIDO'
-                        ? 'bg-green-600 text-white hover:bg-green-700'
-                        : 'bg-gray-100 text-gray-500 cursor-not-allowed'
-                  }`}
-                >
-                  {deposito.contrato_compra ? (
-                    <div className="flex items-center space-x-2">
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      <span>Contrato de Compra Generado</span>
-                    </div>
-                  ) : deposito.estado === 'VENDIDO' ? (
-                    <div className="flex items-center space-x-2">
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                        />
-                      </svg>
-                      <span>Generar Contrato de Compra</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center space-x-2">
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                        />
-                      </svg>
-                      <span>Generar Contrato de Compra</span>
-                    </div>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Bloque 1: Información del Depósito (Blanco) */}
-            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                    <svg
-                      className="w-5 h-5 text-white"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      />
-                    </svg>
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3">
-                      <h3 className="text-lg font-semibold text-gray-800">
-                        Depósito de Venta
-                      </h3>
-                      {deposito.estado === 'ACTIVO' && (
-                        <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium">
-                          {calculateDaysRemaining()} días restantes
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-600">
-                      Información del depósito
-                    </p>
-                  </div>
-                </div>
-                {!isEditingDeposito ? (
-                  <button
-                    onClick={handleEditDeposito}
-                    className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-200 rounded-lg transition-colors"
-                    title="Editar información del depósito"
-                  >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                      />
-                    </svg>
-                  </button>
-                ) : (
-                  <div className="flex space-x-2">
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          {/* Header */}
+          <div className="mb-6">
+            <div className="bg-slate-800 rounded-xl shadow-xl border border-slate-700 mb-4">
+              <div className="px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
                     <button
-                      onClick={handleSaveDepositoEdit}
-                      disabled={isUpdating}
-                      className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50"
+                      onClick={() => router.push('/depositos')}
+                      className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
                     >
-                      {isUpdating ? 'Guardando...' : 'Guardar'}
+                      <svg
+                        className="w-6 h-6 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 19l-7-7 7-7"
+                        />
+                      </svg>
                     </button>
-                    <button
-                      onClick={handleCancelEditDeposito}
-                      className="px-3 py-1 bg-gray-300 text-gray-700 text-sm rounded hover:bg-gray-400"
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-600">
-                    Estado
-                  </label>
-                  <p className="text-gray-900 font-medium text-sm">
-                    {deposito.estado}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600">
-                    Fecha de Inicio
-                  </label>
-                  <p className="text-gray-900 text-sm">
-                    {formatDate(deposito.fecha_inicio)}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600">
-                    Días Restantes
-                  </label>
-                  <p className="text-gray-900 text-sm">
-                    {calculateDaysRemaining()} días
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600">
-                    Monto al Comprador
-                  </label>
-                  {isEditingDeposito ? (
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={depositoEditData.monto_recibir}
-                      onChange={(e) =>
-                        setDepositoEditData((prev) => ({
-                          ...prev,
-                          monto_recibir: parseFloat(e.target.value) || 0,
-                        }))
-                      }
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  ) : (
-                    <p className="text-gray-900 text-sm font-semibold">
-                      {formatCurrency(deposito.monto_recibir || 0)}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600">
-                    Días de Gestión
-                  </label>
-                  {isEditingDeposito ? (
-                    <input
-                      type="number"
-                      value={depositoEditData.dias_gestion}
-                      onChange={(e) =>
-                        setDepositoEditData((prev) => ({
-                          ...prev,
-                          dias_gestion: parseInt(e.target.value) || 0,
-                        }))
-                      }
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  ) : (
-                    <p className="text-gray-900 text-sm">
-                      {deposito.dias_gestion || 0} días
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600">
-                    Multa Retiro Anticipado
-                  </label>
-                  {isEditingDeposito ? (
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={depositoEditData.multa_retiro_anticipado}
-                      onChange={(e) =>
-                        setDepositoEditData((prev) => ({
-                          ...prev,
-                          multa_retiro_anticipado:
-                            parseFloat(e.target.value) || 0,
-                        }))
-                      }
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  ) : (
-                    <p className="text-gray-900 text-sm font-medium">
-                      {formatCurrency(
-                        parseFloat(deposito.multa_retiro_anticipado) || 0
-                      )}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600">
-                    Número de Cuenta
-                  </label>
-                  {isEditingDeposito ? (
-                    <input
-                      type="text"
-                      value={depositoEditData.numero_cuenta}
-                      onChange={(e) =>
-                        setDepositoEditData((prev) => ({
-                          ...prev,
-                          numero_cuenta: e.target.value,
-                        }))
-                      }
-                      placeholder="Número de cuenta bancaria"
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
-                    />
-                  ) : (
-                    <p className="text-gray-900 font-mono text-sm">
-                      {deposito.numero_cuenta || 'No especificado'}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Cliente y Vehículo lado a lado */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Cliente */}
-              <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl shadow-lg border border-blue-200 p-4">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                    <svg
-                      className="w-5 h-5 text-white"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                      />
-                    </svg>
-                  </div>
-                  <div>
-                    <h4 className="text-base font-semibold text-blue-800">
-                      Cliente
-                    </h4>
-                    <p className="text-sm text-blue-600">Ver perfil completo</p>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <div>
-                    <label className="text-sm font-medium text-blue-600">
-                      Nombre
-                    </label>
-                    <p className="text-blue-900 font-medium text-sm">
-                      {deposito.cliente?.nombre} {deposito.cliente?.apellidos}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-blue-600">
-                      Email
-                    </label>
-                    <p className="text-blue-900 text-sm">
-                      {deposito.cliente?.email || 'No especificado'}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-blue-600">
-                      Teléfono
-                    </label>
-                    <p className="text-blue-900 text-sm">
-                      {deposito.cliente?.telefono || 'No especificado'}
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-3 flex justify-end">
-                  <Link
-                    href={`/clientes/${generateClienteSlug(deposito.cliente)}`}
-                    className="inline-flex items-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-                  >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                      />
-                    </svg>
-                    <span>Ver cliente</span>
-                  </Link>
-                </div>
-              </div>
-
-              {/* Vehículo */}
-              <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-xl shadow-lg border border-green-200 p-4">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
-                    <svg
-                      className="w-5 h-5 text-white"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
-                      />
-                    </svg>
-                  </div>
-                  <div>
-                    <h4 className="text-base font-semibold text-green-800">
-                      Vehículo
-                    </h4>
-                    <p className="text-sm text-green-600">Ver en inventario</p>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <div>
-                    <label className="text-sm font-medium text-green-600">
-                      Modelo
-                    </label>
-                    <p className="text-green-900 font-medium text-sm">
-                      {deposito.vehiculo?.marca} {deposito.vehiculo?.modelo}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-green-600">
-                      Matrícula
-                    </label>
-                    <p className="text-green-900 text-sm">
-                      {deposito.vehiculo?.matricula}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-green-600">
-                      Referencia
-                    </label>
-                    <p className="text-green-900 text-sm">
-                      #{deposito.vehiculo?.referencia}
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-3 flex justify-end">
-                  <Link
-                    href={`/vehiculos/${generateVehicleSlug(deposito.vehiculo)}`}
-                    className="inline-flex items-center space-x-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
-                  >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
-                      />
-                    </svg>
-                    <span>Ver vehículo</span>
-                  </Link>
-                </div>
-              </div>
-            </div>
-
-            {/* Notas */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Notas
-              </h2>
-
-              {/* Formulario para agregar nota */}
-              <div className="mb-4">
-                <textarea
-                  value={nuevaNota}
-                  onChange={(e) => setNuevaNota(e.target.value)}
-                  placeholder="Agregar una nueva nota..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                  rows={3}
-                />
-                <button
-                  onClick={handleAgregarNota}
-                  disabled={!nuevaNota.trim()}
-                  className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                >
-                  Agregar Nota
-                </button>
-              </div>
-
-              {/* Lista de notas */}
-              <div className="space-y-3">
-                {notasDeposito.map((nota) => (
-                  <div
-                    key={nota.id}
-                    className="border border-gray-200 rounded-lg p-3"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        {editingNotaId === nota.id ? (
-                          <div className="space-y-2">
-                            <textarea
-                              value={editingContent || ''}
-                              onChange={(e) =>
-                                setEditingContent(e.target.value)
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                              rows={3}
-                            />
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={() => handleEditarNota(nota.id)}
-                                className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
-                              >
-                                Guardar
-                              </button>
-                              <button
-                                onClick={cancelEditing}
-                                className="px-3 py-1 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm"
-                              >
-                                Cancelar
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <>
-                            <p className="text-gray-900">{nota.contenido}</p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {nota.usuario} •{' '}
-                              {new Date(nota.fecha).toLocaleDateString('es-ES')}
-                            </p>
-                          </>
-                        )}
-                      </div>
-                      {editingNotaId !== nota.id && (
-                        <div className="flex space-x-1 ml-2">
-                          <button
-                            onClick={() => startEditing(nota)}
-                            className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
-                            title="Editar nota"
-                          >
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z"
-                              />
-                            </svg>
-                          </button>
-                          <button
-                            onClick={() => handleEliminarNota(nota.id)}
-                            className="p-1 text-gray-400 hover:text-red-600 transition-colors"
-                            title="Eliminar nota"
-                          >
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                              />
-                            </svg>
-                          </button>
-                        </div>
-                      )}
+                    <div>
+                      <h1 className="text-xl font-bold text-white">
+                        Depósito #{deposito.id}
+                      </h1>
+                      <p className="text-slate-300 text-sm">
+                        {deposito.cliente?.nombre} {deposito.cliente?.apellidos}{' '}
+                        • {deposito.vehiculo?.marca} {deposito.vehiculo?.modelo}
+                      </p>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Sidebar */}
-          <div className="w-[30%] space-y-6">
-            {/* Documentación */}
-            <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Documentación
-              </h3>
-              <div className="space-y-3">
-                <div
-                  className={`flex items-center justify-between p-3 rounded-lg border ${
-                    deposito.contrato_deposito
-                      ? 'bg-green-50 border-green-200'
-                      : 'bg-gray-50 border-gray-200'
-                  }`}
-                >
                   <div className="flex items-center space-x-3">
-                    <svg
-                      className={`w-5 h-5 ${
-                        deposito.contrato_deposito
-                          ? 'text-green-600'
-                          : 'text-gray-400'
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      />
-                    </svg>
-                    <span
-                      className={`text-sm font-medium ${
-                        deposito.contrato_deposito
-                          ? 'text-green-800'
-                          : 'text-gray-500'
-                      }`}
-                    >
-                      Contrato de Depósito
-                    </span>
-                  </div>
-                  {deposito.contrato_deposito ? (
-                    <button
-                      onClick={handleGenerarContratoDeposito}
-                      className="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-lg hover:bg-blue-200"
-                    >
-                      Descargar
-                    </button>
-                  ) : (
-                    <span className="text-xs text-gray-400">No generado</span>
-                  )}
-                </div>
-
-                {/* Contrato de Compra */}
-                <div
-                  className={`flex items-center justify-between p-3 rounded-lg border ${
-                    deposito.contrato_compra
-                      ? 'bg-green-50 border-green-200'
-                      : 'bg-gray-50 border-gray-200'
-                  }`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <svg
-                      className={`w-5 h-5 ${
-                        deposito.contrato_compra
-                          ? 'text-green-600'
-                          : 'text-gray-400'
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      />
-                    </svg>
-                    <span
-                      className={`text-sm font-medium ${
-                        deposito.contrato_compra
-                          ? 'text-green-800'
-                          : 'text-gray-500'
-                      }`}
-                    >
-                      Contrato de Compra
-                    </span>
-                  </div>
-                  {deposito.contrato_compra ? (
-                    <button
-                      onClick={handleDescargarContratoCompra}
-                      className="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-lg hover:bg-blue-200"
-                    >
-                      Descargar
-                    </button>
-                  ) : (
-                    <span className="text-xs text-gray-400">No generado</span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Información del Depósito */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Información del Depósito
-              </h3>
-              <div className="space-y-4">
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Estado:</span>
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${getEstadoColor(deposito.estado)}`}
+                    <div
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${getEstadoColor(deposito.estado)}`}
                     >
                       {deposito.estado}
-                    </span>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Creado:</span>
-                    <span className="text-gray-900">
-                      {formatDate(deposito.created_at)}
-                    </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="flex gap-6">
+            {/* Main Content */}
+            <div className="w-[70%] space-y-4">
+              {/* Documentos */}
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Documentos
+                </h3>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={handleGenerarContratoDeposito}
+                    disabled={
+                      isGeneratingContrato || deposito.contrato_deposito
+                    }
+                    className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-colors ${
+                      deposito.contrato_deposito
+                        ? 'bg-green-100 text-green-700 cursor-not-allowed'
+                        : isGeneratingContrato
+                          ? 'bg-yellow-100 text-yellow-700 cursor-not-allowed'
+                          : 'bg-green-600 text-white hover:bg-green-700'
+                    }`}
+                  >
+                    {deposito.contrato_deposito ? (
+                      <div className="flex items-center space-x-2">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        <span>Contrato de Depósito Generado</span>
+                      </div>
+                    ) : isGeneratingContrato ? (
+                      <div className="flex items-center space-x-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div>
+                        <span>Generando...</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center space-x-2">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                        <span>Generar Contrato de Depósito</span>
+                      </div>
+                    )}
+                  </button>
+                  <button
+                    onClick={handleGenerarContrato}
+                    disabled={
+                      deposito.estado !== 'VENDIDO' || deposito.contrato_compra
+                    }
+                    className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-colors ${
+                      deposito.contrato_compra
+                        ? 'bg-green-100 text-green-700 cursor-not-allowed'
+                        : deposito.estado === 'VENDIDO'
+                          ? 'bg-green-600 text-white hover:bg-green-700'
+                          : 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                    }`}
+                  >
+                    {deposito.contrato_compra ? (
+                      <div className="flex items-center space-x-2">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        <span>Contrato de Compra Generado</span>
+                      </div>
+                    ) : deposito.estado === 'VENDIDO' ? (
+                      <div className="flex items-center space-x-2">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                        <span>Generar Contrato de Compra</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center space-x-2">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                        <span>Generar Contrato de Compra</span>
+                      </div>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Bloque 1: Información del Depósito (Blanco) */}
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                      <svg
+                        className="w-5 h-5 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3">
+                        <h3 className="text-lg font-semibold text-gray-800">
+                          Depósito de Venta
+                        </h3>
+                        {deposito.estado === 'ACTIVO' && (
+                          <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium">
+                            {calculateDaysRemaining()} días restantes
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        Información del depósito
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Última actualización:</span>
-                    <span className="text-gray-900">
-                      {formatDate(deposito.updated_at)}
-                    </span>
+                  {!isEditingDeposito ? (
+                    <button
+                      onClick={handleEditDeposito}
+                      className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-200 rounded-lg transition-colors"
+                      title="Editar información del depósito"
+                    >
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                        />
+                      </svg>
+                    </button>
+                  ) : (
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={handleSaveDepositoEdit}
+                        disabled={isUpdating}
+                        className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        {isUpdating ? 'Guardando...' : 'Guardar'}
+                      </button>
+                      <button
+                        onClick={handleCancelEditDeposito}
+                        className="px-3 py-1 bg-gray-300 text-gray-700 text-sm rounded hover:bg-gray-400"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">
+                      Estado
+                    </label>
+                    <p className="text-gray-900 font-medium text-sm">
+                      {deposito.estado}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">
+                      Fecha de Inicio
+                    </label>
+                    <p className="text-gray-900 text-sm">
+                      {formatDate(deposito.fecha_inicio)}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">
+                      Días Restantes
+                    </label>
+                    <p className="text-gray-900 text-sm">
+                      {calculateDaysRemaining()} días
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">
+                      Monto al Comprador
+                    </label>
+                    {isEditingDeposito ? (
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={depositoEditData.monto_recibir}
+                        onChange={(e) =>
+                          setDepositoEditData((prev) => ({
+                            ...prev,
+                            monto_recibir: parseFloat(e.target.value) || 0,
+                          }))
+                        }
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    ) : (
+                      <p className="text-gray-900 text-sm font-semibold">
+                        {formatCurrency(deposito.monto_recibir || 0)}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">
+                      Días de Gestión
+                    </label>
+                    {isEditingDeposito ? (
+                      <input
+                        type="number"
+                        value={depositoEditData.dias_gestion}
+                        onChange={(e) =>
+                          setDepositoEditData((prev) => ({
+                            ...prev,
+                            dias_gestion: parseInt(e.target.value) || 0,
+                          }))
+                        }
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    ) : (
+                      <p className="text-gray-900 text-sm">
+                        {deposito.dias_gestion || 0} días
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">
+                      Multa Retiro Anticipado
+                    </label>
+                    {isEditingDeposito ? (
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={depositoEditData.multa_retiro_anticipado}
+                        onChange={(e) =>
+                          setDepositoEditData((prev) => ({
+                            ...prev,
+                            multa_retiro_anticipado:
+                              parseFloat(e.target.value) || 0,
+                          }))
+                        }
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    ) : (
+                      <p className="text-gray-900 text-sm font-medium">
+                        {formatCurrency(
+                          parseFloat(deposito.multa_retiro_anticipado) || 0
+                        )}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">
+                      Número de Cuenta
+                    </label>
+                    {isEditingDeposito ? (
+                      <input
+                        type="text"
+                        value={depositoEditData.numero_cuenta}
+                        onChange={(e) =>
+                          setDepositoEditData((prev) => ({
+                            ...prev,
+                            numero_cuenta: e.target.value,
+                          }))
+                        }
+                        placeholder="Número de cuenta bancaria"
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                      />
+                    ) : (
+                      <p className="text-gray-900 font-mono text-sm">
+                        {deposito.numero_cuenta || 'No especificado'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Cliente y Vehículo lado a lado */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Cliente */}
+                <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl shadow-lg border border-blue-200 p-4">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                      <svg
+                        className="w-5 h-5 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                        />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-base font-semibold text-blue-800">
+                        Cliente
+                      </h4>
+                      <p className="text-sm text-blue-600">
+                        Ver perfil completo
+                      </p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div>
+                      <label className="text-sm font-medium text-blue-600">
+                        Nombre
+                      </label>
+                      <p className="text-blue-900 font-medium text-sm">
+                        {deposito.cliente?.nombre} {deposito.cliente?.apellidos}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-blue-600">
+                        Email
+                      </label>
+                      <p className="text-blue-900 text-sm">
+                        {deposito.cliente?.email || 'No especificado'}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-blue-600">
+                        Teléfono
+                      </label>
+                      <p className="text-blue-900 text-sm">
+                        {deposito.cliente?.telefono || 'No especificado'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex justify-end">
+                    <Link
+                      href={`/clientes/${generateClienteSlug(deposito.cliente)}`}
+                      className="inline-flex items-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                        />
+                      </svg>
+                      <span>Ver cliente</span>
+                    </Link>
                   </div>
                 </div>
 
-                {/* Toggle para marcar como vendido */}
-                {deposito.estado === 'ACTIVO' && (
-                  <div className="pt-4 border-t border-gray-200">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">
-                        Marcar como vendido
-                      </span>
-                      <button
-                        onClick={handleMarcarVendido}
-                        className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 hover:bg-gray-300"
+                {/* Vehículo */}
+                <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-xl shadow-lg border border-green-200 p-4">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                      <svg
+                        className="w-5 h-5 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
                       >
-                        <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                            deposito.estado === 'VENDIDO'
-                              ? 'translate-x-6'
-                              : 'translate-x-1'
-                          }`}
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
                         />
-                      </button>
+                      </svg>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Activa para marcar el depósito como vendido
-                    </p>
+                    <div>
+                      <h4 className="text-base font-semibold text-green-800">
+                        Vehículo
+                      </h4>
+                      <p className="text-sm text-green-600">
+                        Ver en inventario
+                      </p>
+                    </div>
                   </div>
-                )}
+                  <div className="space-y-2">
+                    <div>
+                      <label className="text-sm font-medium text-green-600">
+                        Modelo
+                      </label>
+                      <p className="text-green-900 font-medium text-sm">
+                        {deposito.vehiculo?.marca} {deposito.vehiculo?.modelo}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-green-600">
+                        Matrícula
+                      </label>
+                      <p className="text-green-900 text-sm">
+                        {deposito.vehiculo?.matricula}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-green-600">
+                        Referencia
+                      </label>
+                      <p className="text-green-900 text-sm">
+                        #{deposito.vehiculo?.referencia}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex justify-end">
+                    <Link
+                      href={`/vehiculos/${generateVehicleSlug(deposito.vehiculo)}`}
+                      className="inline-flex items-center space-x-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
+                        />
+                      </svg>
+                      <span>Ver vehículo</span>
+                    </Link>
+                  </div>
+                </div>
+              </div>
 
-                {/* Mostrar estado vendido si ya está vendido */}
-                {deposito.estado === 'VENDIDO' && (
-                  <div className="pt-4 border-t border-gray-200">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">
-                        Estado: Vendido
-                      </span>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span className="text-xs text-green-600 font-medium">
-                          VENDIDO
-                        </span>
+              {/* Notas */}
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Notas
+                </h2>
+
+                {/* Formulario para agregar nota */}
+                <div className="mb-4">
+                  <textarea
+                    value={nuevaNota}
+                    onChange={(e) => setNuevaNota(e.target.value)}
+                    placeholder="Agregar una nueva nota..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    rows={3}
+                  />
+                  <button
+                    onClick={handleAgregarNota}
+                    disabled={!nuevaNota.trim()}
+                    className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  >
+                    Agregar Nota
+                  </button>
+                </div>
+
+                {/* Lista de notas */}
+                <div className="space-y-3">
+                  {notasDeposito.map((nota) => (
+                    <div
+                      key={nota.id}
+                      className="border border-gray-200 rounded-lg p-3"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          {editingNotaId === nota.id ? (
+                            <div className="space-y-2">
+                              <textarea
+                                value={editingContent || ''}
+                                onChange={(e) =>
+                                  setEditingContent(e.target.value)
+                                }
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                                rows={3}
+                              />
+                              <div className="flex space-x-2">
+                                <button
+                                  onClick={() => handleEditarNota(nota.id)}
+                                  className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                                >
+                                  Guardar
+                                </button>
+                                <button
+                                  onClick={cancelEditing}
+                                  className="px-3 py-1 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm"
+                                >
+                                  Cancelar
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <p className="text-gray-900">{nota.contenido}</p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {nota.usuario} •{' '}
+                                {new Date(nota.fecha).toLocaleDateString(
+                                  'es-ES'
+                                )}
+                              </p>
+                            </>
+                          )}
+                        </div>
+                        {editingNotaId !== nota.id && (
+                          <div className="flex space-x-1 ml-2">
+                            <button
+                              onClick={() => startEditing(nota)}
+                              className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                              title="Editar nota"
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z"
+                                />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => handleEliminarNota(nota.id)}
+                              className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                              title="Eliminar nota"
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Este depósito ha sido marcado como vendido
-                    </p>
-                  </div>
-                )}
+                  ))}
+                </div>
               </div>
             </div>
 
-            {/* Recordatorios */}
-            <DepositoReminders
-              depositoId={deposito.id}
-              depositoInfo={`Depósito #${deposito.id} - ${deposito.cliente?.nombre || 'Cliente'} ${deposito.cliente?.apellidos || 'No especificado'}`}
-            />
+            {/* Sidebar */}
+            <div className="w-[30%] space-y-6">
+              {/* Documentación */}
+              <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Documentación
+                </h3>
+                <div className="space-y-3">
+                  <div
+                    className={`flex items-center justify-between p-3 rounded-lg border ${
+                      deposito.contrato_deposito
+                        ? 'bg-green-50 border-green-200'
+                        : 'bg-gray-50 border-gray-200'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <svg
+                        className={`w-5 h-5 ${
+                          deposito.contrato_deposito
+                            ? 'text-green-600'
+                            : 'text-gray-400'
+                        }`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      <span
+                        className={`text-sm font-medium ${
+                          deposito.contrato_deposito
+                            ? 'text-green-800'
+                            : 'text-gray-500'
+                        }`}
+                      >
+                        Contrato de Depósito
+                      </span>
+                    </div>
+                    {deposito.contrato_deposito ? (
+                      <button
+                        onClick={handleGenerarContratoDeposito}
+                        className="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-lg hover:bg-blue-200"
+                      >
+                        Descargar
+                      </button>
+                    ) : (
+                      <span className="text-xs text-gray-400">No generado</span>
+                    )}
+                  </div>
+
+                  {/* Contrato de Compra */}
+                  <div
+                    className={`flex items-center justify-between p-3 rounded-lg border ${
+                      deposito.contrato_compra
+                        ? 'bg-green-50 border-green-200'
+                        : 'bg-gray-50 border-gray-200'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <svg
+                        className={`w-5 h-5 ${
+                          deposito.contrato_compra
+                            ? 'text-green-600'
+                            : 'text-gray-400'
+                        }`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      <span
+                        className={`text-sm font-medium ${
+                          deposito.contrato_compra
+                            ? 'text-green-800'
+                            : 'text-gray-500'
+                        }`}
+                      >
+                        Contrato de Compra
+                      </span>
+                    </div>
+                    {deposito.contrato_compra ? (
+                      <button
+                        onClick={handleDescargarContratoCompra}
+                        className="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-lg hover:bg-blue-200"
+                      >
+                        Descargar
+                      </button>
+                    ) : (
+                      <span className="text-xs text-gray-400">No generado</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Información del Depósito */}
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Información del Depósito
+                </h3>
+                <div className="space-y-4">
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Estado:</span>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${getEstadoColor(deposito.estado)}`}
+                      >
+                        {deposito.estado}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Creado:</span>
+                      <span className="text-gray-900">
+                        {formatDate(deposito.created_at)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">
+                        Última actualización:
+                      </span>
+                      <span className="text-gray-900">
+                        {formatDate(deposito.updated_at)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Toggle para marcar como vendido */}
+                  {deposito.estado === 'ACTIVO' && (
+                    <div className="pt-4 border-t border-gray-200">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-700">
+                          Marcar como vendido
+                        </span>
+                        <button
+                          onClick={handleMarcarVendido}
+                          className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 hover:bg-gray-300"
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              deposito.estado === 'VENDIDO'
+                                ? 'translate-x-6'
+                                : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Activa para marcar el depósito como vendido
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Mostrar estado vendido si ya está vendido */}
+                  {deposito.estado === 'VENDIDO' && (
+                    <div className="pt-4 border-t border-gray-200">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-700">
+                          Estado: Vendido
+                        </span>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <span className="text-xs text-green-600 font-medium">
+                            VENDIDO
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Este depósito ha sido marcado como vendido
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Recordatorios */}
+              <DepositoReminders
+                depositoId={deposito.id}
+                depositoInfo={`Depósito #${deposito.id} - ${deposito.cliente?.nombre || 'Cliente'} ${deposito.cliente?.apellidos || 'No especificado'}`}
+              />
+            </div>
           </div>
         </div>
-      </div>
 
-      <ToastContainer />
-      <ConfirmModalComponent />
-    </div>
+        <ToastContainer />
+        <ConfirmModalComponent />
+      </div>
+    </ProtectedRoute>
   )
 }

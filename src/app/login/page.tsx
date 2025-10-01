@@ -69,20 +69,12 @@ export default function LoginPage() {
       <div className="relative z-10 max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
-          <div className="mx-auto h-16 w-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center">
-            <svg
-              className="h-8 w-8 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-              />
-            </svg>
+          <div className="mx-auto h-16 w-16 flex items-center justify-center">
+            <img
+              src="/logocontrato.png"
+              alt="SevenCars Logo"
+              className="w-full h-full object-contain"
+            />
           </div>
           <h2 className="mt-6 text-3xl font-bold text-white">Iniciar Sesión</h2>
           <p className="mt-2 text-sm text-white/90">

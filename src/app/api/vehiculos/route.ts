@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getVehiculos, getVehiculosCount, saveVehiculo, checkUniqueFields, updateVehiculo, deleteVehiculo, getInversores } from '@/lib/direct-database'
+import {
+  getVehiculos,
+  getVehiculosCount,
+  saveVehiculo,
+  checkUniqueFields,
+  updateVehiculo,
+  deleteVehiculo,
+  getInversores,
+} from '@/lib/direct-database'
 import { promises as fs } from 'fs'
 import { generateFolderName, getFolderPathsByTipo } from '@/config/folders'
 import { writeVehiculoToSheets } from '@/lib/googleSheets'
@@ -7,15 +15,15 @@ import { writeVehiculoToSheets } from '@/lib/googleSheets'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    console.log('🚗 Recibiendo datos de vehículo:', body)
-    
-    const { 
-      referencia, 
-      marca, 
-      modelo, 
-      matricula, 
-      bastidor, 
-      kms, 
+    // console.log('🚗 Recibiendo datos de vehículo:', body)
+
+    const {
+      referencia,
+      marca,
+      modelo,
+      matricula,
+      bastidor,
+      kms,
       tipo,
       color,
       fechaMatriculacion,
@@ -33,24 +41,40 @@ export async function POST(request: NextRequest) {
       precioVenta,
       beneficioNeto,
       notasInversor,
-      fotoInversor
+      fotoInversor,
     } = body
 
-    console.log('🔍 Campos extraídos:', { referencia, marca, modelo, matricula, bastidor, kms, tipo })
+    console.log('🔍 Campos extraídos:', {
+      referencia,
+      marca,
+      modelo,
+      matricula,
+      bastidor,
+      kms,
+      tipo,
+    })
 
     // Mapear tipo a letra correspondiente
     const tipoMapping: { [key: string]: string } = {
-      'Compra': 'C',
-      'Coche R': 'R', 
+      Compra: 'C',
+      'Coche R': 'R',
       'Deposito Venta': 'D',
-      'Inversor': 'I'
+      Inversor: 'I',
     }
-    
+
     const tipoLetra = tipoMapping[tipo] || tipo
     console.log('🔄 Tipo mapeado:', { original: tipo, mapeado: tipoLetra })
 
     // Validar datos requeridos
-    if (!referencia || !marca || !modelo || !matricula || !bastidor || !kms || !tipo) {
+    if (
+      !referencia ||
+      !marca ||
+      !modelo ||
+      !matricula ||
+      !bastidor ||
+      !kms ||
+      !tipo
+    ) {
       console.log('❌ Faltan campos requeridos')
       return NextResponse.json(
         { error: 'Todos los campos son requeridos' },
@@ -68,7 +92,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Crear el vehículo en la base de datos
-    console.log('💾 Guardando vehículo en la base de datos...')
+    // console.log('💾 Guardando vehículo en la base de datos...')
     const vehiculo = await saveVehiculo({
       referencia,
       marca,
@@ -93,12 +117,18 @@ export async function POST(request: NextRequest) {
       precioVenta: precioVenta || undefined,
       beneficioNeto: beneficioNeto || undefined,
       notasInversor: notasInversor || undefined,
-      fotoInversor: fotoInversor || undefined
+      fotoInversor: fotoInversor || undefined,
     })
-    console.log('✅ Vehículo guardado:', vehiculo)
+    // console.log('✅ Vehículo guardado:', vehiculo)
 
     // Crear nombre de carpeta en camelCase
-    const folderName = generateFolderName(referencia, marca, modelo, matricula, tipoLetra)
+    const folderName = generateFolderName(
+      referencia,
+      marca,
+      modelo,
+      matricula,
+      tipoLetra
+    )
 
     // Operaciones asíncronas que no bloquean la respuesta
     Promise.all([
@@ -114,17 +144,17 @@ export async function POST(request: NextRequest) {
           console.error('Error creando carpetas:', folderError)
         }
       })(),
-      
+
       // Escribir en Google Sheets en background
       (async () => {
         try {
           await writeVehiculoToSheets(vehiculo)
-          console.log('Vehículo guardado en Google Sheets')
+          // console.log('Vehículo guardado en Google Sheets')
         } catch (sheetsError) {
           console.error('Error guardando en Google Sheets:', sheetsError)
         }
-      })()
-    ]).catch(error => {
+      })(),
+    ]).catch((error) => {
       console.error('Error en operaciones background:', error)
     })
 
@@ -132,12 +162,11 @@ export async function POST(request: NextRequest) {
       success: true,
       vehiculo,
       folderName,
-      message: 'Vehículo creado exitosamente'
+      message: 'Vehículo creado exitosamente',
     })
-
   } catch (error: any) {
     console.error('Error creando vehículo:', error)
-    
+
     // Manejar errores específicos de Prisma
     if (error.code === 'P2002') {
       const field = error.meta?.target?.[0] || 'campo'
@@ -162,28 +191,30 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit
     const search = searchParams.get('search') || ''
     const tipo = searchParams.get('tipo') || ''
-    
-    console.log(`🚀 Cargando vehículos: página ${page}, límite ${limit}, búsqueda: "${search}", tipo: "${tipo}"`)
-    
+
+    // console.log(`🚀 Cargando vehículos: página ${page}, límite ${limit}, búsqueda: "${search}", tipo: "${tipo}"`)
+
     // Obtener vehículos con paginación y filtros
     const [vehiculos, total] = await Promise.all([
       getVehiculos(limit, offset, search, tipo),
-      getVehiculosCount(search, tipo)
+      getVehiculosCount(search, tipo),
     ])
-    
-    console.log(`📊 Vehículos cargados: ${vehiculos.length} de ${total} total`)
-    
+
+    // console.log(`📊 Vehículos cargados: ${vehiculos.length} de ${total} total`)
+
     const inversores = await getInversores()
-    
+
     // Crear un mapa de inversores para búsqueda rápida
-    const inversoresMap = new Map(inversores.map(inv => [inv.id, inv.nombre]))
-    
+    const inversoresMap = new Map(inversores.map((inv) => [inv.id, inv.nombre]))
+
     // Agregar nombre del inversor a los vehículos que lo tengan
-    const vehiculosConInversor = vehiculos.map(vehiculo => ({
+    const vehiculosConInversor = vehiculos.map((vehiculo) => ({
       ...vehiculo,
-      inversorNombre: vehiculo.inversorId ? inversoresMap.get(vehiculo.inversorId) : undefined
+      inversorNombre: vehiculo.inversorId
+        ? inversoresMap.get(vehiculo.inversorId)
+        : undefined,
     }))
-    
+
     const response = {
       vehiculos: vehiculosConInversor,
       pagination: {
@@ -192,8 +223,8 @@ export async function GET(request: NextRequest) {
         total,
         pages: Math.ceil(total / limit),
         hasNext: page * limit < total,
-        hasPrev: page > 1
-      }
+        hasPrev: page > 1,
+      },
     }
 
     return NextResponse.json(response)
@@ -209,23 +240,32 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
-    const { 
-      id, 
-      referencia, 
-      marca, 
-      modelo, 
-      matricula, 
-      bastidor, 
-      kms, 
+    const {
+      id,
+      referencia,
+      marca,
+      modelo,
+      matricula,
+      bastidor,
+      kms,
       tipo,
       color,
       fechaMatriculacion,
-      esCocheInversor, 
-      inversorId 
+      esCocheInversor,
+      inversorId,
     } = body
 
     // Validar campos requeridos
-    if (!id || !referencia || !marca || !modelo || !matricula || !bastidor || !kms || !tipo) {
+    if (
+      !id ||
+      !referencia ||
+      !marca ||
+      !modelo ||
+      !matricula ||
+      !bastidor ||
+      !kms ||
+      !tipo
+    ) {
       return NextResponse.json(
         { error: 'Todos los campos son requeridos' },
         { status: 400 }
@@ -234,7 +274,7 @@ export async function PUT(request: NextRequest) {
 
     // Verificar que el vehículo existe
     const vehiculos = await getVehiculos()
-    const vehiculoExistente = vehiculos.find(v => v.id === id)
+    const vehiculoExistente = vehiculos.find((v) => v.id === id)
     if (!vehiculoExistente) {
       return NextResponse.json(
         { error: 'Vehículo no encontrado' },
@@ -243,7 +283,12 @@ export async function PUT(request: NextRequest) {
     }
 
     // Verificar campos únicos (excluyendo el vehículo actual)
-    const uniqueCheck = await checkUniqueFields(referencia, matricula, bastidor, id)
+    const uniqueCheck = await checkUniqueFields(
+      referencia,
+      matricula,
+      bastidor,
+      id
+    )
 
     if (uniqueCheck) {
       return NextResponse.json(
@@ -264,15 +309,14 @@ export async function PUT(request: NextRequest) {
       color: color || undefined,
       fechaMatriculacion: fechaMatriculacion || undefined,
       esCocheInversor: esCocheInversor || false,
-      inversorId: inversorId || undefined
+      inversorId: inversorId || undefined,
     })
 
     return NextResponse.json({
       success: true,
       vehiculo: vehiculoActualizado,
-      message: 'Vehículo actualizado exitosamente'
+      message: 'Vehículo actualizado exitosamente',
     })
-
   } catch (error: any) {
     console.error('Error actualizando vehículo:', error)
     return NextResponse.json(
@@ -296,7 +340,7 @@ export async function DELETE(request: NextRequest) {
 
     // Verificar que el vehículo existe
     const vehiculos = await getVehiculos()
-    const vehiculoExistente = vehiculos.find(v => v.id === id)
+    const vehiculoExistente = vehiculos.find((v) => v.id === id)
     if (!vehiculoExistente) {
       return NextResponse.json(
         { error: 'Vehículo no encontrado' },
@@ -309,9 +353,8 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Vehículo eliminado exitosamente'
+      message: 'Vehículo eliminado exitosamente',
     })
-
   } catch (error: any) {
     console.error('Error eliminando vehículo:', error)
     return NextResponse.json(

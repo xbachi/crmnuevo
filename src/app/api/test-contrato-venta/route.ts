@@ -3,7 +3,7 @@ import { generarContratoVenta } from '@/lib/contractGenerator'
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🧪 Generando contrato de venta de prueba...')
+    // console.log('🧪 Generando contrato de venta de prueba...')
 
     // Datos de prueba para el contrato de venta
     const dealData = {
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
     )
     response.headers.set('Cache-Control', 'no-cache')
 
-    console.log('✅ Contrato de venta de prueba generado exitosamente')
+    // console.log('✅ Contrato de venta de prueba generado exitosamente')
     return response
   } catch (error) {
     console.error('❌ Error generando contrato de venta de prueba:', error)

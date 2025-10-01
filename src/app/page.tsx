@@ -56,6 +56,14 @@ export default function Home() {
   >([])
   const [isLoading, setIsLoading] = useState(true)
 
+  // Estados para acordeón móvil
+  const [accordionStates, setAccordionStates] = useState({
+    ultimasOperaciones: false,
+    metricasMes: false,
+    resumenVehiculos: false,
+    resumenDepositos: false,
+  })
+
   useEffect(() => {
     fetchDashboardData()
   }, [])
@@ -165,6 +173,13 @@ export default function Home() {
     }
   }
 
+  const toggleAccordion = (section: keyof typeof accordionStates) => {
+    setAccordionStates((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }))
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-full bg-gray-50">
@@ -190,7 +205,7 @@ export default function Home() {
   return (
     <ProtectedRoute>
       <div className="min-h-full bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+        <div className="w-[80%] mx-auto px-4 sm:px-6 py-4 sm:py-8">
           {/* Header */}
           <div className="mb-6 sm:mb-8">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
@@ -204,7 +219,7 @@ export default function Home() {
               </div>
               <Link
                 href="/importar-csv"
-                className="flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm text-sm sm:text-base"
+                className="hidden lg:flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm text-sm sm:text-base"
               >
                 <svg
                   className="w-4 h-4 sm:w-5 sm:h-5"
@@ -224,7 +239,7 @@ export default function Home() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             {/* Recordatorios - Columna Principal */}
-            <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+            <div className="lg:col-span-2 space-y-4 sm:space-y-6 order-2 lg:order-1">
               {/* Recordatorios Importantes */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-2">
@@ -233,10 +248,10 @@ export default function Home() {
                   </h2>
                   <div className="flex items-center gap-4">
                     <Link
-                      href="/deals"
+                      href="/recordatorios"
                       className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 font-medium"
                     >
-                      Ver todos los deals →
+                      Ver todos los recordatorios →
                     </Link>
                   </div>
                 </div>
@@ -255,21 +270,41 @@ export default function Home() {
                     <DashboardRecordatorios />
                   </Suspense>
                 </div>
+              </div>
 
-                {/* Últimas Operaciones */}
-                <div className="mt-4 sm:mt-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
-                    <h3 className="text-base sm:text-lg font-semibold text-gray-900">
-                      Últimas Operaciones
-                    </h3>
-                    <Link
-                      href="/deals"
-                      className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 font-medium"
+              {/* Últimas Operaciones - Bloque separado con acordeón en móvil */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+                <div
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2 cursor-pointer lg:cursor-default"
+                  onClick={() => toggleAccordion('ultimasOperaciones')}
+                >
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    Últimas Operaciones
+                    <svg
+                      className={`w-4 h-4 lg:hidden transition-transform ${accordionStates.ultimasOperaciones ? 'rotate-180' : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
                     >
-                      Ver todas →
-                    </Link>
-                  </div>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </h3>
+                  <Link
+                    href="/deals"
+                    className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    Ver todas →
+                  </Link>
+                </div>
 
+                <div
+                  className={`${accordionStates.ultimasOperaciones ? 'block' : 'hidden'} lg:block`}
+                >
                   {ultimasOperaciones.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                       {ultimasOperaciones.slice(0, 3).map((operacion) => (
@@ -337,9 +372,34 @@ export default function Home() {
                     </div>
                   )}
                 </div>
+              </div>
 
-                {/* Gráfico Interactivo de Métricas */}
-                <div className="mt-6">
+              {/* Gráfico Interactivo de Métricas - Bloque separado con acordeón en móvil */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+                <div
+                  className="cursor-pointer lg:cursor-default mb-4"
+                  onClick={() => toggleAccordion('metricasMes')}
+                >
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    Métricas
+                    <svg
+                      className={`w-4 h-4 lg:hidden transition-transform ${accordionStates.metricasMes ? 'rotate-180' : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </h3>
+                </div>
+                <div
+                  className={`${accordionStates.metricasMes ? 'block' : 'hidden'} lg:block`}
+                >
                   <Suspense
                     fallback={
                       <div className="h-64 bg-gray-100 rounded-lg animate-pulse" />
@@ -360,8 +420,8 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Acciones Rápidas */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+              {/* Acciones Rápidas - Oculto en móvil */}
+              <div className="hidden lg:block bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
                 <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6">
                   Acciones Rápidas
                 </h2>
@@ -422,15 +482,15 @@ export default function Home() {
             </div>
 
             {/* Estadísticas - Sidebar */}
-            <div className="space-y-4 sm:space-y-6">
-              {/* Resumen de Vehículos */}
+            <div className="space-y-4 sm:space-y-6 order-1 lg:order-2">
+              {/* Resumen de Vehículos - Layout horizontal */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
                 <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
                   Resumen de Vehículos
                 </h2>
 
-                <div className="space-y-3 sm:space-y-4">
-                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                <div className="flex flex-row lg:flex-col gap-3 sm:gap-4">
+                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg flex-1 lg:flex-none">
                     <div className="flex items-center space-x-2 sm:space-x-3">
                       <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
                         <span className="text-white font-bold text-sm sm:text-base">
@@ -448,7 +508,7 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg flex-1 lg:flex-none">
                     <div className="flex items-center space-x-2 sm:space-x-3">
                       <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-500 rounded-lg flex items-center justify-center flex-shrink-0">
                         <span className="text-white font-bold text-sm sm:text-base">
@@ -466,7 +526,7 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                  <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg flex-1 lg:flex-none">
                     <div className="flex items-center space-x-2 sm:space-x-3">
                       <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-500 rounded-lg flex items-center justify-center flex-shrink-0">
                         <span className="text-white font-bold text-sm sm:text-base">
@@ -486,14 +546,14 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Resumen de Vehículos Depósito Venta */}
+              {/* Resumen de Vehículos Depósito Venta - Layout horizontal */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
                 <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
                   Resumen Vehículos Depósito Venta
                 </h2>
 
-                <div className="space-y-3 sm:space-y-4">
-                  <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                <div className="flex flex-row lg:flex-col gap-3 sm:gap-4">
+                  <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg flex-1 lg:flex-none">
                     <div className="flex items-center space-x-2 sm:space-x-3">
                       <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-500 rounded-lg flex items-center justify-center flex-shrink-0">
                         <span className="text-white font-bold text-sm sm:text-base">
@@ -502,7 +562,7 @@ export default function Home() {
                       </div>
                       <div className="min-w-0">
                         <p className="text-xs sm:text-sm text-gray-600">
-                          Total Vehículos en Depósito
+                          Total en Depósito
                         </p>
                         <p className="text-lg sm:text-xl font-bold text-gray-900">
                           {depositoStats.totalDepositos}
@@ -511,25 +571,7 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
-                    <div className="flex items-center space-x-2 sm:space-x-3">
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <span className="text-white font-bold text-sm sm:text-base">
-                          🔧
-                        </span>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs sm:text-sm text-gray-600">
-                          En Proceso
-                        </p>
-                        <p className="text-lg sm:text-xl font-bold text-gray-900">
-                          {depositoStats.enProceso}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg flex-1 lg:flex-none">
                     <div className="flex items-center space-x-2 sm:space-x-3">
                       <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-500 rounded-lg flex items-center justify-center flex-shrink-0">
                         <span className="text-white font-bold text-sm sm:text-base">
@@ -542,6 +584,24 @@ export default function Home() {
                         </p>
                         <p className="text-lg sm:text-xl font-bold text-gray-900">
                           {depositoStats.publicados}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg flex-1 lg:flex-none">
+                    <div className="flex items-center space-x-2 sm:space-x-3">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <span className="text-white font-bold text-sm sm:text-base">
+                          🔧
+                        </span>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs sm:text-sm text-gray-600">
+                          En Proceso
+                        </p>
+                        <p className="text-lg sm:text-xl font-bold text-gray-900">
+                          {depositoStats.enProceso}
                         </p>
                       </div>
                     </div>

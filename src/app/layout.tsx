@@ -6,6 +6,7 @@ import { AuthProvider } from '@/contexts/AuthContext'
 import { InversorAuthProvider } from '@/contexts/InversorAuthContext'
 import { CacheProvider } from '@/contexts/CacheContext'
 import ConditionalLayout from '@/components/ConditionalLayout'
+import HydrationHandler from '@/components/HydrationHandler'
 
 export const metadata: Metadata = {
   title: 'SevenCars CRM',
@@ -20,13 +21,15 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body className="antialiased bg-white" suppressHydrationWarning>
-        <AuthProvider>
-          <CacheProvider>
-            <ToastProvider>
-              <ConditionalLayout>{children}</ConditionalLayout>
-            </ToastProvider>
-          </CacheProvider>
-        </AuthProvider>
+        <HydrationHandler>
+          <AuthProvider>
+            <CacheProvider>
+              <ToastProvider>
+                <ConditionalLayout>{children}</ConditionalLayout>
+              </ToastProvider>
+            </CacheProvider>
+          </AuthProvider>
+        </HydrationHandler>
       </body>
     </html>
   )

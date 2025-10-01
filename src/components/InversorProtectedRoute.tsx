@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useInversorAuth } from '@/contexts/InversorAuthContext'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface InversorProtectedRouteProps {
   children: React.ReactNode
@@ -11,32 +12,24 @@ interface InversorProtectedRouteProps {
 export default function InversorProtectedRoute({
   children,
 }: InversorProtectedRouteProps) {
-  const { inversor, isLoading } = useInversorAuth()
+  const { inversor, isLoading: inversorLoading } = useInversorAuth()
+  const { user, isLoading: crmLoading } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
-  const [isCrmUser, setIsCrmUser] = useState(false)
 
-  // Verificar si el usuario es un usuario CRM (no inversor)
-  useEffect(() => {
-    // Si no hay inversor autenticado, asumimos que es un usuario CRM
-    if (!isLoading && !inversor) {
-      setIsCrmUser(true)
-    } else {
-      setIsCrmUser(false)
-    }
-  }, [inversor, isLoading])
+  const isLoading = inversorLoading || crmLoading
 
   useEffect(() => {
-    // Solo redirigir si no es usuario CRM y no hay inversor autenticado
+    // Solo redirigir si no hay ningún tipo de usuario autenticado
     if (
       !isLoading &&
       !inversor &&
-      !isCrmUser &&
+      !user &&
       pathname.startsWith('/inversores/')
     ) {
       router.push('/logininv')
     }
-  }, [inversor, isLoading, isCrmUser, router, pathname])
+  }, [inversor, user, isLoading, router, pathname])
 
   // Mostrar loading mientras se verifica la autenticación
   if (isLoading) {
@@ -47,11 +40,11 @@ export default function InversorProtectedRoute({
     )
   }
 
-  // Permitir acceso si es usuario CRM o si hay inversor autenticado
-  if (isCrmUser || inversor) {
+  // Permitir acceso si hay cualquier tipo de usuario autenticado (CRM o inversor)
+  if (user || inversor) {
     return <>{children}</>
   }
 
-  // Si no está autenticado y no es usuario CRM, no mostrar nada
+  // Si no está autenticado, no mostrar nada
   return null
 }

@@ -184,13 +184,17 @@ export async function PUT(
     return NextResponse.json(result.rows[0])
   } catch (error) {
     console.error('❌ Error editando nota del cliente:', error)
-    console.error('❌ Error stack:', error.stack)
-    console.error('❌ Error code:', error.code)
+    const errorMessage =
+      error instanceof Error ? error.message : 'Error desconocido'
+    const errorCode =
+      error instanceof Error && 'code' in error
+        ? (error as { code: string }).code
+        : 'UNKNOWN'
     return NextResponse.json(
       {
         error: 'Error interno del servidor',
-        details: error.message,
-        code: error.code,
+        details: errorMessage,
+        code: errorCode,
       },
       { status: 500 }
     )
