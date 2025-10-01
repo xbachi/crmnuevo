@@ -118,38 +118,58 @@ async function loadLogoSVG(): Promise<string> {
   try {
     console.log('🖼️ [LOGO] Iniciando carga del logo...')
 
-    // Usar fetch para cargar el PNG desde /public/
-    const response = await fetch('/logocontrato.png')
+    // Verificar si estamos en el servidor (Node.js) o en el cliente (browser)
+    if (typeof window === 'undefined') {
+      // Servidor: usar fs para leer el archivo
+      const fs = await import('fs')
+      const path = await import('path')
 
-    if (!response.ok) {
-      throw new Error(
-        `Error cargando logo: ${response.status} ${response.statusText}`
+      const logoPath = path.join(process.cwd(), 'public', 'logocontrato.png')
+      console.log('🖼️ [LOGO] Leyendo logo desde servidor:', logoPath)
+
+      const logoBuffer = fs.readFileSync(logoPath)
+      const base64 = `data:image/png;base64,${logoBuffer.toString('base64')}`
+
+      console.log(
+        '🖼️ [LOGO] Logo cargado desde servidor, tamaño:',
+        base64.length,
+        'caracteres'
       )
-    }
+      return base64
+    } else {
+      // Cliente: usar fetch para cargar el PNG desde /public/
+      const response = await fetch('/logocontrato.png')
 
-    console.log('🖼️ [LOGO] PNG cargado correctamente desde /public/')
-
-    // Convertir a blob
-    const blob = await response.blob()
-    console.log('🖼️ [LOGO] Blob creado, tamaño:', blob.size, 'bytes')
-
-    // Convertir blob a base64 usando FileReader
-    const base64 = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => {
-        const result = reader.result as string
-        resolve(result)
+      if (!response.ok) {
+        throw new Error(
+          `Error cargando logo: ${response.status} ${response.statusText}`
+        )
       }
-      reader.onerror = reject
-      reader.readAsDataURL(blob)
-    })
 
-    console.log(
-      '🖼️ [LOGO] PNG convertido a base64, tamaño:',
-      base64.length,
-      'caracteres'
-    )
-    return base64
+      console.log('🖼️ [LOGO] PNG cargado correctamente desde /public/')
+
+      // Convertir a blob
+      const blob = await response.blob()
+      console.log('🖼️ [LOGO] Blob creado, tamaño:', blob.size, 'bytes')
+
+      // Convertir blob a base64 usando FileReader
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+          const result = reader.result as string
+          resolve(result)
+        }
+        reader.onerror = reject
+        reader.readAsDataURL(blob)
+      })
+
+      console.log(
+        '🖼️ [LOGO] PNG convertido a base64, tamaño:',
+        base64.length,
+        'caracteres'
+      )
+      return base64
+    }
   } catch (error) {
     console.error('❌ [LOGO] Error cargando logo PNG:', error)
     return ''
