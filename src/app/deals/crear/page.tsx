@@ -140,8 +140,12 @@ export default function CrearDeal() {
 
   // Filtrar vehículos disponibles (no reservados/vendidos)
   const vehiculosDisponibles = useMemo(() => {
-    if (!Array.isArray(vehiculos)) return []
-    return vehiculos.filter((vehiculo) => {
+    if (!Array.isArray(vehiculos)) {
+      console.log('🚗 [DEBUG] vehiculos no es array:', vehiculos)
+      return []
+    }
+
+    const disponibles = vehiculos.filter((vehiculo) => {
       const estaReservadoOVendido = dealsActivos.some(
         (deal) =>
           deal.vehiculoId === vehiculo.id &&
@@ -151,32 +155,56 @@ export default function CrearDeal() {
       )
       return !estaReservadoOVendido
     })
+
+    console.log(
+      `🚗 [DEBUG] Vehículos disponibles: ${disponibles.length} de ${vehiculos.length} total`
+    )
+    return disponibles
   }, [vehiculos, dealsActivos])
 
   // Filtrado optimizado de vehículos
   const filteredVehiculos = useMemo(() => {
-    if (!Array.isArray(vehiculosDisponibles)) return []
+    if (!Array.isArray(vehiculosDisponibles)) {
+      console.log(
+        '🚗 [DEBUG] vehiculosDisponibles no es array:',
+        vehiculosDisponibles
+      )
+      return []
+    }
 
-    // Si no hay búsqueda, mostrar los últimos 5 vehículos publicados
+    // Si no hay búsqueda, mostrar los últimos 5 vehículos disponibles
     if (!debouncedVehiculoSearch.trim()) {
-      return vehiculosDisponibles
-        .filter((vehiculo) => vehiculo.estado === 'PUBLICADO')
+      const sinBusqueda = vehiculosDisponibles
         .sort(
           (a, b) =>
             new Date(b.createdAt || 0).getTime() -
             new Date(a.createdAt || 0).getTime()
         )
         .slice(0, 5)
+      console.log(
+        `🚗 [DEBUG] Sin búsqueda - mostrando ${sinBusqueda.length} vehículos`
+      )
+      return sinBusqueda
     }
 
     const searchTerm = debouncedVehiculoSearch.toLowerCase().trim()
-    return vehiculosDisponibles
+    const conBusqueda = vehiculosDisponibles
       .filter((vehiculo) => {
         const fullName = `${vehiculo.marca} ${vehiculo.modelo}`.toLowerCase()
         const referencia = vehiculo.referencia?.toLowerCase() || ''
-        return fullName.includes(searchTerm) || referencia.includes(searchTerm)
+        const matricula = vehiculo.matricula?.toLowerCase() || ''
+        return (
+          fullName.includes(searchTerm) ||
+          referencia.includes(searchTerm) ||
+          matricula.includes(searchTerm)
+        )
       })
       .slice(0, 5) // Mostrar hasta 5 resultados
+
+    console.log(
+      `🚗 [DEBUG] Con búsqueda "${searchTerm}" - mostrando ${conBusqueda.length} vehículos`
+    )
+    return conBusqueda
   }, [vehiculosDisponibles, debouncedVehiculoSearch])
 
   const createCliente = async () => {
