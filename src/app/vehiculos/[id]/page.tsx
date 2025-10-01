@@ -1535,8 +1535,8 @@ export default function VehiculoDetailPage() {
                               </span>
                             </div>
                             <div className="flex lg:flex-col items-start lg:items-start gap-2 lg:gap-1">
-                              <span className="text-green-700 font-medium block">
-                                Bastidor:{' '}
+                              <div className="text-green-700 font-medium">
+                                <div>Bastidor:</div>
                                 {isEditingGeneral ? (
                                   <input
                                     type="text"
@@ -1550,11 +1550,11 @@ export default function VehiculoDetailPage() {
                                     className="mt-1 text-green-900 bg-white border border-green-300 rounded px-1 py-0.5 text-xs font-medium font-mono w-full"
                                   />
                                 ) : (
-                                  <span className="text-green-900 font-mono text-xs block break-all mt-1">
+                                  <span className="text-green-900 font-mono text-xs break-all">
                                     {vehiculo.bastidor}
                                   </span>
                                 )}
-                              </span>
+                              </div>
                             </div>
                           </div>
                         </div>
