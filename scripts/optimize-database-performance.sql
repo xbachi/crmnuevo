@@ -77,3 +77,4 @@ SELECT
 FROM pg_indexes 
 WHERE tablename IN ('Deal', 'Cliente', 'Vehiculo', 'depositos', 'Inversor', 'Recordatorio', 'Nota')
 ORDER BY tablename, indexname;
+

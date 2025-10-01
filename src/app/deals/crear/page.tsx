@@ -179,7 +179,7 @@ export default function CrearDeal() {
   }, [vehiculosDisponibles, debouncedVehiculoSearch])
 
   const createCliente = async () => {
-    // Validación para campos obligatorios (incluyendo DNI y dirección para deals)
+    // Validación para campos obligatorios (incluyendo DNI y dirección completa para deals)
     if (
       !newCliente.nombre.trim() ||
       !newCliente.apellidos.trim() ||
@@ -187,10 +187,11 @@ export default function CrearDeal() {
       !newCliente.dni.trim() ||
       !newCliente.calle.trim() ||
       !newCliente.codPostal.trim() ||
-      !newCliente.ciudad.trim()
+      !newCliente.ciudad.trim() ||
+      !newCliente.provincia.trim()
     ) {
       showToast(
-        'Por favor completa todos los campos obligatorios (nombre, apellidos, teléfono, DNI, calle, código postal, ciudad)',
+        'Por favor completa todos los campos obligatorios (incluyendo DNI y dirección completa)',
         'error'
       )
       return
@@ -664,6 +665,23 @@ export default function CrearDeal() {
                                 placeholder="Ej: Madrid"
                               />
                             </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">
+                              Provincia *
+                            </label>
+                            <input
+                              type="text"
+                              value={newCliente.provincia}
+                              onChange={(e) =>
+                                setNewCliente((prev) => ({
+                                  ...prev,
+                                  provincia: e.target.value,
+                                }))
+                              }
+                              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="Ej: Madrid"
+                            />
                           </div>
                         </div>
                       </div>
