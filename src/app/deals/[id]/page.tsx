@@ -571,6 +571,14 @@ export default function DealDetail() {
     if (!deal?.contratoReserva) return
 
     try {
+      // Eliminar archivo físico del servidor
+      await fetch(`/api/documents/${deal.id}/contrato-reserva`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dealNumber: deal.numero }),
+      })
+
+      // Actualizar base de datos
       const response = await fetch(`/api/deals/${deal.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -596,6 +604,14 @@ export default function DealDetail() {
     if (!deal?.contratoVenta) return
 
     try {
+      // Eliminar archivo físico del servidor
+      await fetch(`/api/documents/${deal.id}/contrato-venta`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dealNumber: deal.numero }),
+      })
+
+      // Actualizar base de datos
       const response = await fetch(`/api/deals/${deal.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -621,6 +637,14 @@ export default function DealDetail() {
     if (!deal?.factura) return
 
     try {
+      // Eliminar archivo físico del servidor
+      await fetch(`/api/documents/${deal.id}/factura`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dealNumber: deal.numero }),
+      })
+
+      // Actualizar base de datos
       const response = await fetch(`/api/deals/${deal.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },

@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { promises as fs } from 'fs'
 import path from 'path'
-import { documentExists, getDocumentPath } from '@/lib/documentStorage'
+import {
+  documentExists,
+  getDocumentPath,
+  deleteDocument,
+} from '@/lib/documentStorage'
 
 export async function GET(
   request: NextRequest,
@@ -80,6 +84,64 @@ export async function GET(
     })
   } catch (error) {
     console.error('Error descargando documento:', error)
+    return NextResponse.json(
+      { error: 'Error interno del servidor' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ dealId: string; documentType: string }> }
+) {
+  try {
+    const { dealId, documentType } = await params
+
+    // Validar parámetros
+    if (!dealId || !documentType) {
+      return NextResponse.json(
+        { error: 'Parámetros faltantes' },
+        { status: 400 }
+      )
+    }
+
+    // Validar tipo de documento
+    const validTypes = ['contrato-reserva', 'contrato-venta', 'factura']
+    if (!validTypes.includes(documentType)) {
+      return NextResponse.json(
+        { error: 'Tipo de documento inválido' },
+        { status: 400 }
+      )
+    }
+
+    // Obtener el número del deal desde el body
+    const body = await request.json()
+    const dealNumber = body.dealNumber
+
+    if (!dealNumber) {
+      return NextResponse.json(
+        { error: 'Número de deal requerido' },
+        { status: 400 }
+      )
+    }
+
+    const dealIdNum = parseInt(dealId)
+    if (isNaN(dealIdNum)) {
+      return NextResponse.json(
+        { error: 'ID de deal inválido' },
+        { status: 400 }
+      )
+    }
+
+    // Eliminar el documento
+    await deleteDocument(dealIdNum, documentType as any, dealNumber)
+
+    return NextResponse.json({
+      message: 'Documento eliminado exitosamente',
+    })
+  } catch (error) {
+    console.error('Error eliminando documento:', error)
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }
