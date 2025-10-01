@@ -1276,6 +1276,12 @@ export async function generarFactura(
   const totalConIva = deal.importeTotal || 0
 
   // Cálculo correcto del IVA: el total incluye IVA, calcular subtotal e IVA
+  console.log(
+    '🔍 [CALCULO IVA] tipoFactura recibido:',
+    tipoFactura,
+    'tipoFactura === "IVA":',
+    tipoFactura === 'IVA'
+  )
   let subtotal, iva, total
   if (tipoFactura === 'IVA') {
     // Si el total incluye IVA, calcular el subtotal dividiendo por 1.21
@@ -1288,6 +1294,14 @@ export async function generarFactura(
     iva = 0
     total = totalConIva
   }
+
+  console.log('🔍 [CALCULO IVA] Valores calculados:', {
+    tipoFactura,
+    subtotal,
+    iva,
+    total,
+    totalConIva,
+  })
 
   // Encabezados de tabla (sin cantidad)
   doc.setFontSize(9)
