@@ -355,13 +355,7 @@ export default function DealDetail() {
         return
       }
 
-      // Si ya existe el contrato, descargarlo (solo si no está anulado)
-      if (deal.contratoReserva) {
-        const downloadUrl = `/api/documents/${deal.id}/contrato-reserva?dealNumber=${deal.numero}`
-        window.open(downloadUrl, '_blank')
-        return
-      }
-
+      // Siempre generar un nuevo contrato (no usar caché)
       // Generar el contrato
       const response = await fetch('/api/documents/generate', {
         method: 'POST',
@@ -448,13 +442,7 @@ export default function DealDetail() {
         return
       }
 
-      // Si ya existe el contrato, descargarlo (solo si no está anulado)
-      if (deal.contratoVenta) {
-        const downloadUrl = `/api/documents/${deal.id}/contrato-venta?dealNumber=${deal.numero}`
-        window.open(downloadUrl, '_blank')
-        return
-      }
-
+      // Siempre generar un nuevo contrato (no usar caché)
       // Generar el contrato
       const response = await fetch('/api/documents/generate', {
         method: 'POST',
@@ -683,13 +671,7 @@ export default function DealDetail() {
         return
       }
 
-      // Si ya existe la factura, descargarla (solo si no está anulada)
-      if (deal.factura) {
-        const downloadUrl = `/api/documents/${deal.id}/factura?dealNumber=${deal.numero}`
-        window.open(downloadUrl, '_blank')
-        return
-      }
-
+      // Siempre generar una nueva factura (no usar caché)
       // Generar la factura
       const response = await fetch('/api/documents/generate', {
         method: 'POST',
