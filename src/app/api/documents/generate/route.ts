@@ -8,7 +8,14 @@ import { documentExists, saveDocument } from '@/lib/documentStorage'
 
 export async function POST(request: NextRequest) {
   try {
-    const { dealId, documentType, dealData, dealNumber } = await request.json()
+    const {
+      dealId,
+      documentType,
+      dealData,
+      dealNumber,
+      tipoFactura,
+      numeroFactura,
+    } = await request.json()
 
     // Validar parámetros
     if (!dealId || !documentType || !dealData || !dealNumber) {
@@ -60,7 +67,7 @@ export async function POST(request: NextRequest) {
         pdfBuffer = await generarContratoVenta(dealData)
         break
       case 'factura':
-        pdfBuffer = await generarFactura(dealData)
+        pdfBuffer = await generarFactura(dealData, tipoFactura, numeroFactura)
         break
       default:
         return NextResponse.json(

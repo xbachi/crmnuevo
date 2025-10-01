@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 
 interface FacturaTypeModalProps {
   isOpen: boolean
@@ -8,9 +8,21 @@ interface FacturaTypeModalProps {
   onConfirm: (tipo: 'IVA' | 'REBU', numeroFactura?: string) => void
 }
 
-export default function FacturaTypeModal({ isOpen, onClose, onConfirm }: FacturaTypeModalProps) {
+export default function FacturaTypeModal({
+  isOpen,
+  onClose,
+  onConfirm,
+}: FacturaTypeModalProps) {
   const [selectedType, setSelectedType] = useState<'IVA' | 'REBU'>('IVA')
   const [numeroFactura, setNumeroFactura] = useState('')
+
+  // Resetear el estado cuando se abre el modal
+  React.useEffect(() => {
+    if (isOpen) {
+      setSelectedType('IVA')
+      setNumeroFactura('')
+    }
+  }, [isOpen])
 
   if (!isOpen) return null
 
@@ -23,7 +35,7 @@ export default function FacturaTypeModal({ isOpen, onClose, onConfirm }: Factura
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-96 max-w-md mx-4">
         <h2 className="text-xl font-bold mb-4">Seleccionar Tipo de Factura</h2>
-        
+
         <div className="space-y-4">
           <div className="flex items-center space-x-3">
             <input
@@ -37,10 +49,12 @@ export default function FacturaTypeModal({ isOpen, onClose, onConfirm }: Factura
             />
             <label htmlFor="iva" className="text-lg">
               <span className="font-semibold">Factura con IVA</span>
-              <p className="text-sm text-gray-600">Precio con IVA discriminado (21%)</p>
+              <p className="text-sm text-gray-600">
+                Precio con IVA discriminado (21%)
+              </p>
             </label>
           </div>
-          
+
           <div className="flex items-center space-x-3">
             <input
               type="radio"
@@ -53,14 +67,19 @@ export default function FacturaTypeModal({ isOpen, onClose, onConfirm }: Factura
             />
             <label htmlFor="rebu" className="text-lg">
               <span className="font-semibold">Factura REBU</span>
-              <p className="text-sm text-gray-600">Precio sin IVA (Régimen Especial Básico)</p>
+              <p className="text-sm text-gray-600">
+                Precio sin IVA (Régimen Especial Básico)
+              </p>
             </label>
           </div>
         </div>
-        
+
         {/* Campo de número de factura personalizado */}
         <div className="mt-6">
-          <label htmlFor="numeroFactura" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="numeroFactura"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Número de Factura (opcional)
           </label>
           <input
@@ -75,7 +94,7 @@ export default function FacturaTypeModal({ isOpen, onClose, onConfirm }: Factura
             Si no especificas un número, se generará automáticamente
           </p>
         </div>
-        
+
         <div className="flex justify-end space-x-3 mt-6">
           <button
             onClick={onClose}
