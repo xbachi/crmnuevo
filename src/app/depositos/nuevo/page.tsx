@@ -349,9 +349,14 @@ export default function NuevoDepositoPage() {
       if (response.ok) {
         const deposito = await response.json()
         console.log('✅ Depósito creado:', deposito)
+        console.log('✅ ID del depósito creado:', deposito.id)
         showToast('Depósito creado exitosamente', 'success')
-        console.log('🔄 Redirigiendo a:', `/depositos/${deposito.id}`)
-        router.push(`/depositos/${deposito.id}`)
+
+        // Esperar un momento para que se vea el toast y luego redirigir
+        setTimeout(() => {
+          console.log('🔄 Redirigiendo a depósito:', deposito.id)
+          router.push(`/depositos/${deposito.id}`)
+        }, 500)
       } else {
         const error = await response.json()
         console.error('❌ Error en respuesta:', error)
