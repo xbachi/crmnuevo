@@ -17,6 +17,14 @@ export async function POST(request: NextRequest) {
       numeroFactura,
     } = await request.json()
 
+    console.log('🔍 [API GENERATE] Request recibido:', {
+      dealId,
+      documentType,
+      tipoFactura,
+      numeroFactura,
+      dealNumber,
+    })
+
     // Validar parámetros
     if (!dealId || !documentType || !dealData || !dealNumber) {
       return NextResponse.json(
@@ -42,18 +50,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verificar si el documento ya existe
-    const exists = await documentExists(
-      dealIdNum,
-      documentType as any,
-      dealNumber
-    )
+    // Verificar si el documento ya existe (solo si no hay número personalizado)
+    // Si hay número personalizado, siempre generar nuevo documento
+    if (!numeroFactura) {
+      const exists = await documentExists(
+        dealIdNum,
+        documentType as any,
+        dealNumber
+      )
 
-    if (exists) {
-      return NextResponse.json({
-        message: 'Documento ya existe',
-        url: `/api/documents/${dealId}/${documentType}?dealNumber=${dealNumber}`,
-      })
+      if (exists) {
+        return NextResponse.json({
+          message: 'Documento ya existe',
+          url: `/api/documents/${dealId}/${documentType}?dealNumber=${dealNumber}`,
+        })
+      }
     }
 
     // Generar el documento según el tipo
