@@ -846,7 +846,15 @@ export default function NuevoDealPage() {
                   {currentStep < 3 ? (
                     <button
                       type="button"
-                      onClick={nextStep}
+                      onClick={(e) => {
+                        console.log(
+                          '🖱️ [DEBUG] Botón Siguiente clickeado, currentStep:',
+                          currentStep
+                        )
+                        e.preventDefault()
+                        e.stopPropagation()
+                        nextStep()
+                      }}
                       disabled={!canProceedToNext()}
                       className={`px-6 py-2 rounded-lg font-medium transition-colors ${
                         canProceedToNext()
@@ -860,6 +868,12 @@ export default function NuevoDealPage() {
                     <button
                       type="submit"
                       disabled={isLoading}
+                      onClick={(e) => {
+                        console.log(
+                          '🚀 [DEBUG] Botón Crear Deal clickeado, currentStep:',
+                          currentStep
+                        )
+                      }}
                       className="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-500 text-white rounded-lg font-medium transition-all shadow-lg flex items-center space-x-2"
                     >
                       {isLoading ? (
