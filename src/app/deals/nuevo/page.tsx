@@ -173,6 +173,7 @@ export default function NuevoDealPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('🚀 [DEBUG] handleSubmit llamado, currentStep:', currentStep)
 
     if (!formData.clienteId || !formData.vehiculoId) {
       showToast('Por favor selecciona un cliente y un vehículo', 'error')
@@ -233,11 +234,15 @@ export default function NuevoDealPage() {
 
   // Funciones de navegación entre pasos
   const nextStep = () => {
+    console.log('🔄 [DEBUG] nextStep llamado, currentStep:', currentStep)
     if (currentStep === 1 && selectedCliente) {
+      console.log('🔄 [DEBUG] Pasando del paso 1 al 2')
       setCurrentStep(2)
     } else if (currentStep === 2 && selectedVehiculo) {
-      setCurrentStep(3)
+      console.log('🔄 [DEBUG] Pasando del paso 2 al 3 (información financiera)')
+      setCurrentStep(3) // Ir a información financiera
     }
+    // El paso 3 es el formulario de información financiera, no crear el deal
   }
 
   const prevStep = () => {
