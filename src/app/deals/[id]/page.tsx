@@ -1989,7 +1989,7 @@ export default function DealDetail() {
                         rel="noopener noreferrer"
                         className="px-3 py-1 bg-green-100 text-green-700 rounded-md text-sm font-medium hover:bg-green-200"
                       >
-                        Descargar
+                        Imprimir
                       </a>
                     ) : (
                       <Link
@@ -2047,7 +2047,7 @@ export default function DealDetail() {
                         rel="noopener noreferrer"
                         className="px-3 py-1 bg-green-100 text-green-700 rounded-md text-sm font-medium hover:bg-green-200"
                       >
-                        Descargar
+                        Imprimir
                       </a>
                     ) : (
                       <Link
@@ -2105,7 +2105,7 @@ export default function DealDetail() {
                         rel="noopener noreferrer"
                         className="px-3 py-1 bg-green-100 text-green-700 rounded-md text-sm font-medium hover:bg-green-200"
                       >
-                        Descargar
+                        Imprimir
                       </a>
                     ) : (
                       <Link
