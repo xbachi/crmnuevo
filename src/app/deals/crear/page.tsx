@@ -145,15 +145,11 @@ export default function CrearDeal() {
       return []
     }
 
+    // Por ahora, mostrar todos los vehículos para debugging
+    // TODO: Restaurar filtrado de deals activos cuando funcione
     const disponibles = vehiculos.filter((vehiculo) => {
-      const estaReservadoOVendido = dealsActivos.some(
-        (deal) =>
-          deal.vehiculoId === vehiculo.id &&
-          (deal.estado === 'reservado' ||
-            deal.estado === 'vendido' ||
-            deal.estado === 'facturado')
-      )
-      return !estaReservadoOVendido
+      // Solo filtrar por estado PUBLICADO por ahora
+      return vehiculo.estado === 'PUBLICADO'
     })
 
     console.log(
