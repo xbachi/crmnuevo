@@ -1437,12 +1437,12 @@ export default function VehiculoDetailPage() {
                                 />
                               </svg>
                             </div>
-                            <h3 className="text-xs sm:text-sm lg:text-base font-semibold text-orange-900 text-xs sm:text-sm lg:text-base font-semibold text-orange-900">
+                            <h3 className="text-xs sm:text-sm lg:text-base font-semibold text-blue-900">
                               Identificación
                             </h3>
                           </div>
-                          <div className="text-xs lg:text-sm">
-                            <div className="flex items-center gap-2">
+                          <div className="text-xs lg:text-sm space-y-2">
+                            <div className="flex lg:flex-col items-start lg:items-start gap-2 lg:gap-1">
                               <span className="text-blue-700 font-medium">
                                 Marca:{' '}
                                 {isEditingGeneral ? (
@@ -1455,7 +1455,7 @@ export default function VehiculoDetailPage() {
                                         marca: e.target.value,
                                       }))
                                     }
-                                    className="ml-1 text-blue-900 bg-white border border-blue-300 rounded px-1 py-0.5 text-xs font-medium w-16"
+                                    className="ml-1 text-blue-900 bg-white border border-blue-300 rounded px-1 py-0.5 text-xs font-medium w-full lg:w-full"
                                   />
                                 ) : (
                                   <span className="text-blue-900 font-semibold ml-1">
@@ -1463,6 +1463,8 @@ export default function VehiculoDetailPage() {
                                   </span>
                                 )}
                               </span>
+                            </div>
+                            <div className="flex lg:flex-col items-start lg:items-start gap-2 lg:gap-1">
                               <span className="text-blue-700 font-medium">
                                 Modelo:{' '}
                                 {isEditingGeneral ? (
@@ -1475,7 +1477,7 @@ export default function VehiculoDetailPage() {
                                         modelo: e.target.value,
                                       }))
                                     }
-                                    className="ml-1 text-blue-900 bg-white border border-blue-300 rounded px-1 py-0.5 text-xs font-medium w-16"
+                                    className="ml-1 text-blue-900 bg-white border border-blue-300 rounded px-1 py-0.5 text-xs font-medium w-full lg:w-full"
                                   />
                                 ) : (
                                   <span className="text-blue-900 font-semibold ml-1">
@@ -1505,12 +1507,12 @@ export default function VehiculoDetailPage() {
                                 />
                               </svg>
                             </div>
-                            <h3 className="text-xs sm:text-sm lg:text-base font-semibold text-orange-900 text-xs sm:text-sm lg:text-base font-semibold text-orange-900">
+                            <h3 className="text-xs sm:text-sm lg:text-base font-semibold text-green-900">
                               Documentación
                             </h3>
                           </div>
-                          <div className="text-xs lg:text-sm">
-                            <div className="flex items-center gap-2">
+                          <div className="text-xs lg:text-sm space-y-2">
+                            <div className="flex lg:flex-col items-start lg:items-start gap-2 lg:gap-1">
                               <span className="text-green-700 font-medium">
                                 Matrícula:{' '}
                                 {isEditingGeneral ? (
@@ -1523,7 +1525,7 @@ export default function VehiculoDetailPage() {
                                         matricula: e.target.value,
                                       }))
                                     }
-                                    className="ml-1 text-green-900 bg-white border border-green-300 rounded px-1 py-0.5 text-xs font-medium font-mono w-16"
+                                    className="ml-1 text-green-900 bg-white border border-green-300 rounded px-1 py-0.5 text-xs font-medium font-mono w-full lg:w-full"
                                   />
                                 ) : (
                                   <span className="text-green-900 font-mono font-semibold ml-1">
@@ -1531,7 +1533,9 @@ export default function VehiculoDetailPage() {
                                   </span>
                                 )}
                               </span>
-                              <span className="text-green-700 font-medium">
+                            </div>
+                            <div className="flex lg:flex-col items-start lg:items-start gap-2 lg:gap-1">
+                              <span className="text-green-700 font-medium block">
                                 Bastidor:{' '}
                                 {isEditingGeneral ? (
                                   <input
@@ -1543,11 +1547,11 @@ export default function VehiculoDetailPage() {
                                         bastidor: e.target.value,
                                       }))
                                     }
-                                    className="ml-1 text-green-900 bg-white border border-green-300 rounded px-1 py-0.5 text-xs font-medium font-mono w-16"
+                                    className="mt-1 text-green-900 bg-white border border-green-300 rounded px-1 py-0.5 text-xs font-medium font-mono w-full"
                                   />
                                 ) : (
-                                  <span className="text-green-900 font-mono text-xs break-all ml-1">
-                                    {vehiculo.bastidor?.substring(0, 8)}...
+                                  <span className="text-green-900 font-mono text-xs block break-all mt-1">
+                                    {vehiculo.bastidor}
                                   </span>
                                 )}
                               </span>
@@ -1573,12 +1577,12 @@ export default function VehiculoDetailPage() {
                                 />
                               </svg>
                             </div>
-                            <h3 className="text-xs sm:text-sm lg:text-base font-semibold text-orange-900 text-xs sm:text-sm lg:text-base font-semibold text-orange-900">
+                            <h3 className="text-xs sm:text-sm lg:text-base font-semibold text-orange-900">
                               Características
                             </h3>
                           </div>
-                          <div className="text-xs lg:text-sm">
-                            <div className="flex items-center gap-2">
+                          <div className="text-xs lg:text-sm space-y-2">
+                            <div className="flex lg:flex-col items-start lg:items-start gap-2 lg:gap-1">
                               <span className="text-orange-700 font-medium">
                                 KMs:{' '}
                                 {isEditingGeneral ? (
@@ -1591,7 +1595,7 @@ export default function VehiculoDetailPage() {
                                         kms: parseInt(e.target.value) || 0,
                                       }))
                                     }
-                                    className="ml-1 text-orange-900 bg-white border border-orange-300 rounded px-1 py-0.5 text-xs font-medium w-16"
+                                    className="ml-1 text-orange-900 bg-white border border-orange-300 rounded px-1 py-0.5 text-xs font-medium w-full lg:w-full"
                                     placeholder="KMs"
                                   />
                                 ) : (
@@ -1600,6 +1604,8 @@ export default function VehiculoDetailPage() {
                                   </span>
                                 )}
                               </span>
+                            </div>
+                            <div className="flex lg:flex-col items-start lg:items-start gap-2 lg:gap-1">
                               <span className="text-orange-700 font-medium">
                                 Color:{' '}
                                 {isEditingGeneral ? (
@@ -1612,7 +1618,7 @@ export default function VehiculoDetailPage() {
                                         color: e.target.value,
                                       }))
                                     }
-                                    className="ml-1 text-orange-900 bg-white border border-orange-300 rounded px-1 py-0.5 text-xs font-medium w-16"
+                                    className="ml-1 text-orange-900 bg-white border border-orange-300 rounded px-1 py-0.5 text-xs font-medium w-full lg:w-full"
                                     placeholder="Color"
                                   />
                                 ) : (
