@@ -1314,9 +1314,26 @@ export default function VehiculoDetailPage() {
         </div>
 
         <div className="w-full lg:w-[80%] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-2 sm:py-4 lg:py-6 xl:py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-4 lg:gap-6 xl:gap-8">
+          {/* Bloque de Estado - Visible solo en móviles/tablets (< 1280px) */}
+          <div className="xl:hidden mb-4 bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">Estado</h2>
+            <div className="flex items-center justify-between">
+              <span
+                className={`px-3 py-2 rounded-lg text-sm font-medium ${getEstadoColor(vehiculo.estado || 'inicial')}`}
+              >
+                {(vehiculo.estado || 'inicial').toUpperCase()}
+              </span>
+              <span
+                className={`px-3 py-2 rounded-lg text-sm font-medium ${getCondicionColor(getCondicionVehiculo())}`}
+              >
+                {getCondicionVehiculo().toUpperCase()}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-2 sm:gap-4 lg:gap-6 xl:gap-8">
             {/* Panel Principal */}
-            <div className="lg:col-span-2 space-y-2 sm:space-y-4 lg:space-y-6">
+            <div className="xl:col-span-2 space-y-2 sm:space-y-4 lg:space-y-6">
               {/* Tabs de Información */}
               <div className="bg-white rounded-xl shadow-sm border border-slate-200">
                 {/* Tab Headers */}
@@ -2929,8 +2946,8 @@ export default function VehiculoDetailPage() {
 
             {/* Sidebar Derecha */}
             <div className="space-y-2 sm:space-y-4 lg:space-y-6">
-              {/* Estado del Vehículo - Solo visible en pantallas >= 1024px */}
-              <div className="hidden lg:block bg-white rounded-xl shadow-sm border border-slate-200 p-3 sm:p-4 lg:p-6">
+              {/* Estado del Vehículo - Solo visible en pantallas >= 1280px */}
+              <div className="hidden xl:block bg-white rounded-xl shadow-sm border border-slate-200 p-3 sm:p-4 lg:p-6">
                 <div className="flex items-center space-x-2 mb-4">
                   <div className="w-3 h-3 sm:w-4 sm:h-4 lg:w-6 lg:h-6 sm:w-8 sm:h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
                     <svg
