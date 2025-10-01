@@ -355,7 +355,7 @@ export default function DealDetail() {
         return
       }
 
-      // Si ya existe el contrato, descargarlo
+      // Si ya existe el contrato, descargarlo (solo si no está anulado)
       if (deal.contratoReserva) {
         const downloadUrl = `/api/documents/${deal.id}/contrato-reserva?dealNumber=${deal.numero}`
         window.open(downloadUrl, '_blank')
@@ -448,7 +448,7 @@ export default function DealDetail() {
         return
       }
 
-      // Si ya existe el contrato, descargarlo
+      // Si ya existe el contrato, descargarlo (solo si no está anulado)
       if (deal.contratoVenta) {
         const downloadUrl = `/api/documents/${deal.id}/contrato-venta?dealNumber=${deal.numero}`
         window.open(downloadUrl, '_blank')
@@ -566,6 +566,82 @@ export default function DealDetail() {
     }
   }
 
+  // Funciones para anular documentos
+  const handleAnularContratoReserva = async () => {
+    if (!deal?.contratoReserva) return
+
+    try {
+      const response = await fetch(`/api/deals/${deal.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contratoReserva: null,
+          estado: deal.contratoVenta ? 'vendido' : 'activo', // Si tiene contrato de venta, mantener vendido
+        }),
+      })
+
+      if (response.ok) {
+        showToast('Contrato de reserva anulado exitosamente', 'success')
+        await loadDeal()
+      } else {
+        showToast('Error al anular el contrato de reserva', 'error')
+      }
+    } catch (error) {
+      console.error('Error anulando contrato de reserva:', error)
+      showToast('Error al anular el contrato de reserva', 'error')
+    }
+  }
+
+  const handleAnularContratoVenta = async () => {
+    if (!deal?.contratoVenta) return
+
+    try {
+      const response = await fetch(`/api/deals/${deal.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contratoVenta: null,
+          estado: deal.factura ? 'facturado' : 'reservado', // Si tiene factura, mantener facturado
+        }),
+      })
+
+      if (response.ok) {
+        showToast('Contrato de venta anulado exitosamente', 'success')
+        await loadDeal()
+      } else {
+        showToast('Error al anular el contrato de venta', 'error')
+      }
+    } catch (error) {
+      console.error('Error anulando contrato de venta:', error)
+      showToast('Error al anular el contrato de venta', 'error')
+    }
+  }
+
+  const handleAnularFactura = async () => {
+    if (!deal?.factura) return
+
+    try {
+      const response = await fetch(`/api/deals/${deal.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          factura: null,
+          estado: deal.contratoVenta ? 'vendido' : 'reservado', // Si tiene contrato de venta, mantener vendido
+        }),
+      })
+
+      if (response.ok) {
+        showToast('Factura anulada exitosamente', 'success')
+        await loadDeal()
+      } else {
+        showToast('Error al anular la factura', 'error')
+      }
+    } catch (error) {
+      console.error('Error anulando factura:', error)
+      showToast('Error al anular la factura', 'error')
+    }
+  }
+
   const handleConfirmFactura = async (
     tipoFactura: 'IVA' | 'REBU',
     numeroFactura?: string
@@ -578,7 +654,7 @@ export default function DealDetail() {
         return
       }
 
-      // Si ya existe la factura, descargarla
+      // Si ya existe la factura, descargarla (solo si no está anulada)
       if (deal.factura) {
         const downloadUrl = `/api/documents/${deal.id}/factura?dealNumber=${deal.numero}`
         window.open(downloadUrl, '_blank')
@@ -1839,13 +1915,22 @@ export default function DealDetail() {
                       </div>
                     </div>
                     {deal.contratoReserva ? (
-                      <button
-                        onClick={handleDescargarContratoReserva}
-                        disabled={isUpdating}
-                        className="px-3 py-1 bg-blue-100 text-blue-700 rounded-md text-sm font-medium hover:bg-blue-200 transition-colors"
-                      >
-                        Descargar
-                      </button>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={handleDescargarContratoReserva}
+                          disabled={isUpdating}
+                          className="px-3 py-1 bg-blue-100 text-blue-700 rounded-md text-sm font-medium hover:bg-blue-200 transition-colors"
+                        >
+                          Descargar
+                        </button>
+                        <button
+                          onClick={handleAnularContratoReserva}
+                          disabled={isUpdating}
+                          className="px-3 py-1 bg-red-100 text-red-700 rounded-md text-sm font-medium hover:bg-red-200 transition-colors"
+                        >
+                          Anular
+                        </button>
+                      </div>
                     ) : (
                       <span className="px-3 py-1 bg-gray-100 text-gray-400 rounded-md text-sm font-medium cursor-not-allowed">
                         No generado
@@ -1885,13 +1970,22 @@ export default function DealDetail() {
                       </div>
                     </div>
                     {deal.contratoVenta ? (
-                      <button
-                        onClick={handleDescargarContratoVenta}
-                        disabled={isUpdating}
-                        className="px-3 py-1 bg-blue-100 text-blue-700 rounded-md text-sm font-medium hover:bg-blue-200 transition-colors"
-                      >
-                        Descargar
-                      </button>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={handleDescargarContratoVenta}
+                          disabled={isUpdating}
+                          className="px-3 py-1 bg-blue-100 text-blue-700 rounded-md text-sm font-medium hover:bg-blue-200 transition-colors"
+                        >
+                          Descargar
+                        </button>
+                        <button
+                          onClick={handleAnularContratoVenta}
+                          disabled={isUpdating}
+                          className="px-3 py-1 bg-red-100 text-red-700 rounded-md text-sm font-medium hover:bg-red-200 transition-colors"
+                        >
+                          Anular
+                        </button>
+                      </div>
                     ) : (
                       <span className="px-3 py-1 bg-gray-100 text-gray-400 rounded-md text-sm font-medium cursor-not-allowed">
                         No generado
@@ -1929,13 +2023,22 @@ export default function DealDetail() {
                       </div>
                     </div>
                     {deal.factura ? (
-                      <button
-                        onClick={handleDescargarFactura}
-                        disabled={isUpdating}
-                        className="px-3 py-1 bg-blue-100 text-blue-700 rounded-md text-sm font-medium hover:bg-blue-200 transition-colors"
-                      >
-                        Descargar
-                      </button>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={handleDescargarFactura}
+                          disabled={isUpdating}
+                          className="px-3 py-1 bg-blue-100 text-blue-700 rounded-md text-sm font-medium hover:bg-blue-200 transition-colors"
+                        >
+                          Descargar
+                        </button>
+                        <button
+                          onClick={handleAnularFactura}
+                          disabled={isUpdating}
+                          className="px-3 py-1 bg-red-100 text-red-700 rounded-md text-sm font-medium hover:bg-red-200 transition-colors"
+                        >
+                          Anular
+                        </button>
+                      </div>
                     ) : (
                       <span className="px-3 py-1 bg-gray-100 text-gray-400 rounded-md text-sm font-medium cursor-not-allowed">
                         No generada
