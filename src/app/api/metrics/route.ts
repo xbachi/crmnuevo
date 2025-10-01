@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     // no están configuradas para filtrar por período específico
     const metrics = {
       vehiculosVendidos: vehiculoStats.vendidos,
-      enStock: vehiculoStats.totalActivos - vehiculoStats.vendidos,
+      enStock: vehiculoStats.totalActivos, // totalActivos ya excluye vendidos
       depositos: depositoStats.totalDepositos,
       enProceso: vehiculoStats.enProceso + depositoStats.enProceso,
     }
