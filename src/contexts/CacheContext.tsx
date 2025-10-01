@@ -86,13 +86,28 @@ export const CacheProvider: React.FC<CacheProviderProps> = ({ children }) => {
     try {
       console.log('🚗 [CACHE] Iniciando carga de vehículos...')
       const response = await fetch('/api/vehiculos')
+      console.log('🚗 [CACHE] Response status:', response.status)
+      console.log('🚗 [CACHE] Response ok:', response.ok)
       if (response.ok) {
         const data = await response.json()
-        console.log('🚗 [CACHE] Respuesta API:', data)
+        console.log('🚗 [CACHE] Respuesta API completa:', data)
+        console.log('🚗 [CACHE] Tipo de data:', typeof data)
+        console.log('🚗 [CACHE] data.vehiculos existe?', !!data.vehiculos)
+        console.log('🚗 [CACHE] data es array?', Array.isArray(data))
+
         // La API devuelve { vehiculos: [...], pagination: {...} }
         const vehiculosArray = data.vehiculos || data
+        console.log('🚗 [CACHE] vehiculosArray:', vehiculosArray)
+        console.log(
+          '🚗 [CACHE] vehiculosArray es array?',
+          Array.isArray(vehiculosArray)
+        )
+        console.log('🚗 [CACHE] vehiculosArray length:', vehiculosArray?.length)
+
         setVehiculos(vehiculosArray)
-        console.log(`📊 [CACHE] Vehículos cargados: ${vehiculosArray.length}`)
+        console.log(
+          `📊 [CACHE] Vehículos cargados: ${vehiculosArray?.length || 0}`
+        )
       } else {
         console.error(
           '🚗 [CACHE] Error en respuesta:',
