@@ -118,11 +118,8 @@ export default function NuevoDealPage() {
 
       // Filtrar vehículos que estén disponibles
       const vehiculosDisponibles = todosVehiculos.filter((vehiculo) => {
-        // Filtrar por estado del vehículo directamente
-        const estadoDisponible =
-          vehiculo.estado === 'inicial' ||
-          vehiculo.estado === 'disponible' ||
-          vehiculo.estado === 'ACTIVO'
+        // Filtrar por estado PUBLICADO (que es el estado correcto)
+        const estadoDisponible = vehiculo.estado === 'PUBLICADO'
 
         // También verificar que no tenga un deal activo
         const tieneDealActivo = dealsData.some(
@@ -138,7 +135,7 @@ export default function NuevoDealPage() {
 
       setVehiculos(vehiculosDisponibles)
       console.log(
-        `🚗 Vehículos disponibles: ${vehiculosDisponibles.length} (filtrados por estado disponible y sin deals activos)`
+        `🚗 Vehículos disponibles: ${vehiculosDisponibles.length} (filtrados por estado PUBLICADO y sin deals activos)`
       )
     } catch (error) {
       console.error('Error cargando vehículos:', error)
