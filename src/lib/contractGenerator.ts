@@ -1160,6 +1160,11 @@ export async function generarFactura(
   tipoFactura: 'IVA' | 'REBU' = 'IVA',
   numeroFacturaPersonalizado?: string
 ): Promise<Uint8Array> {
+  console.log('🔍 [GENERAR FACTURA] Parámetros recibidos:', {
+    tipoFactura,
+    numeroFacturaPersonalizado,
+    dealId: deal.id,
+  })
   const doc = new jsPDF()
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()

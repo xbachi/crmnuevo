@@ -67,6 +67,11 @@ export async function POST(request: NextRequest) {
         pdfBuffer = await generarContratoVenta(dealData)
         break
       case 'factura':
+        console.log('🔍 [API GENERATE] Generando factura con parámetros:', {
+          tipoFactura,
+          numeroFactura,
+          dealId,
+        })
         pdfBuffer = await generarFactura(dealData, tipoFactura, numeroFactura)
         break
       default:

@@ -647,6 +647,11 @@ export default function DealDetail() {
     numeroFactura?: string
   ) => {
     try {
+      console.log('🔍 [FRONTEND] Generando factura con parámetros:', {
+        tipoFactura,
+        numeroFactura,
+        dealId: deal?.id,
+      })
       setIsGeneratingFactura(true)
 
       if (!deal) {
