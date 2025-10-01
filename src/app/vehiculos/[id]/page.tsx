@@ -1506,7 +1506,7 @@ export default function VehiculoDetailPage() {
                           </div>
                         </div>
 
-                        {/* Matrícula y Bastidor */}
+                        {/* Matrícula, Bastidor y Fecha de Matriculación */}
                         <div className="lg:col-span-3 bg-green-50 border border-green-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
                           <div className="flex items-center space-x-1 sm:space-x-2 mb-1 lg:mb-3">
                             <div className="w-4 h-4 sm:w-5 sm:h-5 lg:w-8 lg:h-8 bg-green-500 rounded-lg flex items-center justify-center">
@@ -1573,10 +1573,34 @@ export default function VehiculoDetailPage() {
                                 )}
                               </span>
                             </div>
+                            <div className="flex lg:flex-col items-start lg:items-start gap-2 lg:gap-1">
+                              <span className="text-green-700 font-medium">
+                                Fecha Matriculación:{' '}
+                                {isEditingGeneral ? (
+                                  <input
+                                    type="date"
+                                    value={editingData.fechaMatriculacion}
+                                    onChange={(e) =>
+                                      setEditingData((prev) => ({
+                                        ...prev,
+                                        fechaMatriculacion: e.target.value,
+                                      }))
+                                    }
+                                    className="ml-1 text-green-900 bg-white border border-green-300 rounded px-1 py-0.5 text-xs font-medium w-full lg:w-full"
+                                  />
+                                ) : (
+                                  <span className="text-green-900 font-medium ml-1">
+                                    {vehiculo.fechaMatriculacion
+                                      ? formatDate(vehiculo.fechaMatriculacion)
+                                      : 'N/A'}
+                                  </span>
+                                )}
+                              </span>
+                            </div>
                           </div>
                         </div>
 
-                        {/* KMs, Fecha y Color */}
+                        {/* KMs y Color */}
                         <div className="lg:col-span-2 bg-orange-50 border border-orange-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
                           <div className="flex items-center space-x-1 sm:space-x-2 mb-1 lg:mb-3">
                             <div className="w-4 h-4 sm:w-5 sm:h-5 lg:w-8 lg:h-8 bg-orange-500 rounded-lg flex items-center justify-center">
