@@ -461,8 +461,8 @@ export default function VehiculoDetailPage() {
     if (documento) {
       // Crear un enlace temporal para descargar el archivo
       const link = document.createElement('a')
-      link.href = documento.path
-      link.download = documento.name
+      link.href = documento.ruta || ''
+      link.download = documento.nombre
       link.target = '_blank'
       document.body.appendChild(link)
       link.click()
@@ -590,6 +590,13 @@ export default function VehiculoDetailPage() {
         master: vehiculo.master || '',
         hojasA: vehiculo.hojasA || '',
         documentacion: vehiculo.documentacion || '',
+        precioCompra: vehiculo.precioCompra || 0,
+        gastosTransporte: vehiculo.gastosTransporte || 0,
+        gastosTasas: vehiculo.gastosTasas || 0,
+        gastosMecanica: vehiculo.gastosMecanica || 0,
+        gastosPintura: vehiculo.gastosPintura || 0,
+        gastosOtros: vehiculo.gastosOtros || 0,
+        precioVenta: vehiculo.precioVenta || 0,
       }
 
       console.log('🔧 [EDIT] Datos de edición preparados:', newEditingData)
@@ -761,7 +768,7 @@ export default function VehiculoDetailPage() {
 
     if (Object.keys(camposAGuardar).length === 0) {
       console.warn('⚠️ [SAVE] No hay campos para guardar')
-      showToast('No hay cambios para guardar', 'warning')
+      showToast('No hay cambios para guardar', 'info')
       return
     }
 
@@ -2548,7 +2555,7 @@ export default function VehiculoDetailPage() {
                                 if (e.target.value === 'chequear') {
                                   setEditingData((prev) => ({
                                     ...prev,
-                                    itv: null,
+                                    itv: '',
                                   }))
                                 } else {
                                   setEditingData((prev) => ({
@@ -2631,7 +2638,7 @@ export default function VehiculoDetailPage() {
                                 if (e.target.value === 'chequear') {
                                   setEditingData((prev) => ({
                                     ...prev,
-                                    seguro: null,
+                                    seguro: '',
                                   }))
                                 } else {
                                   setEditingData((prev) => ({
@@ -2708,7 +2715,7 @@ export default function VehiculoDetailPage() {
                                 if (e.target.value === 'chequear') {
                                   setEditingData((prev) => ({
                                     ...prev,
-                                    segundaLlave: null,
+                                    segundaLlave: '',
                                   }))
                                 } else {
                                   setEditingData((prev) => ({
@@ -2785,7 +2792,7 @@ export default function VehiculoDetailPage() {
                                 if (e.target.value === 'chequear') {
                                   setEditingData((prev) => ({
                                     ...prev,
-                                    documentacion: null,
+                                    documentacion: '',
                                   }))
                                 } else {
                                   setEditingData((prev) => ({
@@ -2862,7 +2869,7 @@ export default function VehiculoDetailPage() {
                                 if (e.target.value === 'chequear') {
                                   setEditingData((prev) => ({
                                     ...prev,
-                                    master: null,
+                                    master: '',
                                   }))
                                 } else {
                                   setEditingData((prev) => ({
@@ -2934,7 +2941,7 @@ export default function VehiculoDetailPage() {
                             if (e.target.value === 'chequear') {
                               setEditingData((prev) => ({
                                 ...prev,
-                                carpeta: null,
+                                carpeta: '',
                               }))
                             } else {
                               setEditingData((prev) => ({
@@ -3003,7 +3010,7 @@ export default function VehiculoDetailPage() {
                             if (e.target.value === 'chequear') {
                               setEditingData((prev) => ({
                                 ...prev,
-                                hojasA: null,
+                                hojasA: '',
                               }))
                             } else {
                               setEditingData((prev) => ({
@@ -3434,15 +3441,15 @@ export default function VehiculoDetailPage() {
                           <div className="flex-1 min-w-0">
                             <p
                               className="font-medium text-gray-900 truncate"
-                              title={doc.name}
+                              title={doc.nombre}
                             >
-                              {doc.name.length > 30
-                                ? `${doc.name.substring(0, 30)}...`
-                                : doc.name}
+                              {doc.nombre.length > 30
+                                ? `${doc.nombre.substring(0, 30)}...`
+                                : doc.nombre}
                             </p>
                             <p className="text-xs text-gray-500">
-                              {doc.tamañoFormateado} •{' '}
-                              {new Date(doc.uploadDate).toLocaleDateString(
+                              {doc.tamaño} •{' '}
+                              {new Date(doc.fechaSubida).toLocaleDateString(
                                 'es-ES'
                               )}
                             </p>

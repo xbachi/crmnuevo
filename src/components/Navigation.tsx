@@ -407,7 +407,7 @@ export default function Navigation() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">
-                      {inversor ? inversor.nombre : user?.nombre}
+                      {inversor ? inversor.nombre : (user as any)?.nombre}
                     </p>
                     <p className="text-xs text-gray-500 truncate">
                       {inversor ? 'Inversor' : user?.role}

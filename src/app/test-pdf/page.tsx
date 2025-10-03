@@ -48,7 +48,7 @@ export default function TestPDFPage() {
       alert('✅ Contrato de reserva generado! Revisa tu carpeta de descargas.')
     } catch (error) {
       console.error('Error:', error)
-      alert('❌ Error generando PDF: ' + error.message)
+      alert('❌ Error generando PDF: ' + (error as Error).message)
     } finally {
       setIsGenerating(false)
     }
@@ -61,7 +61,7 @@ export default function TestPDFPage() {
       alert('✅ Contrato de venta generado! Revisa tu carpeta de descargas.')
     } catch (error) {
       console.error('Error:', error)
-      alert('❌ Error generando PDF: ' + error.message)
+      alert('❌ Error generando PDF: ' + (error as Error).message)
     } finally {
       setIsGenerating(false)
     }
@@ -83,7 +83,7 @@ export default function TestPDFPage() {
       )
     } catch (error) {
       console.error('Error:', error)
-      alert('❌ Error generando PDF: ' + error.message)
+      alert('❌ Error generando PDF: ' + (error as Error).message)
     } finally {
       setIsGenerating(false)
     }

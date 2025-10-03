@@ -1027,7 +1027,7 @@ export async function generarContratoVenta(
     doc,
     'KMS',
     deal.vehiculo?.kms
-      ? deal.vehiculo.kms.toLocaleString('es-ES')
+      ? (deal.vehiculo.kms as number).toLocaleString('es-ES')
       : 'No especificados',
     pageWidth / 2,
     yPosition
@@ -1163,7 +1163,7 @@ export async function generarFactura(
   console.log('🔍 [GENERAR FACTURA] Parámetros recibidos:', {
     tipoFactura,
     numeroFacturaPersonalizado,
-    dealId: deal.id,
+    dealId: (deal as any).id,
   })
   const doc = new jsPDF()
   const pageWidth = doc.internal.pageSize.getWidth()
@@ -1174,7 +1174,7 @@ export async function generarFactura(
   // Generar número de factura
   const numeroFactura =
     numeroFacturaPersonalizado ||
-    `FAC-${new Date().getFullYear()}-${String(deal.id || Math.floor(Math.random() * 1000)).padStart(4, '0')}`
+    `FAC-${new Date().getFullYear()}-${String((deal as any).id || Math.floor(Math.random() * 1000)).padStart(4, '0')}`
   const fechaFactura = new Date()
 
   // Logo de Seven Cars (centrado)
@@ -1333,7 +1333,7 @@ export async function generarFactura(
     yPosition + 12
   )
   doc.text(
-    `Kms: ${deal.vehiculo?.kms ? deal.vehiculo.kms.toLocaleString('es-ES') : 'No especificados'}`,
+    `Kms: ${deal.vehiculo?.kms ? (deal.vehiculo.kms as number).toLocaleString('es-ES') : 'No especificados'}`,
     margin,
     yPosition + 16
   )
@@ -1744,7 +1744,7 @@ export async function generarContratoCompraventaSimple(
       yPosition
     )
 
-    return doc.output('arraybuffer') as Uint8Array
+    return new Uint8Array(doc.output('arraybuffer'))
   } catch (error) {
     console.error('Error generando contrato de compraventa:', error)
     throw error

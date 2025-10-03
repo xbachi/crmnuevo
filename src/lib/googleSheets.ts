@@ -14,7 +14,8 @@ export async function getGoogleSheetsAuth() {
     const auth = new google.auth.GoogleAuth({
       credentials: {
         client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-        private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+        private_key:
+          process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n') || '',
       },
       scopes: SCOPES,
     })
@@ -128,10 +129,10 @@ export async function writeToGoogleSheets(
     // Formatear datos para envío a Google Sheets
     const marcaCamelCase = vehiculoData.marca
       .toLowerCase()
-      .replace(/\b\w/g, (l) => l.toUpperCase())
+      .replace(/\b\w/g, (l: string) => l.toUpperCase())
     const modeloCamelCase = vehiculoData.modelo
       .toLowerCase()
-      .replace(/\b\w/g, (l) => l.toUpperCase())
+      .replace(/\b\w/g, (l: string) => l.toUpperCase())
     const matriculaMayuscula = vehiculoData.matricula.toUpperCase()
 
     // Formatear referencia según el tipo
@@ -223,9 +224,11 @@ export async function writeVehiculoToSheets(vehiculo: any) {
 
     // Obtener el nombre de las hojas según el tipo
     const ventasSheetName =
-      SHEET_NAMES.VENTAS[vehiculo.tipo] || SHEET_NAMES.VENTAS['Compra']
+      SHEET_NAMES.VENTAS[vehiculo.tipo as keyof typeof SHEET_NAMES.VENTAS] ||
+      SHEET_NAMES.VENTAS['Compra']
     const comprasSheetName =
-      SHEET_NAMES.COMPRAS[vehiculo.tipo] || SHEET_NAMES.COMPRAS['Compra']
+      SHEET_NAMES.COMPRAS[vehiculo.tipo as keyof typeof SHEET_NAMES.COMPRAS] ||
+      SHEET_NAMES.COMPRAS['Compra']
 
     // Escribir en ambas hojas de cálculo separadas
     const promises = [
@@ -282,7 +285,7 @@ export async function getGoogleSheetsData() {
     const auth = await getGoogleSheetsAuth()
     const sheets = google.sheets({ version: 'v4', auth })
 
-    const allData = []
+    const allData: any[] = []
 
     // Solo obtener datos de la hoja "Expo" primero (la más importante)
     const primarySheet = 'Expo'
@@ -352,7 +355,7 @@ export async function getGoogleSheetsData() {
       } catch (error) {
         console.error(`Error reading additional sheet ${sheetName}:`, error)
         // Si es error de cuota, parar aquí y devolver lo que tenemos
-        if (error.code === 429) {
+        if ((error as any).code === 429) {
           console.log('Cuota excedida, devolviendo datos parciales')
           break
         }

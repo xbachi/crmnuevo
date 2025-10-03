@@ -159,7 +159,7 @@ export default function GeneradorContratos() {
       )
 
       // Crear y descargar el PDF
-      const pdfBlob = new Blob([pdfBuffer], { type: 'application/pdf' })
+      const pdfBlob = new Blob([pdfBuffer.buffer], { type: 'application/pdf' })
       const url = window.URL.createObjectURL(pdfBlob)
       const link = document.createElement('a')
       link.href = url
