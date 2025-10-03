@@ -1561,20 +1561,10 @@ export async function generarContratoCompraventaSimple(
         .trim()
         .replace(/^,\s*|,\s*$/g, '') // Eliminar comas al inicio y final
 
-    doc.text(
-      `D/Dña ${nombreCompleto}, mayor de edad, con DNI ${cliente.dni}, con domicilio en`,
-      margin,
-      yPosition
-    )
-    yPosition += 5
-
-    if (direccionCompleta) {
-      doc.text(`${direccionCompleta},`, margin, yPosition)
-      yPosition += 5
-    }
-
-    doc.text('en calidad de vendedor.', margin, yPosition)
-    yPosition += 8
+    const textoCliente = `D/Dña ${nombreCompleto}, mayor de edad, con DNI ${cliente.dni}, con domicilio en ${direccionCompleta || 'No especificado'}, en calidad de vendedor.`
+    const linesCliente = doc.splitTextToSize(textoCliente, maxWidth)
+    doc.text(linesCliente, margin, yPosition)
+    yPosition += linesCliente.length * 5 + 8
 
     // Manifiestan
     doc.setFont('helvetica', 'bold')
