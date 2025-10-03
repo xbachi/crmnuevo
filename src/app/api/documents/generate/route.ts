@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Validar parámetros
-    if (!dealId || !documentType || !dealData || !dealNumber) {
+    if (!documentType || !dealData || !dealNumber) {
       return NextResponse.json(
         { error: 'Parámetros faltantes' },
         { status: 400 }
@@ -42,17 +42,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const dealIdNum = parseInt(dealId)
-    if (isNaN(dealIdNum)) {
+    const dealIdNum = dealId ? parseInt(dealId) : 0
+    if (dealId && isNaN(dealIdNum)) {
       return NextResponse.json(
         { error: 'ID de deal inválido' },
         { status: 400 }
       )
     }
 
-    // Verificar si el documento ya existe (solo si no hay número personalizado)
-    // Si hay número personalizado, siempre generar nuevo documento
-    if (!numeroFactura) {
+    // Verificar si el documento ya existe (solo si no hay número personalizado y es un deal real)
+    // Si hay número personalizado o es factura independiente, siempre generar nuevo documento
+    if (!numeroFactura && dealIdNum > 0) {
       const exists = await documentExists(
         dealIdNum,
         documentType as any,

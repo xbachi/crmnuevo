@@ -57,11 +57,25 @@ export async function saveDocument(
   pdfBuffer: Buffer
 ): Promise<string> {
   await ensureDocumentsDir()
-  const dealDir = await ensureDealDir(dealId)
-  const filePath = path.join(dealDir, `${documentType}-${dealNumber}.pdf`)
+
+  let filePath: string
+  let url: string
+
+  if (dealId === 0) {
+    // Factura independiente (sin deal)
+    const fileName = `${documentType}-${dealNumber}.pdf`
+    filePath = path.join(DOCUMENTS_DIR, fileName)
+    url = `/documents/${fileName}`
+  } else {
+    // Documento de deal
+    const dealDir = await ensureDealDir(dealId)
+    const fileName = `${documentType}-${dealNumber}.pdf`
+    filePath = path.join(dealDir, fileName)
+    url = `/documents/deal-${dealId}/${fileName}`
+  }
 
   await fs.writeFile(filePath, pdfBuffer)
-  return `/documents/deal-${dealId}/${documentType}-${dealNumber}.pdf`
+  return url
 }
 
 // Obtener URL de descarga de un documento
