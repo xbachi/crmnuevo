@@ -1640,18 +1640,21 @@ export async function generarContratoCompraventaSimple(
 
     // Clausula 2
     const clausula2 = `2. Que EL COMPRADOR desea adquirir el vehículo descrito en las condiciones que se establecen en el presente contrato.`
-    doc.text(clausula2, margin, yPosition)
-    yPosition += 8
+    const lines2 = doc.splitTextToSize(clausula2, maxWidth)
+    doc.text(lines2, margin, yPosition)
+    yPosition += lines2.length * 5 + 5
 
     // Clausula 3
     const clausula3 = `3. Que EL VENDEDOR garantiza ser el legítimo propietario del vehículo y que el mismo se encuentra libre de cargas, embargos, hipotecas o cualquier otro gravamen que pueda afectar a su propiedad.`
-    doc.text(clausula3, margin, yPosition)
-    yPosition += 8
+    const lines3 = doc.splitTextToSize(clausula3, maxWidth)
+    doc.text(lines3, margin, yPosition)
+    yPosition += lines3.length * 5 + 5
 
     // Clausula 4
     const clausula4 = `4. Que EL VENDEDOR declara que el vehículo se encuentra en el estado que corresponde a su antigüedad y kilometraje, habiendo sido informado EL COMPRADOR de todas las características y condiciones del mismo.`
-    doc.text(clausula4, margin, yPosition)
-    yPosition += 8
+    const lines4 = doc.splitTextToSize(clausula4, maxWidth)
+    doc.text(lines4, margin, yPosition)
+    yPosition += lines4.length * 5 + 5
 
     // Clausula 5 - Precio
     const monto = precio || 0
@@ -1709,18 +1712,21 @@ export async function generarContratoCompraventaSimple(
 
     // Clausula 6
     const clausula6 = `6. Que con la firma del presente contrato, EL VENDEDOR entrega y EL COMPRADOR recibe el vehículo descrito, así como toda la documentación del mismo (permiso de circulación, ficha técnica, etc.).`
-    doc.text(clausula6, margin, yPosition)
-    yPosition += 8
+    const lines6 = doc.splitTextToSize(clausula6, maxWidth)
+    doc.text(lines6, margin, yPosition)
+    yPosition += lines6.length * 5 + 5
 
     // Clausula 7
     const clausula7 = `7. Que EL COMPRADOR se compromete a realizar el cambio de titularidad del vehículo en el plazo máximo de 30 días naturales desde la fecha de firma del presente contrato.`
-    doc.text(clausula7, margin, yPosition)
-    yPosition += 8
+    const lines7 = doc.splitTextToSize(clausula7, maxWidth)
+    doc.text(lines7, margin, yPosition)
+    yPosition += lines7.length * 5 + 5
 
     // Clausula 8
     const clausula8 = `8. Que las partes se someten expresamente a la jurisdicción de los Juzgados y Tribunales de Valencia para la resolución de cualquier controversia que pueda surgir en relación con el presente contrato.`
-    doc.text(clausula8, margin, yPosition)
-    yPosition += 12
+    const lines8 = doc.splitTextToSize(clausula8, maxWidth)
+    doc.text(lines8, margin, yPosition)
+    yPosition += lines8.length * 5 + 8
 
     // Firma
     doc.setFont('helvetica', 'bold')
