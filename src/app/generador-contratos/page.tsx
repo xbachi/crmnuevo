@@ -152,11 +152,16 @@ export default function GeneradorContratos() {
         }
       )
 
-      // Crear datos del deal para la API
-      const dealData = {
-        numero: numeroContrato,
-        fechaCreacion: new Date(),
+      // Generar el contrato de compraventa usando la función directa
+      const { generarContratoCompraventa } = await import(
+        '@/lib/contractGenerator'
+      )
+
+      // Crear datos en formato DepositoData para la función
+      const depositoData = {
+        id: Date.now(), // ID único temporal
         cliente: {
+          id: 0,
           nombre: cliente.nombre,
           apellidos: cliente.apellidos,
           dni: cliente.dni,
@@ -165,9 +170,11 @@ export default function GeneradorContratos() {
           direccion: cliente.direccion,
           ciudad: cliente.ciudad,
           provincia: cliente.provincia,
-          codPostal: cliente.codPostal,
+          codigoPostal: cliente.codPostal,
         },
         vehiculo: {
+          id: 0,
+          referencia: `#${Date.now()}`,
           marca: vehiculo.marca,
           modelo: vehiculo.modelo,
           matricula: vehiculo.matricula,
@@ -179,38 +186,30 @@ export default function GeneradorContratos() {
           combustible: vehiculo.combustible,
           potencia: vehiculo.potencia,
           cambio: vehiculo.cambio,
+          precioPublicacion: contrato.precioCompra,
+          estado: 'vendido',
         },
-        importeTotal: contrato.precioCompra,
-        importeSena: 0, // No hay seña en compras
-        formaPagoSena: contrato.formaPago,
-        fechaReservaDesde: new Date(contrato.fechaCompra),
-        fechaReservaExpira: new Date(contrato.fechaCompra),
+        monto_recibir: contrato.precioCompra,
+        fecha_compra: contrato.fechaCompra,
+        estado: 'VENDIDO',
+        numero_cuenta: '',
       }
 
       // Generar el contrato
-      const response = await fetch('/api/documents/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          dealId: 0, // ID ficticio para contratos independientes
-          documentType: 'contrato-venta',
-          dealNumber: dealData.numero,
-          dealData,
-        }),
-      })
+      const pdfBuffer = await generarContratoCompraventa(depositoData)
 
-      if (response.ok) {
-        const result = await response.json()
-        showToast('Contrato de compra generado exitosamente', 'success')
+      // Crear y descargar el PDF
+      const pdfBlob = new Blob([pdfBuffer], { type: 'application/pdf' })
+      const url = window.URL.createObjectURL(pdfBlob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `contrato-compraventa-${numeroContrato}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
 
-        // Descargar el documento
-        window.open(result.url, '_blank')
-      } else {
-        const error = await response.json()
-        showToast(error.error || 'Error generando contrato', 'error')
-      }
+      showToast('Contrato de compraventa generado exitosamente', 'success')
     } catch (error) {
       console.error('Error generando contrato:', error)
       showToast('Error al generar el contrato', 'error')
