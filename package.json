@@ -76,7 +76,9 @@
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4",
     "uuid": "^13.0.0",
-    "@prisma/client": "^6.16.1"
+    "@prisma/client": "^6.16.1",
+    "@types/react": "^19",
+    "@types/react-dom": "^19"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -87,8 +89,6 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/jest": "^30.0.0",
     "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
     "@types/redis": "^4.0.11",
     "@types/supertest": "^6.0.3",
     "eslint": "^9",
