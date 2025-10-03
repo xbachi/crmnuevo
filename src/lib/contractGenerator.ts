@@ -2,6 +2,22 @@
 import jsPDF from 'jspdf'
 import { formatCurrency, getVehiculoAño } from './utils'
 
+// Configurar jsPDF para el entorno de servidor
+if (typeof window === 'undefined') {
+  // En el servidor, configurar jsPDF para Node.js
+  try {
+    const { createCanvas } = require('canvas')
+    // Configurar jsPDF para usar canvas en Node.js
+    jsPDF.prototype.canvas = createCanvas
+    console.log('✅ jsPDF configurado para servidor con canvas')
+  } catch (error) {
+    console.warn(
+      '⚠️ Canvas no disponible en el servidor, continuando sin canvas:',
+      error.message
+    )
+  }
+}
+
 // Función para formatear la fecha de matriculación
 function getFechaMatriculacion(vehiculo: any): string {
   if (vehiculo?.fechaMatriculacion) {
