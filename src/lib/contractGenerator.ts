@@ -1471,7 +1471,238 @@ interface DepositoData {
   }
 }
 
-// Función para generar contrato de compraventa
+// Función para generar contrato de compraventa simplificado (solo cliente y vehículo)
+export async function generarContratoCompraventaSimple(
+  cliente: any,
+  vehiculo: any,
+  precio: number
+): Promise<Uint8Array> {
+  try {
+    const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.width
+    const margin = 10
+    const maxWidth = pageWidth - margin * 2
+    let yPosition = margin
+
+    // Configurar fuente
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(10)
+
+    // Logo de Seven Cars (primero)
+    yPosition = await addLogoToContract(doc, yPosition)
+
+    // Título del contrato
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(0, 0, 0)
+    doc.text(
+      'CONTRATO DE COMPRAVENTA DE VEHÍCULO USADO',
+      pageWidth / 2,
+      yPosition,
+      { align: 'center' }
+    )
+    yPosition += 12
+
+    // Fecha y hora actual
+    const ahora = new Date()
+    const dia = ahora.getDate()
+    const mes = ahora.toLocaleDateString('es-ES', { month: 'long' })
+    const año = ahora.getFullYear()
+    const hora = ahora.getHours().toString().padStart(2, '0')
+    const minutos = ahora.getMinutes().toString().padStart(2, '0')
+
+    // Capitalizar la primera letra del mes
+    const mesCapitalizado = mes.charAt(0).toUpperCase() + mes.slice(1)
+
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.text(
+      `En Alaquas, a ${dia} de ${mesCapitalizado} de ${año}, a las ${hora}:${minutos} Hs.`,
+      margin,
+      yPosition
+    )
+    yPosition += 12
+
+    // REUNIDOS
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.text('REUNIDOS', margin, yPosition)
+    yPosition += 8
+
+    // De una parte
+    doc.setFont('helvetica', 'bold')
+    doc.text('DE UNA PARTE:', margin, yPosition)
+    yPosition += 6
+
+    doc.setFont('helvetica', 'normal')
+    doc.text(
+      'SEVEN CARS MOTORS S.L., con domicilio en C/ Mayor, 6, 46970 Alaquas (Valencia), con CIF B-12345678, en adelante "EL VENDEDOR".',
+      margin,
+      yPosition
+    )
+    yPosition += 12
+
+    // De otra parte
+    doc.setFont('helvetica', 'bold')
+    doc.text('DE OTRA PARTE:', margin, yPosition)
+    yPosition += 6
+
+    doc.setFont('helvetica', 'normal')
+    const datosCliente = `D/Dña ${cliente.nombre} ${cliente.apellidos}, con DNI ${cliente.dni}, con domicilio en ${cliente.direccion}, ${cliente.ciudad}, ${cliente.provincia}, ${cliente.codigoPostal || cliente.codPostal}, en adelante "EL COMPRADOR".`
+    const linesCliente = doc.splitTextToSize(datosCliente, maxWidth)
+    doc.text(linesCliente, margin, yPosition)
+    yPosition += linesCliente.length * 5 + 8
+
+    // Manifiestan
+    doc.setFont('helvetica', 'bold')
+    doc.text('MANIFIESTAN:', margin, yPosition)
+    yPosition += 8
+
+    // Clausula 1
+    const clausula1 = `1. Que EL VENDEDOR es el propietario del vehículo que se describe a continuación:`
+    doc.setFont('helvetica', 'normal')
+    doc.text(clausula1, margin, yPosition)
+    yPosition += 8
+
+    // Datos del vehículo
+    const datosVehiculo = [
+      `Marca: ${vehiculo.marca}`,
+      `Modelo: ${vehiculo.modelo}`,
+      `Matrícula: ${vehiculo.matricula}`,
+      `Bastidor: ${vehiculo.bastidor || 'No especificado'}`,
+      `Kilómetros: ${vehiculo.kms ? vehiculo.kms.toLocaleString('es-ES') : 'No especificados'}`,
+      `Color: ${vehiculo.color || 'No especificado'}`,
+      `Año: ${vehiculo.año || 'No especificado'}`,
+      `Combustible: ${vehiculo.combustible || 'No especificado'}`,
+      `Potencia: ${vehiculo.potencia || 'No especificada'}`,
+      `Cambio: ${vehiculo.cambio || 'No especificado'}`,
+      `Fecha de Matriculación: ${vehiculo.fechaMatriculacion ? new Date(vehiculo.fechaMatriculacion).toLocaleDateString('es-ES') : 'No especificada'}`,
+    ]
+
+    for (const dato of datosVehiculo) {
+      doc.text(`   ${dato}`, margin + 5, yPosition)
+      yPosition += 5
+    }
+    yPosition += 5
+
+    // Clausula 2
+    const clausula2 = `2. Que EL COMPRADOR desea adquirir el vehículo descrito en las condiciones que se establecen en el presente contrato.`
+    doc.text(clausula2, margin, yPosition)
+    yPosition += 8
+
+    // Clausula 3
+    const clausula3 = `3. Que EL VENDEDOR garantiza ser el legítimo propietario del vehículo y que el mismo se encuentra libre de cargas, embargos, hipotecas o cualquier otro gravamen que pueda afectar a su propiedad.`
+    doc.text(clausula3, margin, yPosition)
+    yPosition += 8
+
+    // Clausula 4
+    const clausula4 = `4. Que EL VENDEDOR declara que el vehículo se encuentra en el estado que corresponde a su antigüedad y kilometraje, habiendo sido informado EL COMPRADOR de todas las características y condiciones del mismo.`
+    doc.text(clausula4, margin, yPosition)
+    yPosition += 8
+
+    // Clausula 5 - Precio
+    const monto = precio || 0
+    const montoEnLetras = numeroALetras(monto)
+    const clausula5 = `5. El precio de la compra-venta se fija en ${formatCurrency(monto)} (${montoEnLetras} euros) impuestos incluidos (REBU, régimen Especial de Bienes Usados) que se abonan en este momento sirviendo el presente documento como carta de pago.`
+    const lines5 = doc.splitTextToSize(clausula5, maxWidth - 10)
+
+    // Procesar cada línea para poner en negrita solo el precio
+    let currentY = yPosition
+    for (let i = 0; i < lines5.length; i++) {
+      const line = lines5[i]
+
+      // Buscar el precio completo con paréntesis en la línea
+      const precioMatch = line.match(/(\d+\.\d+€\s*\(\w+\s+\w+\s+\w+\))/)
+      if (precioMatch) {
+        const beforePrecio = line.substring(0, line.indexOf(precioMatch[0]))
+        const precioCompleto = precioMatch[0]
+        const afterPrecio = line.substring(
+          line.indexOf(precioMatch[0]) + precioCompleto.length
+        )
+
+        // Escribir texto antes del precio
+        if (beforePrecio) {
+          doc.setFont('helvetica', 'normal')
+          doc.text(beforePrecio, margin, currentY)
+        }
+
+        // Escribir precio en negrita
+        doc.setFont('helvetica', 'bold')
+        doc.text(
+          precioCompleto,
+          margin + (beforePrecio ? doc.getTextWidth(beforePrecio) : 0),
+          currentY
+        )
+
+        // Escribir texto después del precio
+        if (afterPrecio) {
+          doc.setFont('helvetica', 'normal')
+          doc.text(
+            afterPrecio,
+            margin +
+              (beforePrecio ? doc.getTextWidth(beforePrecio) : 0) +
+              doc.getTextWidth(precioCompleto),
+            currentY
+          )
+        }
+      } else {
+        // Si no hay precio en esta línea, escribirla normal
+        doc.setFont('helvetica', 'normal')
+        doc.text(line, margin, currentY)
+      }
+      currentY += 5
+    }
+    yPosition = currentY + 5
+
+    // Clausula 6
+    const clausula6 = `6. Que con la firma del presente contrato, EL VENDEDOR entrega y EL COMPRADOR recibe el vehículo descrito, así como toda la documentación del mismo (permiso de circulación, ficha técnica, etc.).`
+    doc.text(clausula6, margin, yPosition)
+    yPosition += 8
+
+    // Clausula 7
+    const clausula7 = `7. Que EL COMPRADOR se compromete a realizar el cambio de titularidad del vehículo en el plazo máximo de 30 días naturales desde la fecha de firma del presente contrato.`
+    doc.text(clausula7, margin, yPosition)
+    yPosition += 8
+
+    // Clausula 8
+    const clausula8 = `8. Que las partes se someten expresamente a la jurisdicción de los Juzgados y Tribunales de Valencia para la resolución de cualquier controversia que pueda surgir en relación con el presente contrato.`
+    doc.text(clausula8, margin, yPosition)
+    yPosition += 12
+
+    // Firma
+    doc.setFont('helvetica', 'bold')
+    doc.text(
+      'Y en prueba de conformidad, firman el presente contrato por duplicado y a un solo efecto:',
+      margin,
+      yPosition
+    )
+    yPosition += 15
+
+    // Líneas de firma
+    doc.setFont('helvetica', 'normal')
+    doc.text('EL VENDEDOR', margin, yPosition)
+    doc.text('EL COMPRADOR', pageWidth / 2 + 20, yPosition)
+    yPosition += 25
+
+    doc.text('_________________________', margin, yPosition)
+    doc.text('_________________________', pageWidth / 2 + 20, yPosition)
+    yPosition += 8
+
+    doc.text('SEVEN CARS MOTORS S.L.', margin, yPosition)
+    doc.text(
+      `${cliente.nombre} ${cliente.apellidos}`,
+      pageWidth / 2 + 20,
+      yPosition
+    )
+
+    return doc.output('arraybuffer') as Uint8Array
+  } catch (error) {
+    console.error('Error generando contrato de compraventa:', error)
+    throw error
+  }
+}
+
+// Función para generar contrato de compraventa (versión original para depósitos)
 export async function generarContratoCompraventa(
   deposito: DepositoData
 ): Promise<Uint8Array> {

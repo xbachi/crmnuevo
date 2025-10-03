@@ -152,51 +152,17 @@ export default function GeneradorContratos() {
         }
       )
 
-      // Generar el contrato de compraventa usando la función directa
-      const { generarContratoCompraventa } = await import(
+      // Generar el contrato de compraventa usando la función simplificada
+      const { generarContratoCompraventaSimple } = await import(
         '@/lib/contractGenerator'
       )
 
-      // Crear datos en formato DepositoData para la función
-      const depositoData = {
-        id: Date.now(), // ID único temporal
-        cliente: {
-          id: 0,
-          nombre: cliente.nombre,
-          apellidos: cliente.apellidos,
-          dni: cliente.dni,
-          telefono: cliente.telefono,
-          email: cliente.email,
-          direccion: cliente.direccion,
-          ciudad: cliente.ciudad,
-          provincia: cliente.provincia,
-          codigoPostal: cliente.codPostal,
-        },
-        vehiculo: {
-          id: 0,
-          referencia: `#${Date.now()}`,
-          marca: vehiculo.marca,
-          modelo: vehiculo.modelo,
-          matricula: vehiculo.matricula,
-          bastidor: vehiculo.bastidor,
-          kms: vehiculo.kms,
-          color: vehiculo.color,
-          fechaMatriculacion: vehiculo.fechaMatriculacion,
-          año: vehiculo.año,
-          combustible: vehiculo.combustible,
-          potencia: vehiculo.potencia,
-          cambio: vehiculo.cambio,
-          precioPublicacion: contrato.precioCompra,
-          estado: 'vendido',
-        },
-        monto_recibir: contrato.precioCompra,
-        fecha_compra: contrato.fechaCompra,
-        estado: 'VENDIDO',
-        numero_cuenta: '',
-      }
-
-      // Generar el contrato
-      const pdfBuffer = await generarContratoCompraventa(depositoData)
+      // Generar el contrato con datos simples
+      const pdfBuffer = await generarContratoCompraventaSimple(
+        cliente,
+        vehiculo,
+        contrato.precioCompra
+      )
 
       // Crear y descargar el PDF
       const pdfBlob = new Blob([pdfBuffer], { type: 'application/pdf' })
