@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/database'
+import { promises as fs } from 'fs'
+import path from 'path'
 
 export async function GET(request: NextRequest) {
   const client = await pool.connect()
@@ -7,53 +9,62 @@ export async function GET(request: NextRequest) {
   try {
     const year = new Date().getFullYear()
 
-    // Buscar el último número de factura del año actual
-    // Buscar en deals que tengan factura
+    // Buscar TODOS los números de factura del año actual en toda la aplicación
+    // 1. Buscar en deals que tengan factura (campo factura no null)
     const dealsQuery = `
-      SELECT numero 
+      SELECT factura 
       FROM "Deal" 
       WHERE factura IS NOT NULL 
-      AND numero LIKE 'F-${year}-%'
-      ORDER BY numero DESC 
-      LIMIT 1
+      AND factura LIKE '%F-${year}-%'
+      ORDER BY factura DESC 
+      LIMIT 10
     `
 
-    const dealsResult = await client.query(dealsQuery)
+    // 2. Buscar en el directorio de documentos físicos (facturas independientes)
+    // Esto requiere acceso al sistema de archivos
+    const documentsDir = path.join(process.cwd(), 'public', 'documents')
 
-    // Buscar facturas independientes en el directorio de documentos
-    // (esto es una aproximación, ya que no tenemos una tabla específica para facturas independientes)
-    const documentsQuery = `
-      SELECT numero 
-      FROM "Deal" 
-      WHERE numero LIKE 'FAC-${year}-%'
-      ORDER BY numero DESC 
-      LIMIT 1
-    `
-
-    const documentsResult = await client.query(documentsQuery)
-
-    // Encontrar el número más alto entre ambos
     let lastNumber = 0
 
-    if (dealsResult.rows.length > 0) {
-      const dealNumber = dealsResult.rows[0].numero
-      const match = dealNumber.match(/F-(\d{4})-(\d{4})/)
+    // Procesar facturas de deals
+    const dealsResult = await client.query(dealsQuery)
+    for (const row of dealsResult.rows) {
+      const factura = row.factura
+      // Extraer número de factura del formato: factura-iva-F-2025-0001.pdf
+      const match = factura.match(/F-(\d{4})-(\d{4})/)
       if (match) {
         lastNumber = Math.max(lastNumber, parseInt(match[2]))
       }
     }
 
-    if (documentsResult.rows.length > 0) {
-      const docNumber = documentsResult.rows[0].numero
-      const match = docNumber.match(/FAC-(\d{4})-(\d{4})/)
-      if (match) {
-        lastNumber = Math.max(lastNumber, parseInt(match[2]))
+    // Procesar facturas independientes del directorio
+    try {
+      const files = await fs.readdir(documentsDir)
+      for (const file of files) {
+        // Buscar archivos que coincidan con el patrón F-YYYY-####.pdf
+        const match = file.match(/F-(\d{4})-(\d{4})\.pdf$/)
+        if (match) {
+          lastNumber = Math.max(lastNumber, parseInt(match[2]))
+        }
       }
+    } catch (dirError) {
+      console.log(
+        'Directorio de documentos no existe o no se puede leer:',
+        dirError.message
+      )
     }
 
     // Generar el siguiente número
     const nextNumber = lastNumber + 1
     const formattedNumber = `F-${year}-${String(nextNumber).padStart(4, '0')}`
+
+    console.log('🔍 [API NEXT-NUMBER] Resultado:', {
+      year,
+      lastNumber,
+      nextNumber,
+      formattedNumber,
+      dealsFound: dealsResult.rows.length,
+    })
 
     return NextResponse.json({
       nextNumber: formattedNumber,
