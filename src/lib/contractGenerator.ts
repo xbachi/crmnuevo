@@ -1524,8 +1524,8 @@ export async function generarContratoCompraventaSimple(
     yPosition += 12
 
     // REUNIDOS
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
     doc.text('REUNIDOS', margin, yPosition)
     yPosition += 8
 
@@ -1536,22 +1536,45 @@ export async function generarContratoCompraventaSimple(
 
     doc.setFont('helvetica', 'normal')
     doc.text(
-      'SEVEN CARS MOTORS S.L., con domicilio en C/ Mayor, 6, 46970 Alaquas (Valencia), con CIF B-12345678, en adelante "EL VENDEDOR".',
+      'D. Sebastian Pelella, mayor de edad, con NIE Z0147238C, en representación de Sevencars Motors SL',
       margin,
       yPosition
     )
-    yPosition += 12
+    yPosition += 5
+    doc.text(
+      'con CIF B75939868 y domicilio en Cami dels Mollons Nº 36 Bajo de Alaquas, Valencia,',
+      margin,
+      yPosition
+    )
+    yPosition += 5
+    doc.text('en calidad de adquiriente o comprador.', margin, yPosition)
+    yPosition += 8
 
-    // De otra parte
+    // Y DE OTRA PARTE
     doc.setFont('helvetica', 'bold')
-    doc.text('DE OTRA PARTE:', margin, yPosition)
+    doc.text('Y DE OTRA PARTE:', margin, yPosition)
     yPosition += 6
-
     doc.setFont('helvetica', 'normal')
-    const datosCliente = `D/Dña ${cliente.nombre} ${cliente.apellidos}, con DNI ${cliente.dni}, con domicilio en ${cliente.direccion}, ${cliente.ciudad}, ${cliente.provincia}, ${cliente.codigoPostal || cliente.codPostal}, en adelante "EL COMPRADOR".`
-    const linesCliente = doc.splitTextToSize(datosCliente, maxWidth)
-    doc.text(linesCliente, margin, yPosition)
-    yPosition += linesCliente.length * 5 + 8
+    const nombreCompleto = `${cliente.nombre} ${cliente.apellidos}`
+    const direccionCompleta =
+      `${cliente.direccion || ''}, ${cliente.ciudad || ''}, ${cliente.provincia || ''}`
+        .trim()
+        .replace(/^,\s*|,\s*$/g, '') // Eliminar comas al inicio y final
+
+    doc.text(
+      `D/Dña ${nombreCompleto}, mayor de edad, con DNI ${cliente.dni}, con domicilio en`,
+      margin,
+      yPosition
+    )
+    yPosition += 5
+
+    if (direccionCompleta) {
+      doc.text(`${direccionCompleta},`, margin, yPosition)
+      yPosition += 5
+    }
+
+    doc.text('en calidad de vendedor.', margin, yPosition)
+    yPosition += 8
 
     // Manifiestan
     doc.setFont('helvetica', 'bold')
@@ -1680,8 +1703,8 @@ export async function generarContratoCompraventaSimple(
 
     // Líneas de firma
     doc.setFont('helvetica', 'normal')
-    doc.text('EL VENDEDOR', margin, yPosition)
-    doc.text('EL COMPRADOR', pageWidth / 2 + 20, yPosition)
+    doc.text('EL COMPRADOR', margin, yPosition)
+    doc.text('EL VENDEDOR', pageWidth / 2 + 20, yPosition)
     yPosition += 25
 
     doc.text('_________________________', margin, yPosition)
