@@ -139,9 +139,28 @@ export default function GeneradorFacturas() {
     try {
       setIsGenerating(true)
 
+      // Si no se proporciona número personalizado, obtener el siguiente número secuencial
+      let numeroFacturaFinal = numeroFactura
+      if (!numeroFactura) {
+        try {
+          const response = await fetch('/api/facturas/next-number')
+          if (response.ok) {
+            const data = await response.json()
+            numeroFacturaFinal = data.nextNumber
+          } else {
+            // Fallback si falla la API
+            numeroFacturaFinal = `F-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`
+          }
+        } catch (error) {
+          console.error('Error obteniendo número de factura:', error)
+          // Fallback si falla la API
+          numeroFacturaFinal = `F-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`
+        }
+      }
+
       console.log('🔍 [GENERADOR FACTURAS] Generando factura con parámetros:', {
         tipoFactura,
-        numeroFactura,
+        numeroFactura: numeroFacturaFinal,
         cliente,
         vehiculo,
         factura,
@@ -149,8 +168,7 @@ export default function GeneradorFacturas() {
 
       // Crear datos del deal para la API
       const dealData = {
-        numero:
-          numeroFactura || `FAC-${new Date().getFullYear()}-${Date.now()}`,
+        numero: numeroFacturaFinal,
         fechaCreacion: new Date(),
         cliente: {
           nombre: cliente.nombre,
@@ -192,7 +210,7 @@ export default function GeneradorFacturas() {
           dealNumber: dealData.numero,
           dealData,
           tipoFactura,
-          numeroFactura,
+          numeroFactura: numeroFacturaFinal,
         }),
       })
 

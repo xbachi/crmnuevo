@@ -659,17 +659,37 @@ export default function DealDetail() {
     numeroFactura?: string
   ) => {
     try {
-      console.log('🔍 [FRONTEND] Generando factura con parámetros:', {
-        tipoFactura,
-        numeroFactura,
-        dealId: deal?.id,
-      })
       setIsGeneratingFactura(true)
 
       if (!deal) {
         showToast('No hay datos del deal disponibles', 'error')
         return
       }
+
+      // Si no se proporciona número personalizado, obtener el siguiente número secuencial
+      let numeroFacturaFinal = numeroFactura
+      if (!numeroFactura) {
+        try {
+          const response = await fetch('/api/facturas/next-number')
+          if (response.ok) {
+            const data = await response.json()
+            numeroFacturaFinal = data.nextNumber
+          } else {
+            // Fallback si falla la API
+            numeroFacturaFinal = `F-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`
+          }
+        } catch (error) {
+          console.error('Error obteniendo número de factura:', error)
+          // Fallback si falla la API
+          numeroFacturaFinal = `F-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`
+        }
+      }
+
+      console.log('🔍 [FRONTEND] Generando factura con parámetros:', {
+        tipoFactura,
+        numeroFactura: numeroFacturaFinal,
+        dealId: deal?.id,
+      })
 
       // Siempre generar una nueva factura (no usar caché)
       // Generar la factura
@@ -694,7 +714,7 @@ export default function DealDetail() {
             fechaReservaExpira: deal.fechaReservaExpira,
           },
           tipoFactura,
-          numeroFactura,
+          numeroFactura: numeroFacturaFinal,
         }),
       })
 
@@ -709,7 +729,7 @@ export default function DealDetail() {
         // Actualizar el deal
         const updatedDeal = {
           ...deal,
-          factura: `factura-${tipoFactura.toLowerCase()}-${numeroFactura || deal.numero}.pdf`,
+          factura: `factura-${tipoFactura.toLowerCase()}-${numeroFacturaFinal}.pdf`,
           estado: 'facturado',
           fechaFacturada: new Date(),
         }
@@ -722,7 +742,7 @@ export default function DealDetail() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               estado: 'facturado',
-              factura: `factura-${tipoFactura.toLowerCase()}-${numeroFactura || deal.numero}.pdf`,
+              factura: `factura-${tipoFactura.toLowerCase()}-${numeroFacturaFinal}.pdf`,
               fechaFacturada: new Date().toISOString(),
             }),
           })

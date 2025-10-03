@@ -215,12 +215,6 @@ export default function Navigation() {
       roles: ['admin', 'asesor'],
     },
     {
-      href: '/generador-facturas',
-      label: 'Generador Facturas',
-      icon: FacturasIcon,
-      roles: ['admin', 'asesor'],
-    },
-    {
       href: '/clientes',
       label: 'Clientes',
       icon: ClientesIcon,
@@ -248,6 +242,12 @@ export default function Navigation() {
       href: '/documentacion',
       label: 'Documentación',
       icon: DocumentacionIcon,
+      roles: ['admin', 'asesor'],
+    },
+    {
+      href: '/generador-facturas',
+      label: 'Generador Facturas',
+      icon: FacturasIcon,
       roles: ['admin', 'asesor'],
     },
   ]
