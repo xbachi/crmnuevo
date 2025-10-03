@@ -8,6 +8,8 @@ import { documentExists, saveDocument } from '@/lib/documentStorage'
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🔍 [API GENERATE] Iniciando generación de documento...')
+
     const {
       dealId,
       documentType,
@@ -83,7 +85,17 @@ export async function POST(request: NextRequest) {
           numeroFactura,
           dealId,
         })
-        pdfBuffer = await generarFactura(dealData, tipoFactura, numeroFactura)
+        try {
+          pdfBuffer = await generarFactura(dealData, tipoFactura, numeroFactura)
+          console.log(
+            '✅ [API GENERATE] Factura generada exitosamente, tamaño:',
+            pdfBuffer.length,
+            'bytes'
+          )
+        } catch (error) {
+          console.error('❌ [API GENERATE] Error generando factura:', error)
+          throw error
+        }
         break
       default:
         return NextResponse.json(
@@ -105,9 +117,14 @@ export async function POST(request: NextRequest) {
       url: documentUrl,
     })
   } catch (error) {
-    console.error('Error generando documento:', error)
+    console.error('❌ [API GENERATE] Error generando documento:', error)
+    console.error('❌ [API GENERATE] Stack trace:', (error as Error).stack)
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      {
+        error: 'Error interno del servidor',
+        details: (error as Error).message,
+        type: 'document_generation_error',
+      },
       { status: 500 }
     )
   }
