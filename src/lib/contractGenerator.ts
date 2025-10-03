@@ -1587,26 +1587,56 @@ export async function generarContratoCompraventaSimple(
     doc.text(clausula1, margin, yPosition)
     yPosition += 8
 
-    // Datos del vehículo
-    const datosVehiculo = [
-      `Marca: ${vehiculo.marca}`,
-      `Modelo: ${vehiculo.modelo}`,
-      `Matrícula: ${vehiculo.matricula}`,
-      `Bastidor: ${vehiculo.bastidor || 'No especificado'}`,
-      `Kilómetros: ${vehiculo.kms ? vehiculo.kms.toLocaleString('es-ES') : 'No especificados'}`,
-      `Color: ${vehiculo.color || 'No especificado'}`,
-      `Año: ${vehiculo.año || 'No especificado'}`,
-      `Combustible: ${vehiculo.combustible || 'No especificado'}`,
-      `Potencia: ${vehiculo.potencia || 'No especificada'}`,
-      `Cambio: ${vehiculo.cambio || 'No especificado'}`,
-      `Fecha de Matriculación: ${vehiculo.fechaMatriculacion ? new Date(vehiculo.fechaMatriculacion).toLocaleDateString('es-ES') : 'No especificada'}`,
-    ]
+    // Dos columnas para los datos del vehículo (igual que contrato original)
+    const col1X = margin + 8
+    const col2X = margin + 90
+    const lineHeight = 5
 
-    for (const dato of datosVehiculo) {
-      doc.text(`   ${dato}`, margin + 5, yPosition)
-      yPosition += 5
-    }
-    yPosition += 5
+    // Columna izquierda
+    doc.text(`Marca y Modelo: `, col1X, yPosition)
+    doc.setFont('helvetica', 'bold')
+    doc.text(`${vehiculo.marca} ${vehiculo.modelo}`, col1X + 35, yPosition)
+    doc.setFont('helvetica', 'normal')
+    doc.text(`Nº Bastidor: `, col1X, yPosition + lineHeight)
+    doc.setFont('helvetica', 'bold')
+    doc.text(
+      `${vehiculo.bastidor || 'No especificado'}`,
+      col1X + 35,
+      yPosition + lineHeight
+    )
+    doc.setFont('helvetica', 'normal')
+    doc.text(`Matrícula: `, col1X, yPosition + lineHeight * 2)
+    doc.setFont('helvetica', 'bold')
+    doc.text(`${vehiculo.matricula}`, col1X + 35, yPosition + lineHeight * 2)
+    doc.setFont('helvetica', 'normal')
+
+    // Columna derecha
+    doc.text(`Fecha 1ª Matriculación: `, col2X, yPosition)
+    doc.setFont('helvetica', 'bold')
+    doc.text(
+      `${vehiculo.fechaMatriculacion ? new Date(vehiculo.fechaMatriculacion).toLocaleDateString('es-ES') : 'No especificada'}`,
+      col2X + 50,
+      yPosition
+    )
+    doc.setFont('helvetica', 'normal')
+    doc.text(`Kilometraje: `, col2X, yPosition + lineHeight)
+    doc.setFont('helvetica', 'bold')
+    doc.text(
+      `${vehiculo.kms ? vehiculo.kms.toLocaleString('es-ES') : 'No especificado'} km`,
+      col2X + 50,
+      yPosition + lineHeight
+    )
+    doc.setFont('helvetica', 'normal')
+    doc.text(`Color: `, col2X, yPosition + lineHeight * 2)
+    doc.setFont('helvetica', 'bold')
+    doc.text(
+      `${vehiculo.color || 'No especificado'}`,
+      col2X + 50,
+      yPosition + lineHeight * 2
+    )
+    doc.setFont('helvetica', 'normal')
+
+    yPosition += lineHeight * 3 + 6
 
     // Clausula 2
     const clausula2 = `2. Que EL COMPRADOR desea adquirir el vehículo descrito en las condiciones que se establecen en el presente contrato.`

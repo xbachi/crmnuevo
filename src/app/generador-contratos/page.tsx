@@ -26,9 +26,6 @@ interface VehiculoData {
   color: string
   fechaMatriculacion: string
   año: number
-  combustible: string
-  potencia: string
-  cambio: string
 }
 
 interface ContratoData {
@@ -63,9 +60,6 @@ export default function GeneradorContratos() {
     color: '',
     fechaMatriculacion: '',
     año: new Date().getFullYear(),
-    combustible: '',
-    potencia: '',
-    cambio: '',
   })
 
   const [contrato, setContrato] = useState<ContratoData>({
@@ -466,59 +460,7 @@ export default function GeneradorContratos() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Combustible
-                    </label>
-                    <select
-                      value={vehiculo.combustible}
-                      onChange={(e) =>
-                        handleVehiculoChange('combustible', e.target.value)
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">Seleccionar</option>
-                      <option value="Gasolina">Gasolina</option>
-                      <option value="Diésel">Diésel</option>
-                      <option value="Híbrido">Híbrido</option>
-                      <option value="Eléctrico">Eléctrico</option>
-                      <option value="GNC">GNC</option>
-                      <option value="GLP">GLP</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Potencia
-                    </label>
-                    <input
-                      type="text"
-                      value={vehiculo.potencia}
-                      onChange={(e) =>
-                        handleVehiculoChange('potencia', e.target.value)
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Ej: 150 CV"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Cambio
-                    </label>
-                    <select
-                      value={vehiculo.cambio}
-                      onChange={(e) =>
-                        handleVehiculoChange('cambio', e.target.value)
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">Seleccionar</option>
-                      <option value="Manual">Manual</option>
-                      <option value="Automático">Automático</option>
-                      <option value="Semi-automático">Semi-automático</option>
-                    </select>
-                  </div>
-                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4"></div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
