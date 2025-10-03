@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
-import { useToast } from '@/components/ToastContext'
+import { useToast } from '@/hooks/useToast'
 import FacturaTypeModal from '@/components/FacturaTypeModal'
 
 interface ClienteData {
