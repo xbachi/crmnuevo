@@ -1546,7 +1546,7 @@ export default function VehiculoDetailPage() {
                                     className="ml-1 text-green-900 bg-white border border-green-300 rounded px-1 py-0.5 text-xs font-medium font-mono w-16"
                                   />
                                 ) : (
-                                  <span className="text-green-900 font-mono font-bold text-sm break-all ml-1">
+                                  <span className="text-green-900 font-mono font-bold text-sm lg:text-base break-all ml-1">
                                     {vehiculo.bastidor}
                                   </span>
                                 )}
