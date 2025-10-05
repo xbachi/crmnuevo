@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { PrismaClient } from '@prisma/client'
+
+// Crear una nueva instancia de Prisma para evitar problemas de cache
+const prisma = new PrismaClient({
+  log:
+    process.env.NODE_ENV === 'development'
+      ? ['query', 'error', 'warn']
+      : ['error'],
+})
 
 // GET - Obtener estado de compra del vehículo
 export async function GET(
