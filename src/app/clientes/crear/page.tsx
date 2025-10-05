@@ -104,7 +104,9 @@ export default function CrearClientePage() {
           // Mapear campos de dirección correctamente
           calle: formData.direccion,
           // Mapear campos de intereses correctamente
-          vehiculosInteres: formData.intereses.vehiculosInteres,
+          vehiculosInteres: JSON.stringify(
+            formData.intereses.vehiculosInteres.filter((v) => v.trim() !== '')
+          ),
           presupuestoMaximo: formData.intereses.precioMaximo,
           kilometrajeMaximo: formData.intereses.kilometrajeMaximo,
           añoMinimo: formData.intereses.añoMinimo,
