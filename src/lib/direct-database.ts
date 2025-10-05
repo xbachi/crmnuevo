@@ -1113,7 +1113,7 @@ export async function checkUniqueFields(
 export async function getClientes() {
   const client = await pool.connect()
   try {
-    // Consulta optimizada con solo campos esenciales
+    // Consulta con todos los campos incluyendo intereses
     const result = await client.query(`
       SELECT 
         id,
@@ -1127,6 +1127,23 @@ export async function getClientes() {
         "codigoPostal",
         provincia,
         estado,
+        "vehiculosInteres",
+        "presupuestoMaximo",
+        "kilometrajeMaximo",
+        "añoMinimo",
+        "combustiblePreferido",
+        "cambioPreferido",
+        "coloresDeseados",
+        "necesidadesEspeciales",
+        "formaPagoPreferida",
+        "comoLlego",
+        "fechaPrimerContacto",
+        prioridad,
+        "proximoPaso",
+        etiquetas,
+        "notasAdicionales",
+        observaciones,
+        activo,
         "createdAt",
         "updatedAt"
       FROM "Cliente" 
