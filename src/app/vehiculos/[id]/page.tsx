@@ -1318,11 +1318,11 @@ export default function VehiculoDetailPage() {
             {/* Panel Principal */}
             <div className="lg:col-span-7 2xl:col-span-7 space-y-2 sm:space-y-4 lg:space-y-6">
               {/* Estado del Vehículo - Solo visible en pantallas < 1500px */}
-              <div className="block 2xl:hidden bg-white rounded-xl shadow-sm border border-slate-200 p-3 sm:p-4 lg:p-6">
-                <div className="flex items-center space-x-2 mb-4">
-                  <div className="w-3 h-3 sm:w-4 sm:h-4 lg:w-6 lg:h-6 sm:w-8 sm:h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
+              <div className="block 2xl:hidden bg-white rounded-xl shadow-sm border border-slate-200 p-2 sm:p-3 lg:p-4">
+                <div className="flex items-center space-x-2 mb-3">
+                  <div className="w-4 h-4 xl:w-6 xl:h-6 bg-indigo-500 rounded-lg flex items-center justify-center">
                     <svg
-                      className="w-3 h-3 sm:w-4 sm:h-4 text-white"
+                      className="w-2 h-2 xl:w-4 xl:h-4 text-white"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -1335,39 +1335,39 @@ export default function VehiculoDetailPage() {
                       />
                     </svg>
                   </div>
-                  <h2 className="text-base sm:text-lg font-semibold text-gray-900">
+                  <h2 className="text-sm xl:text-base font-semibold text-gray-900">
                     Estado
                   </h2>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-xs xl:text-sm font-medium text-gray-700 mb-2">
                       Estado Actual
                     </label>
                     <div className="flex items-center justify-between">
                       <span
-                        className={`px-3 py-2 rounded-lg text-sm font-medium ${getEstadoColor(vehiculo?.estado || 'inicial')}`}
+                        className={`px-2 py-1 xl:px-3 xl:py-2 rounded-lg text-xs xl:text-sm font-medium ${getEstadoColor(vehiculo?.estado || 'inicial')}`}
                       >
                         {(vehiculo?.estado || 'inicial').toUpperCase()}
                       </span>
 
                       {/* Botones de cambio de condición (Solo Admin) */}
                       {isAdmin && vehiculo && (
-                        <div className="space-y-2">
+                        <div className="space-y-1">
                           <p className="text-xs text-gray-600 font-medium">
                             Marcar como:
                           </p>
-                          <div className="flex flex-col space-y-2 xl:flex-row xl:space-y-0 xl:space-x-2">
+                          <div className="flex flex-col space-y-1 xl:flex-row xl:space-y-0 xl:space-x-2">
                             {getCondicionVehiculo() !== 'reservado' && (
                               <button
                                 onClick={() =>
                                   cambiarCondicionVehiculo('reservado')
                                 }
-                                className="px-2 sm:px-3 py-1 sm:py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors text-xs sm:text-sm font-medium flex items-center space-x-1"
+                                className="px-2 py-1 xl:px-3 xl:py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors text-xs xl:text-sm font-medium flex items-center space-x-1"
                               >
                                 <svg
-                                  className="w-3 h-3"
+                                  className="w-2 h-2 xl:w-3 xl:h-3"
                                   fill="none"
                                   stroke="currentColor"
                                   viewBox="0 0 24 24"
@@ -1388,10 +1388,10 @@ export default function VehiculoDetailPage() {
                                 onClick={() =>
                                   cambiarCondicionVehiculo('vendido')
                                 }
-                                className="px-2 sm:px-3 py-1 sm:py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-xs sm:text-sm font-medium flex items-center space-x-1"
+                                className="px-2 py-1 xl:px-3 xl:py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-xs xl:text-sm font-medium flex items-center space-x-1"
                               >
                                 <svg
-                                  className="w-3 h-3"
+                                  className="w-2 h-2 xl:w-3 xl:h-3"
                                   fill="none"
                                   stroke="currentColor"
                                   viewBox="0 0 24 24"
@@ -1412,10 +1412,10 @@ export default function VehiculoDetailPage() {
                                 onClick={() =>
                                   cambiarCondicionVehiculo('disponible')
                                 }
-                                className="px-2 sm:px-3 py-1 sm:py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-xs sm:text-sm font-medium flex items-center space-x-1"
+                                className="px-2 py-1 xl:px-3 xl:py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-xs xl:text-sm font-medium flex items-center space-x-1"
                               >
                                 <svg
-                                  className="w-3 h-3"
+                                  className="w-2 h-2 xl:w-3 xl:h-3"
                                   fill="none"
                                   stroke="currentColor"
                                   viewBox="0 0 24 24"
@@ -1452,11 +1452,11 @@ export default function VehiculoDetailPage() {
 
                   {/* Alerta de ITV vencida */}
                   {vehiculo?.itv === 'No' && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-1.5 xl:p-2 lg:p-4">
                       <div className="flex items-center space-x-2">
-                        <div className="w-3 h-3 sm:w-4 sm:h-4 lg:w-6 lg:h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
+                        <div className="w-3 h-3 xl:w-4 xl:h-4 lg:w-6 lg:h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
                           <svg
-                            className="w-1.5 h-1.5 sm:w-2 sm:h-2 lg:w-3 lg:h-3 text-white"
+                            className="w-1.5 h-1.5 xl:w-2 xl:h-2 lg:w-3 lg:h-3 text-white"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -1470,7 +1470,7 @@ export default function VehiculoDetailPage() {
                           </svg>
                         </div>
                         <div className="flex-1">
-                          <p className="text-xs sm:text-sm font-medium text-red-800">
+                          <p className="text-xs xl:text-sm font-medium text-red-800">
                             ITV Vencida
                           </p>
                           <p className="text-xs text-red-600">
@@ -2511,7 +2511,7 @@ export default function VehiculoDetailPage() {
                       className="px-3 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm flex items-center space-x-1"
                     >
                       <svg
-                        className="w-3 h-3"
+                        className="w-2 h-2 xl:w-3 xl:h-3"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -2532,7 +2532,7 @@ export default function VehiculoDetailPage() {
                         className="px-3 py-1 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm flex items-center space-x-1"
                       >
                         <svg
-                          className="w-3 h-3"
+                          className="w-2 h-2 xl:w-3 xl:h-3"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -2551,7 +2551,7 @@ export default function VehiculoDetailPage() {
                         className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center space-x-1"
                       >
                         <svg
-                          className="w-3 h-3"
+                          className="w-2 h-2 xl:w-3 xl:h-3"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -3253,7 +3253,7 @@ export default function VehiculoDetailPage() {
                       className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium transition-colors flex items-center space-x-1"
                     >
                       <svg
-                        className="w-3 h-3"
+                        className="w-2 h-2 xl:w-3 xl:h-3"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -3551,10 +3551,10 @@ export default function VehiculoDetailPage() {
                                 onClick={() =>
                                   cambiarCondicionVehiculo('reservado')
                                 }
-                                className="px-2 sm:px-3 py-1 sm:py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors text-xs sm:text-sm font-medium flex items-center space-x-1"
+                                className="px-2 py-1 xl:px-3 xl:py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors text-xs xl:text-sm font-medium flex items-center space-x-1"
                               >
                                 <svg
-                                  className="w-3 h-3"
+                                  className="w-2 h-2 xl:w-3 xl:h-3"
                                   fill="none"
                                   stroke="currentColor"
                                   viewBox="0 0 24 24"
@@ -3575,10 +3575,10 @@ export default function VehiculoDetailPage() {
                                 onClick={() =>
                                   cambiarCondicionVehiculo('vendido')
                                 }
-                                className="px-2 sm:px-3 py-1 sm:py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-xs sm:text-sm font-medium flex items-center space-x-1"
+                                className="px-2 py-1 xl:px-3 xl:py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-xs xl:text-sm font-medium flex items-center space-x-1"
                               >
                                 <svg
-                                  className="w-3 h-3"
+                                  className="w-2 h-2 xl:w-3 xl:h-3"
                                   fill="none"
                                   stroke="currentColor"
                                   viewBox="0 0 24 24"
@@ -3599,10 +3599,10 @@ export default function VehiculoDetailPage() {
                                 onClick={() =>
                                   cambiarCondicionVehiculo('disponible')
                                 }
-                                className="px-2 sm:px-3 py-1 sm:py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-xs sm:text-sm font-medium flex items-center space-x-1"
+                                className="px-2 py-1 xl:px-3 xl:py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-xs xl:text-sm font-medium flex items-center space-x-1"
                               >
                                 <svg
-                                  className="w-3 h-3"
+                                  className="w-2 h-2 xl:w-3 xl:h-3"
                                   fill="none"
                                   stroke="currentColor"
                                   viewBox="0 0 24 24"
@@ -3941,7 +3941,7 @@ export default function VehiculoDetailPage() {
                       className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium transition-colors flex items-center space-x-1"
                     >
                       <svg
-                        className="w-3 h-3"
+                        className="w-2 h-2 xl:w-3 xl:h-3"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
