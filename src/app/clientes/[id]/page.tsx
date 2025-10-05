@@ -627,15 +627,10 @@ export default function ClienteDetailPage() {
       // Solo guardar campos de intereses que tienen valores
       const dataToSave: any = {}
 
-      // Solo incluir campos que tienen valores válidos
-      if (
-        editData.intereses?.vehiculosInteres &&
-        editData.intereses.vehiculosInteres.length > 0
-      ) {
-        dataToSave.vehiculosInteres = JSON.stringify(
-          editData.intereses.vehiculosInteres
-        )
-      }
+      // Siempre incluir vehiculosInteres, incluso si está vacío
+      dataToSave.vehiculosInteres = JSON.stringify(
+        editData.intereses?.vehiculosInteres || []
+      )
 
       if (
         editData.intereses?.precioMaximo &&
