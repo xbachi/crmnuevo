@@ -3503,7 +3503,7 @@ export default function VehiculoDetailPage() {
             </div>
 
             {/* Sidebar Derecha */}
-            <div className="hidden 2xl:block 2xl:col-span-3 space-y-2 sm:space-y-4 lg:space-y-6">
+            <div className="hidden 2xl:block 2xl:col-span-3 space-y-2 sm:space-y-4 lg:space-y-6 max-w-[400px]">
               {/* Estado del Vehículo - Solo visible en pantallas >= 1500px */}
               <div className="hidden 2xl:block bg-white rounded-xl shadow-sm border border-slate-200 p-3 sm:p-4 lg:p-6">
                 <div className="flex items-center space-x-2 mb-4">
