@@ -71,6 +71,21 @@ export default function NuevoDealPage() {
   useEffect(() => {
     fetchClientes()
     fetchVehiculos()
+
+    // Establecer fechas por defecto
+    const hoy = new Date()
+    const fechaInicio = hoy.toISOString().split('T')[0] // Formato YYYY-MM-DD
+
+    // Fecha de expiración: 7 días después
+    const fechaExpiracion = new Date(hoy)
+    fechaExpiracion.setDate(hoy.getDate() + 7)
+    const fechaExpiracionFormato = fechaExpiracion.toISOString().split('T')[0]
+
+    setFormData((prev) => ({
+      ...prev,
+      fechaReservaDesde: fechaInicio,
+      fechaReservaExpira: fechaExpiracionFormato,
+    }))
   }, [])
 
   // Cerrar dropdowns al hacer clic fuera
