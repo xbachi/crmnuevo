@@ -1341,114 +1341,115 @@ export default function VehiculoDetailPage() {
                 </div>
 
                 <div className="space-y-3">
-                  <div>
-                    <label className="block text-xs xl:text-sm font-medium text-gray-700 mb-2">
-                      Estado Actual
-                    </label>
-                    <div className="flex items-center justify-between">
-                      <span
-                        className={`px-2 py-1 xl:px-3 xl:py-2 rounded-lg text-xs xl:text-sm font-medium ${getEstadoColor(vehiculo?.estado || 'inicial')}`}
-                      >
-                        {(vehiculo?.estado || 'inicial').toUpperCase()}
-                      </span>
+                  {/* Primera fila: Estado, Condición y "Marcar como" */}
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Estado Actual
+                        </label>
+                        <span
+                          className={`px-2 py-1 rounded-lg text-xs font-medium ${getEstadoColor(vehiculo?.estado || 'inicial')}`}
+                        >
+                          {(vehiculo?.estado || 'inicial').toUpperCase()}
+                        </span>
+                      </div>
 
-                      {/* Botones de cambio de condición (Solo Admin) */}
-                      {isAdmin && vehiculo && (
-                        <div className="space-y-1">
-                          <p className="text-xs text-gray-600 font-medium">
-                            Marcar como:
-                          </p>
-                          <div className="flex flex-col space-y-1 xl:flex-row xl:space-y-0 xl:space-x-2">
-                            {getCondicionVehiculo() !== 'reservado' && (
-                              <button
-                                onClick={() =>
-                                  cambiarCondicionVehiculo('reservado')
-                                }
-                                className="px-2 py-1 xl:px-3 xl:py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors text-xs xl:text-sm font-medium flex items-center space-x-1"
-                              >
-                                <svg
-                                  className="w-2 h-2 xl:w-3 xl:h-3"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                                  />
-                                </svg>
-                                <span>Reservado</span>
-                              </button>
-                            )}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Condición
+                        </label>
+                        <span
+                          className={`px-2 py-1 rounded-lg text-xs font-medium ${getCondicionColor(getCondicionVehiculo())}`}
+                        >
+                          {getCondicionVehiculo().toUpperCase()}
+                        </span>
+                      </div>
+                    </div>
 
-                            {getCondicionVehiculo() !== 'vendido' && (
-                              <button
-                                onClick={() =>
-                                  cambiarCondicionVehiculo('vendido')
-                                }
-                                className="px-2 py-1 xl:px-3 xl:py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-xs xl:text-sm font-medium flex items-center space-x-1"
-                              >
-                                <svg
-                                  className="w-2 h-2 xl:w-3 xl:h-3"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                                  />
-                                </svg>
-                                <span>Vendido</span>
-                              </button>
-                            )}
+                    {/* Label "Marcar como" - Solo visible en pantallas >= 500px */}
+                    {isAdmin && vehiculo && (
+                      <div className="hidden sm:block">
+                        <p className="text-xs text-gray-600 font-medium">
+                          Marcar como:
+                        </p>
+                      </div>
+                    )}
+                  </div>
 
-                            {getCondicionVehiculo() !== 'disponible' && (
-                              <button
-                                onClick={() =>
-                                  cambiarCondicionVehiculo('disponible')
-                                }
-                                className="px-2 py-1 xl:px-3 xl:py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-xs xl:text-sm font-medium flex items-center space-x-1"
-                              >
-                                <svg
-                                  className="w-2 h-2 xl:w-3 xl:h-3"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                                  />
-                                </svg>
-                                <span>Disponible</span>
-                              </button>
-                            )}
-                          </div>
-                        </div>
+                  {/* Segunda fila: Botones */}
+                  {isAdmin && vehiculo && (
+                    <div className="flex flex-row space-x-2">
+                      {getCondicionVehiculo() !== 'reservado' && (
+                        <button
+                          onClick={() => cambiarCondicionVehiculo('reservado')}
+                          className="px-2 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors text-xs font-medium flex items-center space-x-1"
+                        >
+                          <svg
+                            className="w-2 h-2"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                            />
+                          </svg>
+                          <span className="hidden sm:inline">Reservado</span>
+                          <span className="sm:hidden">R</span>
+                        </button>
+                      )}
+
+                      {getCondicionVehiculo() !== 'vendido' && (
+                        <button
+                          onClick={() => cambiarCondicionVehiculo('vendido')}
+                          className="px-2 py-1 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-xs font-medium flex items-center space-x-1"
+                        >
+                          <svg
+                            className="w-2 h-2"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                          <span className="hidden sm:inline">Vendido</span>
+                          <span className="sm:hidden">V</span>
+                        </button>
+                      )}
+
+                      {getCondicionVehiculo() !== 'disponible' && (
+                        <button
+                          onClick={() => cambiarCondicionVehiculo('disponible')}
+                          className="px-2 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-xs font-medium flex items-center space-x-1"
+                        >
+                          <svg
+                            className="w-2 h-2"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                            />
+                          </svg>
+                          <span className="hidden sm:inline">Disponible</span>
+                          <span className="sm:hidden">D</span>
+                        </button>
                       )}
                     </div>
-                  </div>
-
-                  {/* Condición del Vehículo */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Condición
-                    </label>
-                    <div className="flex items-center space-x-3">
-                      <span
-                        className={`px-3 py-2 rounded-lg text-sm font-medium ${getCondicionColor(getCondicionVehiculo())}`}
-                      >
-                        {getCondicionVehiculo().toUpperCase()}
-                      </span>
-                    </div>
-                  </div>
+                  )}
 
                   {/* Alerta de ITV vencida */}
                   {vehiculo?.itv === 'No' && (
