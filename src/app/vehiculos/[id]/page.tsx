@@ -1547,7 +1547,7 @@ export default function VehiculoDetailPage() {
                                   />
                                 ) : (
                                   <span className="text-green-900 font-mono text-xs break-all ml-1">
-                                    {vehiculo.bastidor?.substring(0, 8)}...
+                                    {vehiculo.bastidor}
                                   </span>
                                 )}
                               </span>
