@@ -12,15 +12,16 @@ const prisma = new PrismaClient({
 // GET - Obtener estado de compra del vehículo
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     console.log('🔍 [API GET] Iniciando consulta de estado de compra')
-    const vehiculoId = parseInt(params.id)
+    const { id } = await params
+    const vehiculoId = parseInt(id)
     console.log('🔍 [API GET] Vehículo ID:', vehiculoId)
 
     if (isNaN(vehiculoId)) {
-      console.log('❌ [API GET] ID de vehículo inválido:', params.id)
+      console.log('❌ [API GET] ID de vehículo inválido:', id)
       return NextResponse.json(
         { error: 'ID de vehículo inválido' },
         { status: 400 }
@@ -68,10 +69,11 @@ export async function GET(
 // PUT - Actualizar estado de compra del vehículo
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const vehiculoId = parseInt(params.id)
+    const { id } = await params
+    const vehiculoId = parseInt(id)
 
     if (isNaN(vehiculoId)) {
       return NextResponse.json(
