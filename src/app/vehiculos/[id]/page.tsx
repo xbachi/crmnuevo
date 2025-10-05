@@ -1983,8 +1983,12 @@ export default function VehiculoDetailPage() {
                               </span>
                               {isEditingFinanciero ? (
                                 <input
-                                  type="number"
-                                  value={editingData.precioCompra}
+                                  type="text"
+                                  value={
+                                    editingData.precioCompra === 0
+                                      ? ''
+                                      : editingData.precioCompra
+                                  }
                                   onChange={(e) =>
                                     setEditingData((prev) => ({
                                       ...prev,
@@ -1993,7 +1997,7 @@ export default function VehiculoDetailPage() {
                                     }))
                                   }
                                   className="w-24 text-right font-semibold border border-gray-300 rounded px-2 py-1 text-sm"
-                                  placeholder="0"
+                                  placeholder=""
                                 />
                               ) : (
                                 <span className="font-semibold">
@@ -2007,8 +2011,12 @@ export default function VehiculoDetailPage() {
                               </span>
                               {isEditingFinanciero ? (
                                 <input
-                                  type="number"
-                                  value={editingData.gastosTransporte}
+                                  type="text"
+                                  value={
+                                    editingData.gastosTransporte === 0
+                                      ? ''
+                                      : editingData.gastosTransporte
+                                  }
                                   onChange={(e) =>
                                     setEditingData((prev) => ({
                                       ...prev,
@@ -2017,7 +2025,7 @@ export default function VehiculoDetailPage() {
                                     }))
                                   }
                                   className="w-24 text-right font-semibold border border-gray-300 rounded px-2 py-1 text-sm"
-                                  placeholder="0"
+                                  placeholder=""
                                 />
                               ) : (
                                 <span className="font-semibold">
@@ -2033,8 +2041,12 @@ export default function VehiculoDetailPage() {
                               </span>
                               {isEditingFinanciero ? (
                                 <input
-                                  type="number"
-                                  value={editingData.gastosTasas}
+                                  type="text"
+                                  value={
+                                    editingData.gastosTasas === 0
+                                      ? ''
+                                      : editingData.gastosTasas
+                                  }
                                   onChange={(e) =>
                                     setEditingData((prev) => ({
                                       ...prev,
@@ -2043,7 +2055,7 @@ export default function VehiculoDetailPage() {
                                     }))
                                   }
                                   className="w-24 text-right font-semibold border border-gray-300 rounded px-2 py-1 text-sm"
-                                  placeholder="0"
+                                  placeholder=""
                                 />
                               ) : (
                                 <span className="font-semibold">
@@ -2057,8 +2069,12 @@ export default function VehiculoDetailPage() {
                               </span>
                               {isEditingFinanciero ? (
                                 <input
-                                  type="number"
-                                  value={editingData.gastosMecanica}
+                                  type="text"
+                                  value={
+                                    editingData.gastosMecanica === 0
+                                      ? ''
+                                      : editingData.gastosMecanica
+                                  }
                                   onChange={(e) =>
                                     setEditingData((prev) => ({
                                       ...prev,
@@ -2067,7 +2083,7 @@ export default function VehiculoDetailPage() {
                                     }))
                                   }
                                   className="w-24 text-right font-semibold border border-gray-300 rounded px-2 py-1 text-sm"
-                                  placeholder="0"
+                                  placeholder=""
                                 />
                               ) : (
                                 <span className="font-semibold">
@@ -2081,8 +2097,12 @@ export default function VehiculoDetailPage() {
                               </span>
                               {isEditingFinanciero ? (
                                 <input
-                                  type="number"
-                                  value={editingData.gastosPintura}
+                                  type="text"
+                                  value={
+                                    editingData.gastosPintura === 0
+                                      ? ''
+                                      : editingData.gastosPintura
+                                  }
                                   onChange={(e) =>
                                     setEditingData((prev) => ({
                                       ...prev,
@@ -2091,7 +2111,7 @@ export default function VehiculoDetailPage() {
                                     }))
                                   }
                                   className="w-24 text-right font-semibold border border-gray-300 rounded px-2 py-1 text-sm"
-                                  placeholder="0"
+                                  placeholder=""
                                 />
                               ) : (
                                 <span className="font-semibold">
@@ -2105,8 +2125,12 @@ export default function VehiculoDetailPage() {
                               </span>
                               {isEditingFinanciero ? (
                                 <input
-                                  type="number"
-                                  value={editingData.gastosLimpieza}
+                                  type="text"
+                                  value={
+                                    editingData.gastosLimpieza === 0
+                                      ? ''
+                                      : editingData.gastosLimpieza
+                                  }
                                   onChange={(e) =>
                                     setEditingData((prev) => ({
                                       ...prev,
@@ -2115,7 +2139,7 @@ export default function VehiculoDetailPage() {
                                     }))
                                   }
                                   className="w-24 text-right font-semibold border border-gray-300 rounded px-2 py-1 text-sm"
-                                  placeholder="0"
+                                  placeholder=""
                                 />
                               ) : (
                                 <span className="font-semibold">
@@ -2129,8 +2153,12 @@ export default function VehiculoDetailPage() {
                               </span>
                               {isEditingFinanciero ? (
                                 <input
-                                  type="number"
-                                  value={editingData.gastosOtros}
+                                  type="text"
+                                  value={
+                                    editingData.gastosOtros === 0
+                                      ? ''
+                                      : editingData.gastosOtros
+                                  }
                                   onChange={(e) =>
                                     setEditingData((prev) => ({
                                       ...prev,
@@ -2139,7 +2167,7 @@ export default function VehiculoDetailPage() {
                                     }))
                                   }
                                   className="w-24 text-right font-semibold border border-gray-300 rounded px-2 py-1 text-sm"
-                                  placeholder="0"
+                                  placeholder=""
                                 />
                               ) : (
                                 <span className="font-semibold">
@@ -2192,8 +2220,12 @@ export default function VehiculoDetailPage() {
                               </span>
                               {isEditingFinanciero ? (
                                 <input
-                                  type="number"
-                                  value={editingData.precioVenta}
+                                  type="text"
+                                  value={
+                                    editingData.precioVenta === 0
+                                      ? ''
+                                      : editingData.precioVenta
+                                  }
                                   onChange={(e) =>
                                     setEditingData((prev) => ({
                                       ...prev,
@@ -2202,7 +2234,7 @@ export default function VehiculoDetailPage() {
                                     }))
                                   }
                                   className="w-32 text-right font-semibold text-lg border border-gray-300 rounded px-2 py-1"
-                                  placeholder="0"
+                                  placeholder=""
                                 />
                               ) : (
                                 <span className="font-semibold text-lg">
