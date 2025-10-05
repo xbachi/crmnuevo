@@ -18,7 +18,6 @@ export default function ClientesPage() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [clienteToDelete, setClienteToDelete] = useState<Cliente | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
-  const [vehicleSearchTerm, setVehicleSearchTerm] = useState('')
   const [estadoFilter, setEstadoFilter] = useState('')
   const [prioridadFilter, setPrioridadFilter] = useState('')
   const [precioMaxFilter, setPrecioMaxFilter] = useState('')
@@ -191,16 +190,14 @@ export default function ClientesPage() {
   const filteredClientes = clientes
     .filter((cliente) => {
       const matchesSearch =
+        !searchTerm ||
         cliente.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
         cliente.apellidos.toLowerCase().includes(searchTerm.toLowerCase()) ||
         cliente.telefono.includes(searchTerm) ||
         cliente.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        cliente.dni?.toLowerCase().includes(searchTerm.toLowerCase())
-
-      const matchesVehicleSearch =
-        !vehicleSearchTerm ||
+        cliente.dni?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         cliente.intereses?.vehiculosInteres?.some((vehiculo) =>
-          vehiculo.toLowerCase().includes(vehicleSearchTerm.toLowerCase())
+          vehiculo.toLowerCase().includes(searchTerm.toLowerCase())
         )
 
       const matchesEstado =
@@ -258,7 +255,6 @@ export default function ClientesPage() {
 
       return (
         matchesSearch &&
-        matchesVehicleSearch &&
         matchesEstado &&
         matchesPrioridad &&
         matchesPrecioMax &&
@@ -429,12 +425,12 @@ export default function ClientesPage() {
             <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/60 p-4 space-y-4">
               {/* LÍNEA 1: Búsqueda + Vista */}
               <div className="flex items-center gap-4">
-                {/* Búsqueda de clientes */}
+                {/* Búsqueda unificada */}
                 <div className="flex-1">
                   <div className="relative">
                     <input
                       type="text"
-                      placeholder="Buscar clientes por nombre, apellidos..."
+                      placeholder="Buscar por nombre, apellidos, teléfono, email, DNI o vehículo de interés..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="w-full pl-12 pr-4 py-3 text-base border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition-all shadow-sm"
@@ -455,52 +451,6 @@ export default function ClientesPage() {
                     {searchTerm && (
                       <button
                         onClick={() => setSearchTerm('')}
-                        className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600"
-                      >
-                        <svg
-                          className="h-5 w-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M6 18L18 6M6 6l12 12"
-                          />
-                        </svg>
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Búsqueda de vehículo interesado */}
-                <div className="flex-1">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Buscar por coche interesado..."
-                      value={vehicleSearchTerm}
-                      onChange={(e) => setVehicleSearchTerm(e.target.value)}
-                      className="w-full pl-12 pr-4 py-3 text-base border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition-all shadow-sm"
-                    />
-                    <svg
-                      className="absolute left-4 top-3.5 h-5 w-5 text-slate-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 11H5m14-7v16l-2-2v-12a2 2 0 00-2-2H9a2 2 0 00-2 2v12l-2 2V4a2 2 0 012-2h10a2 2 0 012 2z"
-                      />
-                    </svg>
-                    {vehicleSearchTerm && (
-                      <button
-                        onClick={() => setVehicleSearchTerm('')}
                         className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600"
                       >
                         <svg
