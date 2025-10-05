@@ -1316,7 +1316,173 @@ export default function VehiculoDetailPage() {
         <div className="w-[85%] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-2 sm:py-4 lg:py-6 xl:py-8">
           <div className="grid grid-cols-1 lg:grid-cols-10 gap-2 sm:gap-4 lg:gap-6 xl:gap-8">
             {/* Panel Principal */}
-            <div className="lg:col-span-7 space-y-2 sm:space-y-4 lg:space-y-6">
+            <div className="lg:col-span-7 2xl:col-span-7 space-y-2 sm:space-y-4 lg:space-y-6">
+              {/* Estado del Vehículo - Solo visible en pantallas < 1500px */}
+              <div className="block 2xl:hidden bg-white rounded-xl shadow-sm border border-slate-200 p-3 sm:p-4 lg:p-6">
+                <div className="flex items-center space-x-2 mb-4">
+                  <div className="w-3 h-3 sm:w-4 sm:h-4 lg:w-6 lg:h-6 sm:w-8 sm:h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
+                    <svg
+                      className="w-3 h-3 sm:w-4 sm:h-4 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                      />
+                    </svg>
+                  </div>
+                  <h2 className="text-base sm:text-lg font-semibold text-gray-900">
+                    Estado
+                  </h2>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Estado Actual
+                    </label>
+                    <div className="flex items-center justify-between">
+                      <span
+                        className={`px-3 py-2 rounded-lg text-sm font-medium ${getEstadoColor(vehiculo?.estado || 'inicial')}`}
+                      >
+                        {(vehiculo?.estado || 'inicial').toUpperCase()}
+                      </span>
+
+                      {/* Botones de cambio de condición (Solo Admin) */}
+                      {isAdmin && vehiculo && (
+                        <div className="space-y-2">
+                          <p className="text-xs text-gray-600 font-medium">
+                            Marcar como:
+                          </p>
+                          <div className="flex flex-col space-y-2 xl:flex-row xl:space-y-0 xl:space-x-2">
+                            {getCondicionVehiculo() !== 'reservado' && (
+                              <button
+                                onClick={() =>
+                                  cambiarCondicionVehiculo('reservado')
+                                }
+                                className="px-2 sm:px-3 py-1 sm:py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors text-xs sm:text-sm font-medium flex items-center space-x-1"
+                              >
+                                <svg
+                                  className="w-3 h-3"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                                  />
+                                </svg>
+                                <span>Reservado</span>
+                              </button>
+                            )}
+
+                            {getCondicionVehiculo() !== 'vendido' && (
+                              <button
+                                onClick={() =>
+                                  cambiarCondicionVehiculo('vendido')
+                                }
+                                className="px-2 sm:px-3 py-1 sm:py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-xs sm:text-sm font-medium flex items-center space-x-1"
+                              >
+                                <svg
+                                  className="w-3 h-3"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                  />
+                                </svg>
+                                <span>Vendido</span>
+                              </button>
+                            )}
+
+                            {getCondicionVehiculo() !== 'disponible' && (
+                              <button
+                                onClick={() =>
+                                  cambiarCondicionVehiculo('disponible')
+                                }
+                                className="px-2 sm:px-3 py-1 sm:py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-xs sm:text-sm font-medium flex items-center space-x-1"
+                              >
+                                <svg
+                                  className="w-3 h-3"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                  />
+                                </svg>
+                                <span>Disponible</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Condición del Vehículo */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Condición
+                    </label>
+                    <div className="flex items-center space-x-3">
+                      <span
+                        className={`px-3 py-2 rounded-lg text-sm font-medium ${getCondicionColor(getCondicionVehiculo())}`}
+                      >
+                        {getCondicionVehiculo().toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Alerta de ITV vencida */}
+                  {vehiculo?.itv === 'No' && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-3 h-3 sm:w-4 sm:h-4 lg:w-6 lg:h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
+                          <svg
+                            className="w-1.5 h-1.5 sm:w-2 sm:h-2 lg:w-3 lg:h-3 text-white"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                            />
+                          </svg>
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-xs sm:text-sm font-medium text-red-800">
+                            ITV Vencida
+                          </p>
+                          <p className="text-xs text-red-600">
+                            Este vehículo necesita revisión de ITV
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Tabs de Información */}
               <div className="bg-white rounded-xl shadow-sm border border-slate-200">
                 {/* Tab Headers */}
@@ -2951,10 +3117,393 @@ export default function VehiculoDetailPage() {
                   <p className="text-gray-500 text-center py-4">Cargando...</p>
                 </div>
               )}
+
+              {/* Documentos del Vehículo - Solo visible en pantallas < 1500px */}
+              <div className="block 2xl:hidden bg-white rounded-xl shadow-sm border border-slate-200 p-3 sm:p-4 lg:p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                      <svg
+                        className="w-4 h-4 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                    </div>
+                    <h2 className="text-base sm:text-lg font-semibold text-gray-900">
+                      Documentos
+                    </h2>
+                  </div>
+                  <label className="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors cursor-pointer">
+                    <svg
+                      className="w-4 h-4 inline mr-1"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                      />
+                    </svg>
+                    + Subir Archivo
+                    <input
+                      type="file"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                    />
+                  </label>
+                </div>
+
+                <div className="space-y-3">
+                  {documentos.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <svg
+                        className="w-12 h-12 mx-auto mb-4 text-gray-300"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      <p className="text-sm">No hay documentos subidos</p>
+                      <p className="text-xs text-gray-400">
+                        Sube archivos para organizarlos aquí
+                      </p>
+                    </div>
+                  ) : (
+                    documentos.map((doc) => (
+                      <div
+                        key={doc.id}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <svg
+                              className="w-4 h-4 text-blue-600"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                              />
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">
+                              {doc.nombre}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {doc.tamañoFormateado} • {doc.fechaSubida}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteFile(doc.id)}
+                          className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Recordatorios - Solo visible en pantallas < 1500px */}
+              <div className="block 2xl:hidden bg-white rounded-xl shadow-sm border border-slate-200 p-3 sm:p-4 lg:p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-base sm:text-lg font-semibold text-gray-900">
+                    Recordatorios ({recordatorios.length})
+                  </h2>
+                  {!showAddRecordatorioForm && (
+                    <button
+                      onClick={() => setShowAddRecordatorioForm(true)}
+                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium transition-colors flex items-center space-x-1"
+                    >
+                      <svg
+                        className="w-3 h-3"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                        />
+                      </svg>
+                      <span>Agregar recordatorio</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Formulario para agregar recordatorio */}
+                {showAddRecordatorioForm && (
+                  <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h3 className="text-sm font-semibold text-blue-900 mb-3">
+                      Nuevo Recordatorio
+                    </h3>
+                    <div className="space-y-3">
+                      <input
+                        type="text"
+                        value={nuevoRecordatorio.titulo}
+                        onChange={(e) =>
+                          setNuevoRecordatorio({
+                            ...nuevoRecordatorio,
+                            titulo: e.target.value,
+                          })
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Título del recordatorio"
+                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        <select
+                          value={nuevoRecordatorio.tipo}
+                          onChange={(e) =>
+                            setNuevoRecordatorio({
+                              ...nuevoRecordatorio,
+                              tipo: e.target.value as any,
+                            })
+                          }
+                          className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          <option value="itv">ITV</option>
+                          <option value="seguro">Seguro</option>
+                          <option value="revision">Revisión</option>
+                          <option value="documentacion">Documentación</option>
+                          <option value="otro">Otro</option>
+                        </select>
+                        <select
+                          value={nuevoRecordatorio.prioridad}
+                          onChange={(e) =>
+                            setNuevoRecordatorio({
+                              ...nuevoRecordatorio,
+                              prioridad: e.target.value as any,
+                            })
+                          }
+                          className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          <option value="baja">Baja</option>
+                          <option value="media">Media</option>
+                          <option value="alta">Alta</option>
+                        </select>
+                      </div>
+                      <input
+                        type="datetime-local"
+                        value={nuevoRecordatorio.fechaRecordatorio}
+                        onChange={(e) =>
+                          setNuevoRecordatorio({
+                            ...nuevoRecordatorio,
+                            fechaRecordatorio: e.target.value,
+                          })
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <textarea
+                        value={nuevoRecordatorio.descripcion}
+                        onChange={(e) =>
+                          setNuevoRecordatorio({
+                            ...nuevoRecordatorio,
+                            descripcion: e.target.value,
+                          })
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Descripción del recordatorio"
+                        rows={3}
+                      />
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={handleAddRecordatorio}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+                        >
+                          Guardar
+                        </button>
+                        <button
+                          onClick={() => setShowAddRecordatorioForm(false)}
+                          className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors text-sm font-medium"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Lista de Recordatorios */}
+                {recordatorios.length === 0 ? (
+                  <p className="text-gray-500 text-center py-4">
+                    No hay recordatorios
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {recordatorios.map((recordatorio) => (
+                      <div
+                        key={recordatorio.id}
+                        className={`p-3 rounded-lg border ${
+                          recordatorio.completado
+                            ? 'bg-gray-50 border-gray-200'
+                            : 'bg-white border-gray-300'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <h4
+                                className={`text-sm font-medium ${
+                                  recordatorio.completado
+                                    ? 'text-gray-500 line-through'
+                                    : 'text-gray-900'
+                                }`}
+                              >
+                                {recordatorio.titulo}
+                              </h4>
+                              <span
+                                className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  recordatorio.prioridad === 'alta'
+                                    ? 'bg-red-100 text-red-800'
+                                    : recordatorio.prioridad === 'media'
+                                      ? 'bg-yellow-100 text-yellow-800'
+                                      : 'bg-green-100 text-green-800'
+                                }`}
+                              >
+                                {recordatorio.prioridad}
+                              </span>
+                              <span
+                                className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  recordatorio.tipo === 'itv'
+                                    ? 'bg-red-100 text-red-800'
+                                    : recordatorio.tipo === 'seguro'
+                                      ? 'bg-blue-100 text-blue-800'
+                                      : recordatorio.tipo === 'revision'
+                                        ? 'bg-orange-100 text-orange-800'
+                                        : recordatorio.tipo === 'documentacion'
+                                          ? 'bg-green-100 text-green-800'
+                                          : 'bg-gray-100 text-gray-800'
+                                }`}
+                              >
+                                {recordatorio.tipo}
+                              </span>
+                            </div>
+                            <p
+                              className={`text-xs text-gray-600 mb-2 ${
+                                recordatorio.completado ? 'line-through' : ''
+                              }`}
+                            >
+                              {recordatorio.descripcion}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {formatDate(recordatorio.fechaRecordatorio)}
+                            </p>
+                          </div>
+                          <div className="flex items-center space-x-1 ml-2">
+                            <button
+                              onClick={() =>
+                                toggleRecordatorioCompletado(recordatorio.id)
+                              }
+                              className={`p-1 rounded transition-colors ${
+                                recordatorio.completado
+                                  ? 'text-green-600 hover:bg-green-100'
+                                  : 'text-gray-400 hover:bg-gray-100'
+                              }`}
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() =>
+                                startEditingRecordatorio(recordatorio)
+                              }
+                              className="p-1 text-blue-600 hover:bg-blue-100 rounded transition-colors"
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() =>
+                                handleDeleteRecordatorio(recordatorio.id)
+                              }
+                              className="p-1 text-red-600 hover:bg-red-100 rounded transition-colors"
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Sidebar Derecha */}
-            <div className="lg:col-span-3 space-y-2 sm:space-y-4 lg:space-y-6">
+            <div className="hidden 2xl:block lg:col-span-3 space-y-2 sm:space-y-4 lg:space-y-6">
               {/* Estado del Vehículo - Solo visible en pantallas >= 1024px */}
               <div className="hidden lg:block bg-white rounded-xl shadow-sm border border-slate-200 p-3 sm:p-4 lg:p-6">
                 <div className="flex items-center space-x-2 mb-4">
