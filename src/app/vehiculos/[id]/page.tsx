@@ -156,6 +156,13 @@ export default function VehiculoDetailPage() {
     }>
   >([])
 
+  // Estados para checklist de compra
+  const [estadoCompra, setEstadoCompra] = useState({
+    pagado: false,
+    transporteSolicitado: false,
+    recibido: false,
+  })
+
   // Estados para documentos
   const [documentos, setDocumentos] = useState<
     Array<{
@@ -3123,6 +3130,80 @@ export default function VehiculoDetailPage() {
                         </span>
                       )}
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Estado de Compra */}
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-3 sm:p-4 lg:p-6">
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
+                  Estado de Compra
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {/* Pagado */}
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 flex items-center space-x-3">
+                    <input
+                      type="checkbox"
+                      id="pagado"
+                      checked={estadoCompra.pagado}
+                      onChange={(e) =>
+                        setEstadoCompra((prev) => ({
+                          ...prev,
+                          pagado: e.target.checked,
+                        }))
+                      }
+                      className="w-4 h-4 text-orange-600 bg-orange-100 border-orange-300 rounded focus:ring-orange-500 focus:ring-2"
+                    />
+                    <label
+                      htmlFor="pagado"
+                      className="text-orange-700 font-medium text-sm cursor-pointer"
+                    >
+                      Pagado
+                    </label>
+                  </div>
+
+                  {/* Transporte Solicitado */}
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center space-x-3">
+                    <input
+                      type="checkbox"
+                      id="transporteSolicitado"
+                      checked={estadoCompra.transporteSolicitado}
+                      onChange={(e) =>
+                        setEstadoCompra((prev) => ({
+                          ...prev,
+                          transporteSolicitado: e.target.checked,
+                        }))
+                      }
+                      className="w-4 h-4 text-green-600 bg-green-100 border-green-300 rounded focus:ring-green-500 focus:ring-2"
+                    />
+                    <label
+                      htmlFor="transporteSolicitado"
+                      className="text-green-700 font-medium text-sm cursor-pointer"
+                    >
+                      Transporte Solicitado
+                    </label>
+                  </div>
+
+                  {/* Recibido */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center space-x-3">
+                    <input
+                      type="checkbox"
+                      id="recibido"
+                      checked={estadoCompra.recibido}
+                      onChange={(e) =>
+                        setEstadoCompra((prev) => ({
+                          ...prev,
+                          recibido: e.target.checked,
+                        }))
+                      }
+                      className="w-4 h-4 text-blue-600 bg-blue-100 border-blue-300 rounded focus:ring-blue-500 focus:ring-2"
+                    />
+                    <label
+                      htmlFor="recibido"
+                      className="text-blue-700 font-medium text-sm cursor-pointer"
+                    >
+                      Recibido
+                    </label>
                   </div>
                 </div>
               </div>
