@@ -12,6 +12,8 @@ const nextConfig = {
   experimental: {
     optimizeCss: false,
   },
+  // Configuración para Vercel
+  serverComponentsExternalPackages: ['canvas', 'jspdf'],
   webpack: (config, { isServer }) => {
     if (!isServer) {
       // Excluir módulos de Node.js del bundle del cliente
@@ -32,6 +34,13 @@ const nextConfig = {
         path: false,
         os: false,
       }
+    } else {
+      // Configuración para servidor (Vercel)
+      config.externals = config.externals || []
+      config.externals.push({
+        canvas: 'canvas',
+        jspdf: 'jspdf',
+      })
     }
     return config
   },

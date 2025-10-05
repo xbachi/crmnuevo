@@ -350,7 +350,7 @@ export function InvestorVehicleCard({
               <div className="flex items-center space-x-2">
                 <span className="text-gray-600 font-medium">Color:</span>
                 <span className="font-semibold text-gray-900">
-                  {vehiculo.color || 'No especificado'}
+                  {(vehiculo as any).color || 'No especificado'}
                 </span>
               </div>
             </div>

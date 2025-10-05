@@ -516,7 +516,7 @@ export async function getDealById(id: number): Promise<Deal | null> {
         email: row.cliente_email,
         telefono: row.cliente_telefono,
         dni: row.cliente_dni,
-        direccion: row.cliente_direccion,
+        calle: row.cliente_direccion,
         ciudad: row.cliente_ciudad,
         provincia: row.cliente_provincia,
         codPostal: row.cliente_codPostal,
@@ -639,7 +639,7 @@ export async function updateDeal(
     if (!currentDeal) return null
 
     const oldEstado = currentDeal.estado
-    const newEstado = dealData.estado
+    const newEstado = (dealData as any).estado
     const vehiculoId = currentDeal.vehiculoId
 
     // Construir query dinámico

@@ -8,10 +8,27 @@ import { documentExists, saveDocument } from '@/lib/documentStorage'
 
 export async function POST(request: NextRequest) {
   try {
-    const { dealId, documentType, dealData, dealNumber } = await request.json()
+    console.log('🔍 [API GENERATE] Iniciando generación de documento...')
+
+    const {
+      dealId,
+      documentType,
+      dealData,
+      dealNumber,
+      tipoFactura,
+      numeroFactura,
+    } = await request.json()
+
+    console.log('🔍 [API GENERATE] Request recibido:', {
+      dealId,
+      documentType,
+      tipoFactura,
+      numeroFactura,
+      dealNumber,
+    })
 
     // Validar parámetros
-    if (!dealId || !documentType || !dealData || !dealNumber) {
+    if (!documentType || !dealData || !dealNumber) {
       return NextResponse.json(
         { error: 'Parámetros faltantes' },
         { status: 400 }
@@ -27,26 +44,29 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const dealIdNum = parseInt(dealId)
-    if (isNaN(dealIdNum)) {
+    const dealIdNum = dealId ? parseInt(dealId) : 0
+    if (dealId && isNaN(dealIdNum)) {
       return NextResponse.json(
         { error: 'ID de deal inválido' },
         { status: 400 }
       )
     }
 
-    // Verificar si el documento ya existe
-    const exists = await documentExists(
-      dealIdNum,
-      documentType as any,
-      dealNumber
-    )
+    // Verificar si el documento ya existe (solo si no hay número personalizado y es un deal real)
+    // Si hay número personalizado o es factura independiente, siempre generar nuevo documento
+    if (!numeroFactura && dealIdNum > 0) {
+      const exists = await documentExists(
+        dealIdNum,
+        documentType as any,
+        dealNumber
+      )
 
-    if (exists) {
-      return NextResponse.json({
-        message: 'Documento ya existe',
-        url: `/api/documents/${dealId}/${documentType}?dealNumber=${dealNumber}`,
-      })
+      if (exists) {
+        return NextResponse.json({
+          message: 'Documento ya existe',
+          url: `/api/documents/${dealId}/${documentType}?dealNumber=${dealNumber}`,
+        })
+      }
     }
 
     // Generar el documento según el tipo
@@ -60,7 +80,22 @@ export async function POST(request: NextRequest) {
         pdfBuffer = await generarContratoVenta(dealData)
         break
       case 'factura':
-        pdfBuffer = await generarFactura(dealData)
+        console.log('🔍 [API GENERATE] Generando factura con parámetros:', {
+          tipoFactura,
+          numeroFactura,
+          dealId,
+        })
+        try {
+          pdfBuffer = await generarFactura(dealData, tipoFactura, numeroFactura)
+          console.log(
+            '✅ [API GENERATE] Factura generada exitosamente, tamaño:',
+            pdfBuffer.length,
+            'bytes'
+          )
+        } catch (error) {
+          console.error('❌ [API GENERATE] Error generando factura:', error)
+          throw error
+        }
         break
       default:
         return NextResponse.json(
@@ -82,9 +117,14 @@ export async function POST(request: NextRequest) {
       url: documentUrl,
     })
   } catch (error) {
-    console.error('Error generando documento:', error)
+    console.error('❌ [API GENERATE] Error generando documento:', error)
+    console.error('❌ [API GENERATE] Stack trace:', (error as Error).stack)
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      {
+        error: 'Error interno del servidor',
+        details: (error as Error).message,
+        type: 'document_generation_error',
+      },
       { status: 500 }
     )
   }

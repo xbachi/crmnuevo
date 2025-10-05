@@ -142,6 +142,34 @@ const DepositosIcon = () => (
   </svg>
 )
 
+const FacturasIcon = () => (
+  <svg
+    className="w-6 h-6 md:w-7 md:h-7"
+    fill="currentColor"
+    viewBox="0 0 20 20"
+  >
+    <path
+      fillRule="evenodd"
+      d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
+      clipRule="evenodd"
+    />
+  </svg>
+)
+
+const ContratosIcon = () => (
+  <svg
+    className="w-6 h-6 md:w-7 md:h-7"
+    fill="currentColor"
+    viewBox="0 0 20 20"
+  >
+    <path
+      fillRule="evenodd"
+      d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
+      clipRule="evenodd"
+    />
+  </svg>
+)
+
 const LogoutIcon = () => (
   <svg
     className="w-6 h-6 md:w-7 md:h-7"
@@ -228,6 +256,18 @@ export default function Navigation() {
       href: '/documentacion',
       label: 'Documentación',
       icon: DocumentacionIcon,
+      roles: ['admin', 'asesor'],
+    },
+    {
+      href: '/generador-facturas',
+      label: 'Generador Facturas',
+      icon: FacturasIcon,
+      roles: ['admin', 'asesor'],
+    },
+    {
+      href: '/generador-contratos',
+      label: 'Generador Contratos',
+      icon: ContratosIcon,
       roles: ['admin', 'asesor'],
     },
   ]
@@ -367,7 +407,7 @@ export default function Navigation() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">
-                      {inversor ? inversor.nombre : user?.nombre}
+                      {inversor ? inversor.nombre : (user as any)?.nombre}
                     </p>
                     <p className="text-xs text-gray-500 truncate">
                       {inversor ? 'Inversor' : user?.role}

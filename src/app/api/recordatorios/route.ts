@@ -106,6 +106,7 @@ export async function GET() {
             cr."updatedAt" as updated_at,
             c.nombre as cliente_nombre,
             cr."clienteId" as clienteId,
+            cr."dealId" as dealId,
             NULL as vehiculo_id,
             NULL as vehiculo_referencia,
             NULL as vehiculo_marca,
@@ -127,6 +128,7 @@ export async function GET() {
             cliente_slug: recordatorio.clienteId
               ? `cliente-${recordatorio.clienteId}`
               : null,
+            dealId: recordatorio.dealId,
           }))
         )
       } catch (error) {
@@ -321,6 +323,7 @@ export async function GET() {
               categoria: 'manuales_deals',
               vehiculo_slug: vehiculo_slug,
               vehiculo_id: recordatorio.vehiculo_id,
+              dealId: recordatorio.deal_id,
               deal_id: recordatorio.deal_id,
               deal_slug: recordatorio.deal_id
                 ? `deal-${recordatorio.deal_id}`

@@ -542,9 +542,9 @@ const VehicleCard = memo(function VehicleCard({
                         if (partes.length === 3) {
                           // Formato dd/mm/yyyy
                           const fechaValida = new Date(
-                            partes[2],
-                            partes[1] - 1,
-                            partes[0]
+                            parseInt(partes[2]),
+                            parseInt(partes[1]) - 1,
+                            parseInt(partes[0])
                           )
                           return fechaValida.toLocaleDateString('es-ES')
                         }

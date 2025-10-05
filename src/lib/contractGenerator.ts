@@ -1,5 +1,5 @@
 // Generador de contratos con jsPDF
-import jsPDF from 'jspdf'
+import jsPDF from './jspdf-server'
 import { formatCurrency, getVehiculoAño } from './utils'
 
 // Función para formatear la fecha de matriculación
@@ -118,38 +118,58 @@ async function loadLogoSVG(): Promise<string> {
   try {
     console.log('🖼️ [LOGO] Iniciando carga del logo...')
 
-    // Usar fetch para cargar el PNG desde /public/
-    const response = await fetch('/logocontrato.png')
+    // Verificar si estamos en el servidor (Node.js) o en el cliente (browser)
+    if (typeof window === 'undefined') {
+      // Servidor: usar fs para leer el archivo
+      const fs = await import('fs')
+      const path = await import('path')
 
-    if (!response.ok) {
-      throw new Error(
-        `Error cargando logo: ${response.status} ${response.statusText}`
+      const logoPath = path.join(process.cwd(), 'public', 'logocontrato.png')
+      console.log('🖼️ [LOGO] Leyendo logo desde servidor:', logoPath)
+
+      const logoBuffer = fs.readFileSync(logoPath)
+      const base64 = `data:image/png;base64,${logoBuffer.toString('base64')}`
+
+      console.log(
+        '🖼️ [LOGO] Logo cargado desde servidor, tamaño:',
+        base64.length,
+        'caracteres'
       )
-    }
+      return base64
+    } else {
+      // Cliente: usar fetch para cargar el PNG desde /public/
+      const response = await fetch('/logocontrato.png')
 
-    console.log('🖼️ [LOGO] PNG cargado correctamente desde /public/')
-
-    // Convertir a blob
-    const blob = await response.blob()
-    console.log('🖼️ [LOGO] Blob creado, tamaño:', blob.size, 'bytes')
-
-    // Convertir blob a base64 usando FileReader
-    const base64 = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => {
-        const result = reader.result as string
-        resolve(result)
+      if (!response.ok) {
+        throw new Error(
+          `Error cargando logo: ${response.status} ${response.statusText}`
+        )
       }
-      reader.onerror = reject
-      reader.readAsDataURL(blob)
-    })
 
-    console.log(
-      '🖼️ [LOGO] PNG convertido a base64, tamaño:',
-      base64.length,
-      'caracteres'
-    )
-    return base64
+      console.log('🖼️ [LOGO] PNG cargado correctamente desde /public/')
+
+      // Convertir a blob
+      const blob = await response.blob()
+      console.log('🖼️ [LOGO] Blob creado, tamaño:', blob.size, 'bytes')
+
+      // Convertir blob a base64 usando FileReader
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+          const result = reader.result as string
+          resolve(result)
+        }
+        reader.onerror = reject
+        reader.readAsDataURL(blob)
+      })
+
+      console.log(
+        '🖼️ [LOGO] PNG convertido a base64, tamaño:',
+        base64.length,
+        'caracteres'
+      )
+      return base64
+    }
   } catch (error) {
     console.error('❌ [LOGO] Error cargando logo PNG:', error)
     return ''
@@ -1007,7 +1027,7 @@ export async function generarContratoVenta(
     doc,
     'KMS',
     deal.vehiculo?.kms
-      ? deal.vehiculo.kms.toLocaleString('es-ES')
+      ? (deal.vehiculo.kms as number).toLocaleString('es-ES')
       : 'No especificados',
     pageWidth / 2,
     yPosition
@@ -1140,254 +1160,302 @@ export async function generarFactura(
   tipoFactura: 'IVA' | 'REBU' = 'IVA',
   numeroFacturaPersonalizado?: string
 ): Promise<Uint8Array> {
-  const doc = new jsPDF()
-  const pageWidth = doc.internal.pageSize.getWidth()
-  const pageHeight = doc.internal.pageSize.getHeight()
-  const margin = 15
-  let yPosition = margin - 5 // Subir logo 5px más arriba (igual que reserva)
-
-  // Generar número de factura
-  const numeroFactura =
-    numeroFacturaPersonalizado ||
-    `FAC-${new Date().getFullYear()}-${String(deal.id || Math.floor(Math.random() * 1000)).padStart(4, '0')}`
-  const fechaFactura = new Date()
-
-  // Logo de Seven Cars (centrado)
-  yPosition = await addLogoToContract(doc, yPosition)
-
-  // Mover yPosition después del logo
-  yPosition -= 5 // Subir 20px el texto (15px - 20px = -5px)
-
-  // Datos de la empresa (debajo del logo, centrados)
-  doc.setFontSize(8)
-  doc.setFont('helvetica', 'normal')
-  doc.text('Seven Cars Motors S.L.', pageWidth / 2, yPosition, {
-    align: 'center',
+  console.log('🔍 [GENERAR FACTURA] Parámetros recibidos:', {
+    tipoFactura,
+    numeroFacturaPersonalizado,
+    dealId: (deal as any).id,
   })
-  yPosition += 3
-  doc.text('CIF: B-75939868', pageWidth / 2, yPosition, { align: 'center' })
-  yPosition += 3
-  doc.text('Camí els Mollons, 36', pageWidth / 2, yPosition, {
-    align: 'center',
-  })
-  yPosition += 3
-  doc.text('46970 Alaquàs, Valencia', pageWidth / 2, yPosition, {
-    align: 'center',
-  })
-  yPosition += 30 // Sumar 20px de margen inferior (antes 10px, ahora 30px)
 
-  // Número de factura (debajo del logo)
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'normal')
-  writeField(doc, 'Nº Factura', numeroFactura, margin, yPosition)
-  yPosition += 5
+  try {
+    console.log('🔍 [GENERAR FACTURA] Creando instancia de jsPDF...')
+    const doc = new jsPDF()
+    console.log('✅ [GENERAR FACTURA] jsPDF creado exitosamente')
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const pageHeight = doc.internal.pageSize.getHeight()
+    const margin = 15
+    let yPosition = margin - 5 // Subir logo 5px más arriba (igual que reserva)
 
-  // Fecha (debajo del número de factura)
-  writeField(
-    doc,
-    'Fecha',
-    fechaFactura.toLocaleDateString('es-ES'),
-    margin,
-    yPosition
-  )
-  yPosition += 15
+    // Generar número de factura
+    const numeroFactura =
+      numeroFacturaPersonalizado ||
+      `FAC-${new Date().getFullYear()}-${String((deal as any).id || Math.floor(Math.random() * 1000)).padStart(4, '0')}`
+    const fechaFactura = new Date()
 
-  // Título de la factura (más abajo)
-  doc.setFontSize(16)
-  doc.setFont('helvetica', 'bold')
-  doc.text(
-    tipoFactura === 'IVA' ? 'FACTURA' : 'FACTURA REBU',
-    pageWidth / 2,
-    yPosition,
-    { align: 'center' }
-  )
-  yPosition += 15
+    // Logo de Seven Cars (centrado)
+    yPosition = await addLogoToContract(doc, yPosition)
 
-  // Línea separadora
-  doc.setDrawColor(0, 0, 0)
-  doc.setLineWidth(0.5)
-  doc.line(margin, yPosition, pageWidth - margin, yPosition)
-  yPosition += 10
+    // Mover yPosition después del logo
+    yPosition -= 5 // Subir 20px el texto (15px - 20px = -5px)
 
-  // Datos del cliente
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'bold')
-  doc.text('FACTURAR A:', margin, yPosition)
-  yPosition += 6
+    // Datos de la empresa (debajo del logo, centrados)
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    doc.text('Seven Cars Motors S.L.', pageWidth / 2, yPosition, {
+      align: 'center',
+    })
+    yPosition += 3
+    doc.text('CIF: B-75939868', pageWidth / 2, yPosition, { align: 'center' })
+    yPosition += 3
+    doc.text('Camí els Mollons, 36', pageWidth / 2, yPosition, {
+      align: 'center',
+    })
+    yPosition += 3
+    doc.text('46970 Alaquàs, Valencia', pageWidth / 2, yPosition, {
+      align: 'center',
+    })
+    yPosition += 30 // Sumar 20px de margen inferior (antes 10px, ahora 30px)
 
-  doc.setFont('helvetica', 'normal')
-  doc.text(
-    `${deal.cliente?.nombre || 'No especificado'} ${deal.cliente?.apellidos || ''}`,
-    margin,
-    yPosition
-  )
-  yPosition += 4
-  writeField(
-    doc,
-    'DNI',
-    deal.cliente?.dni || 'No especificado',
-    margin,
-    yPosition
-  )
-  yPosition += 4
-  writeField(
-    doc,
-    'Teléfono',
-    deal.cliente?.telefono || 'No especificado',
-    margin,
-    yPosition
-  )
-  yPosition += 4
-  writeField(
-    doc,
-    'Email',
-    deal.cliente?.email || 'No especificado',
-    margin,
-    yPosition
-  )
-  yPosition += 10
-
-  // Tabla de conceptos
-  const totalConIva = deal.importeTotal || 0
-
-  // Cálculo correcto del IVA: el total incluye IVA, calcular subtotal e IVA
-  let subtotal, iva, total
-  if (tipoFactura === 'IVA') {
-    // Si el total incluye IVA, calcular el subtotal dividiendo por 1.21
-    subtotal = totalConIva / 1.21
-    iva = totalConIva - subtotal
-    total = totalConIva
-  } else {
-    // REBU: sin IVA
-    subtotal = totalConIva
-    iva = 0
-    total = totalConIva
-  }
-
-  // Encabezados de tabla (sin cantidad)
-  doc.setFontSize(9)
-  doc.setFont('helvetica', 'bold')
-  doc.text('CONCEPTO', margin, yPosition)
-  doc.text('PRECIO', margin + 120, yPosition)
-  doc.text('TOTAL', margin + 160, yPosition)
-  yPosition += 5
-
-  // Línea de encabezados
-  doc.line(margin, yPosition, pageWidth - margin, yPosition)
-  yPosition += 5
-
-  // Concepto principal
-  doc.setFont('helvetica', 'normal')
-  const concepto = `Venta de vehículo: ${deal.vehiculo?.marca || 'No especificada'} ${deal.vehiculo?.modelo || 'No especificado'}`
-  const conceptoLineas = doc.splitTextToSize(concepto, 100)
-  doc.text(conceptoLineas, margin, yPosition)
-
-  // Detalles adicionales del vehículo
-  doc.text(
-    `Matrícula: ${deal.vehiculo?.matricula || 'No especificada'}`,
-    margin,
-    yPosition + 8
-  )
-  doc.text(
-    `Fecha de Matriculación: ${getFechaMatriculacion(deal.vehiculo)}`,
-    margin,
-    yPosition + 12
-  )
-  doc.text(
-    `Kms: ${deal.vehiculo?.kms ? deal.vehiculo.kms.toLocaleString('es-ES') : 'No especificados'}`,
-    margin,
-    yPosition + 16
-  )
-  doc.text(
-    `Bastidor: ${deal.vehiculo?.bastidor || 'No especificado'}`,
-    margin,
-    yPosition + 20
-  )
-
-  // Datos de la tabla (sin cantidad) - ajustar posición para no superponerse con detalles
-  doc.text(formatCurrency(subtotal), margin + 120, yPosition + 20)
-  doc.text(formatCurrency(total), margin + 160, yPosition + 20)
-  yPosition += 30
-
-  // Línea de totales
-  doc.line(margin, yPosition, pageWidth - margin, yPosition)
-  yPosition += 5
-
-  // Totales
-  doc.setFont('helvetica', 'bold')
-  doc.text('SUBTOTAL:', margin + 120, yPosition)
-  doc.text(formatCurrency(subtotal), margin + 160, yPosition)
-  yPosition += 5
-
-  if (tipoFactura === 'IVA') {
-    doc.text('IVA (21%):', margin + 120, yPosition)
-    doc.text(formatCurrency(iva), margin + 160, yPosition)
+    // Número de factura (debajo del logo)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    writeField(doc, 'Nº Factura', numeroFactura, margin, yPosition)
     yPosition += 5
+
+    // Fecha (debajo del número de factura)
+    writeField(
+      doc,
+      'Fecha',
+      fechaFactura.toLocaleDateString('es-ES'),
+      margin,
+      yPosition
+    )
+    yPosition += 15
+
+    // Título de la factura (más abajo)
+    doc.setFontSize(16)
+    doc.setFont('helvetica', 'bold')
+    doc.text(
+      tipoFactura === 'IVA' ? 'FACTURA' : 'FACTURA REBU',
+      pageWidth / 2,
+      yPosition,
+      { align: 'center' }
+    )
+    yPosition += 15
+
+    // Línea separadora
+    doc.setDrawColor(0, 0, 0)
+    doc.setLineWidth(0.5)
+    doc.line(margin, yPosition, pageWidth - margin, yPosition)
+    yPosition += 10
+
+    // Datos del cliente
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.text('FACTURAR A:', margin, yPosition)
+    yPosition += 6
+
+    doc.setFont('helvetica', 'normal')
+    doc.text(
+      `${deal.cliente?.nombre || 'No especificado'} ${deal.cliente?.apellidos || ''}`,
+      margin,
+      yPosition
+    )
+    yPosition += 4
+    writeField(
+      doc,
+      'DNI',
+      deal.cliente?.dni || 'No especificado',
+      margin,
+      yPosition
+    )
+    yPosition += 4
+    writeField(
+      doc,
+      'Teléfono',
+      deal.cliente?.telefono || 'No especificado',
+      margin,
+      yPosition
+    )
+    yPosition += 4
+    writeField(
+      doc,
+      'Email',
+      deal.cliente?.email || 'No especificado',
+      margin,
+      yPosition
+    )
+    yPosition += 10
+
+    // Tabla de conceptos
+    const totalConIva = deal.importeTotal || 0
+
+    // Cálculo correcto del IVA: el total incluye IVA, calcular subtotal e IVA
+    console.log(
+      '🔍 [CALCULO IVA] tipoFactura recibido:',
+      tipoFactura,
+      'tipoFactura === "IVA":',
+      tipoFactura === 'IVA'
+    )
+    let subtotal, iva, total
+    if (tipoFactura === 'IVA') {
+      // Si el total incluye IVA, calcular el subtotal dividiendo por 1.21
+      subtotal = totalConIva / 1.21
+      iva = totalConIva - subtotal
+      total = totalConIva
+    } else {
+      // REBU: sin IVA
+      subtotal = totalConIva
+      iva = 0
+      total = totalConIva
+    }
+
+    console.log('🔍 [CALCULO IVA] Valores calculados:', {
+      tipoFactura,
+      subtotal,
+      iva,
+      total,
+      totalConIva,
+    })
+
+    // Encabezados de tabla (sin cantidad)
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    doc.text('CONCEPTO', margin, yPosition)
+    doc.text('PRECIO', margin + 120, yPosition)
+    doc.text('TOTAL', margin + 160, yPosition)
+    yPosition += 5
+
+    // Línea de encabezados
+    doc.line(margin, yPosition, pageWidth - margin, yPosition)
+    yPosition += 5
+
+    // Concepto principal
+    doc.setFont('helvetica', 'normal')
+    const concepto = `Venta de vehículo: ${deal.vehiculo?.marca || 'No especificada'} ${deal.vehiculo?.modelo || 'No especificado'}`
+    const conceptoLineas = doc.splitTextToSize(concepto, 100)
+    doc.text(conceptoLineas, margin, yPosition)
+
+    // Detalles adicionales del vehículo
+    doc.text(
+      `Matrícula: ${deal.vehiculo?.matricula || 'No especificada'}`,
+      margin,
+      yPosition + 8
+    )
+    doc.text(
+      `Fecha de Matriculación: ${getFechaMatriculacion(deal.vehiculo)}`,
+      margin,
+      yPosition + 12
+    )
+    doc.text(
+      `Kms: ${deal.vehiculo?.kms ? (deal.vehiculo.kms as number).toLocaleString('es-ES') : 'No especificados'}`,
+      margin,
+      yPosition + 16
+    )
+    doc.text(
+      `Bastidor: ${deal.vehiculo?.bastidor || 'No especificado'}`,
+      margin,
+      yPosition + 20
+    )
+
+    // Datos de la tabla (sin cantidad) - ajustar posición para no superponerse con detalles
+    // Para REBU mostrar el precio total directamente, para IVA mostrar subtotal
+    const precioMostrar = tipoFactura === 'REBU' ? total : subtotal
+    doc.text(formatCurrency(precioMostrar), margin + 120, yPosition + 20)
+    doc.text(formatCurrency(total), margin + 160, yPosition + 20)
+    yPosition += 30
+
+    // Línea de totales
+    doc.line(margin, yPosition, pageWidth - margin, yPosition)
+    yPosition += 5
+
+    // Totales
+    doc.setFont('helvetica', 'bold')
+
+    if (tipoFactura === 'REBU') {
+      // REBU: Solo mostrar el total, sin desglosar IVA
+      doc.text('TOTAL:', margin + 120, yPosition)
+      doc.text(formatCurrency(total), margin + 160, yPosition)
+      yPosition += 5
+    } else {
+      // IVA: Mostrar subtotal e IVA por separado
+      doc.text('SUBTOTAL:', margin + 120, yPosition)
+      doc.text(formatCurrency(subtotal), margin + 160, yPosition)
+      yPosition += 5
+
+      doc.text('IVA (21%):', margin + 120, yPosition)
+      doc.text(formatCurrency(iva), margin + 160, yPosition)
+      yPosition += 5
+    }
+
+    // Línea de total final (solo para IVA, REBU ya tiene su total arriba)
+    if (tipoFactura === 'IVA') {
+      doc.setLineWidth(1)
+      doc.line(margin + 120, yPosition, pageWidth - margin, yPosition)
+      yPosition += 5
+
+      doc.setFontSize(12)
+      doc.text('TOTAL:', margin + 120, yPosition)
+      doc.text(formatCurrency(total), margin + 160, yPosition)
+      yPosition += 15
+    } else {
+      // Para REBU, solo agregar espacio
+      yPosition += 15
+    }
+
+    // Información adicional
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    if (tipoFactura === 'REBU') {
+      doc.text('Régimen Especial Básico - Sin IVA', margin, yPosition)
+    } else {
+      doc.text('IVA incluido', margin, yPosition)
+    }
+    yPosition += 5
+    doc.text('Garantía: 12 meses', margin, yPosition)
+
+    // Disclaimers legales
+    yPosition += 10
+    doc.setFontSize(7)
+    doc.setFont('helvetica', 'normal')
+
+    // Cláusula de privacidad
+    doc.text('1) CLÁUSULA DE PRIVACIDAD', margin, yPosition)
+    yPosition += 4
+    doc.text(
+      'Responsable tratamiento: Datos indicados en factura | Los datos personales que nos facilitas los tratamos con el fin de prestarte el servicio solicitado y facturarlo. Los datos los trataremos mientras manteng Si consideras que no hemos satisfecho tu petición, puedes presentar una reclamación a la Agencia Española de Protección de Datos en https://www.aepd.es/',
+      margin,
+      yPosition,
+      { maxWidth: pageWidth - 2 * margin }
+    )
+    yPosition += 8
+
+    // Registro mercantil
+    doc.text(
+      '2) Registro Mercantil de Valencia 25/02/2025, en el FOLIO ELECTRÓNICO, inscripción 1 con hoja V-223873.',
+      margin,
+      yPosition,
+      { maxWidth: pageWidth - 2 * margin }
+    )
+    yPosition += 10
+
+    // Pie de página
+    yPosition = pageHeight - 30
+    doc.setFontSize(8)
+    doc.text('Gracias por su confianza', pageWidth / 2, yPosition, {
+      align: 'center',
+    })
+    yPosition += 4
+    doc.text(
+      'Seven Cars Motors S.L. - CIF: B-75939868',
+      pageWidth / 2,
+      yPosition,
+      { align: 'center' }
+    )
+
+    // Retornar el buffer del PDF
+    console.log('🔍 [GENERAR FACTURA] Generando buffer del PDF...')
+    const pdfBuffer = doc.output('arraybuffer')
+    console.log(
+      '✅ [GENERAR FACTURA] Buffer generado, tamaño:',
+      pdfBuffer.byteLength,
+      'bytes'
+    )
+    return new Uint8Array(pdfBuffer)
+  } catch (error) {
+    console.error('❌ [GENERAR FACTURA] Error generando factura:', error)
+    console.error('❌ [GENERAR FACTURA] Stack trace:', (error as Error).stack)
+    throw error
   }
-
-  // Línea de total final
-  doc.setLineWidth(1)
-  doc.line(margin + 120, yPosition, pageWidth - margin, yPosition)
-  yPosition += 5
-
-  doc.setFontSize(12)
-  doc.text('TOTAL:', margin + 120, yPosition)
-  doc.text(formatCurrency(total), margin + 160, yPosition)
-  yPosition += 15
-
-  // Información adicional
-  doc.setFontSize(8)
-  doc.setFont('helvetica', 'normal')
-  if (tipoFactura === 'REBU') {
-    doc.text('Régimen Especial Básico - Sin IVA', margin, yPosition)
-  } else {
-    doc.text('IVA incluido', margin, yPosition)
-  }
-  yPosition += 5
-  doc.text('Garantía: 12 meses', margin, yPosition)
-
-  // Disclaimers legales
-  yPosition += 10
-  doc.setFontSize(7)
-  doc.setFont('helvetica', 'normal')
-
-  // Cláusula de privacidad
-  doc.text('1) CLÁUSULA DE PRIVACIDAD', margin, yPosition)
-  yPosition += 4
-  doc.text(
-    'Responsable tratamiento: Datos indicados en factura | Los datos personales que nos facilitas los tratamos con el fin de prestarte el servicio solicitado y facturarlo. Los datos los trataremos mientras manteng Si consideras que no hemos satisfecho tu petición, puedes presentar una reclamación a la Agencia Española de Protección de Datos en https://www.aepd.es/',
-    margin,
-    yPosition,
-    { maxWidth: pageWidth - 2 * margin }
-  )
-  yPosition += 8
-
-  // Registro mercantil
-  doc.text(
-    '2) Registro Mercantil de Valencia 25/02/2025, en el FOLIO ELECTRÓNICO, inscripción 1 con hoja V-223873.',
-    margin,
-    yPosition,
-    { maxWidth: pageWidth - 2 * margin }
-  )
-  yPosition += 10
-
-  // Pie de página
-  yPosition = pageHeight - 30
-  doc.setFontSize(8)
-  doc.text('Gracias por su confianza', pageWidth / 2, yPosition, {
-    align: 'center',
-  })
-  yPosition += 4
-  doc.text(
-    'Seven Cars Motors S.L. - CIF: B-75939868',
-    pageWidth / 2,
-    yPosition,
-    { align: 'center' }
-  )
-
-  // Retornar el buffer del PDF
-  const pdfBuffer = doc.output('arraybuffer')
-  return new Uint8Array(pdfBuffer)
 }
 
 // Interface para datos del depósito
@@ -1418,7 +1486,287 @@ interface DepositoData {
   }
 }
 
-// Función para generar contrato de compraventa
+// Función para generar contrato de compraventa simplificado (solo cliente y vehículo)
+export async function generarContratoCompraventaSimple(
+  cliente: any,
+  vehiculo: any,
+  precio: number
+): Promise<Uint8Array> {
+  try {
+    const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.width
+    const margin = 10
+    const maxWidth = pageWidth - margin * 2
+    let yPosition = margin
+
+    // Configurar fuente
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(10)
+
+    // Logo de Seven Cars (primero)
+    yPosition = await addLogoToContract(doc, yPosition)
+
+    // Título del contrato
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(0, 0, 0)
+    doc.text(
+      'CONTRATO DE COMPRAVENTA DE VEHÍCULO USADO',
+      pageWidth / 2,
+      yPosition,
+      { align: 'center' }
+    )
+    yPosition += 12
+
+    // Fecha y hora actual
+    const ahora = new Date()
+    const dia = ahora.getDate()
+    const mes = ahora.toLocaleDateString('es-ES', { month: 'long' })
+    const año = ahora.getFullYear()
+    const hora = ahora.getHours().toString().padStart(2, '0')
+    const minutos = ahora.getMinutes().toString().padStart(2, '0')
+
+    // Capitalizar la primera letra del mes
+    const mesCapitalizado = mes.charAt(0).toUpperCase() + mes.slice(1)
+
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.text(
+      `En Alaquas, a ${dia} de ${mesCapitalizado} de ${año}, a las ${hora}:${minutos} Hs.`,
+      margin,
+      yPosition
+    )
+    yPosition += 12
+
+    // REUNIDOS
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.text('REUNIDOS', margin, yPosition)
+    yPosition += 8
+
+    // De una parte
+    doc.setFont('helvetica', 'bold')
+    doc.text('DE UNA PARTE:', margin, yPosition)
+    yPosition += 6
+
+    doc.setFont('helvetica', 'normal')
+    doc.text(
+      'D. Sebastian Pelella, mayor de edad, con NIE Z0147238C, en representación de Sevencars Motors SL',
+      margin,
+      yPosition
+    )
+    yPosition += 5
+    doc.text(
+      'con CIF B75939868 y domicilio en Cami dels Mollons Nº 36 Bajo de Alaquas, Valencia,',
+      margin,
+      yPosition
+    )
+    yPosition += 5
+    doc.text('en calidad de adquiriente o comprador.', margin, yPosition)
+    yPosition += 8
+
+    // Y DE OTRA PARTE
+    doc.setFont('helvetica', 'bold')
+    doc.text('Y DE OTRA PARTE:', margin, yPosition)
+    yPosition += 6
+    doc.setFont('helvetica', 'normal')
+    const nombreCompleto = `${cliente.nombre} ${cliente.apellidos}`
+    const direccionCompleta =
+      `${cliente.direccion || ''}, ${cliente.ciudad || ''}, ${cliente.provincia || ''}`
+        .trim()
+        .replace(/^,\s*|,\s*$/g, '') // Eliminar comas al inicio y final
+
+    const textoCliente = `D/Dña ${nombreCompleto}, mayor de edad, con DNI ${cliente.dni}, con domicilio en ${direccionCompleta || 'No especificado'}, en calidad de vendedor.`
+    const linesCliente = doc.splitTextToSize(textoCliente, maxWidth)
+    doc.text(linesCliente, margin, yPosition)
+    yPosition += linesCliente.length * 5 + 8
+
+    // Manifiestan
+    doc.setFont('helvetica', 'bold')
+    doc.text('MANIFIESTAN:', margin, yPosition)
+    yPosition += 8
+
+    // Clausula 1
+    const clausula1 = `1. Que EL VENDEDOR es el propietario del vehículo que se describe a continuación:`
+    doc.setFont('helvetica', 'normal')
+    doc.text(clausula1, margin, yPosition)
+    yPosition += 8
+
+    // Dos columnas para los datos del vehículo (igual que contrato original)
+    const col1X = margin + 8
+    const col2X = margin + 90
+    const lineHeight = 5
+
+    // Columna izquierda
+    doc.text(`Marca y Modelo: `, col1X, yPosition)
+    doc.setFont('helvetica', 'bold')
+    doc.text(`${vehiculo.marca} ${vehiculo.modelo}`, col1X + 35, yPosition)
+    doc.setFont('helvetica', 'normal')
+    doc.text(`Nº Bastidor: `, col1X, yPosition + lineHeight)
+    doc.setFont('helvetica', 'bold')
+    doc.text(
+      `${vehiculo.bastidor || 'No especificado'}`,
+      col1X + 35,
+      yPosition + lineHeight
+    )
+    doc.setFont('helvetica', 'normal')
+    doc.text(`Matrícula: `, col1X, yPosition + lineHeight * 2)
+    doc.setFont('helvetica', 'bold')
+    doc.text(`${vehiculo.matricula}`, col1X + 35, yPosition + lineHeight * 2)
+    doc.setFont('helvetica', 'normal')
+
+    // Columna derecha
+    doc.text(`Fecha 1ª Matriculación: `, col2X, yPosition)
+    doc.setFont('helvetica', 'bold')
+    doc.text(
+      `${vehiculo.fechaMatriculacion ? new Date(vehiculo.fechaMatriculacion).toLocaleDateString('es-ES') : 'No especificada'}`,
+      col2X + 50,
+      yPosition
+    )
+    doc.setFont('helvetica', 'normal')
+    doc.text(`Kilometraje: `, col2X, yPosition + lineHeight)
+    doc.setFont('helvetica', 'bold')
+    doc.text(
+      `${vehiculo.kms ? vehiculo.kms.toLocaleString('es-ES') : 'No especificado'} km`,
+      col2X + 50,
+      yPosition + lineHeight
+    )
+    doc.setFont('helvetica', 'normal')
+    doc.text(`Color: `, col2X, yPosition + lineHeight * 2)
+    doc.setFont('helvetica', 'bold')
+    doc.text(
+      `${vehiculo.color || 'No especificado'}`,
+      col2X + 50,
+      yPosition + lineHeight * 2
+    )
+    doc.setFont('helvetica', 'normal')
+
+    yPosition += lineHeight * 3 + 6
+
+    // Clausula 2
+    const clausula2 = `2. Que EL COMPRADOR desea adquirir el vehículo descrito en las condiciones que se establecen en el presente contrato.`
+    const lines2 = doc.splitTextToSize(clausula2, maxWidth)
+    doc.text(lines2, margin, yPosition)
+    yPosition += lines2.length * 5 + 5
+
+    // Clausula 3
+    const clausula3 = `3. Que EL VENDEDOR garantiza ser el legítimo propietario del vehículo y que el mismo se encuentra libre de cargas, embargos, hipotecas o cualquier otro gravamen que pueda afectar a su propiedad.`
+    const lines3 = doc.splitTextToSize(clausula3, maxWidth)
+    doc.text(lines3, margin, yPosition)
+    yPosition += lines3.length * 5 + 5
+
+    // Clausula 4
+    const clausula4 = `4. Que EL VENDEDOR declara que el vehículo se encuentra en el estado que corresponde a su antigüedad y kilometraje, habiendo sido informado EL COMPRADOR de todas las características y condiciones del mismo.`
+    const lines4 = doc.splitTextToSize(clausula4, maxWidth)
+    doc.text(lines4, margin, yPosition)
+    yPosition += lines4.length * 5 + 5
+
+    // Clausula 5 - Precio
+    const monto = precio || 0
+    const montoEnLetras = numeroALetras(monto)
+    const clausula5 = `5. El precio de la compra-venta se fija en ${formatCurrency(monto)} (${montoEnLetras} euros) impuestos incluidos (REBU, régimen Especial de Bienes Usados) que se abonan en este momento sirviendo el presente documento como carta de pago.`
+    const lines5 = doc.splitTextToSize(clausula5, maxWidth - 10)
+
+    // Procesar cada línea para poner en negrita solo el precio
+    let currentY = yPosition
+    for (let i = 0; i < lines5.length; i++) {
+      const line = lines5[i]
+
+      // Buscar el precio completo con paréntesis en la línea
+      const precioMatch = line.match(/(\d+\.\d+€\s*\(\w+\s+\w+\s+\w+\))/)
+      if (precioMatch) {
+        const beforePrecio = line.substring(0, line.indexOf(precioMatch[0]))
+        const precioCompleto = precioMatch[0]
+        const afterPrecio = line.substring(
+          line.indexOf(precioMatch[0]) + precioCompleto.length
+        )
+
+        // Escribir texto antes del precio
+        if (beforePrecio) {
+          doc.setFont('helvetica', 'normal')
+          doc.text(beforePrecio, margin, currentY)
+        }
+
+        // Escribir precio en negrita
+        doc.setFont('helvetica', 'bold')
+        doc.text(
+          precioCompleto,
+          margin + (beforePrecio ? doc.getTextWidth(beforePrecio) : 0),
+          currentY
+        )
+
+        // Escribir texto después del precio
+        if (afterPrecio) {
+          doc.setFont('helvetica', 'normal')
+          doc.text(
+            afterPrecio,
+            margin +
+              (beforePrecio ? doc.getTextWidth(beforePrecio) : 0) +
+              doc.getTextWidth(precioCompleto),
+            currentY
+          )
+        }
+      } else {
+        // Si no hay precio en esta línea, escribirla normal
+        doc.setFont('helvetica', 'normal')
+        doc.text(line, margin, currentY)
+      }
+      currentY += 5
+    }
+    yPosition = currentY + 5
+
+    // Clausula 6
+    const clausula6 = `6. Que con la firma del presente contrato, EL VENDEDOR entrega y EL COMPRADOR recibe el vehículo descrito, así como toda la documentación del mismo (permiso de circulación, ficha técnica, etc.).`
+    const lines6 = doc.splitTextToSize(clausula6, maxWidth)
+    doc.text(lines6, margin, yPosition)
+    yPosition += lines6.length * 5 + 5
+
+    // Clausula 7
+    const clausula7 = `7. Que EL COMPRADOR se compromete a realizar el cambio de titularidad del vehículo en el plazo máximo de 30 días naturales desde la fecha de firma del presente contrato.`
+    const lines7 = doc.splitTextToSize(clausula7, maxWidth)
+    doc.text(lines7, margin, yPosition)
+    yPosition += lines7.length * 5 + 5
+
+    // Clausula 8
+    const clausula8 = `8. Que las partes se someten expresamente a la jurisdicción de los Juzgados y Tribunales de Valencia para la resolución de cualquier controversia que pueda surgir en relación con el presente contrato.`
+    const lines8 = doc.splitTextToSize(clausula8, maxWidth)
+    doc.text(lines8, margin, yPosition)
+    yPosition += lines8.length * 5 + 8
+
+    // Firma
+    doc.setFont('helvetica', 'bold')
+    doc.text(
+      'Y en prueba de conformidad, firman el presente contrato por duplicado y a un solo efecto:',
+      margin,
+      yPosition
+    )
+    yPosition += 15
+
+    // Líneas de firma
+    doc.setFont('helvetica', 'normal')
+    doc.text('EL COMPRADOR', margin, yPosition)
+    doc.text('EL VENDEDOR', pageWidth / 2 + 20, yPosition)
+    yPosition += 25
+
+    doc.text('_________________________', margin, yPosition)
+    doc.text('_________________________', pageWidth / 2 + 20, yPosition)
+    yPosition += 8
+
+    doc.text('SEVEN CARS MOTORS S.L.', margin, yPosition)
+    doc.text(
+      `${cliente.nombre} ${cliente.apellidos}`,
+      pageWidth / 2 + 20,
+      yPosition
+    )
+
+    return new Uint8Array(doc.output('arraybuffer'))
+  } catch (error) {
+    console.error('Error generando contrato de compraventa:', error)
+    throw error
+  }
+}
+
+// Función para generar contrato de compraventa (versión original para depósitos)
 export async function generarContratoCompraventa(
   deposito: DepositoData
 ): Promise<Uint8Array> {

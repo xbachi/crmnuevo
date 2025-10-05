@@ -12,9 +12,9 @@ interface Cliente {
   id: number
   nombre: string
   apellidos: string
-  email: string
-  telefono: string
-  dni: string
+  email?: string
+  telefono?: string
+  dni?: string
 }
 
 interface Vehiculo {
@@ -184,7 +184,7 @@ export default function NuevoDepositoPage() {
           email: '',
           telefono: '',
           dni: '',
-          direccion: '',
+          calle: '',
           ciudad: '',
           provincia: '',
           codPostal: '',
@@ -349,9 +349,14 @@ export default function NuevoDepositoPage() {
       if (response.ok) {
         const deposito = await response.json()
         console.log('✅ Depósito creado:', deposito)
+        console.log('✅ ID del depósito creado:', deposito.id)
         showToast('Depósito creado exitosamente', 'success')
-        console.log('🔄 Redirigiendo a:', `/depositos/${deposito.id}`)
-        router.push(`/depositos/${deposito.id}`)
+
+        // Esperar un momento para que se vea el toast y luego redirigir
+        setTimeout(() => {
+          console.log('🔄 Redirigiendo a depósito:', deposito.id)
+          router.push(`/depositos/${deposito.id}`)
+        }, 500)
       } else {
         const error = await response.json()
         console.error('❌ Error en respuesta:', error)
@@ -700,6 +705,23 @@ export default function NuevoDepositoPage() {
                                       placeholder="Ej: Valencia"
                                     />
                                   </div>
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                                    Provincia *
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={newCliente.provincia}
+                                    onChange={(e) =>
+                                      setNewCliente((prev) => ({
+                                        ...prev,
+                                        provincia: e.target.value,
+                                      }))
+                                    }
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="Ej: Valencia"
+                                  />
                                 </div>
                               </div>
                             </div>
