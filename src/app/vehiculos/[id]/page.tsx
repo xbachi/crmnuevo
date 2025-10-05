@@ -1441,7 +1441,7 @@ export default function VehiculoDetailPage() {
                               Identificación
                             </h3>
                           </div>
-                          <div className="text-xs lg:text-sm">
+                          <div className="text-sm lg:text-base">
                             <div className="flex items-center gap-2">
                               <span className="text-blue-700 font-medium">
                                 Marca:{' '}
@@ -1509,7 +1509,7 @@ export default function VehiculoDetailPage() {
                               Documentación
                             </h3>
                           </div>
-                          <div className="text-xs lg:text-sm">
+                          <div className="text-sm lg:text-base">
                             <div className="flex items-center gap-2">
                               <span className="text-green-700 font-medium">
                                 Matrícula:{' '}
@@ -1546,7 +1546,7 @@ export default function VehiculoDetailPage() {
                                     className="ml-1 text-green-900 bg-white border border-green-300 rounded px-1 py-0.5 text-xs font-medium font-mono w-16"
                                   />
                                 ) : (
-                                  <span className="text-green-900 font-mono text-xs break-all ml-1">
+                                  <span className="text-green-900 font-mono font-bold text-sm break-all ml-1">
                                     {vehiculo.bastidor}
                                   </span>
                                 )}
@@ -1577,7 +1577,7 @@ export default function VehiculoDetailPage() {
                               Características
                             </h3>
                           </div>
-                          <div className="text-xs lg:text-sm">
+                          <div className="text-sm lg:text-base">
                             <div className="flex items-center gap-2">
                               <span className="text-orange-700 font-medium">
                                 KMs:{' '}
