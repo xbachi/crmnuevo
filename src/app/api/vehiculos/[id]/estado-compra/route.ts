@@ -1,22 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import { Pool } from 'pg'
 
-// Función para crear una nueva instancia de Prisma por request
-function createPrismaClient() {
-  return new PrismaClient({
-    log:
-      process.env.NODE_ENV === 'development'
-        ? ['query', 'error', 'warn']
-        : ['error'],
-  })
-}
+// Crear pool de conexiones PostgreSQL
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false,
+  },
+})
 
 // GET - Obtener estado de compra del vehículo
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const prisma = createPrismaClient()
   try {
     console.log('🔍 [API GET] Iniciando consulta de estado de compra')
     const { id } = await params
@@ -32,19 +29,20 @@ export async function GET(
     }
 
     console.log('🔍 [API GET] Buscando vehículo en base de datos...')
-    const vehiculo = await prisma.vehiculo.findUnique({
-      where: { id: vehiculoId },
-      select: {
-        id: true,
-        pagado: true,
-        transporteSolicitado: true,
-        recibido: true,
-      },
-    })
+    const client = await pool.connect()
 
-    console.log('🔍 [API GET] Resultado de búsqueda:', vehiculo)
+    const result = await client.query(
+      `SELECT id, pagado, "transporteSolicitado", recibido 
+       FROM "Vehiculo" 
+       WHERE id = $1`,
+      [vehiculoId]
+    )
 
-    if (!vehiculo) {
+    client.release()
+
+    console.log('🔍 [API GET] Resultado de búsqueda:', result.rows[0])
+
+    if (result.rows.length === 0) {
       console.log('❌ [API GET] Vehículo no encontrado')
       return NextResponse.json(
         { error: 'Vehículo no encontrado' },
@@ -52,6 +50,7 @@ export async function GET(
       )
     }
 
+    const vehiculo = result.rows[0]
     const response = {
       pagado: vehiculo.pagado || false,
       transporteSolicitado: vehiculo.transporteSolicitado || false,
@@ -66,8 +65,6 @@ export async function GET(
       { error: 'Error interno del servidor', details: error.message },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
 
@@ -76,7 +73,6 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const prisma = createPrismaClient()
   try {
     const { id } = await params
     const vehiculoId = parseInt(id)
@@ -115,27 +111,24 @@ export async function PUT(
       )
     }
 
-    const vehiculo = await prisma.vehiculo.update({
-      where: { id: vehiculoId },
-      data: {
-        pagado,
-        transporteSolicitado,
-        recibido,
-      },
-      select: {
-        id: true,
-        pagado: true,
-        transporteSolicitado: true,
-        recibido: true,
-      },
-    })
+    const client = await pool.connect()
 
-    console.log('✅ [API] Vehículo actualizado:', vehiculo)
+    const result = await client.query(
+      `UPDATE "Vehiculo" 
+       SET pagado = $1, "transporteSolicitado" = $2, recibido = $3, "updatedAt" = NOW()
+       WHERE id = $4
+       RETURNING id, pagado, "transporteSolicitado", recibido`,
+      [pagado, transporteSolicitado, recibido, vehiculoId]
+    )
+
+    client.release()
+
+    console.log('✅ [API] Vehículo actualizado:', result.rows[0])
 
     return NextResponse.json({
-      pagado: vehiculo.pagado,
-      transporteSolicitado: vehiculo.transporteSolicitado,
-      recibido: vehiculo.recibido,
+      pagado: result.rows[0].pagado,
+      transporteSolicitado: result.rows[0].transporteSolicitado,
+      recibido: result.rows[0].recibido,
     })
   } catch (error) {
     console.error('Error al actualizar estado de compra:', error)
@@ -143,7 +136,5 @@ export async function PUT(
       { error: 'Error interno del servidor' },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
