@@ -65,12 +65,24 @@ export async function PUT(
     const body = await request.json()
     const { pagado, transporteSolicitado, recibido } = body
 
+    console.log('📝 [API] Datos recibidos:', {
+      vehiculoId,
+      pagado,
+      transporteSolicitado,
+      recibido,
+    })
+
     // Validar que los campos sean booleanos
     if (
       typeof pagado !== 'boolean' ||
       typeof transporteSolicitado !== 'boolean' ||
       typeof recibido !== 'boolean'
     ) {
+      console.log('❌ [API] Validación fallida:', {
+        pagado: typeof pagado,
+        transporteSolicitado: typeof transporteSolicitado,
+        recibido: typeof recibido,
+      })
       return NextResponse.json(
         { error: 'Los campos deben ser booleanos' },
         { status: 400 }
@@ -91,6 +103,8 @@ export async function PUT(
         recibido: true,
       },
     })
+
+    console.log('✅ [API] Vehículo actualizado:', vehiculo)
 
     return NextResponse.json({
       pagado: vehiculo.pagado,

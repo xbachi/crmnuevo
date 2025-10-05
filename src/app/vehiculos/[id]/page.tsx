@@ -469,7 +469,12 @@ export default function VehiculoDetailPage() {
         console.log(`✅ [VEHICULO PAGE] Estado de compra guardado:`, data)
         showToast('Estado de compra actualizado', 'success')
       } else {
-        console.error('Error al guardar estado de compra:', response.statusText)
+        const errorData = await response.text()
+        console.error('❌ [VEHICULO PAGE] Error al guardar estado de compra:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+        })
         showToast('Error al guardar estado de compra', 'error')
       }
     } catch (error) {
