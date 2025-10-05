@@ -1584,9 +1584,9 @@ export default function VehiculoDetailPage() {
                         )}
                       </div>
 
-                      <div className="grid grid-cols-1 2xl:grid-cols-10 gap-2 sm:gap-3 lg:gap-6">
+                      <div className="grid grid-cols-1 2xl:grid-cols-12 gap-2 sm:gap-3 lg:gap-6">
                         {/* Marca y Modelo */}
-                        <div className="2xl:col-span-3 bg-blue-50 border border-blue-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
+                        <div className="2xl:col-span-4 bg-blue-50 border border-blue-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
                           <div className="flex items-center space-x-1 sm:space-x-2 mb-1 lg:mb-3">
                             <div className="w-4 h-4 sm:w-5 sm:h-5 lg:w-8 lg:h-8 bg-blue-500 rounded-lg flex items-center justify-center">
                               <svg
@@ -1722,7 +1722,7 @@ export default function VehiculoDetailPage() {
                         </div>
 
                         {/* KMs, Fecha y Color */}
-                        <div className="2xl:col-span-3 bg-orange-50 border border-orange-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
+                        <div className="2xl:col-span-4 bg-orange-50 border border-orange-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
                           <div className="flex items-center space-x-1 sm:space-x-2 mb-1 lg:mb-3">
                             <div className="w-4 h-4 sm:w-5 sm:h-5 lg:w-8 lg:h-8 bg-orange-500 rounded-lg flex items-center justify-center">
                               <svg
