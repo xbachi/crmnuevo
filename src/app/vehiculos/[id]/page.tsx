@@ -1314,9 +1314,9 @@ export default function VehiculoDetailPage() {
         </div>
 
         <div className="w-[85%] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-2 sm:py-4 lg:py-6 xl:py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-10 gap-2 sm:gap-4 lg:gap-6 xl:gap-8">
+          <div className="grid grid-cols-1 2xl:grid-cols-10 gap-2 sm:gap-4 lg:gap-6 xl:gap-8">
             {/* Panel Principal */}
-            <div className="lg:col-span-7 2xl:col-span-7 space-y-2 sm:space-y-4 lg:space-y-6">
+            <div className="2xl:col-span-7 space-y-2 sm:space-y-4 lg:space-y-6">
               {/* Estado del Vehículo - Solo visible en pantallas < 1500px */}
               <div className="block 2xl:hidden bg-white rounded-xl shadow-sm border border-slate-200 p-2 sm:p-3 lg:p-4">
                 <div className="flex items-center space-x-2 mb-3">
@@ -1584,9 +1584,9 @@ export default function VehiculoDetailPage() {
                         )}
                       </div>
 
-                      <div className="grid grid-cols-1 lg:grid-cols-10 gap-2 sm:gap-3 lg:gap-6">
+                      <div className="grid grid-cols-1 2xl:grid-cols-10 gap-2 sm:gap-3 lg:gap-6">
                         {/* Marca y Modelo */}
-                        <div className="lg:col-span-3 bg-blue-50 border border-blue-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
+                        <div className="2xl:col-span-3 bg-blue-50 border border-blue-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
                           <div className="flex items-center space-x-1 sm:space-x-2 mb-1 lg:mb-3">
                             <div className="w-4 h-4 sm:w-5 sm:h-5 lg:w-8 lg:h-8 bg-blue-500 rounded-lg flex items-center justify-center">
                               <svg
@@ -1654,7 +1654,7 @@ export default function VehiculoDetailPage() {
                         </div>
 
                         {/* Matrícula y Bastidor */}
-                        <div className="lg:col-span-4 bg-green-50 border border-green-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
+                        <div className="2xl:col-span-4 bg-green-50 border border-green-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
                           <div className="flex items-center space-x-1 sm:space-x-2 mb-1 lg:mb-3">
                             <div className="w-4 h-4 sm:w-5 sm:h-5 lg:w-8 lg:h-8 bg-green-500 rounded-lg flex items-center justify-center">
                               <svg
@@ -1722,7 +1722,7 @@ export default function VehiculoDetailPage() {
                         </div>
 
                         {/* KMs, Fecha y Color */}
-                        <div className="lg:col-span-3 bg-orange-50 border border-orange-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
+                        <div className="2xl:col-span-3 bg-orange-50 border border-orange-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
                           <div className="flex items-center space-x-1 sm:space-x-2 mb-1 lg:mb-3">
                             <div className="w-4 h-4 sm:w-5 sm:h-5 lg:w-8 lg:h-8 bg-orange-500 rounded-lg flex items-center justify-center">
                               <svg
@@ -3503,9 +3503,9 @@ export default function VehiculoDetailPage() {
             </div>
 
             {/* Sidebar Derecha */}
-            <div className="hidden 2xl:block lg:col-span-3 space-y-2 sm:space-y-4 lg:space-y-6">
-              {/* Estado del Vehículo - Solo visible en pantallas >= 1024px */}
-              <div className="hidden lg:block bg-white rounded-xl shadow-sm border border-slate-200 p-3 sm:p-4 lg:p-6">
+            <div className="hidden 2xl:block 2xl:col-span-3 space-y-2 sm:space-y-4 lg:space-y-6">
+              {/* Estado del Vehículo - Solo visible en pantallas >= 1500px */}
+              <div className="hidden 2xl:block bg-white rounded-xl shadow-sm border border-slate-200 p-3 sm:p-4 lg:p-6">
                 <div className="flex items-center space-x-2 mb-4">
                   <div className="w-3 h-3 sm:w-4 sm:h-4 lg:w-6 lg:h-6 sm:w-8 sm:h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
                     <svg
@@ -3787,8 +3787,8 @@ export default function VehiculoDetailPage() {
                 </div>
               )}
 
-              {/* Documentos del Vehículo - Solo visible en pantallas >= 1024px */}
-              <div className="hidden lg:block bg-white rounded-xl shadow-sm border border-slate-200 p-3 sm:p-4 lg:p-6">
+              {/* Documentos del Vehículo - Solo visible en pantallas >= 1500px */}
+              <div className="hidden 2xl:block bg-white rounded-xl shadow-sm border border-slate-200 p-3 sm:p-4 lg:p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center space-x-2">
                     <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
