@@ -51,6 +51,11 @@ model Vehiculo {
   notasInversor     String?
   fotoInversor      String?
   
+  // Estado de compra
+  pagado            Boolean @default(false)
+  transporteSolicitado Boolean @default(false)
+  recibido          Boolean @default(false)
+  
   // Relaciones con Deals
   dealActivoId      Int? // ID del deal activo si está reservado/vendido
   deals             Deal[]

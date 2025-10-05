@@ -162,6 +162,7 @@ export default function VehiculoDetailPage() {
     transporteSolicitado: false,
     recibido: false,
   })
+  const [isLoadingEstadoCompra, setIsLoadingEstadoCompra] = useState(false)
 
   // Estados para documentos
   const [documentos, setDocumentos] = useState<
@@ -412,6 +413,73 @@ export default function VehiculoDetailPage() {
     }
   }
 
+  // Función para obtener estado de compra desde la API
+  const fetchEstadoCompra = async () => {
+    try {
+      console.log(
+        `💰 [VEHICULO PAGE] Obteniendo estado de compra para vehículo ${vehiculoId}`
+      )
+      const response = await fetch(`/api/vehiculos/${vehiculoId}/estado-compra`)
+      if (response.ok) {
+        const data = await response.json()
+        setEstadoCompra(data)
+        console.log(`✅ [VEHICULO PAGE] Estado de compra cargado:`, data)
+      } else {
+        console.error('Error al obtener estado de compra:', response.statusText)
+        setEstadoCompra({
+          pagado: false,
+          transporteSolicitado: false,
+          recibido: false,
+        })
+      }
+    } catch (error) {
+      console.error('Error al obtener estado de compra:', error)
+      setEstadoCompra({
+        pagado: false,
+        transporteSolicitado: false,
+        recibido: false,
+      })
+    }
+  }
+
+  // Función para guardar estado de compra
+  const saveEstadoCompra = async (nuevoEstado: typeof estadoCompra) => {
+    if (!vehiculoId) return
+
+    setIsLoadingEstadoCompra(true)
+    try {
+      console.log(
+        `💾 [VEHICULO PAGE] Guardando estado de compra para vehículo ${vehiculoId}`,
+        nuevoEstado
+      )
+      const response = await fetch(
+        `/api/vehiculos/${vehiculoId}/estado-compra`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(nuevoEstado),
+        }
+      )
+
+      if (response.ok) {
+        const data = await response.json()
+        setEstadoCompra(data)
+        console.log(`✅ [VEHICULO PAGE] Estado de compra guardado:`, data)
+        showToast('Estado de compra actualizado', 'success')
+      } else {
+        console.error('Error al guardar estado de compra:', response.statusText)
+        showToast('Error al guardar estado de compra', 'error')
+      }
+    } catch (error) {
+      console.error('Error al guardar estado de compra:', error)
+      showToast('Error al guardar estado de compra', 'error')
+    } finally {
+      setIsLoadingEstadoCompra(false)
+    }
+  }
+
   useEffect(() => {
     const fetchVehiculoEffect = async () => {
       await fetchVehiculo()
@@ -425,6 +493,7 @@ export default function VehiculoDetailPage() {
       fetchDocumentos()
       fetchNotas()
       fetchRecordatorios()
+      fetchEstadoCompra()
     } else {
       console.log(`⚠️ [VEHICULO PAGE] No hay ID para buscar`)
     }
@@ -3146,13 +3215,16 @@ export default function VehiculoDetailPage() {
                       type="checkbox"
                       id="pagado"
                       checked={estadoCompra.pagado}
-                      onChange={(e) =>
-                        setEstadoCompra((prev) => ({
-                          ...prev,
+                      disabled={isLoadingEstadoCompra}
+                      onChange={(e) => {
+                        const nuevoEstado = {
+                          ...estadoCompra,
                           pagado: e.target.checked,
-                        }))
-                      }
-                      className="w-4 h-4 text-orange-600 bg-orange-100 border-orange-300 rounded focus:ring-orange-500 focus:ring-2"
+                        }
+                        setEstadoCompra(nuevoEstado)
+                        saveEstadoCompra(nuevoEstado)
+                      }}
+                      className="w-4 h-4 text-orange-600 bg-orange-100 border-orange-300 rounded focus:ring-orange-500 focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                     <label
                       htmlFor="pagado"
@@ -3168,13 +3240,16 @@ export default function VehiculoDetailPage() {
                       type="checkbox"
                       id="transporteSolicitado"
                       checked={estadoCompra.transporteSolicitado}
-                      onChange={(e) =>
-                        setEstadoCompra((prev) => ({
-                          ...prev,
+                      disabled={isLoadingEstadoCompra}
+                      onChange={(e) => {
+                        const nuevoEstado = {
+                          ...estadoCompra,
                           transporteSolicitado: e.target.checked,
-                        }))
-                      }
-                      className="w-4 h-4 text-green-600 bg-green-100 border-green-300 rounded focus:ring-green-500 focus:ring-2"
+                        }
+                        setEstadoCompra(nuevoEstado)
+                        saveEstadoCompra(nuevoEstado)
+                      }}
+                      className="w-4 h-4 text-green-600 bg-green-100 border-green-300 rounded focus:ring-green-500 focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                     <label
                       htmlFor="transporteSolicitado"
@@ -3190,13 +3265,16 @@ export default function VehiculoDetailPage() {
                       type="checkbox"
                       id="recibido"
                       checked={estadoCompra.recibido}
-                      onChange={(e) =>
-                        setEstadoCompra((prev) => ({
-                          ...prev,
+                      disabled={isLoadingEstadoCompra}
+                      onChange={(e) => {
+                        const nuevoEstado = {
+                          ...estadoCompra,
                           recibido: e.target.checked,
-                        }))
-                      }
-                      className="w-4 h-4 text-blue-600 bg-blue-100 border-blue-300 rounded focus:ring-blue-500 focus:ring-2"
+                        }
+                        setEstadoCompra(nuevoEstado)
+                        saveEstadoCompra(nuevoEstado)
+                      }}
+                      className="w-4 h-4 text-blue-600 bg-blue-100 border-blue-300 rounded focus:ring-blue-500 focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                     <label
                       htmlFor="recibido"
