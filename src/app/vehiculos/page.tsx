@@ -1002,7 +1002,7 @@ export default function ListaVehiculos() {
                   </div>
                 </div>
 
-                {/* Filtros de estado con iconos - Orden: Publicados, En Proceso, Vendidos, Reservados, Todos */}
+                {/* Filtros de estado con iconos - Orden: Publicados, En Proceso, Reservados, Vendidos, Todos */}
                 <div className="flex flex-col xl:flex-row items-start xl:items-center gap-2 xl:gap-4">
                   <span className="text-xs xl:text-sm font-semibold text-slate-700 flex items-center gap-1">
                     📊 Estado:
@@ -1037,20 +1037,6 @@ export default function ListaVehiculos() {
                       </span>
                     </button>
                     <button
-                      onClick={() => setStatusFilter('vendidos')}
-                      className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm font-medium rounded-md transition-all flex items-center gap-1 ${
-                        statusFilter === 'vendidos'
-                          ? 'bg-red-50 text-red-700 shadow-sm border border-red-200'
-                          : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
-                      }`}
-                    >
-                      <span className="text-xs">💰</span>
-                      <span className="hidden xl:inline">Vendidos</span>
-                      <span className="text-xs">
-                        ({getStatusCounts().vendidos})
-                      </span>
-                    </button>
-                    <button
                       onClick={() => setStatusFilter('reservados')}
                       className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm font-medium rounded-md transition-all flex items-center gap-1 ${
                         statusFilter === 'reservados'
@@ -1062,6 +1048,20 @@ export default function ListaVehiculos() {
                       <span className="hidden xl:inline">Reservados</span>
                       <span className="text-xs">
                         ({getStatusCounts().reservados})
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => setStatusFilter('vendidos')}
+                      className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm font-medium rounded-md transition-all flex items-center gap-1 ${
+                        statusFilter === 'vendidos'
+                          ? 'bg-red-50 text-red-700 shadow-sm border border-red-200'
+                          : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
+                      }`}
+                    >
+                      <span className="text-xs">💰</span>
+                      <span className="hidden xl:inline">Vendidos</span>
+                      <span className="text-xs">
+                        ({getStatusCounts().vendidos})
                       </span>
                     </button>
                     <button
