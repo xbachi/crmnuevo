@@ -3,7 +3,11 @@
 import { useState, memo, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { formatVehicleReference, generateVehicleSlug } from '@/lib/utils'
+import {
+  formatVehicleReference,
+  generateVehicleSlug,
+  capitalizeText,
+} from '@/lib/utils'
 
 interface Vehiculo {
   id: number
@@ -392,7 +396,8 @@ const VehicleCard = memo(function VehicleCard({
                   vehiculoReservado ? 'text-gray-500' : 'text-gray-900'
                 }`}
               >
-                {vehiculo.marca} {vehiculo.modelo}
+                {capitalizeText(vehiculo.marca)}{' '}
+                {capitalizeText(vehiculo.modelo)}
               </h3>
               {/* Cartel de RESERVADO */}
               {vehiculoReservado && (

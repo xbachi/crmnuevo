@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/Toast'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, capitalizeText } from '@/lib/utils'
 import { generarContratoCompraventa } from '@/lib/contractGenerator'
 import Link from 'next/link'
 import ProtectedRoute from '@/components/ProtectedRoute'
@@ -115,8 +115,8 @@ export default function DepositosPage() {
       const contratoData = {
         id: deposito.id,
         cliente: {
-          nombre: deposito.cliente.nombre,
-          apellidos: deposito.cliente.apellidos,
+          nombre: capitalizeText(deposito.cliente.nombre),
+          apellidos: capitalizeText(deposito.cliente.apellidos),
           dni: deposito.cliente.dni || '',
           direccion: deposito.cliente.direccion || '',
           ciudad: deposito.cliente.ciudad || '',
@@ -124,8 +124,8 @@ export default function DepositosPage() {
           codPostal: deposito.cliente.codPostal || '',
         },
         vehiculo: {
-          marca: deposito.vehiculo.marca,
-          modelo: deposito.vehiculo.modelo,
+          marca: capitalizeText(deposito.vehiculo.marca),
+          modelo: capitalizeText(deposito.vehiculo.modelo),
           bastidor: deposito.vehiculo.bastidor || '',
           matricula: deposito.vehiculo.matricula,
           fechaMatriculacion: deposito.vehiculo.fechaMatriculacion || '',
@@ -649,7 +649,7 @@ export default function DepositosPage() {
                               <div className="text-sm font-medium text-gray-700">
                                 {deposito.cliente?.nombre &&
                                 deposito.cliente?.apellidos
-                                  ? `${deposito.cliente.nombre} ${deposito.cliente.apellidos}`.trim()
+                                  ? `${capitalizeText(deposito.cliente.nombre)} ${capitalizeText(deposito.cliente.apellidos)}`.trim()
                                   : 'Sin cliente'}
                               </div>
                               {deposito.cliente?.telefono && (
@@ -664,7 +664,7 @@ export default function DepositosPage() {
                             <div className="text-sm font-medium text-gray-900">
                               {deposito.vehiculo?.marca &&
                               deposito.vehiculo?.modelo
-                                ? `${deposito.vehiculo.marca} ${deposito.vehiculo.modelo}`.trim()
+                                ? `${capitalizeText(deposito.vehiculo.marca)} ${capitalizeText(deposito.vehiculo.modelo)}`.trim()
                                 : 'Sin vehículo'}
                             </div>
                             <div className="text-xs text-gray-500">
@@ -739,7 +739,7 @@ export default function DepositosPage() {
                             <div className="text-sm font-medium text-gray-900">
                               {deposito.vehiculo?.marca &&
                               deposito.vehiculo?.modelo
-                                ? `${deposito.vehiculo.marca} ${deposito.vehiculo.modelo}`.trim()
+                                ? `${capitalizeText(deposito.vehiculo.marca)} ${capitalizeText(deposito.vehiculo.modelo)}`.trim()
                                 : 'Sin vehículo'}
                             </div>
                             <div className="text-xs text-gray-500">

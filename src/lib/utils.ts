@@ -9,6 +9,17 @@ export function formatDate(dateString: string): string {
   return `${day}/${month}/${year}`
 }
 
+// Función para capitalizar texto (primera letra de cada palabra en mayúscula)
+export function capitalizeText(text: string | null | undefined): string {
+  if (!text) return ''
+
+  return text
+    .toLowerCase()
+    .split(' ')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
+
 // Función helper para obtener el año del vehículo
 export function getVehiculoAño(vehiculo: any): number | null {
   // Si ya tiene año, usarlo

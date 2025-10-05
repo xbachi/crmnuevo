@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { useToast } from '@/hooks/useToast'
 import FacturaTypeModal from '@/components/FacturaTypeModal'
+import { capitalizeText } from '@/lib/utils'
 
 interface ClienteData {
   nombre: string
@@ -171,8 +172,8 @@ export default function GeneradorFacturas() {
         numero: numeroFacturaFinal,
         fechaCreacion: new Date(),
         cliente: {
-          nombre: cliente.nombre,
-          apellidos: cliente.apellidos,
+          nombre: capitalizeText(cliente.nombre),
+          apellidos: capitalizeText(cliente.apellidos),
           dni: cliente.dni,
           telefono: cliente.telefono,
           email: cliente.email,
@@ -182,8 +183,8 @@ export default function GeneradorFacturas() {
           codPostal: cliente.codPostal,
         },
         vehiculo: {
-          marca: vehiculo.marca,
-          modelo: vehiculo.modelo,
+          marca: capitalizeText(vehiculo.marca),
+          modelo: capitalizeText(vehiculo.modelo),
           matricula: vehiculo.matricula,
           bastidor: vehiculo.bastidor,
           kms: vehiculo.kms,

@@ -8,6 +8,7 @@ import { Cliente } from '@/lib/database'
 import { useSimpleToast } from '@/hooks/useSimpleToast'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import { capitalizeText } from '@/lib/utils'
 
 export default function ClientesPage() {
   const router = useRouter()
@@ -762,7 +763,8 @@ export default function ClientesPage() {
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                        {cliente.nombre} {cliente.apellidos}
+                        {capitalizeText(cliente.nombre)}{' '}
+                        {capitalizeText(cliente.apellidos)}
                       </h3>
                       <p className="text-sm text-gray-600">
                         {cliente.telefono}
@@ -879,7 +881,8 @@ export default function ClientesPage() {
                       >
                         <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                           <div className="text-xs sm:text-sm font-medium text-gray-900">
-                            {cliente.nombre} {cliente.apellidos}
+                            {capitalizeText(cliente.nombre)}{' '}
+                            {capitalizeText(cliente.apellidos)}
                           </div>
                         </td>
                         <td className="hidden sm:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">

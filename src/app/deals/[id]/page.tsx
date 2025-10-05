@@ -17,6 +17,7 @@ import {
   formatCurrency,
   formatVehicleReference,
   generateClienteSlug,
+  capitalizeText,
 } from '@/lib/utils'
 import DealVentaInfo from '@/components/DealVentaInfo'
 import FacturaTypeModal from '@/components/FacturaTypeModal'
@@ -761,7 +762,7 @@ export default function DealDetail() {
                   body: JSON.stringify({
                     clienteId: deal.clienteId,
                     titulo: 'Solicitar cambio de nombre',
-                    descripcion: `Solicitar documentación para cambio de nombre del vehículo ${formatVehicleReference(deal.vehiculo.referencia, deal.vehiculo.tipo)} al cliente ${deal.cliente.nombre} ${deal.cliente.apellidos}`,
+                    descripcion: `Solicitar documentación para cambio de nombre del vehículo ${formatVehicleReference(deal.vehiculo.referencia, deal.vehiculo.tipo)} al cliente ${capitalizeText(deal.cliente.nombre)} ${capitalizeText(deal.cliente.apellidos)}`,
                     tipo: 'otro',
                     prioridad: 'alta',
                     fechaRecordatorio: new Date(

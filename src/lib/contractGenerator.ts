@@ -1,6 +1,6 @@
 // Generador de contratos con jsPDF
 import jsPDF from './jspdf-server'
-import { formatCurrency, getVehiculoAño } from './utils'
+import { formatCurrency, getVehiculoAño, capitalizeText } from './utils'
 
 // Función para formatear la fecha de matriculación
 function getFechaMatriculacion(vehiculo: any): string {
@@ -319,7 +319,13 @@ function numeroALetras(numero: number): string {
   if (numeroEntero < 1000) {
     const centena = Math.floor(numeroEntero / 100)
     const resto = numeroEntero % 100
-    if (resto === 0) return centenas[centena]
+    if (resto === 0) {
+      // Caso especial: 100 -> "cien", no "ciento"
+      if (centena === 1) {
+        return 'cien'
+      }
+      return centenas[centena]
+    }
     return centenas[centena] + ' ' + numeroALetras(resto)
   }
   if (numeroEntero < 1000000) {
@@ -355,7 +361,12 @@ function numeroALetras(numero: number): string {
       const centena = Math.floor(miles / 100)
       const restoMiles = miles % 100
       if (restoMiles === 0) {
-        milesTexto = centenas[centena] + ' mil'
+        // Caso especial: 100 -> "cien mil", no "ciento mil"
+        if (centena === 1) {
+          milesTexto = 'cien mil'
+        } else {
+          milesTexto = centenas[centena] + ' mil'
+        }
       } else {
         milesTexto =
           centenas[centena] + ' ' + numeroALetras(restoMiles) + ' mil'
@@ -1570,7 +1581,7 @@ export async function generarContratoCompraventaSimple(
     doc.text('Y DE OTRA PARTE:', margin, yPosition)
     yPosition += 6
     doc.setFont('helvetica', 'normal')
-    const nombreCompleto = `${cliente.nombre} ${cliente.apellidos}`
+    const nombreCompleto = `${capitalizeText(cliente.nombre)} ${capitalizeText(cliente.apellidos)}`
     const direccionCompleta =
       `${cliente.direccion || ''}, ${cliente.ciudad || ''}, ${cliente.provincia || ''}`
         .trim()
@@ -1600,7 +1611,11 @@ export async function generarContratoCompraventaSimple(
     // Columna izquierda
     doc.text(`Marca y Modelo: `, col1X, yPosition)
     doc.setFont('helvetica', 'bold')
-    doc.text(`${vehiculo.marca} ${vehiculo.modelo}`, col1X + 35, yPosition)
+    doc.text(
+      `${capitalizeText(vehiculo.marca)} ${capitalizeText(vehiculo.modelo)}`,
+      col1X + 35,
+      yPosition
+    )
     doc.setFont('helvetica', 'normal')
     doc.text(`Nº Bastidor: `, col1X, yPosition + lineHeight)
     doc.setFont('helvetica', 'bold')
@@ -1754,7 +1769,7 @@ export async function generarContratoCompraventaSimple(
 
     doc.text('SEVEN CARS MOTORS S.L.', margin, yPosition)
     doc.text(
-      `${cliente.nombre} ${cliente.apellidos}`,
+      `${capitalizeText(cliente.nombre)} ${capitalizeText(cliente.apellidos)}`,
       pageWidth / 2 + 20,
       yPosition
     )
@@ -1881,7 +1896,7 @@ export async function generarContratoCompraventa(
     doc.text(`Marca y Modelo: `, col1X, yPosition)
     doc.setFont('helvetica', 'bold')
     doc.text(
-      `${deposito.vehiculo.marca} ${deposito.vehiculo.modelo}`,
+      `${capitalizeText(deposito.vehiculo.marca)} ${capitalizeText(deposito.vehiculo.modelo)}`,
       col1X + 35,
       yPosition
     )
@@ -2135,7 +2150,7 @@ export async function generarContratoDeposito(
     writeField(
       doc,
       'Marca y Modelo',
-      `${deposito.vehiculo.marca} ${deposito.vehiculo.modelo}`,
+      `${capitalizeText(deposito.vehiculo.marca)} ${capitalizeText(deposito.vehiculo.modelo)}`,
       col1X,
       yPosition
     )

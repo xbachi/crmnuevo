@@ -6,7 +6,11 @@ import { useToast } from '@/components/Toast'
 import { useConfirmModal } from '@/components/ConfirmModal'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import VehicleCard from '@/components/VehicleCard'
-import { formatVehicleReference, generateVehicleSlug } from '@/lib/utils'
+import {
+  formatVehicleReference,
+  generateVehicleSlug,
+  capitalizeText,
+} from '@/lib/utils'
 import ProtectedRoute from '@/components/ProtectedRoute'
 
 interface Vehiculo {
@@ -572,7 +576,7 @@ export default function ListaVehiculos() {
   const handleDelete = (id: number) => {
     const vehiculo = vehiculos.find((v) => v.id === id)
     const vehiculoName = vehiculo
-      ? `${vehiculo.marca} ${vehiculo.modelo} (${formatVehicleReference(vehiculo.referencia, vehiculo.tipo)})`
+      ? `${capitalizeText(vehiculo.marca)} ${capitalizeText(vehiculo.modelo)} (${formatVehicleReference(vehiculo.referencia, vehiculo.tipo)})`
       : 'este vehículo'
 
     showConfirm(
@@ -1282,7 +1286,8 @@ export default function ListaVehiculos() {
                               <div
                                 className={`font-semibold text-xs lg:text-sm truncate ${vehiculoVendido ? 'text-gray-500' : 'text-slate-900'}`}
                               >
-                                {vehiculo.marca} {vehiculo.modelo}
+                                {capitalizeText(vehiculo.marca)}{' '}
+                                {capitalizeText(vehiculo.modelo)}
                               </div>
                               {/* Mostrar matrícula debajo del nombre en pantallas <1280px */}
                               <div className="xl:hidden mt-1">

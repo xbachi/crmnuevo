@@ -6,7 +6,7 @@ import { useToast } from '@/components/Toast'
 import { useConfirmModal } from '@/components/ConfirmModal'
 import { useAutoSync } from '@/hooks/useAutoSync'
 import { KanbanLoadingSkeleton } from '@/components/LoadingSkeleton'
-import { formatVehicleReference } from '@/lib/utils'
+import { formatVehicleReference, capitalizeText } from '@/lib/utils'
 import ProtectedRoute from '@/components/ProtectedRoute'
 
 interface Vehiculo {
@@ -204,7 +204,7 @@ export default function KanbanPage() {
   const handleDelete = (id: number) => {
     const vehiculo = vehiculos.find((v) => v.id === id)
     const vehiculoName = vehiculo
-      ? `${vehiculo.marca} ${vehiculo.modelo} (${formatVehicleReference(vehiculo.referencia, vehiculo.tipo)})`
+      ? `${capitalizeText(vehiculo.marca)} ${capitalizeText(vehiculo.modelo)} (${formatVehicleReference(vehiculo.referencia, vehiculo.tipo)})`
       : 'este vehículo'
 
     showConfirm(

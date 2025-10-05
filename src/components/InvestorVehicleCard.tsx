@@ -6,6 +6,7 @@ import {
   formatDate,
   formatVehicleReference,
   formatVehicleReferenceShort,
+  capitalizeText,
 } from '@/lib/utils'
 
 interface InvestorVehicleCardProps {
@@ -212,7 +213,8 @@ export function InvestorVehicleCard({
             </div>
             <div className="flex-1">
               <h3 className="text-lg font-bold text-gray-900">
-                {vehiculo.marca} {vehiculo.modelo}
+                {capitalizeText(vehiculo.marca)}{' '}
+                {capitalizeText(vehiculo.modelo)}
               </h3>
               {/* Alerta de ITV vencida o info básica */}
               {vehiculo.itv !== null &&
@@ -600,7 +602,7 @@ export function InvestorVehicleCard({
                     >
                       <img
                         src={localPhotoUrl || vehiculo.fotoInversor}
-                        alt={`${vehiculo.marca} ${vehiculo.modelo}`}
+                        alt={`${capitalizeText(vehiculo.marca)} ${capitalizeText(vehiculo.modelo)}`}
                         className="w-full h-32 object-cover rounded-lg shadow-sm group-hover:shadow-md transition-shadow border border-gray-200"
                         onError={(e) => {
                           console.error('Error al cargar imagen:', e)
@@ -694,7 +696,8 @@ export function InvestorVehicleCard({
             />
             <div className="absolute bottom-4 left-4 right-4 bg-black bg-opacity-50 text-white p-3 rounded-lg">
               <p className="text-sm font-medium">
-                {vehiculo.marca} {vehiculo.modelo}
+                {capitalizeText(vehiculo.marca)}{' '}
+                {capitalizeText(vehiculo.modelo)}
               </p>
               <p className="text-xs text-gray-300">
                 Haz clic fuera para cerrar

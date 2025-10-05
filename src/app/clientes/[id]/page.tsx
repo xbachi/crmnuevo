@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { Cliente } from '@/lib/database'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import { capitalizeText } from '@/lib/utils'
 
 interface NotaCliente {
   id: number
@@ -900,7 +901,8 @@ export default function ClienteDetailPage() {
                   Volver a Clientes
                 </button>
                 <h1 className="text-3xl font-bold text-slate-800 mb-2">
-                  {cliente.nombre} {cliente.apellidos}
+                  {capitalizeText(cliente.nombre)}{' '}
+                  {capitalizeText(cliente.apellidos)}
                 </h1>
                 <div className="flex items-center space-x-4">
                   <span
@@ -1707,7 +1709,7 @@ export default function ClienteDetailPage() {
               {/* Recordatorios */}
               <ClientReminders
                 clienteId={cliente.id}
-                clienteNombre={`${cliente.nombre} ${cliente.apellidos}`}
+                clienteNombre={`${capitalizeText(cliente.nombre)} ${capitalizeText(cliente.apellidos)}`}
               />
 
               {/* Etiquetas */}

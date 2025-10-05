@@ -7,6 +7,7 @@ import { useToast, ToastContainer } from '@/hooks/useToast'
 import { useCache } from '@/contexts/CacheContext'
 import VehicleForm from '@/components/VehicleForm'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import { capitalizeText } from '@/lib/utils'
 
 interface Cliente {
   id: number
@@ -487,14 +488,15 @@ export default function NuevoDepositoPage() {
                                 onClick={() => {
                                   setSelectedCliente(cliente)
                                   setClienteSearch(
-                                    `${cliente.nombre} ${cliente.apellidos}`
+                                    `${capitalizeText(cliente.nombre)} ${capitalizeText(cliente.apellidos)}`
                                   )
                                   setShowClienteDropdown(false)
                                 }}
                                 className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
                               >
                                 <div className="font-medium text-gray-900">
-                                  {cliente.nombre} {cliente.apellidos}
+                                  {capitalizeText(cliente.nombre)}{' '}
+                                  {capitalizeText(cliente.apellidos)}
                                 </div>
                                 <div className="text-gray-500">
                                   {cliente.telefono}{' '}
@@ -803,14 +805,15 @@ export default function NuevoDepositoPage() {
                                 onClick={() => {
                                   setSelectedVehiculo(vehiculo)
                                   setVehiculoSearch(
-                                    `${vehiculo.marca} ${vehiculo.modelo} - ${vehiculo.matricula}`
+                                    `${capitalizeText(vehiculo.marca)} ${capitalizeText(vehiculo.modelo)} - ${vehiculo.matricula}`
                                   )
                                   setShowVehiculoDropdown(false)
                                 }}
                                 className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
                               >
                                 <div className="font-medium text-gray-900">
-                                  {vehiculo.marca} {vehiculo.modelo}
+                                  {capitalizeText(vehiculo.marca)}{' '}
+                                  {capitalizeText(vehiculo.modelo)}
                                 </div>
                                 <div className="text-gray-500">
                                   {vehiculo.matricula} • {vehiculo.referencia}

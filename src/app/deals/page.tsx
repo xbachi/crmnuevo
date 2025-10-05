@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/Toast'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, capitalizeText } from '@/lib/utils'
 import Link from 'next/link'
 import ProtectedRoute from '@/components/ProtectedRoute'
 
@@ -706,7 +706,7 @@ export default function DealsPage() {
                             <div className="mt-1">
                               <div className="text-sm font-medium text-gray-700">
                                 {deal.cliente?.nombre && deal.cliente?.apellidos
-                                  ? `${deal.cliente.nombre} ${deal.cliente.apellidos}`.trim()
+                                  ? `${capitalizeText(deal.cliente.nombre)} ${capitalizeText(deal.cliente.apellidos)}`.trim()
                                   : 'Sin cliente'}
                               </div>
                               {deal.cliente?.telefono && (
@@ -720,7 +720,7 @@ export default function DealsPage() {
                           <td className="md:hidden px-3 sm:px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900">
                               {deal.vehiculo?.marca && deal.vehiculo?.modelo
-                                ? `${deal.vehiculo.marca} ${deal.vehiculo.modelo}`.trim()
+                                ? `${capitalizeText(deal.vehiculo.marca)} ${capitalizeText(deal.vehiculo.modelo)}`.trim()
                                 : 'Sin vehículo'}
                             </div>
                             <div className="text-xs text-gray-500">
@@ -801,7 +801,7 @@ export default function DealsPage() {
                           <td className="hidden md:table-cell lg:hidden px-3 sm:px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900">
                               {deal.vehiculo?.marca && deal.vehiculo?.modelo
-                                ? `${deal.vehiculo.marca} ${deal.vehiculo.modelo}`.trim()
+                                ? `${capitalizeText(deal.vehiculo.marca)} ${capitalizeText(deal.vehiculo.modelo)}`.trim()
                                 : 'Sin vehículo'}
                             </div>
                             <div className="text-xs text-gray-500">
@@ -855,7 +855,7 @@ export default function DealsPage() {
                           <td className="hidden lg:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900">
                               {deal.vehiculo?.marca && deal.vehiculo?.modelo
-                                ? `${deal.vehiculo.marca} ${deal.vehiculo.modelo}`.trim()
+                                ? `${capitalizeText(deal.vehiculo.marca)} ${capitalizeText(deal.vehiculo.modelo)}`.trim()
                                 : 'Sin vehículo'}
                             </div>
                             <div className="text-xs text-gray-500">

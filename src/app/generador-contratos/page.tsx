@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { useToast } from '@/hooks/useToast'
+import { capitalizeText } from '@/lib/utils'
 
 interface ClienteData {
   nombre: string

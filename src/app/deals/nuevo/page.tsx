@@ -7,6 +7,7 @@ import {
   formatCurrency,
   formatVehicleReference,
   getVehiculoAño,
+  capitalizeText,
 } from '@/lib/utils'
 import Link from 'next/link'
 
@@ -475,14 +476,15 @@ export default function NuevoDealPage() {
                                 onClick={() => {
                                   handleClienteSelect(cliente.id.toString())
                                   setClienteSearchTerm(
-                                    `${cliente.nombre} ${cliente.apellidos}`
+                                    `${capitalizeText(cliente.nombre)} ${capitalizeText(cliente.apellidos)}`
                                   )
                                   setShowClienteDropdown(false)
                                 }}
                                 className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
                               >
                                 <div className="font-medium text-gray-900">
-                                  {cliente.nombre} {cliente.apellidos}
+                                  {capitalizeText(cliente.nombre)}{' '}
+                                  {capitalizeText(cliente.apellidos)}
                                 </div>
                                 <div className="text-gray-500">
                                   {cliente.telefono}{' '}
@@ -599,7 +601,7 @@ export default function NuevoDealPage() {
                                 onClick={() => {
                                   handleVehiculoSelect(vehiculo.id.toString())
                                   setVehiculoSearchTerm(
-                                    `${vehiculo.marca} ${vehiculo.modelo} - ${vehiculo.referencia}`
+                                    `${capitalizeText(vehiculo.marca)} ${capitalizeText(vehiculo.modelo)} - ${vehiculo.referencia}`
                                   )
                                   setShowVehiculoDropdown(false)
                                 }}
@@ -607,7 +609,8 @@ export default function NuevoDealPage() {
                               >
                                 <div className="flex items-center justify-between">
                                   <div className="font-medium text-gray-900">
-                                    {vehiculo.marca} {vehiculo.modelo}
+                                    {capitalizeText(vehiculo.marca)}{' '}
+                                    {capitalizeText(vehiculo.modelo)}
                                   </div>
                                   <div
                                     className={`px-2 py-1 rounded-full text-xs font-medium ${
