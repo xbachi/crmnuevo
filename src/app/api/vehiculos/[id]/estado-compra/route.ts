@@ -1,19 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 
-// Crear una nueva instancia de Prisma para evitar problemas de cache
-const prisma = new PrismaClient({
-  log:
-    process.env.NODE_ENV === 'development'
-      ? ['query', 'error', 'warn']
-      : ['error'],
-})
+// Función para crear una nueva instancia de Prisma por request
+function createPrismaClient() {
+  return new PrismaClient({
+    log:
+      process.env.NODE_ENV === 'development'
+        ? ['query', 'error', 'warn']
+        : ['error'],
+  })
+}
 
 // GET - Obtener estado de compra del vehículo
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const prisma = createPrismaClient()
   try {
     console.log('🔍 [API GET] Iniciando consulta de estado de compra')
     const { id } = await params
@@ -63,6 +66,8 @@ export async function GET(
       { error: 'Error interno del servidor', details: error.message },
       { status: 500 }
     )
+  } finally {
+    await prisma.$disconnect()
   }
 }
 
@@ -71,6 +76,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const prisma = createPrismaClient()
   try {
     const { id } = await params
     const vehiculoId = parseInt(id)
@@ -137,5 +143,7 @@ export async function PUT(
       { error: 'Error interno del servidor' },
       { status: 500 }
     )
+  } finally {
+    await prisma.$disconnect()
   }
 }

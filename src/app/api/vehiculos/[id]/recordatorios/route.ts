@@ -1,18 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 
-// Crear una nueva instancia de Prisma para evitar problemas de cache
-const prisma = new PrismaClient({
-  log:
-    process.env.NODE_ENV === 'development'
-      ? ['query', 'error', 'warn']
-      : ['error'],
-})
+// Función para crear una nueva instancia de Prisma por request
+function createPrismaClient() {
+  return new PrismaClient({
+    log:
+      process.env.NODE_ENV === 'development'
+        ? ['query', 'error', 'warn']
+        : ['error'],
+  })
+}
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const prisma = createPrismaClient()
   try {
     const { id: vehiculoId } = await params
     console.log(
@@ -39,6 +42,8 @@ export async function GET(
       { error: 'Error interno del servidor' },
       { status: 500 }
     )
+  } finally {
+    await prisma.$disconnect()
   }
 }
 
@@ -46,6 +51,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const prisma = createPrismaClient()
   try {
     const { id: vehiculoId } = await params
     const data = await request.json()
@@ -77,32 +83,17 @@ export async function POST(
       )
     }
 
-    const client = await pool.connect()
-
-    const result = await client.query(
-      `
-      INSERT INTO VehiculoRecordatorios (vehiculo_id, titulo, descripcion, tipo, prioridad, fecha_recordatorio, completado, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+    const result = await prisma.$queryRaw`
+      INSERT INTO "VehiculoRecordatorios" (vehiculo_id, titulo, descripcion, tipo, prioridad, fecha_recordatorio, completado, created_at, updated_at)
+      VALUES (${parseInt(vehiculoId)}, ${titulo.trim()}, ${descripcion?.trim() || ''}, ${tipo}, ${prioridad}, ${fecha_recordatorio}, false, NOW(), NOW())
       RETURNING *
-    `,
-      [
-        vehiculoId,
-        titulo.trim(),
-        descripcion?.trim() || '',
-        tipo,
-        prioridad,
-        fecha_recordatorio,
-        false,
-      ]
-    )
-
-    client.release()
+    `
 
     console.log(
       `✅ [VEHICULO RECORDATORIOS] Recordatorio creado exitosamente:`,
-      result.rows[0]
+      result[0]
     )
-    return NextResponse.json(result.rows[0], { status: 201 })
+    return NextResponse.json(result[0], { status: 201 })
   } catch (error) {
     console.error(
       '❌ [VEHICULO RECORDATORIOS] Error al crear recordatorio del vehículo:',
@@ -112,6 +103,8 @@ export async function POST(
       { error: 'Error interno del servidor' },
       { status: 500 }
     )
+  } finally {
+    await prisma.$disconnect()
   }
 }
 
@@ -119,6 +112,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const prisma = createPrismaClient()
   try {
     const { id: vehiculoId } = await params
     const data = await request.json()
@@ -144,36 +138,20 @@ export async function PUT(
       )
     }
 
-    const client = await pool.connect()
-
-    const result = await client.query(
-      `
-      UPDATE VehiculoRecordatorios 
-      SET titulo = COALESCE($1, titulo),
-          descripcion = COALESCE($2, descripcion),
-          tipo = COALESCE($3, tipo),
-          prioridad = COALESCE($4, prioridad),
-          fecha_recordatorio = COALESCE($5, fecha_recordatorio),
-          completado = COALESCE($6, completado),
+    const result = await prisma.$queryRaw`
+      UPDATE "VehiculoRecordatorios" 
+      SET titulo = COALESCE(${titulo}, titulo),
+          descripcion = COALESCE(${descripcion}, descripcion),
+          tipo = COALESCE(${tipo}, tipo),
+          prioridad = COALESCE(${prioridad}, prioridad),
+          fecha_recordatorio = COALESCE(${fecha_recordatorio}, fecha_recordatorio),
+          completado = COALESCE(${completado}, completado),
           updated_at = NOW()
-      WHERE id = $7 AND vehiculo_id = $8
+      WHERE id = ${parseInt(recordatorioId)} AND vehiculo_id = ${parseInt(vehiculoId)}
       RETURNING *
-    `,
-      [
-        titulo,
-        descripcion,
-        tipo,
-        prioridad,
-        fecha_recordatorio,
-        completado,
-        recordatorioId,
-        vehiculoId,
-      ]
-    )
+    `
 
-    client.release()
-
-    if (result.rows.length === 0) {
+    if (result.length === 0) {
       return NextResponse.json(
         { error: 'Recordatorio no encontrado' },
         { status: 404 }
@@ -182,9 +160,9 @@ export async function PUT(
 
     console.log(
       `✅ [VEHICULO RECORDATORIOS] Recordatorio actualizado exitosamente:`,
-      result.rows[0]
+      result[0]
     )
-    return NextResponse.json(result.rows[0])
+    return NextResponse.json(result[0])
   } catch (error) {
     console.error(
       '❌ [VEHICULO RECORDATORIOS] Error al actualizar recordatorio del vehículo:',
@@ -194,6 +172,8 @@ export async function PUT(
       { error: 'Error interno del servidor' },
       { status: 500 }
     )
+  } finally {
+    await prisma.$disconnect()
   }
 }
 
@@ -201,6 +181,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const prisma = createPrismaClient()
   try {
     const { id: vehiculoId } = await params
     const { searchParams } = new URL(request.url)
@@ -217,20 +198,13 @@ export async function DELETE(
       )
     }
 
-    const client = await pool.connect()
-
-    const result = await client.query(
-      `
-      DELETE FROM VehiculoRecordatorios 
-      WHERE id = $1 AND vehiculo_id = $2
+    const result = await prisma.$queryRaw`
+      DELETE FROM "VehiculoRecordatorios" 
+      WHERE id = ${parseInt(recordatorioId)} AND vehiculo_id = ${parseInt(vehiculoId)}
       RETURNING id
-    `,
-      [recordatorioId, vehiculoId]
-    )
+    `
 
-    client.release()
-
-    if (result.rows.length === 0) {
+    if (result.length === 0) {
       return NextResponse.json(
         { error: 'Recordatorio no encontrado' },
         { status: 404 }
@@ -250,5 +224,7 @@ export async function DELETE(
       { error: 'Error interno del servidor' },
       { status: 500 }
     )
+  } finally {
+    await prisma.$disconnect()
   }
 }
