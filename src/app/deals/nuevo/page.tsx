@@ -122,7 +122,8 @@ export default function NuevoDealPage() {
         const estadoDisponible =
           vehiculo.estado === 'inicial' ||
           vehiculo.estado === 'disponible' ||
-          vehiculo.estado === 'ACTIVO'
+          vehiculo.estado === 'ACTIVO' ||
+          vehiculo.estado === 'PUBLICADO'
 
         // También verificar que no tenga un deal activo
         const tieneDealActivo = dealsData.some(
