@@ -180,6 +180,7 @@ export default function VehiculoDetailPage() {
     kms: 0,
     color: '',
     fechaMatriculacion: '',
+    fechaCompra: '',
     año: 0,
     itv: '',
     seguro: '',
@@ -582,6 +583,7 @@ export default function VehiculoDetailPage() {
         kms: vehiculo.kms || 0,
         color: vehiculo.color || '',
         fechaMatriculacion: vehiculo.fechaMatriculacion || '',
+        fechaCompra: vehiculo.fechaCompra || '',
         año: vehiculo.año || 0,
         itv: vehiculo.itv || '',
         seguro: vehiculo.seguro || '',
@@ -712,6 +714,8 @@ export default function VehiculoDetailPage() {
       if (editingData.kms !== undefined) camposAGuardar.kms = editingData.kms
       if (editingData.fechaMatriculacion !== undefined)
         camposAGuardar.fechaMatriculacion = editingData.fechaMatriculacion
+      if (editingData.fechaCompra !== undefined)
+        camposAGuardar.fechaCompra = editingData.fechaCompra
       if (editingData.color !== undefined)
         camposAGuardar.color = editingData.color
     }
@@ -1642,6 +1646,32 @@ export default function VehiculoDetailPage() {
                                 ) : (
                                   <span className="text-blue-900 font-semibold ml-1 capitalize">
                                     {vehiculo.modelo}
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                            <div className="flex flex-col 2xl:flex-row 2xl:items-center gap-2 mt-2">
+                              <span className="text-blue-700 font-medium">
+                                Fecha de Compra:{' '}
+                                {isEditingGeneral ? (
+                                  <input
+                                    type="date"
+                                    value={editingData.fechaCompra || ''}
+                                    onChange={(e) =>
+                                      setEditingData((prev) => ({
+                                        ...prev,
+                                        fechaCompra: e.target.value,
+                                      }))
+                                    }
+                                    className="ml-1 text-blue-900 bg-white border border-blue-300 rounded px-1 py-0.5 text-xs font-medium"
+                                  />
+                                ) : (
+                                  <span className="text-blue-900 font-semibold ml-1">
+                                    {vehiculo.fechaCompra
+                                      ? new Date(
+                                          vehiculo.fechaCompra
+                                        ).toLocaleDateString('es-ES')
+                                      : 'No especificada'}
                                   </span>
                                 )}
                               </span>

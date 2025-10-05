@@ -416,8 +416,8 @@ export default function CargarVehiculo() {
                 </div>
               </div>
 
-              {/* Color y Fecha de Matriculación */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Color, Fecha de Matriculación y Fecha de Compra */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label
                     htmlFor="color"
@@ -447,6 +447,22 @@ export default function CargarVehiculo() {
                     id="fechaMatriculacion"
                     name="fechaMatriculacion"
                     value={formData.fechaMatriculacion || ''}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="fechaCompra"
+                    className="block text-sm font-medium text-slate-700 mb-1"
+                  >
+                    Fecha de Compra
+                  </label>
+                  <input
+                    type="date"
+                    id="fechaCompra"
+                    name="fechaCompra"
+                    value={formData.fechaCompra || ''}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                   />
