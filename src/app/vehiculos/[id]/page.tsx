@@ -1442,7 +1442,7 @@ export default function VehiculoDetailPage() {
                             </h3>
                           </div>
                           <div className="text-sm lg:text-base">
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-col 2xl:flex-row 2xl:items-center gap-2">
                               <span className="text-blue-700 font-medium">
                                 Marca:{' '}
                                 {isEditingGeneral ? (
@@ -1510,7 +1510,7 @@ export default function VehiculoDetailPage() {
                             </h3>
                           </div>
                           <div className="text-sm lg:text-base">
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-col 2xl:flex-row 2xl:items-center gap-2">
                               <span className="text-green-700 font-medium">
                                 Matrícula:{' '}
                                 {isEditingGeneral ? (
@@ -1578,7 +1578,7 @@ export default function VehiculoDetailPage() {
                             </h3>
                           </div>
                           <div className="text-sm lg:text-base">
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-col 2xl:flex-row 2xl:items-center gap-2">
                               <span className="text-orange-700 font-medium">
                                 KMs:{' '}
                                 {isEditingGeneral ? (
