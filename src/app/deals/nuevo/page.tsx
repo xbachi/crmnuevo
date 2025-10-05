@@ -473,8 +473,32 @@ export default function NuevoDealPage() {
                     </div>
 
                     {selectedCliente && (
-                      <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                        <div className="text-sm">
+                      <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200 relative">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedCliente(null)
+                            setFormData((prev) => ({ ...prev, clienteId: '' }))
+                            setClienteSearchTerm('')
+                          }}
+                          className="absolute top-2 right-2 p-1 text-green-600 hover:text-green-800 hover:bg-green-100 rounded-full transition-colors"
+                          title="Eliminar selección"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                        <div className="text-sm pr-8">
                           <p className="font-medium text-green-800">
                             {selectedCliente.nombre} {selectedCliente.apellidos}
                           </p>
@@ -603,8 +627,32 @@ export default function NuevoDealPage() {
                     </div>
 
                     {selectedVehiculo && (
-                      <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                        <div className="text-sm">
+                      <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200 relative">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedVehiculo(null)
+                            setFormData((prev) => ({ ...prev, vehiculoId: '' }))
+                            setVehiculoSearchTerm('')
+                          }}
+                          className="absolute top-2 right-2 p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-full transition-colors"
+                          title="Eliminar selección"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                        <div className="text-sm pr-8">
                           <p className="font-medium text-blue-800">
                             {selectedVehiculo.marca} {selectedVehiculo.modelo}
                           </p>
