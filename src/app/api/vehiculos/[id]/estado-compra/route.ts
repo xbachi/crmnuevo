@@ -7,15 +7,19 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    console.log('🔍 [API GET] Iniciando consulta de estado de compra')
     const vehiculoId = parseInt(params.id)
+    console.log('🔍 [API GET] Vehículo ID:', vehiculoId)
 
     if (isNaN(vehiculoId)) {
+      console.log('❌ [API GET] ID de vehículo inválido:', params.id)
       return NextResponse.json(
         { error: 'ID de vehículo inválido' },
         { status: 400 }
       )
     }
 
+    console.log('🔍 [API GET] Buscando vehículo en base de datos...')
     const vehiculo = await prisma.vehiculo.findUnique({
       where: { id: vehiculoId },
       select: {
@@ -26,22 +30,28 @@ export async function GET(
       },
     })
 
+    console.log('🔍 [API GET] Resultado de búsqueda:', vehiculo)
+
     if (!vehiculo) {
+      console.log('❌ [API GET] Vehículo no encontrado')
       return NextResponse.json(
         { error: 'Vehículo no encontrado' },
         { status: 404 }
       )
     }
 
-    return NextResponse.json({
+    const response = {
       pagado: vehiculo.pagado || false,
       transporteSolicitado: vehiculo.transporteSolicitado || false,
       recibido: vehiculo.recibido || false,
-    })
+    }
+
+    console.log('✅ [API GET] Respuesta:', response)
+    return NextResponse.json(response)
   } catch (error) {
-    console.error('Error al obtener estado de compra:', error)
+    console.error('❌ [API GET] Error al obtener estado de compra:', error)
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { error: 'Error interno del servidor', details: error.message },
       { status: 500 }
     )
   }
