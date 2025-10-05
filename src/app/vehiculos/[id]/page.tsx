@@ -1458,7 +1458,7 @@ export default function VehiculoDetailPage() {
                                     className="ml-1 text-blue-900 bg-white border border-blue-300 rounded px-1 py-0.5 text-xs font-medium w-16"
                                   />
                                 ) : (
-                                  <span className="text-blue-900 font-semibold ml-1">
+                                  <span className="text-blue-900 font-semibold ml-1 capitalize">
                                     {vehiculo.marca}
                                   </span>
                                 )}
@@ -1478,7 +1478,7 @@ export default function VehiculoDetailPage() {
                                     className="ml-1 text-blue-900 bg-white border border-blue-300 rounded px-1 py-0.5 text-xs font-medium w-16"
                                   />
                                 ) : (
-                                  <span className="text-blue-900 font-semibold ml-1">
+                                  <span className="text-blue-900 font-semibold ml-1 capitalize">
                                     {vehiculo.modelo}
                                   </span>
                                 )}
@@ -1526,7 +1526,7 @@ export default function VehiculoDetailPage() {
                                     className="ml-1 text-green-900 bg-white border border-green-300 rounded px-1 py-0.5 text-xs font-medium font-mono w-16"
                                   />
                                 ) : (
-                                  <span className="text-green-900 font-mono font-semibold ml-1">
+                                  <span className="text-green-900 font-mono font-semibold ml-1 uppercase">
                                     {vehiculo.matricula}
                                   </span>
                                 )}
@@ -1616,7 +1616,7 @@ export default function VehiculoDetailPage() {
                                     placeholder="Color"
                                   />
                                 ) : (
-                                  <span className="text-orange-900 font-medium ml-1">
+                                  <span className="text-orange-900 font-medium ml-1 capitalize">
                                     {vehiculo.color || 'N/A'}
                                   </span>
                                 )}
