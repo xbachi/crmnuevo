@@ -101,7 +101,17 @@ export default function CrearClientePage() {
         },
         body: JSON.stringify({
           ...formData,
-          // Remover el campo intereses
+          // Mapear campos de dirección correctamente
+          calle: formData.direccion,
+          // Mapear campos de intereses correctamente
+          vehiculosInteres: formData.intereses.vehiculosInteres,
+          presupuestoMaximo: formData.intereses.precioMaximo,
+          kilometrajeMaximo: formData.intereses.kilometrajeMaximo,
+          añoMinimo: formData.intereses.añoMinimo,
+          combustiblePreferido: formData.intereses.combustiblePreferido,
+          cambioPreferido: formData.intereses.cambioPreferido,
+          formaPagoPreferida: formData.intereses.formaPagoPreferida,
+          // Remover el campo intereses anidado
           intereses: undefined,
         }),
       })
