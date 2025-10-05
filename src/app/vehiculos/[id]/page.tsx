@@ -1314,9 +1314,9 @@ export default function VehiculoDetailPage() {
         </div>
 
         <div className="w-[85%] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-2 sm:py-4 lg:py-6 xl:py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-2 sm:gap-4 lg:gap-6 xl:gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-10 gap-2 sm:gap-4 lg:gap-6 xl:gap-8">
             {/* Panel Principal */}
-            <div className="lg:col-span-3 space-y-2 sm:space-y-4 lg:space-y-6">
+            <div className="lg:col-span-7 space-y-2 sm:space-y-4 lg:space-y-6">
               {/* Tabs de Información */}
               <div className="bg-white rounded-xl shadow-sm border border-slate-200">
                 {/* Tab Headers */}
