@@ -236,7 +236,11 @@ export default function NuevoDealPage() {
   }
 
   // Funciones de navegación entre pasos
-  const nextStep = () => {
+  const nextStep = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
     if (currentStep === 1 && selectedCliente) {
       setCurrentStep(2)
     } else if (currentStep === 2 && selectedVehiculo) {
@@ -244,7 +248,11 @@ export default function NuevoDealPage() {
     }
   }
 
-  const prevStep = () => {
+  const prevStep = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1)
     }
