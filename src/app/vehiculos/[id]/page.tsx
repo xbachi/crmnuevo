@@ -1418,9 +1418,9 @@ export default function VehiculoDetailPage() {
                         )}
                       </div>
 
-                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-3 lg:gap-6">
+                      <div className="grid grid-cols-1 lg:grid-cols-5 gap-2 sm:gap-3 lg:gap-6">
                         {/* Marca y Modelo */}
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
+                        <div className="lg:col-span-1 bg-blue-50 border border-blue-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
                           <div className="flex items-center space-x-1 sm:space-x-2 mb-1 lg:mb-3">
                             <div className="w-4 h-4 sm:w-5 sm:h-5 lg:w-8 lg:h-8 bg-blue-500 rounded-lg flex items-center justify-center">
                               <svg
@@ -1488,7 +1488,7 @@ export default function VehiculoDetailPage() {
                         </div>
 
                         {/* Matrícula y Bastidor */}
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
+                        <div className="lg:col-span-3 bg-green-50 border border-green-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
                           <div className="flex items-center space-x-1 sm:space-x-2 mb-1 lg:mb-3">
                             <div className="w-4 h-4 sm:w-5 sm:h-5 lg:w-8 lg:h-8 bg-green-500 rounded-lg flex items-center justify-center">
                               <svg
@@ -1556,7 +1556,7 @@ export default function VehiculoDetailPage() {
                         </div>
 
                         {/* KMs, Fecha y Color */}
-                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
+                        <div className="lg:col-span-1 bg-orange-50 border border-orange-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
                           <div className="flex items-center space-x-1 sm:space-x-2 mb-1 lg:mb-3">
                             <div className="w-4 h-4 sm:w-5 sm:h-5 lg:w-8 lg:h-8 bg-orange-500 rounded-lg flex items-center justify-center">
                               <svg
