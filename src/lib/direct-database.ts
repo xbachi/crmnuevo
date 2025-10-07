@@ -1184,6 +1184,25 @@ export async function getClientes() {
 export async function saveCliente(clienteData: any) {
   const client = await pool.connect()
   try {
+    // Función para convertir strings vacíos a null para campos numéricos y fechas
+    const convertEmptyToNull = (value: any, fieldName: string) => {
+      if (value === '' || value === '') {
+        // Campos numéricos
+        if (
+          ['presupuestoMaximo', 'kilometrajeMaximo', 'añoMinimo'].includes(
+            fieldName
+          )
+        ) {
+          return null
+        }
+        // Campos de fecha
+        if (['fechaNacimiento', 'fechaPrimerContacto'].includes(fieldName)) {
+          return null
+        }
+      }
+      return value
+    }
+
     const result = await client.query(
       `
       INSERT INTO "Cliente" (
@@ -1204,23 +1223,26 @@ export async function saveCliente(clienteData: any) {
         clienteData.apellidos,
         clienteData.email,
         clienteData.telefono,
-        clienteData.fechaNacimiento,
+        convertEmptyToNull(clienteData.fechaNacimiento, 'fechaNacimiento'),
         clienteData.direccion,
         clienteData.ciudad,
         clienteData.codigoPostal,
         clienteData.provincia,
         clienteData.dni,
         clienteData.vehiculosInteres,
-        clienteData.presupuestoMaximo,
-        clienteData.kilometrajeMaximo,
-        clienteData.añoMinimo,
+        convertEmptyToNull(clienteData.presupuestoMaximo, 'presupuestoMaximo'),
+        convertEmptyToNull(clienteData.kilometrajeMaximo, 'kilometrajeMaximo'),
+        convertEmptyToNull(clienteData.añoMinimo, 'añoMinimo'),
         clienteData.combustiblePreferido,
         clienteData.cambioPreferido,
         clienteData.coloresDeseados,
         clienteData.necesidadesEspeciales,
         clienteData.formaPagoPreferida,
         clienteData.comoLlego,
-        clienteData.fechaPrimerContacto,
+        convertEmptyToNull(
+          clienteData.fechaPrimerContacto,
+          'fechaPrimerContacto'
+        ),
         clienteData.estado,
         clienteData.prioridad,
         clienteData.proximoPaso,
