@@ -963,7 +963,17 @@ export async function updateVehiculo(
   const client = await pool.connect()
   try {
     const fields = Object.keys(vehiculoData).filter((key) => key !== 'id')
-    const values = fields.map((field) => vehiculoData[field as keyof Vehiculo])
+    const values = fields.map((field) => {
+      const value = vehiculoData[field as keyof Vehiculo]
+      // Convertir strings vacíos a null para campos de fecha
+      if (
+        (field === 'fechaMatriculacion' || field === 'fechaCompra') &&
+        value === ''
+      ) {
+        return null
+      }
+      return value
+    })
     const setClause = fields
       .map((field, index) => `"${field}" = $${index + 2}`)
       .join(', ')
