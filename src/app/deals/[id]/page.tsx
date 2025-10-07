@@ -35,6 +35,10 @@ interface Deal {
     email?: string
     telefono?: string
     dni?: string
+    calle?: string
+    ciudad?: string
+    provincia?: string
+    codPostal?: string
   }
   vehiculo?: {
     id: number

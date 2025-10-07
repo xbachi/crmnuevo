@@ -231,7 +231,7 @@ interface DealData {
     dni?: string
     telefono?: string
     email?: string
-    direccion?: string
+    calle?: string
     ciudad?: string
     provincia?: string
     codPostal?: string
@@ -467,7 +467,7 @@ function construirDireccionCompleta(cliente: DealData['cliente']): string {
 
   const partes = []
 
-  if (cliente.direccion) partes.push(cliente.direccion)
+  if (cliente.calle) partes.push(cliente.calle)
   if (cliente.ciudad) partes.push(cliente.ciudad)
   if (cliente.provincia) partes.push(cliente.provincia)
   if (cliente.codPostal) partes.push(cliente.codPostal)
