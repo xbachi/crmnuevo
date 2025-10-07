@@ -1826,6 +1826,30 @@ export default function VehiculoDetailPage() {
                                   </span>
                                 )}
                               </span>
+                              <span className="text-green-700 font-medium">
+                                Fecha Matriculación:{' '}
+                                {isEditingGeneral ? (
+                                  <input
+                                    type="date"
+                                    value={editingData.fechaMatriculacion || ''}
+                                    onChange={(e) =>
+                                      setEditingData((prev) => ({
+                                        ...prev,
+                                        fechaMatriculacion: e.target.value,
+                                      }))
+                                    }
+                                    className="ml-1 text-green-900 bg-white border border-green-300 rounded px-2 py-1 text-sm font-medium"
+                                  />
+                                ) : (
+                                  <span className="text-green-900 font-semibold ml-1">
+                                    {vehiculo.fechaMatriculacion
+                                      ? new Date(
+                                          vehiculo.fechaMatriculacion
+                                        ).toLocaleDateString('es-ES')
+                                      : 'No especificada'}
+                                  </span>
+                                )}
+                              </span>
                             </div>
                           </div>
                         </div>
