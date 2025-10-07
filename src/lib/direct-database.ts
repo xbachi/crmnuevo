@@ -986,6 +986,17 @@ export async function updateVehiculo(
       `UPDATE "Vehiculo" SET ${setClause}, "updatedAt" = NOW() WHERE id = $1 RETURNING *`
     )
     console.log('🔧 Parámetros:', [id, ...values])
+    console.log(
+      '🔧 Tipos de parámetros:',
+      [id, ...values].map((v) => typeof v)
+    )
+    console.log('🔧 Valores específicos:', {
+      id,
+      marca: vehiculoData.marca,
+      modelo: vehiculoData.modelo,
+      color: vehiculoData.color,
+      fechaMatriculacion: vehiculoData.fechaMatriculacion,
+    })
 
     const result = await client.query(
       `
@@ -1013,6 +1024,8 @@ export async function updateVehiculo(
       '❌ Stack trace:',
       error instanceof Error ? error.stack : 'No stack trace'
     )
+    console.error('❌ Datos que causaron el error:', vehiculoData)
+    console.error('❌ ID del vehículo:', id)
     throw error
   } finally {
     client.release()
