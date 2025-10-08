@@ -709,7 +709,7 @@ export async function generarContratoReserva(
       yPosition + 12
     )
 
-    yPosition += 18 // Espacio adicional antes del siguiente punto
+    yPosition += 10 // Espacio adicional antes del siguiente punto (igual que entre punto 2 y 3)
 
     // Punto 2 - Precio del vehículo
     const precio = deal.importeTotal || deal.vehiculo?.precioPublicacion || 0
