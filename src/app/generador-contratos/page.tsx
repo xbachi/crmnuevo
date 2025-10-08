@@ -12,7 +12,7 @@ interface ClienteData {
   dni: string
   telefono: string
   email: string
-  direccion: string
+  calle: string
   ciudad: string
   provincia: string
   codPostal: string
@@ -46,7 +46,7 @@ export default function GeneradorContratos() {
     dni: '',
     telefono: '',
     email: '',
-    direccion: '',
+    calle: '',
     ciudad: '',
     provincia: '',
     codPostal: '',
@@ -60,7 +60,7 @@ export default function GeneradorContratos() {
     kms: 0,
     color: '',
     fechaMatriculacion: '',
-    año: new Date().getFullYear(),
+    año: 0,
   })
 
   const [contrato, setContrato] = useState<ContratoData>({
@@ -69,102 +69,94 @@ export default function GeneradorContratos() {
     formaPago: 'efectivo',
   })
 
-  // Estados para generación
-  const [isGenerating, setIsGenerating] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleClienteChange = (field: keyof ClienteData, value: string) => {
-    setCliente((prev) => ({ ...prev, [field]: value }))
-  }
-
-  const handleVehiculoChange = (
-    field: keyof VehiculoData,
-    value: string | number
-  ) => {
-    setVehiculo((prev) => ({ ...prev, [field]: value }))
-  }
-
-  const handleContratoChange = (
-    field: keyof ContratoData,
-    value: string | number
-  ) => {
-    setContrato((prev) => ({ ...prev, [field]: value }))
-  }
-
-  const validateForm = () => {
-    // Validar datos del cliente
+  const handleGenerarContrato = async () => {
+    // Validar campos obligatorios
     if (
       !cliente.nombre.trim() ||
       !cliente.apellidos.trim() ||
-      !cliente.dni.trim()
+      !cliente.dni.trim() ||
+      !cliente.telefono.trim() ||
+      !cliente.calle.trim() ||
+      !cliente.ciudad.trim() ||
+      !cliente.provincia.trim()
     ) {
       showToast(
-        'Por favor completa los datos obligatorios del cliente',
+        'Por favor, completa todos los campos obligatorios del cliente',
         'error'
       )
-      return false
+      return
     }
 
-    // Validar datos del vehículo
     if (
       !vehiculo.marca.trim() ||
       !vehiculo.modelo.trim() ||
-      !vehiculo.matricula.trim()
+      !vehiculo.matricula.trim() ||
+      !vehiculo.bastidor.trim()
     ) {
       showToast(
-        'Por favor completa los datos obligatorios del vehículo',
+        'Por favor, completa todos los campos obligatorios del vehículo',
         'error'
       )
-      return false
+      return
     }
 
-    // Validar precio
-    if (contrato.precioCompra <= 0) {
-      showToast('El precio de compra debe ser mayor a 0', 'error')
-      return false
+    if (!contrato.precioCompra || contrato.precioCompra <= 0) {
+      showToast('Por favor, introduce un precio de compra válido', 'error')
+      return
     }
-
-    return true
-  }
-
-  const handleGenerarContrato = async () => {
-    if (!validateForm()) return
 
     try {
-      setIsGenerating(true)
+      setIsLoading(true)
 
-      // Generar número de contrato único
-      const year = new Date().getFullYear()
-      const timestamp = Date.now().toString().slice(-6)
-      const numeroContrato = `CCV-${year}-${timestamp}`
+      // Preparar datos para el contrato de compraventa
+      const depositoData = {
+        id: 0, // Contrato independiente
+        cliente: {
+          nombre: capitalizeText(cliente.nombre),
+          apellidos: capitalizeText(cliente.apellidos),
+          dni: cliente.dni.toUpperCase(),
+          telefono: cliente.telefono,
+          email: cliente.email,
+          calle: capitalizeText(cliente.calle),
+          ciudad: capitalizeText(cliente.ciudad),
+          provincia: capitalizeText(cliente.provincia),
+          codPostal: cliente.codPostal,
+        },
+        vehiculo: {
+          marca: capitalizeText(vehiculo.marca),
+          modelo: capitalizeText(vehiculo.modelo),
+          bastidor: vehiculo.bastidor.toUpperCase(),
+          matricula: vehiculo.matricula.toUpperCase(),
+          fechaMatriculacion: vehiculo.fechaMatriculacion,
+          kms: vehiculo.kms,
+          color: capitalizeText(vehiculo.color),
+          año: vehiculo.año,
+        },
+        precioCompra: contrato.precioCompra,
+        fechaCompra: contrato.fechaCompra,
+        formaPago: contrato.formaPago,
+      }
 
-      console.log(
-        '🔍 [GENERADOR CONTRATOS] Generando contrato con parámetros:',
-        {
-          numeroContrato,
-          cliente,
-          vehiculo,
-          contrato,
-        }
-      )
-
-      // Generar el contrato de compraventa usando la función simplificada
+      // Importar la función de generación directamente
       const { generarContratoCompraventaSimple } = await import(
         '@/lib/contractGenerator'
       )
 
-      // Generar el contrato con datos simples
+      // Generar el contrato
       const pdfBuffer = await generarContratoCompraventaSimple(
-        cliente,
-        vehiculo,
-        contrato.precioCompra
+        depositoData.cliente,
+        depositoData.vehiculo,
+        depositoData.precioCompra
       )
 
       // Crear y descargar el PDF
-      const pdfBlob = new Blob([pdfBuffer.buffer], { type: 'application/pdf' })
+      const pdfBlob = new Blob([pdfBuffer], { type: 'application/pdf' })
       const url = window.URL.createObjectURL(pdfBlob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `contrato-compraventa-${numeroContrato}.pdf`
+      link.download = `contrato-compraventa-${cliente.nombre}-${cliente.apellidos}-${vehiculo.marca}-${vehiculo.modelo}.pdf`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -175,34 +167,61 @@ export default function GeneradorContratos() {
       console.error('Error generando contrato:', error)
       showToast('Error al generar el contrato', 'error')
     } finally {
-      setIsGenerating(false)
+      setIsLoading(false)
     }
+  }
+
+  const limpiarFormulario = () => {
+    setCliente({
+      nombre: '',
+      apellidos: '',
+      dni: '',
+      telefono: '',
+      email: '',
+      calle: '',
+      ciudad: '',
+      provincia: '',
+      codPostal: '',
+    })
+    setVehiculo({
+      marca: '',
+      modelo: '',
+      matricula: '',
+      bastidor: '',
+      kms: 0,
+      color: '',
+      fechaMatriculacion: '',
+      año: 0,
+    })
+    setContrato({
+      precioCompra: 0,
+      fechaCompra: new Date().toISOString().split('T')[0],
+      formaPago: 'efectivo',
+    })
+    showToast('Formulario limpiado', 'info')
   }
 
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">
-              Generador de Contratos de Compra
-            </h1>
-            <p className="mt-2 text-gray-600">
-              Genera contratos de compra independientes para vehículos de
-              particulares
-            </p>
-          </div>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h1 className="text-2xl font-bold text-gray-900">
+                Generador de Contratos de Compraventa
+              </h1>
+              <p className="text-gray-600 mt-1">
+                Genera contratos de compraventa de vehículos independientes
+              </p>
+            </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Datos del Cliente */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Datos del Cliente
-              </h2>
-
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-6 space-y-8">
+              {/* Datos del Cliente */}
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Datos del Cliente (Vendedor)
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Nombre *
@@ -211,10 +230,10 @@ export default function GeneradorContratos() {
                       type="text"
                       value={cliente.nombre}
                       onChange={(e) =>
-                        handleClienteChange('nombre', e.target.value)
+                        setCliente({ ...cliente, nombre: e.target.value })
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Nombre del cliente"
+                      placeholder="Ej: Juan"
                     />
                   </div>
                   <div>
@@ -225,102 +244,94 @@ export default function GeneradorContratos() {
                       type="text"
                       value={cliente.apellidos}
                       onChange={(e) =>
-                        handleClienteChange('apellidos', e.target.value)
+                        setCliente({ ...cliente, apellidos: e.target.value })
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Apellidos del cliente"
+                      placeholder="Ej: Pérez García"
                     />
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      DNI *
+                      DNI/NIE *
                     </label>
                     <input
                       type="text"
                       value={cliente.dni}
                       onChange={(e) =>
-                        handleClienteChange('dni', e.target.value)
+                        setCliente({ ...cliente, dni: e.target.value })
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="DNI del cliente"
+                      placeholder="Ej: 12345678A"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Teléfono
+                      Teléfono *
+                    </label>
+                    <input
+                      type="tel"
+                      value={cliente.telefono}
+                      onChange={(e) =>
+                        setCliente({ ...cliente, telefono: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Ej: 600123456"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      value={cliente.email}
+                      onChange={(e) =>
+                        setCliente({ ...cliente, email: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Ej: juan.perez@email.com"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Calle *
                     </label>
                     <input
                       type="text"
-                      value={cliente.telefono}
+                      value={cliente.calle}
                       onChange={(e) =>
-                        handleClienteChange('telefono', e.target.value)
+                        setCliente({ ...cliente, calle: e.target.value })
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Teléfono del cliente"
+                      placeholder="Ej: Calle Mayor 123"
                     />
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={cliente.email}
-                    onChange={(e) =>
-                      handleClienteChange('email', e.target.value)
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Email del cliente"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Dirección
-                  </label>
-                  <input
-                    type="text"
-                    value={cliente.direccion}
-                    onChange={(e) =>
-                      handleClienteChange('direccion', e.target.value)
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Dirección del cliente"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Ciudad
+                      Ciudad *
                     </label>
                     <input
                       type="text"
                       value={cliente.ciudad}
                       onChange={(e) =>
-                        handleClienteChange('ciudad', e.target.value)
+                        setCliente({ ...cliente, ciudad: e.target.value })
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Ciudad"
+                      placeholder="Ej: Madrid"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Provincia
+                      Provincia *
                     </label>
                     <input
                       type="text"
                       value={cliente.provincia}
                       onChange={(e) =>
-                        handleClienteChange('provincia', e.target.value)
+                        setCliente({ ...cliente, provincia: e.target.value })
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Provincia"
+                      placeholder="Ej: Madrid"
                     />
                   </div>
                   <div>
@@ -331,24 +342,21 @@ export default function GeneradorContratos() {
                       type="text"
                       value={cliente.codPostal}
                       onChange={(e) =>
-                        handleClienteChange('codPostal', e.target.value)
+                        setCliente({ ...cliente, codPostal: e.target.value })
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="CP"
+                      placeholder="Ej: 28001"
                     />
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Datos del Vehículo */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Datos del Vehículo
-              </h2>
-
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Datos del Vehículo */}
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Datos del Vehículo
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Marca *
@@ -357,10 +365,10 @@ export default function GeneradorContratos() {
                       type="text"
                       value={vehiculo.marca}
                       onChange={(e) =>
-                        handleVehiculoChange('marca', e.target.value)
+                        setVehiculo({ ...vehiculo, marca: e.target.value })
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Marca del vehículo"
+                      placeholder="Ej: Volkswagen"
                     />
                   </div>
                   <div>
@@ -371,15 +379,12 @@ export default function GeneradorContratos() {
                       type="text"
                       value={vehiculo.modelo}
                       onChange={(e) =>
-                        handleVehiculoChange('modelo', e.target.value)
+                        setVehiculo({ ...vehiculo, modelo: e.target.value })
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Modelo del vehículo"
+                      placeholder="Ej: Golf VIII"
                     />
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Matrícula *
@@ -388,44 +393,41 @@ export default function GeneradorContratos() {
                       type="text"
                       value={vehiculo.matricula}
                       onChange={(e) =>
-                        handleVehiculoChange('matricula', e.target.value)
+                        setVehiculo({ ...vehiculo, matricula: e.target.value })
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Matrícula del vehículo"
+                      placeholder="Ej: 1234ABC"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Bastidor
+                      Bastidor *
                     </label>
                     <input
                       type="text"
                       value={vehiculo.bastidor}
                       onChange={(e) =>
-                        handleVehiculoChange('bastidor', e.target.value)
+                        setVehiculo({ ...vehiculo, bastidor: e.target.value })
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Número de bastidor"
+                      placeholder="Ej: WVWZZZCDZMW088838"
                     />
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Kilómetros
                     </label>
                     <input
                       type="number"
-                      value={vehiculo.kms}
+                      value={vehiculo.kms || ''}
                       onChange={(e) =>
-                        handleVehiculoChange(
-                          'kms',
-                          parseInt(e.target.value) || 0
-                        )
+                        setVehiculo({
+                          ...vehiculo,
+                          kms: parseInt(e.target.value) || 0,
+                        })
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="0"
+                      placeholder="Ej: 50000"
                     />
                   </div>
                   <div>
@@ -436,10 +438,26 @@ export default function GeneradorContratos() {
                       type="text"
                       value={vehiculo.color}
                       onChange={(e) =>
-                        handleVehiculoChange('color', e.target.value)
+                        setVehiculo({ ...vehiculo, color: e.target.value })
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Color del vehículo"
+                      placeholder="Ej: Blanco"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Fecha de Matriculación
+                    </label>
+                    <input
+                      type="date"
+                      value={vehiculo.fechaMatriculacion}
+                      onChange={(e) =>
+                        setVehiculo({
+                          ...vehiculo,
+                          fechaMatriculacion: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
                   <div>
@@ -448,105 +466,102 @@ export default function GeneradorContratos() {
                     </label>
                     <input
                       type="number"
-                      value={vehiculo.año}
+                      value={vehiculo.año || ''}
                       onChange={(e) =>
-                        handleVehiculoChange(
-                          'año',
-                          parseInt(e.target.value) || new Date().getFullYear()
-                        )
+                        setVehiculo({
+                          ...vehiculo,
+                          año: parseInt(e.target.value) || 0,
+                        })
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder={new Date().getFullYear().toString()}
+                      placeholder="Ej: 2020"
                     />
                   </div>
                 </div>
+              </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4"></div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Fecha de Matriculación
-                  </label>
-                  <input
-                    type="date"
-                    value={vehiculo.fechaMatriculacion}
-                    onChange={(e) =>
-                      handleVehiculoChange('fechaMatriculacion', e.target.value)
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+              {/* Datos del Contrato */}
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Datos del Contrato
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Precio de Compra (€) *
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={contrato.precioCompra || ''}
+                      onChange={(e) =>
+                        setContrato({
+                          ...contrato,
+                          precioCompra: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Ej: 15000.00"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Fecha de Compra
+                    </label>
+                    <input
+                      type="date"
+                      value={contrato.fechaCompra}
+                      onChange={(e) =>
+                        setContrato({
+                          ...contrato,
+                          fechaCompra: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Forma de Pago
+                    </label>
+                    <select
+                      value={contrato.formaPago}
+                      onChange={(e) =>
+                        setContrato({ ...contrato, formaPago: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="efectivo">Efectivo</option>
+                      <option value="transferencia">Transferencia</option>
+                      <option value="tarjeta">Tarjeta</option>
+                    </select>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Datos del Contrato */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 lg:col-span-2">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Datos del Contrato de Compra
-              </h2>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Precio de Compra *
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={contrato.precioCompra}
-                    onChange={(e) =>
-                      handleContratoChange(
-                        'precioCompra',
-                        parseFloat(e.target.value) || 0
-                      )
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="0.00"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Fecha de Compra
-                  </label>
-                  <input
-                    type="date"
-                    value={contrato.fechaCompra}
-                    onChange={(e) =>
-                      handleContratoChange('fechaCompra', e.target.value)
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Forma de Pago
-                  </label>
-                  <select
-                    value={contrato.formaPago}
-                    onChange={(e) =>
-                      handleContratoChange('formaPago', e.target.value)
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="efectivo">Efectivo</option>
-                    <option value="transferencia">Transferencia</option>
-                    <option value="tarjeta">Tarjeta</option>
-                    <option value="cheque">Cheque</option>
-                  </select>
-                </div>
+              {/* Botones */}
+              <div className="flex justify-center space-x-4 pt-6">
+                <button
+                  onClick={limpiarFormulario}
+                  className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                >
+                  Limpiar Formulario
+                </button>
+                <button
+                  onClick={handleGenerarContrato}
+                  disabled={isLoading}
+                  className={`px-8 py-3 rounded-lg font-medium transition-colors ${
+                    isLoading
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                >
+                  {isLoading
+                    ? 'Generando Contrato...'
+                    : 'Generar Contrato de Compraventa'}
+                </button>
               </div>
             </div>
-          </div>
-
-          {/* Botón Generar */}
-          <div className="mt-8 flex justify-center">
-            <button
-              onClick={handleGenerarContrato}
-              disabled={isGenerating}
-              className="px-8 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {isGenerating ? 'Generando...' : 'Generar Contrato de Compra'}
-            </button>
           </div>
         </div>
       </div>
