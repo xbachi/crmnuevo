@@ -1159,6 +1159,17 @@ export async function generarContratoVenta(
     yPosition + 8
   )
 
+  // TEST: Escribir valores fijos para verificar que writeField funciona
+  console.log('🔍 [TEST] Escribiendo valores fijos para debug...')
+  writeField(
+    doc,
+    'TEST-BASTIDOR',
+    'VALOR-FIJO-BASTIDOR',
+    margin + 5,
+    yPosition + 16
+  )
+  writeField(doc, 'TEST-KMS', 'VALOR-FIJO-KMS', pageWidth / 2, yPosition + 16)
+
   yPosition += 12
 
   // Precio y garantía con negrita para datos dinámicos
