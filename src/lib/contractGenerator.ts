@@ -1159,16 +1159,17 @@ export async function generarContratoVenta(
     yPosition + 8
   )
 
-  // TEST: Escribir valores fijos para verificar que writeField funciona
-  console.log('🔍 [TEST] Escribiendo valores fijos para debug...')
-  writeField(
-    doc,
-    'TEST-BASTIDOR',
-    'VALOR-FIJO-BASTIDOR',
-    margin + 5,
-    yPosition + 16
-  )
-  writeField(doc, 'TEST-KMS', 'VALOR-FIJO-KMS', pageWidth / 2, yPosition + 16)
+  // TEST: Escribir directamente sin writeField para verificar si el problema está en writeField
+  console.log('🔍 [TEST] Escribiendo directamente sin writeField...')
+  doc.setFont('helvetica', 'normal')
+  doc.text('TEST-BASTIDOR:', margin + 5, yPosition + 16)
+  doc.setFont('helvetica', 'bold')
+  doc.text('VALOR-FIJO-BASTIDOR', margin + 5 + 60, yPosition + 16)
+
+  doc.setFont('helvetica', 'normal')
+  doc.text('TEST-KMS:', pageWidth / 2, yPosition + 16)
+  doc.setFont('helvetica', 'bold')
+  doc.text('VALOR-FIJO-KMS', pageWidth / 2 + 50, yPosition + 16)
 
   yPosition += 12
 
