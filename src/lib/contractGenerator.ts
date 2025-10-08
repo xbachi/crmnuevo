@@ -134,9 +134,15 @@ async function loadLogoSVG(): Promise<string> {
           // Intentar usar fetch como fallback en servidor
           try {
             console.log('🔄 [LOGO] Intentando fetch como fallback...')
-            const response = await fetch(
-              `${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}/logocontrato.png`
-            )
+            // Usar diferentes URLs según el entorno
+            const baseUrl = process.env.VERCEL_URL
+              ? `https://${process.env.VERCEL_URL}`
+              : process.env.NODE_ENV === 'production'
+                ? 'https://crmnuevo.vercel.app' // URL específica de Vercel
+                : 'http://localhost:3000'
+
+            console.log('🌐 [LOGO] Usando URL base:', baseUrl)
+            const response = await fetch(`${baseUrl}/logocontrato.png`)
             if (response.ok) {
               const buffer = await response.arrayBuffer()
               const base64 = `data:image/png;base64,${Buffer.from(buffer).toString('base64')}`
@@ -146,6 +152,12 @@ async function loadLogoSVG(): Promise<string> {
                 'caracteres'
               )
               return base64
+            } else {
+              console.warn(
+                '⚠️ [LOGO] Fetch fallback falló con status:',
+                response.status,
+                response.statusText
+              )
             }
           } catch (fetchError) {
             console.error('❌ [LOGO] Error en fetch fallback:', fetchError)

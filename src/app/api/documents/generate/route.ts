@@ -74,7 +74,46 @@ export async function POST(request: NextRequest) {
 
     switch (documentType) {
       case 'contrato-reserva':
-        pdfBuffer = await generarContratoReserva(dealData)
+        console.log('🔍 [API GENERATE] Generando contrato de reserva...')
+        console.log('🔍 [API GENERATE] DealData recibido:', {
+          numero: dealData.numero,
+          cliente: dealData.cliente
+            ? {
+                nombre: dealData.cliente.nombre,
+                apellidos: dealData.cliente.apellidos,
+                calle: dealData.cliente.calle,
+                ciudad: dealData.cliente.ciudad,
+                provincia: dealData.cliente.provincia,
+              }
+            : 'No cliente',
+          vehiculo: dealData.vehiculo
+            ? {
+                marca: dealData.vehiculo.marca,
+                modelo: dealData.vehiculo.modelo,
+                matricula: dealData.vehiculo.matricula,
+              }
+            : 'No vehículo',
+          importeTotal: dealData.importeTotal,
+          importeSena: dealData.importeSena,
+        })
+        try {
+          pdfBuffer = await generarContratoReserva(dealData)
+          console.log(
+            '✅ [API GENERATE] Contrato de reserva generado exitosamente, tamaño:',
+            pdfBuffer.length,
+            'bytes'
+          )
+        } catch (error) {
+          console.error(
+            '❌ [API GENERATE] Error generando contrato de reserva:',
+            error
+          )
+          console.error(
+            '❌ [API GENERATE] Stack trace contrato reserva:',
+            (error as Error).stack
+          )
+          throw error
+        }
         break
       case 'contrato-venta':
         pdfBuffer = await generarContratoVenta(dealData)
