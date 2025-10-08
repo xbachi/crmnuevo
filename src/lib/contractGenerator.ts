@@ -121,29 +121,60 @@ async function loadLogoSVG(): Promise<string> {
     // Verificar si estamos en el servidor (Node.js) o en el cliente (browser)
     if (typeof window === 'undefined') {
       // Servidor: usar fs para leer el archivo
-      const fs = await import('fs')
-      const path = await import('path')
+      try {
+        const fs = await import('fs')
+        const path = await import('path')
 
-      const logoPath = path.join(process.cwd(), 'public', 'logocontrato.png')
-      console.log('🖼️ [LOGO] Leyendo logo desde servidor:', logoPath)
+        const logoPath = path.join(process.cwd(), 'public', 'logocontrato.png')
+        console.log('🖼️ [LOGO] Leyendo logo desde servidor:', logoPath)
 
-      const logoBuffer = fs.readFileSync(logoPath)
-      const base64 = `data:image/png;base64,${logoBuffer.toString('base64')}`
+        // Verificar si el archivo existe
+        if (!fs.existsSync(logoPath)) {
+          console.warn('⚠️ [LOGO] Archivo logo no encontrado en:', logoPath)
+          // Intentar usar fetch como fallback en servidor
+          try {
+            console.log('🔄 [LOGO] Intentando fetch como fallback...')
+            const response = await fetch(
+              `${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}/logocontrato.png`
+            )
+            if (response.ok) {
+              const buffer = await response.arrayBuffer()
+              const base64 = `data:image/png;base64,${Buffer.from(buffer).toString('base64')}`
+              console.log(
+                '✅ [LOGO] Logo cargado via fetch fallback, tamaño:',
+                base64.length,
+                'caracteres'
+              )
+              return base64
+            }
+          } catch (fetchError) {
+            console.error('❌ [LOGO] Error en fetch fallback:', fetchError)
+          }
+          return ''
+        }
 
-      console.log(
-        '🖼️ [LOGO] Logo cargado desde servidor, tamaño:',
-        base64.length,
-        'caracteres'
-      )
-      return base64
+        const logoBuffer = fs.readFileSync(logoPath)
+        const base64 = `data:image/png;base64,${logoBuffer.toString('base64')}`
+
+        console.log(
+          '🖼️ [LOGO] Logo cargado desde servidor, tamaño:',
+          base64.length,
+          'caracteres'
+        )
+        return base64
+      } catch (fsError) {
+        console.error('❌ [LOGO] Error con fs en servidor:', fsError)
+        return ''
+      }
     } else {
       // Cliente: usar fetch para cargar el PNG desde /public/
       const response = await fetch('/logocontrato.png')
 
       if (!response.ok) {
-        throw new Error(
-          `Error cargando logo: ${response.status} ${response.statusText}`
+        console.warn(
+          `⚠️ [LOGO] Error cargando logo: ${response.status} ${response.statusText}`
         )
+        return ''
       }
 
       console.log('🖼️ [LOGO] PNG cargado correctamente desde /public/')
@@ -157,9 +188,17 @@ async function loadLogoSVG(): Promise<string> {
         const reader = new FileReader()
         reader.onload = () => {
           const result = reader.result as string
+          console.log(
+            '🖼️ [LOGO] Logo cargado desde cliente, tamaño:',
+            result.length,
+            'caracteres'
+          )
           resolve(result)
         }
-        reader.onerror = reject
+        reader.onerror = (error) => {
+          console.error('❌ [LOGO] Error en FileReader:', error)
+          reject(error)
+        }
         reader.readAsDataURL(blob)
       })
 
@@ -483,6 +522,10 @@ export async function generarContratoReserva(
   deal: DealData
 ): Promise<Uint8Array> {
   try {
+    console.log(
+      '🔍 [CONTRATO RESERVA] Iniciando generación de contrato de reserva...'
+    )
+
     const doc = new jsPDF()
     const pageWidth = doc.internal.pageSize.width
     const margin = 15
@@ -493,7 +536,9 @@ export async function generarContratoReserva(
     doc.setFontSize(11)
 
     // Logo de Seven Cars (primero)
+    console.log('🖼️ [CONTRATO RESERVA] Agregando logo...')
     yPosition = await addLogoToContract(doc, yPosition)
+    console.log('✅ [CONTRATO RESERVA] Logo agregado, yPosition:', yPosition)
 
     // Título del contrato (después del logo)
     doc.setFontSize(14)
@@ -703,11 +748,20 @@ export async function generarContratoReserva(
     doc.line(pageWidth / 2 + 20, yPosition, pageWidth / 2 + 90, yPosition)
 
     // Retornar el buffer del PDF
+    console.log('📄 [CONTRATO RESERVA] Generando buffer PDF...')
     const pdfBuffer = doc.output('arraybuffer')
-    console.log('✅ Contrato generado exitosamente')
+    console.log(
+      '✅ [CONTRATO RESERVA] Contrato generado exitosamente, tamaño:',
+      pdfBuffer.byteLength,
+      'bytes'
+    )
     return new Uint8Array(pdfBuffer)
   } catch (error) {
-    console.error('❌ Error generando contrato PDF:', error)
+    console.error('❌ [CONTRATO RESERVA] Error generando contrato PDF:', error)
+    console.error(
+      '❌ [CONTRATO RESERVA] Stack trace:',
+      error instanceof Error ? error.stack : 'No stack trace'
+    )
     throw error
   }
 }
