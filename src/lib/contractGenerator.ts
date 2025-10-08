@@ -537,6 +537,14 @@ export async function generarContratoReserva(
     console.log(
       '🔍 [CONTRATO RESERVA] Iniciando generación de contrato de reserva...'
     )
+    console.log('🔍 [CONTRATO RESERVA] Datos del vehículo recibidos:', {
+      marca: deal.vehiculo?.marca,
+      modelo: deal.vehiculo?.modelo,
+      matricula: deal.vehiculo?.matricula,
+      bastidor: deal.vehiculo?.bastidor,
+      kms: deal.vehiculo?.kms,
+      fechaMatriculacion: deal.vehiculo?.fechaMatriculacion,
+    })
 
     const doc = new jsPDF()
     const pageWidth = doc.internal.pageSize.width
@@ -1098,6 +1106,10 @@ export async function generarContratoVenta(
     margin + 5,
     yPosition + 8
   )
+  console.log(
+    '🔍 [CONTRATO RESERVA] Escribiendo BASTIDOR:',
+    deal.vehiculo?.bastidor || 'no especificado'
+  )
 
   // Columna 2
   writeField(
@@ -1116,6 +1128,12 @@ export async function generarContratoVenta(
       : 'No especificados',
     pageWidth / 2,
     yPosition + 4
+  )
+  console.log(
+    '🔍 [CONTRATO RESERVA] Escribiendo KMS:',
+    deal.vehiculo?.kms
+      ? `${(deal.vehiculo.kms as number).toLocaleString('es-ES')} km`
+      : 'No especificados'
   )
 
   writeField(
