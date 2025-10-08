@@ -361,6 +361,16 @@ export default function DealDetail() {
       }
 
       // Siempre generar un nuevo contrato (no usar caché)
+      // Log de datos del vehículo para debug
+      console.log('🔍 [DEAL] Datos del vehículo que se envían:', {
+        marca: deal.vehiculo?.marca,
+        modelo: deal.vehiculo?.modelo,
+        matricula: deal.vehiculo?.matricula,
+        bastidor: deal.vehiculo?.bastidor,
+        kms: deal.vehiculo?.kms,
+        fechaMatriculacion: deal.vehiculo?.fechaMatriculacion,
+      })
+
       // Generar el contrato
       const response = await fetch('/api/documents/generate', {
         method: 'POST',
