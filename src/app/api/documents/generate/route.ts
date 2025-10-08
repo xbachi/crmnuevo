@@ -133,11 +133,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Guardar el documento
+    // Usar timestamp para contratos de reserva para evitar caché del navegador
+    const useTimestamp = documentType === 'contrato-reserva'
     const documentUrl = await saveDocument(
       dealIdNum,
       documentType as any,
       dealNumber,
-      Buffer.from(pdfBuffer)
+      Buffer.from(pdfBuffer),
+      useTimestamp
     )
 
     return NextResponse.json({

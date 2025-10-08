@@ -54,7 +54,8 @@ export async function saveDocument(
   dealId: number,
   documentType: 'contrato-reserva' | 'contrato-venta' | 'factura',
   dealNumber: string,
-  pdfBuffer: Buffer
+  pdfBuffer: Buffer,
+  useTimestamp: boolean = false
 ): Promise<string> {
   await ensureDocumentsDir()
 
@@ -63,13 +64,15 @@ export async function saveDocument(
 
   if (dealId === 0) {
     // Factura independiente (sin deal)
-    const fileName = `${documentType}-${dealNumber}.pdf`
+    const timestamp = useTimestamp ? `-${Date.now()}` : ''
+    const fileName = `${documentType}-${dealNumber}${timestamp}.pdf`
     filePath = path.join(DOCUMENTS_DIR, fileName)
     url = `/documents/${fileName}`
   } else {
     // Documento de deal
     const dealDir = await ensureDealDir(dealId)
-    const fileName = `${documentType}-${dealNumber}.pdf`
+    const timestamp = useTimestamp ? `-${Date.now()}` : ''
+    const fileName = `${documentType}-${dealNumber}${timestamp}.pdf`
     filePath = path.join(dealDir, fileName)
     url = `/documents/deal-${dealId}/${fileName}`
   }

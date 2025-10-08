@@ -404,9 +404,11 @@ export default function DealDetail() {
         fechaReservaExpira.setDate(fechaReservaExpira.getDate() + 7)
 
         // Actualizar el deal para marcar que tiene contrato de reserva
+        // Usar timestamp para evitar caché del navegador
+        const timestamp = Date.now()
         const updatedDeal = {
           ...deal,
-          contratoReserva: `contrato-reserva-${deal.numero}.pdf`,
+          contratoReserva: `contrato-reserva-${deal.numero}-${timestamp}.pdf`,
           estado: 'reservado',
           fechaReservaDesde: fechaReservaDesde,
           fechaReservaExpira: fechaReservaExpira,
