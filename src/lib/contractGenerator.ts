@@ -657,65 +657,55 @@ export async function generarContratoReserva(
     )
     yPosition += 6
 
-    // Datos del vehículo en 2 columnas
+    // Datos del vehículo en 2 columnas usando writeField para márgenes dinámicos
     const columnaIzquierda = margin + 10
     const columnaDerecha = pageWidth / 2 + 10
 
     // Columna izquierda: MARCA, MODELO, FECHA MATRICULACIÓN
-    doc.setFont('helvetica', 'normal')
-    doc.text('MARCA:', columnaIzquierda, yPosition)
-    doc.setFont('helvetica', 'bold')
-    doc.text(
+    writeField(
+      doc,
+      'MARCA',
       deal.vehiculo?.marca || 'marca vehiculo',
-      columnaIzquierda + 5,
+      columnaIzquierda,
       yPosition
     )
-
-    doc.setFont('helvetica', 'normal')
-    doc.text('MODELO:', columnaIzquierda, yPosition + 6)
-    doc.setFont('helvetica', 'bold')
-    doc.text(
+    writeField(
+      doc,
+      'MODELO',
       deal.vehiculo?.modelo || 'modelo vehiculo',
-      columnaIzquierda + 5,
+      columnaIzquierda,
       yPosition + 6
     )
-
-    doc.setFont('helvetica', 'normal')
-    doc.text('F.MATRICULACIÓN:', columnaIzquierda, yPosition + 12)
-    doc.setFont('helvetica', 'bold')
-    doc.text(
+    writeField(
+      doc,
+      'F.MATRICULACIÓN',
       getFechaMatriculacion(deal.vehiculo),
-      columnaIzquierda + 5,
+      columnaIzquierda,
       yPosition + 12
     )
 
     // Columna derecha: MATRÍCULA, BASTIDOR, KMS
-    doc.setFont('helvetica', 'normal')
-    doc.text('MATRÍCULA:', columnaDerecha, yPosition)
-    doc.setFont('helvetica', 'bold')
-    doc.text(
+    writeField(
+      doc,
+      'MATRÍCULA',
       deal.vehiculo?.matricula || 'matricula vehiculo',
-      columnaDerecha + 5,
+      columnaDerecha,
       yPosition
     )
-
-    doc.setFont('helvetica', 'normal')
-    doc.text('BASTIDOR:', columnaDerecha, yPosition + 6)
-    doc.setFont('helvetica', 'bold')
-    doc.text(
+    writeField(
+      doc,
+      'BASTIDOR',
       deal.vehiculo?.bastidor || 'no especificado',
-      columnaDerecha + 5,
+      columnaDerecha,
       yPosition + 6
     )
-
-    doc.setFont('helvetica', 'normal')
-    doc.text('KMS:', columnaDerecha, yPosition + 12)
-    doc.setFont('helvetica', 'bold')
-    doc.text(
+    writeField(
+      doc,
+      'KMS',
       deal.vehiculo?.kms
         ? `${deal.vehiculo.kms.toLocaleString('es-ES')} km`
         : 'No especificados',
-      columnaDerecha + 5,
+      columnaDerecha,
       yPosition + 12
     )
 
