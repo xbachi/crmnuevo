@@ -688,6 +688,40 @@ export async function generarContratoReserva(
       margin + 10,
       yPosition
     )
+    yPosition += 7
+
+    // TEST: Agregar texto manual directamente después de MATRÍCULA
+    console.log(
+      '🔍 [TEST RESERVA] Agregando texto manual después de MATRÍCULA...'
+    )
+    doc.setFont('helvetica', 'normal')
+    doc.text('TEST-BASTIDOR:', margin + 10, yPosition)
+    doc.setFont('helvetica', 'bold')
+    doc.text(
+      deal.vehiculo?.bastidor || 'NO-BASTIDOR',
+      margin + 10 + 60,
+      yPosition
+    )
+    yPosition += 6
+
+    doc.setFont('helvetica', 'normal')
+    doc.text('TEST-KMS:', margin + 10, yPosition)
+    doc.setFont('helvetica', 'bold')
+    doc.text(
+      deal.vehiculo?.kms ? `${deal.vehiculo.kms} km` : 'NO-KMS',
+      margin + 10 + 60,
+      yPosition
+    )
+    yPosition += 6
+
+    doc.setFont('helvetica', 'normal')
+    doc.text('TEST-FECHA:', margin + 10, yPosition)
+    doc.setFont('helvetica', 'bold')
+    doc.text(
+      deal.vehiculo?.fechaMatriculacion || 'NO-FECHA',
+      margin + 10 + 60,
+      yPosition
+    )
     yPosition += 10
 
     // Punto 2 - Precio del vehículo
