@@ -52,22 +52,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verificar si el documento ya existe (solo si no hay número personalizado y es un deal real)
-    // Si hay número personalizado o es factura independiente, siempre generar nuevo documento
-    if (!numeroFactura && dealIdNum > 0) {
-      const exists = await documentExists(
-        dealIdNum,
-        documentType as any,
-        dealNumber
-      )
-
-      if (exists) {
-        return NextResponse.json({
-          message: 'Documento ya existe',
-          url: `/api/documents/${dealId}/${documentType}?dealNumber=${dealNumber}`,
-        })
-      }
-    }
+    // Siempre generar un nuevo documento (no verificar si existe)
+    // Esto permite regenerar documentos después de anularlos
+    console.log(
+      '🔍 [API GENERATE] Generando nuevo documento (sin verificar existencia)'
+    )
 
     // Generar el documento según el tipo
     let pdfBuffer: Uint8Array
