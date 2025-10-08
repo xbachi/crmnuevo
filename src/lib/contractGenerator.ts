@@ -1073,7 +1073,8 @@ export async function generarContratoVenta(
   doc.text(lineasPunto1, margin, yPosition)
   yPosition += lineasPunto1.length * 4.5 + 6
 
-  // Datos del vehículo en formato compacto con negrita para datos dinámicos
+  // Datos del vehículo en 2 columnas de 3 datos cada una
+  // Columna 1
   writeField(
     doc,
     'MARCA',
@@ -1086,17 +1087,24 @@ export async function generarContratoVenta(
     doc,
     'MODELO',
     deal.vehiculo?.modelo || 'modelo vehiculo',
-    pageWidth / 2,
-    yPosition
+    margin + 5,
+    yPosition + 4
   )
 
-  yPosition += 4
+  writeField(
+    doc,
+    'BASTIDOR',
+    deal.vehiculo?.bastidor || 'no especificado',
+    margin + 5,
+    yPosition + 8
+  )
 
+  // Columna 2
   writeField(
     doc,
     'FECHA MATRICULACIÓN',
     getFechaMatriculacion(deal.vehiculo),
-    margin + 5,
+    pageWidth / 2,
     yPosition
   )
 
@@ -1104,31 +1112,21 @@ export async function generarContratoVenta(
     doc,
     'KMS',
     deal.vehiculo?.kms
-      ? (deal.vehiculo.kms as number).toLocaleString('es-ES')
+      ? `${(deal.vehiculo.kms as number).toLocaleString('es-ES')} km`
       : 'No especificados',
     pageWidth / 2,
-    yPosition
-  )
-
-  yPosition += 4
-
-  writeField(
-    doc,
-    'MATRICULA',
-    deal.vehiculo?.matricula || 'matricula vehiculo',
-    margin + 5,
-    yPosition
+    yPosition + 4
   )
 
   writeField(
     doc,
-    'BASTIDOR',
-    deal.vehiculo?.bastidor || 'bastidor vehiculo',
+    'MATRÍCULA',
+    deal.vehiculo?.matricula || 'no especificada',
     pageWidth / 2,
-    yPosition
+    yPosition + 8
   )
 
-  yPosition += 8
+  yPosition += 12
 
   // Precio y garantía con negrita para datos dinámicos
   doc.setFontSize(11) // Cambiar a 11px (igual que reserva)
