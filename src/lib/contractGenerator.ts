@@ -537,6 +537,11 @@ export async function generarContratoReserva(
     console.log(
       '🔍 [CONTRATO RESERVA] Iniciando generación de contrato de reserva...'
     )
+    console.log('🔍 [CONTRATO RESERVA] Entorno:', {
+      isServer: typeof window === 'undefined',
+      isVercel: !!process.env.VERCEL,
+      nodeEnv: process.env.NODE_ENV,
+    })
     console.log('🔍 [CONTRATO RESERVA] Datos del vehículo recibidos:', {
       marca: deal.vehiculo?.marca,
       modelo: deal.vehiculo?.modelo,
@@ -546,7 +551,17 @@ export async function generarContratoReserva(
       fechaMatriculacion: deal.vehiculo?.fechaMatriculacion,
     })
 
-    const doc = new jsPDF()
+    let doc: any
+    try {
+      doc = new jsPDF()
+      console.log('✅ [CONTRATO RESERVA] jsPDF creado exitosamente')
+    } catch (jsPDFError) {
+      console.error('❌ [CONTRATO RESERVA] Error creando jsPDF:', jsPDFError)
+      throw new Error(
+        `Error inicializando jsPDF: ${(jsPDFError as Error).message}`
+      )
+    }
+
     const pageWidth = doc.internal.pageSize.width
     const margin = 15
     let yPosition = margin - 5 // Subir logo 5px más arriba
