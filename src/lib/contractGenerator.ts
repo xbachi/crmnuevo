@@ -633,7 +633,7 @@ export async function generarContratoReserva(
     const nombreCompleto =
       `${deal.cliente?.nombre || ''} ${deal.cliente?.apellidos || ''}`.trim()
     const direccionCompleta = construirDireccionCompleta(deal.cliente)
-    const textoComprador = `D/DÑA ${nombreCompleto || 'NOMBRE DE CLIENTE'} Mayor de edad, con DNI ${deal.cliente?.dni || 'DNI CLIENTE'} con domicilio ${direccionCompleta}. Con telefono ${deal.cliente?.telefono || 'TEL CLIENTE'} y email ${deal.cliente?.email || 'EMAIL CLIENTE'} en calidad de compradores, y en adelante parte compradora.`
+    const textoComprador = `D/DÑA ${nombreCompleto || 'NOMBRE DE CLIENTE'} Mayor de edad, con DNI ${deal.cliente?.dni || 'DNI CLIENTE'}, con domicilio ${direccionCompleta}, con telefono ${deal.cliente?.telefono || 'TEL CLIENTE'} y email ${deal.cliente?.email || 'EMAIL CLIENTE'} en calidad de compradores, y en adelante parte compradora.`
     doc.text(
       doc.splitTextToSize(textoComprador, pageWidth - margin * 2),
       margin,
