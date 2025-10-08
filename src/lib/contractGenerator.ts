@@ -1102,13 +1102,13 @@ export async function generarContratoVenta(
   writeField(
     doc,
     'BASTIDOR',
-    deal.vehiculo?.bastidor || 'no especificado',
+    deal.vehiculo?.bastidor || 'TEST-BASTIDOR-12345',
     margin + 5,
     yPosition + 8
   )
   console.log(
     '🔍 [CONTRATO RESERVA] Escribiendo BASTIDOR:',
-    deal.vehiculo?.bastidor || 'no especificado'
+    deal.vehiculo?.bastidor || 'TEST-BASTIDOR-12345'
   )
 
   // Columna 2
@@ -1125,7 +1125,7 @@ export async function generarContratoVenta(
     'KMS',
     deal.vehiculo?.kms
       ? `${(deal.vehiculo.kms as number).toLocaleString('es-ES')} km`
-      : 'No especificados',
+      : 'TEST-99999 km',
     pageWidth / 2,
     yPosition + 4
   )
@@ -1133,7 +1133,7 @@ export async function generarContratoVenta(
     '🔍 [CONTRATO RESERVA] Escribiendo KMS:',
     deal.vehiculo?.kms
       ? `${(deal.vehiculo.kms as number).toLocaleString('es-ES')} km`
-      : 'No especificados'
+      : 'TEST-99999 km'
   )
 
   writeField(
