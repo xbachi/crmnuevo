@@ -633,7 +633,7 @@ export async function generarContratoReserva(
     const nombreCompleto =
       `${deal.cliente?.nombre || ''} ${deal.cliente?.apellidos || ''}`.trim()
     const direccionCompleta = construirDireccionCompleta(deal.cliente)
-    const textoComprador = `D/DÑA ${nombreCompleto || 'NOMBRE DE CLIENTE'} Mayor de edad, con DNI ${deal.cliente?.dni || 'DNI CLIENTE'} con domicilio ${direccionCompleta} en calidad de compradores, y en adelante parte compradora. Con telefono ${deal.cliente?.telefono || 'TEL CLIENTE'} y email ${deal.cliente?.email || 'EMAIL CLIENTE'}`
+    const textoComprador = `D/DÑA ${nombreCompleto || 'NOMBRE DE CLIENTE'} Mayor de edad, con DNI ${deal.cliente?.dni || 'DNI CLIENTE'} con domicilio ${direccionCompleta}. Con telefono ${deal.cliente?.telefono || 'TEL CLIENTE'} y email ${deal.cliente?.email || 'EMAIL CLIENTE'} en calidad de compradores, y en adelante parte compradora.`
     doc.text(
       doc.splitTextToSize(textoComprador, pageWidth - margin * 2),
       margin,
@@ -667,7 +667,7 @@ export async function generarContratoReserva(
     doc.setFont('helvetica', 'bold')
     doc.text(
       deal.vehiculo?.marca || 'marca vehiculo',
-      columnaIzquierda + 40,
+      columnaIzquierda + 5,
       yPosition
     )
 
@@ -676,7 +676,7 @@ export async function generarContratoReserva(
     doc.setFont('helvetica', 'bold')
     doc.text(
       deal.vehiculo?.modelo || 'modelo vehiculo',
-      columnaIzquierda + 40,
+      columnaIzquierda + 5,
       yPosition + 6
     )
 
@@ -685,7 +685,7 @@ export async function generarContratoReserva(
     doc.setFont('helvetica', 'bold')
     doc.text(
       getFechaMatriculacion(deal.vehiculo),
-      columnaIzquierda + 60,
+      columnaIzquierda + 5,
       yPosition + 12
     )
 
@@ -695,7 +695,7 @@ export async function generarContratoReserva(
     doc.setFont('helvetica', 'bold')
     doc.text(
       deal.vehiculo?.matricula || 'matricula vehiculo',
-      columnaDerecha + 50,
+      columnaDerecha + 5,
       yPosition
     )
 
@@ -704,7 +704,7 @@ export async function generarContratoReserva(
     doc.setFont('helvetica', 'bold')
     doc.text(
       deal.vehiculo?.bastidor || 'no especificado',
-      columnaDerecha + 50,
+      columnaDerecha + 5,
       yPosition + 6
     )
 
@@ -715,7 +715,7 @@ export async function generarContratoReserva(
       deal.vehiculo?.kms
         ? `${deal.vehiculo.kms.toLocaleString('es-ES')} km`
         : 'No especificados',
-      columnaDerecha + 50,
+      columnaDerecha + 5,
       yPosition + 12
     )
 
