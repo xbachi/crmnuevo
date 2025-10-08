@@ -657,72 +657,69 @@ export async function generarContratoReserva(
     )
     yPosition += 6
 
-    writeField(
-      doc,
-      'MARCA',
+    // Datos del vehículo en 2 columnas
+    const columnaIzquierda = margin + 10
+    const columnaDerecha = pageWidth / 2 + 10
+
+    // Columna izquierda: MARCA, MODELO, FECHA MATRICULACIÓN
+    doc.setFont('helvetica', 'normal')
+    doc.text('MARCA:', columnaIzquierda, yPosition)
+    doc.setFont('helvetica', 'bold')
+    doc.text(
       deal.vehiculo?.marca || 'marca vehiculo',
-      margin + 10,
+      columnaIzquierda + 40,
       yPosition
     )
-    yPosition += 7
-    writeField(
-      doc,
-      'MODELO',
+
+    doc.setFont('helvetica', 'normal')
+    doc.text('MODELO:', columnaIzquierda, yPosition + 6)
+    doc.setFont('helvetica', 'bold')
+    doc.text(
       deal.vehiculo?.modelo || 'modelo vehiculo',
-      margin + 10,
-      yPosition
+      columnaIzquierda + 40,
+      yPosition + 6
     )
-    yPosition += 7
-    writeField(
-      doc,
-      'F.MATRICULACIÓN',
+
+    doc.setFont('helvetica', 'normal')
+    doc.text('F.MATRICULACIÓN:', columnaIzquierda, yPosition + 12)
+    doc.setFont('helvetica', 'bold')
+    doc.text(
       getFechaMatriculacion(deal.vehiculo),
-      margin + 10,
-      yPosition
+      columnaIzquierda + 60,
+      yPosition + 12
     )
-    yPosition += 7
-    writeField(
-      doc,
-      'MATRÍCULA',
+
+    // Columna derecha: MATRÍCULA, BASTIDOR, KMS
+    doc.setFont('helvetica', 'normal')
+    doc.text('MATRÍCULA:', columnaDerecha, yPosition)
+    doc.setFont('helvetica', 'bold')
+    doc.text(
       deal.vehiculo?.matricula || 'matricula vehiculo',
-      margin + 10,
+      columnaDerecha + 50,
       yPosition
     )
-    yPosition += 7
-
-    // TEST: Agregar texto manual directamente después de MATRÍCULA
-    console.log(
-      '🔍 [TEST RESERVA] Agregando texto manual después de MATRÍCULA...'
-    )
-    doc.setFont('helvetica', 'normal')
-    doc.text('TEST-BASTIDOR:', margin + 10, yPosition)
-    doc.setFont('helvetica', 'bold')
-    doc.text(
-      deal.vehiculo?.bastidor || 'NO-BASTIDOR',
-      margin + 10 + 60,
-      yPosition
-    )
-    yPosition += 6
 
     doc.setFont('helvetica', 'normal')
-    doc.text('TEST-KMS:', margin + 10, yPosition)
+    doc.text('BASTIDOR:', columnaDerecha, yPosition + 6)
     doc.setFont('helvetica', 'bold')
     doc.text(
-      deal.vehiculo?.kms ? `${deal.vehiculo.kms} km` : 'NO-KMS',
-      margin + 10 + 60,
-      yPosition
+      deal.vehiculo?.bastidor || 'no especificado',
+      columnaDerecha + 50,
+      yPosition + 6
     )
-    yPosition += 6
 
     doc.setFont('helvetica', 'normal')
-    doc.text('TEST-FECHA:', margin + 10, yPosition)
+    doc.text('KMS:', columnaDerecha, yPosition + 12)
     doc.setFont('helvetica', 'bold')
     doc.text(
-      deal.vehiculo?.fechaMatriculacion || 'NO-FECHA',
-      margin + 10 + 60,
-      yPosition
+      deal.vehiculo?.kms
+        ? `${deal.vehiculo.kms.toLocaleString('es-ES')} km`
+        : 'No especificados',
+      columnaDerecha + 50,
+      yPosition + 12
     )
-    yPosition += 10
+
+    yPosition += 18 // Espacio adicional antes del siguiente punto
 
     // Punto 2 - Precio del vehículo
     const precio = deal.importeTotal || deal.vehiculo?.precioPublicacion || 0
