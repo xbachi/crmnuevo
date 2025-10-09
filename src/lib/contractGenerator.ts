@@ -661,7 +661,7 @@ export async function generarContratoReserva(
     yPosition += 6
 
     const nombreCompleto =
-      `${deal.cliente?.nombre || ''} ${deal.cliente?.apellidos || ''}`.trim()
+      `${capitalizeText(deal.cliente?.nombre) || ''} ${capitalizeText(deal.cliente?.apellidos) || ''}`.trim()
     const direccionCompleta = construirDireccionCompleta(deal.cliente)
     const textoComprador = `D/DÑA ${nombreCompleto || 'NOMBRE DE CLIENTE'} Mayor de edad, con DNI ${deal.cliente?.dni || 'DNI CLIENTE'}, con domicilio ${direccionCompleta}, con telefono ${deal.cliente?.telefono || 'TEL CLIENTE'} y email ${deal.cliente?.email || 'EMAIL CLIENTE'} en calidad de compradores, y en adelante parte compradora.`
     doc.text(
@@ -695,14 +695,14 @@ export async function generarContratoReserva(
     writeField(
       doc,
       'MARCA',
-      deal.vehiculo?.marca || 'marca vehiculo',
+      capitalizeText(deal.vehiculo?.marca) || 'marca vehiculo',
       columnaIzquierda,
       yPosition
     )
     writeField(
       doc,
       'MODELO',
-      deal.vehiculo?.modelo || 'modelo vehiculo',
+      capitalizeText(deal.vehiculo?.modelo) || 'modelo vehiculo',
       columnaIzquierda,
       yPosition + 6
     )
@@ -718,7 +718,7 @@ export async function generarContratoReserva(
     writeField(
       doc,
       'MATRÍCULA',
-      deal.vehiculo?.matricula || 'matricula vehiculo',
+      (deal.vehiculo?.matricula || 'matricula vehiculo').toUpperCase(),
       columnaDerecha,
       yPosition
     )
