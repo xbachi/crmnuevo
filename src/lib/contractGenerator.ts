@@ -138,7 +138,7 @@ async function loadLogoSVG(): Promise<string> {
             const baseUrl = process.env.VERCEL_URL
               ? `https://${process.env.VERCEL_URL}`
               : process.env.NODE_ENV === 'production'
-                ? 'https://crmnuevo.vercel.app' // URL específica de Vercel
+                ? 'https://sevencars.vercel.app' // URL específica de Vercel
                 : 'http://localhost:3000'
 
             console.log('🌐 [LOGO] Usando URL base:', baseUrl)
@@ -230,9 +230,45 @@ async function loadLogoSVG(): Promise<string> {
 // Función para agregar logo a los contratos
 async function addLogoToContract(doc: any, yPosition: number): Promise<number> {
   try {
-    // En Vercel, usar solo texto para evitar problemas con canvas
-    if (process.env.VERCEL) {
-      console.log('🌐 [LOGO] Usando texto en lugar de imagen para Vercel')
+    console.log('🖼️ [LOGO] Intentando cargar logo PNG...')
+
+    const logoDataURL = await loadLogoSVG()
+    if (logoDataURL) {
+      console.log('✅ [LOGO] Logo cargado exitosamente, agregando al PDF...')
+
+      // Centrar el logo en el documento (ancho de página 210mm, logo 50mm)
+      const pageWidth = 210
+      const logoWidth = 50
+      const logoHeight = 20
+      const logoX = (pageWidth - logoWidth) / 2
+
+      try {
+        doc.addImage(
+          logoDataURL,
+          'PNG',
+          logoX,
+          yPosition,
+          logoWidth,
+          logoHeight
+        )
+        console.log('✅ [LOGO] Logo agregado al PDF exitosamente')
+        return yPosition + logoHeight + 15 // Espacio después del logo
+      } catch (addImageError) {
+        console.warn(
+          '⚠️ [LOGO] Error agregando imagen al PDF:',
+          (addImageError as Error).message
+        )
+        // Fallback al texto si addImage falla
+        doc.setFontSize(14)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(30, 64, 175) // Azul
+        doc.text('SEVEN CARS MOTORS S.L.', 105, yPosition, { align: 'center' })
+        doc.setTextColor(0, 0, 0) // Volver a negro
+        return yPosition + 15
+      }
+    } else {
+      console.warn('⚠️ [LOGO] No se pudo cargar el logo, usando texto')
+      // Fallback al texto si no se puede cargar el logo
       doc.setFontSize(14)
       doc.setFont('helvetica', 'bold')
       doc.setTextColor(30, 64, 175) // Azul
@@ -240,32 +276,15 @@ async function addLogoToContract(doc: any, yPosition: number): Promise<number> {
       doc.setTextColor(0, 0, 0) // Volver a negro
       return yPosition + 15
     }
-
-    const logoDataURL = await loadLogoSVG()
-    if (logoDataURL) {
-      // Centrar el logo en el documento (ancho de página 210mm, logo 50mm)
-      const pageWidth = 210
-      const logoWidth = 50
-      const logoHeight = 20
-      const logoX = (pageWidth - logoWidth) / 2
-
-      doc.addImage(logoDataURL, 'PNG', logoX, yPosition, logoWidth, logoHeight)
-      return yPosition + logoHeight + 15 // Espacio después del logo
-    } else {
-      // Fallback al texto si no se puede cargar el logo
-      doc.setFontSize(12)
-      doc.setFont('helvetica', 'bold')
-      doc.setTextColor(0, 0, 0)
-      doc.text('SEVEN CARS MOTORS S.L.', 105, yPosition, { align: 'center' })
-      return yPosition + 10
-    }
   } catch (error) {
+    console.error('❌ [LOGO] Error general:', (error as Error).message)
     // Fallback al texto si hay error
-    doc.setFontSize(12)
+    doc.setFontSize(14)
     doc.setFont('helvetica', 'bold')
-    doc.setTextColor(0, 0, 0)
+    doc.setTextColor(30, 64, 175) // Azul
     doc.text('SEVEN CARS MOTORS S.L.', 105, yPosition, { align: 'center' })
-    return yPosition + 10
+    doc.setTextColor(0, 0, 0) // Volver a negro
+    return yPosition + 15
   }
 }
 
