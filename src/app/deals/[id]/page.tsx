@@ -567,10 +567,11 @@ export default function DealDetail() {
           document.body.removeChild(link)
           window.URL.revokeObjectURL(url)
 
-          // Actualizar el deal
+          // Actualizar el deal con timestamp para evitar caché
+          const timestamp = Date.now()
           const updatedDeal = {
             ...deal,
-            contratoVenta: `contrato-venta-${deal.numero}.pdf`,
+            contratoVenta: `contrato-venta-${deal.numero}-${timestamp}.pdf`,
             estado: 'vendido',
             fechaVentaFirmada: new Date(),
           }
@@ -606,10 +607,11 @@ export default function DealDetail() {
           // Respuesta JSON (desarrollo local)
           const result = await response.json()
 
-          // Actualizar el deal
+          // Actualizar el deal con timestamp para evitar caché
+          const timestamp = Date.now()
           const updatedDeal = {
             ...deal,
-            contratoVenta: `contrato-venta-${deal.numero}.pdf`,
+            contratoVenta: `contrato-venta-${deal.numero}-${timestamp}.pdf`,
             estado: 'vendido',
             fechaVentaFirmada: new Date(),
           }
