@@ -144,7 +144,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Guardar el documento
+    // En Vercel, devolver el PDF directamente sin guardarlo
+    if (process.env.VERCEL) {
+      console.log('🌐 [API GENERATE] Devolviendo PDF directamente (Vercel)')
+
+      return new NextResponse(pdfBuffer, {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment; filename="${documentType}-${dealNumber}.pdf"`,
+          'Content-Length': pdfBuffer.length.toString(),
+        },
+      })
+    }
+
+    // Guardar el documento solo en desarrollo local
     try {
       // Usar timestamp para contratos de reserva para evitar caché del navegador
       const useTimestamp = documentType === 'contrato-reserva'

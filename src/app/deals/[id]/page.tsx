@@ -396,47 +396,72 @@ export default function DealDetail() {
       })
 
       if (response.ok) {
-        const result = await response.json()
+        // Detectar si la respuesta es PDF directo o JSON
+        const contentType = response.headers.get('content-type')
 
-        // Calcular fecha de expiración (7 días desde hoy)
-        const fechaReservaDesde = new Date()
-        const fechaReservaExpira = new Date()
-        fechaReservaExpira.setDate(fechaReservaExpira.getDate() + 7)
+        if (contentType?.includes('application/pdf')) {
+          // Respuesta directa de PDF (Vercel)
+          console.log('📄 [DEAL] Recibiendo PDF directo de Vercel')
 
-        // Actualizar el deal para marcar que tiene contrato de reserva
-        // Usar timestamp para evitar caché del navegador
-        const timestamp = Date.now()
-        const updatedDeal = {
-          ...deal,
-          contratoReserva: `contrato-reserva-${deal.numero}-${timestamp}.pdf`,
-          estado: 'reservado',
-          fechaReservaDesde: fechaReservaDesde,
-          fechaReservaExpira: fechaReservaExpira,
-        }
-        setDeal(updatedDeal)
+          // Crear blob y descargar directamente
+          const pdfBlob = await response.blob()
+          const url = window.URL.createObjectURL(pdfBlob)
+          const link = document.createElement('a')
+          link.href = url
+          link.download = `contrato-reserva-${deal.numero}.pdf`
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          window.URL.revokeObjectURL(url)
 
-        // Actualizar en la base de datos
-        try {
-          await fetch(`/api/deals/${deal.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              estado: 'reservado',
-              contratoReserva: `contrato-reserva-${deal.numero}.pdf`,
-              fechaReservaDesde: fechaReservaDesde.toISOString(),
-              fechaReservaExpira: fechaReservaExpira.toISOString(),
-            }),
-          })
+          showToast(
+            'Contrato de reserva generado y descargado exitosamente',
+            'success'
+          )
+        } else {
+          // Respuesta JSON (desarrollo local)
+          const result = await response.json()
 
-          showToast('Contrato de reserva generado exitosamente', 'success')
+          // Calcular fecha de expiración (7 días desde hoy)
+          const fechaReservaDesde = new Date()
+          const fechaReservaExpira = new Date()
+          fechaReservaExpira.setDate(fechaReservaExpira.getDate() + 7)
 
-          // Recargar el deal para actualizar el estado
-          await loadDeal()
+          // Actualizar el deal para marcar que tiene contrato de reserva
+          // Usar timestamp para evitar caché del navegador
+          const timestamp = Date.now()
+          const updatedDeal = {
+            ...deal,
+            contratoReserva: `contrato-reserva-${deal.numero}-${timestamp}.pdf`,
+            estado: 'reservado',
+            fechaReservaDesde: fechaReservaDesde,
+            fechaReservaExpira: fechaReservaExpira,
+          }
+          setDeal(updatedDeal)
 
-          // Descargar el documento
-          window.open(result.url, '_blank')
-        } catch (error) {
-          console.error('Error actualizando estado:', error)
+          // Actualizar en la base de datos
+          try {
+            await fetch(`/api/deals/${deal.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                estado: 'reservado',
+                contratoReserva: `contrato-reserva-${deal.numero}.pdf`,
+                fechaReservaDesde: fechaReservaDesde.toISOString(),
+                fechaReservaExpira: fechaReservaExpira.toISOString(),
+              }),
+            })
+
+            showToast('Contrato de reserva generado exitosamente', 'success')
+
+            // Recargar el deal para actualizar el estado
+            await loadDeal()
+
+            // Descargar el documento
+            window.open(result.url, '_blank')
+          } catch (error) {
+            console.error('Error actualizando estado:', error)
+          }
         }
       } else {
         const error = await response.json()
@@ -485,38 +510,63 @@ export default function DealDetail() {
       })
 
       if (response.ok) {
-        const result = await response.json()
+        // Detectar si la respuesta es PDF directo o JSON
+        const contentType = response.headers.get('content-type')
 
-        // Actualizar el deal
-        const updatedDeal = {
-          ...deal,
-          contratoVenta: `contrato-venta-${deal.numero}.pdf`,
-          estado: 'vendido',
-          fechaVentaFirmada: new Date(),
-        }
-        setDeal(updatedDeal)
+        if (contentType?.includes('application/pdf')) {
+          // Respuesta directa de PDF (Vercel)
+          console.log('📄 [DEAL] Recibiendo PDF directo de Vercel')
 
-        // Actualizar en la base de datos
-        try {
-          await fetch(`/api/deals/${deal.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              estado: 'vendido',
-              contratoVenta: `contrato-venta-${deal.numero}.pdf`,
-              fechaVentaFirmada: new Date().toISOString(),
-            }),
-          })
+          // Crear blob y descargar directamente
+          const pdfBlob = await response.blob()
+          const url = window.URL.createObjectURL(pdfBlob)
+          const link = document.createElement('a')
+          link.href = url
+          link.download = `contrato-venta-${deal.numero}.pdf`
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          window.URL.revokeObjectURL(url)
 
-          showToast('Contrato de venta generado exitosamente', 'success')
+          showToast(
+            'Contrato de venta generado y descargado exitosamente',
+            'success'
+          )
+        } else {
+          // Respuesta JSON (desarrollo local)
+          const result = await response.json()
 
-          // Recargar el deal para actualizar el estado
-          await loadDeal()
+          // Actualizar el deal
+          const updatedDeal = {
+            ...deal,
+            contratoVenta: `contrato-venta-${deal.numero}.pdf`,
+            estado: 'vendido',
+            fechaVentaFirmada: new Date(),
+          }
+          setDeal(updatedDeal)
 
-          // Descargar el documento
-          window.open(result.url, '_blank')
-        } catch (error) {
-          console.error('Error actualizando estado:', error)
+          // Actualizar en la base de datos
+          try {
+            await fetch(`/api/deals/${deal.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                estado: 'vendido',
+                contratoVenta: `contrato-venta-${deal.numero}.pdf`,
+                fechaVentaFirmada: new Date().toISOString(),
+              }),
+            })
+
+            showToast('Contrato de venta generado exitosamente', 'success')
+
+            // Recargar el deal para actualizar el estado
+            await loadDeal()
+
+            // Descargar el documento
+            window.open(result.url, '_blank')
+          } catch (error) {
+            console.error('Error actualizando estado:', error)
+          }
         }
       } else {
         const error = await response.json()
