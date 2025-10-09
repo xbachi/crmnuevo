@@ -178,6 +178,12 @@ export default function RecordatoriosPage() {
     return `${day}/${month}/${year}`
   }
 
+  const handleCerrarRecordatorio = (recordatorioId: string) => {
+    // Simplemente ocultar el recordatorio del estado local
+    console.log(`❌ [RECORDATORIOS] Cerrando recordatorio: ${recordatorioId}`)
+    setRecordatorios((prev) => prev.filter((r) => r.id !== recordatorioId))
+  }
+
   const getRecordatoriosByCategoria = () => {
     const grouped: { [key: string]: Recordatorio[] } = {}
 
@@ -333,7 +339,7 @@ export default function RecordatoriosPage() {
                           {recordatoriosCategoria.map((recordatorio) => (
                             <div
                               key={recordatorio.id}
-                              className={`border rounded p-2 hover:shadow-sm transition-shadow ${
+                              className={`border rounded p-2 hover:shadow-sm transition-shadow relative ${
                                 isImportante
                                   ? `border-l-2 border-${categoriaInfo.color}-400 bg-${categoriaInfo.color}-50 border-${categoriaInfo.color}-200`
                                   : 'border-gray-200'
@@ -343,11 +349,34 @@ export default function RecordatoriosPage() {
                                 <h4 className="text-xs font-medium text-gray-900 truncate flex-1 mr-2">
                                   {recordatorio.titulo}
                                 </h4>
-                                <span
-                                  className={`px-1.5 py-0.5 rounded text-xs font-medium border ${PRIORIDAD_COLORS[recordatorio.prioridad]} flex-shrink-0`}
-                                >
-                                  {PRIORIDAD_LABELS[recordatorio.prioridad]}
-                                </span>
+                                <div className="flex items-center gap-1 flex-shrink-0">
+                                  <span
+                                    className={`px-1.5 py-0.5 rounded text-xs font-medium border ${PRIORIDAD_COLORS[recordatorio.prioridad]}`}
+                                  >
+                                    {PRIORIDAD_LABELS[recordatorio.prioridad]}
+                                  </span>
+                                  <button
+                                    onClick={() =>
+                                      handleCerrarRecordatorio(recordatorio.id)
+                                    }
+                                    className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                                    title="Cerrar notificación"
+                                  >
+                                    <svg
+                                      className="w-3 h-3"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M6 18L18 6M6 6l12 12"
+                                      />
+                                    </svg>
+                                  </button>
+                                </div>
                               </div>
 
                               <div className="flex items-start justify-between gap-2">

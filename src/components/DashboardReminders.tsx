@@ -99,43 +99,10 @@ export default function DashboardReminders() {
     setExpandedReminders(newExpanded)
   }
 
-  const handleEliminarReminder = async (reminderId: string) => {
-    try {
-      console.log(`🗑️ [DASHBOARD REMINDERS] Eliminando reminder: ${reminderId}`)
-
-      // Confirmar eliminación
-      if (
-        !confirm('¿Estás seguro de que quieres eliminar este recordatorio?')
-      ) {
-        return
-      }
-
-      // Actualizar estado local inmediatamente
-      setReminders((prev) => prev.filter((r) => r.id !== reminderId))
-
-      // Llamar a la API para eliminar (si existe endpoint)
-      const response = await fetch(`/api/dashboard-reminders/${reminderId}`, {
-        method: 'DELETE',
-      })
-
-      if (response.ok) {
-        console.log(`✅ [DASHBOARD REMINDERS] Reminder eliminado`)
-      } else {
-        console.error(
-          '❌ [DASHBOARD REMINDERS] Error eliminando reminder:',
-          response.statusText
-        )
-        // Revertir cambio local si falla la API
-        loadReminders()
-      }
-    } catch (error) {
-      console.error(
-        '❌ [DASHBOARD REMINDERS] Error eliminando reminder:',
-        error
-      )
-      // Revertir cambio local si falla la API
-      loadReminders()
-    }
+  const handleCerrarReminder = (reminderId: string) => {
+    // Simplemente ocultar el reminder del estado local (no eliminar de BD)
+    console.log(`❌ [DASHBOARD REMINDERS] Cerrando reminder: ${reminderId}`)
+    setReminders((prev) => prev.filter((r) => r.id !== reminderId))
   }
 
   if (isLoading) {
@@ -382,14 +349,14 @@ export default function DashboardReminders() {
                 </svg>
               </button>
 
-              {/* Botón de eliminar */}
+              {/* Botón de cerrar (X) */}
               <button
                 onClick={(e) => {
                   e.stopPropagation()
-                  handleEliminarReminder(reminder.id)
+                  handleCerrarReminder(reminder.id)
                 }}
-                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-100 rounded-lg transition-colors"
-                title="Eliminar recordatorio"
+                className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                title="Cerrar notificación"
               >
                 <svg
                   className="w-4 h-4"
