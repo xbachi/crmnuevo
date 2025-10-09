@@ -99,6 +99,45 @@ export default function DashboardReminders() {
     setExpandedReminders(newExpanded)
   }
 
+  const handleEliminarReminder = async (reminderId: string) => {
+    try {
+      console.log(`🗑️ [DASHBOARD REMINDERS] Eliminando reminder: ${reminderId}`)
+
+      // Confirmar eliminación
+      if (
+        !confirm('¿Estás seguro de que quieres eliminar este recordatorio?')
+      ) {
+        return
+      }
+
+      // Actualizar estado local inmediatamente
+      setReminders((prev) => prev.filter((r) => r.id !== reminderId))
+
+      // Llamar a la API para eliminar (si existe endpoint)
+      const response = await fetch(`/api/dashboard-reminders/${reminderId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        console.log(`✅ [DASHBOARD REMINDERS] Reminder eliminado`)
+      } else {
+        console.error(
+          '❌ [DASHBOARD REMINDERS] Error eliminando reminder:',
+          response.statusText
+        )
+        // Revertir cambio local si falla la API
+        loadReminders()
+      }
+    } catch (error) {
+      console.error(
+        '❌ [DASHBOARD REMINDERS] Error eliminando reminder:',
+        error
+      )
+      // Revertir cambio local si falla la API
+      loadReminders()
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -339,6 +378,30 @@ export default function DashboardReminders() {
                     strokeLinejoin="round"
                     strokeWidth={2}
                     d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+              </button>
+
+              {/* Botón de eliminar */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleEliminarReminder(reminder.id)
+                }}
+                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                title="Eliminar recordatorio"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
                   />
                 </svg>
               </button>
