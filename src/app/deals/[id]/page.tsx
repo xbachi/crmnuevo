@@ -414,10 +414,49 @@ export default function DealDetail() {
           document.body.removeChild(link)
           window.URL.revokeObjectURL(url)
 
-          showToast(
-            'Contrato de reserva generado y descargado exitosamente',
-            'success'
-          )
+          // Calcular fecha de expiración (7 días desde hoy)
+          const fechaReservaDesde = new Date()
+          const fechaReservaExpira = new Date()
+          fechaReservaExpira.setDate(fechaReservaExpira.getDate() + 7)
+
+          // Actualizar el deal para marcar que tiene contrato de reserva
+          const timestamp = Date.now()
+          const updatedDeal = {
+            ...deal,
+            contratoReserva: `contrato-reserva-${deal.numero}-${timestamp}.pdf`,
+            estado: 'reservado',
+            fechaReservaDesde: fechaReservaDesde,
+            fechaReservaExpira: fechaReservaExpira,
+          }
+          setDeal(updatedDeal)
+
+          // Actualizar en la base de datos
+          try {
+            await fetch(`/api/deals/${deal.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                estado: 'reservado',
+                contratoReserva: `contrato-reserva-${deal.numero}.pdf`,
+                fechaReservaDesde: fechaReservaDesde.toISOString(),
+                fechaReservaExpira: fechaReservaExpira.toISOString(),
+              }),
+            })
+
+            showToast(
+              'Contrato de reserva generado y descargado exitosamente',
+              'success'
+            )
+
+            // Recargar el deal para actualizar el estado
+            await loadDeal()
+          } catch (error) {
+            console.error('Error actualizando estado:', error)
+            showToast(
+              'Contrato generado pero error actualizando estado',
+              'warning'
+            )
+          }
         } else {
           // Respuesta JSON (desarrollo local)
           const result = await response.json()
@@ -528,10 +567,41 @@ export default function DealDetail() {
           document.body.removeChild(link)
           window.URL.revokeObjectURL(url)
 
-          showToast(
-            'Contrato de venta generado y descargado exitosamente',
-            'success'
-          )
+          // Actualizar el deal
+          const updatedDeal = {
+            ...deal,
+            contratoVenta: `contrato-venta-${deal.numero}.pdf`,
+            estado: 'vendido',
+            fechaVentaFirmada: new Date(),
+          }
+          setDeal(updatedDeal)
+
+          // Actualizar en la base de datos
+          try {
+            await fetch(`/api/deals/${deal.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                estado: 'vendido',
+                contratoVenta: `contrato-venta-${deal.numero}.pdf`,
+                fechaVentaFirmada: new Date().toISOString(),
+              }),
+            })
+
+            showToast(
+              'Contrato de venta generado y descargado exitosamente',
+              'success'
+            )
+
+            // Recargar el deal para actualizar el estado
+            await loadDeal()
+          } catch (error) {
+            console.error('Error actualizando estado:', error)
+            showToast(
+              'Contrato generado pero error actualizando estado',
+              'warning'
+            )
+          }
         } else {
           // Respuesta JSON (desarrollo local)
           const result = await response.json()
