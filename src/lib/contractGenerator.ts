@@ -230,6 +230,17 @@ async function loadLogoSVG(): Promise<string> {
 // Función para agregar logo a los contratos
 async function addLogoToContract(doc: any, yPosition: number): Promise<number> {
   try {
+    // En Vercel, usar solo texto para evitar problemas con canvas
+    if (process.env.VERCEL) {
+      console.log('🌐 [LOGO] Usando texto en lugar de imagen para Vercel')
+      doc.setFontSize(14)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(30, 64, 175) // Azul
+      doc.text('SEVEN CARS MOTORS S.L.', 105, yPosition, { align: 'center' })
+      doc.setTextColor(0, 0, 0) // Volver a negro
+      return yPosition + 15
+    }
+
     const logoDataURL = await loadLogoSVG()
     if (logoDataURL) {
       // Centrar el logo en el documento (ancho de página 210mm, logo 50mm)
