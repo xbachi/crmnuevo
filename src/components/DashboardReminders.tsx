@@ -105,6 +105,76 @@ export default function DashboardReminders() {
     setReminders((prev) => prev.filter((r) => r.id !== reminderId))
   }
 
+  const handleEliminarItemIndividual = async (
+    reminderId: string,
+    itemId: number,
+    itemType: string
+  ) => {
+    try {
+      console.log(
+        `🗑️ [DASHBOARD REMINDERS] Eliminando item individual: ${itemId} de ${itemType}`
+      )
+
+      // Confirmar eliminación
+      if (
+        !confirm(
+          '¿Estás seguro de que quieres eliminar este recordatorio de la base de datos?'
+        )
+      ) {
+        return
+      }
+
+      console.log(
+        `📊 [DASHBOARD REMINDERS] Enviando eliminación a /api/dashboard-reminders/delete`
+      )
+
+      // Usar el nuevo endpoint para eliminar recordatorios automáticos
+      const response = await fetch('/api/dashboard-reminders/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vehiculoId: itemType === 'vehiculo' ? itemId : undefined,
+          dealId: itemType === 'deal' ? itemId : undefined,
+          tipo: reminderId, // Usar el tipo de reminder como tipo de recordatorio
+        }),
+      })
+
+      if (response.ok) {
+        console.log(`✅ [DASHBOARD REMINDERS] Item eliminado de BD`)
+
+        // Actualizar el estado local removiendo el item específico
+        setReminders(
+          (prev) =>
+            prev
+              .map((reminder) => {
+                if (reminder.id === reminderId) {
+                  return {
+                    ...reminder,
+                    items: reminder.items.filter((item) => item.id !== itemId),
+                    count: reminder.items.length - 1,
+                  }
+                }
+                return reminder
+              })
+              .filter((reminder) => reminder.count > 0) // Eliminar reminders vacíos
+        )
+
+        // Recargar todos los reminders para asegurar consistencia
+        setTimeout(() => loadReminders(), 500)
+      } else {
+        const errorData = await response.json()
+        console.error(
+          '❌ [DASHBOARD REMINDERS] Error eliminando item:',
+          errorData
+        )
+        loadReminders() // Recargar para mostrar estado actual
+      }
+    } catch (error) {
+      console.error('❌ [DASHBOARD REMINDERS] Error eliminando item:', error)
+      loadReminders() // Recargar para mostrar estado actual
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -252,7 +322,7 @@ export default function DashboardReminders() {
                                   </span>
                                 )}
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1">
                               {reminder.type === 'cambio_nombre_pendiente' &&
                                 item.dealId && (
                                   <span className="text-blue-600 text-xs">
@@ -274,6 +344,43 @@ export default function DashboardReminders() {
                                     ? 'Media'
                                     : 'Baja'}
                               </span>
+                              {/* Botón de eliminar individual */}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  const itemType =
+                                    reminder.type === 'cambio_nombre_pendiente'
+                                      ? 'deal'
+                                      : 'vehiculo'
+                                  const itemIdToDelete =
+                                    reminder.type === 'cambio_nombre_pendiente'
+                                      ? item.dealId
+                                      : item.id
+                                  if (itemIdToDelete) {
+                                    handleEliminarItemIndividual(
+                                      reminder.id,
+                                      itemIdToDelete,
+                                      itemType
+                                    )
+                                  }
+                                }}
+                                className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors ml-1"
+                                title="Eliminar recordatorio"
+                              >
+                                <svg
+                                  className="w-3 h-3"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M6 18L18 6M6 6l12 12"
+                                  />
+                                </svg>
+                              </button>
                             </div>
                           </div>
                         </div>
