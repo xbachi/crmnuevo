@@ -856,7 +856,7 @@ export async function generarContratoReserva(
 function generarContratoHTML(deal: DealData): void {
   const fechaContrato = deal.fechaReservaDesde || deal.fechaCreacion
   const nombreCompleto =
-    `${deal.cliente?.nombre || ''} ${deal.cliente?.apellidos || ''}`.trim()
+    `${capitalizeText(deal.cliente?.nombre) || ''} ${capitalizeText(deal.cliente?.apellidos) || ''}`.trim()
   const precio = deal.importeTotal || deal.vehiculo?.precioPublicacion || 0
   const precioEnLetras = numeroALetras(Math.floor(precio))
   const montoReserva = deal.importeSena || 0
@@ -979,8 +979,8 @@ function generarContratoHTML(deal: DealData): void {
         <div class="punto">
             <strong>1.</strong> La parte vendedora es propietaria del siguiente vehículo:<br>
             <div class="indentado">
-                MARCA <strong>${deal.vehiculo?.marca || 'marca vehiculo'}</strong><br>
-                MODELO <strong>${deal.vehiculo?.modelo || 'modelo vehiculo'}</strong><br>
+                MARCA <strong>${capitalizeText(deal.vehiculo?.marca) || 'marca vehiculo'}</strong><br>
+                MODELO <strong>${capitalizeText(deal.vehiculo?.modelo) || 'modelo vehiculo'}</strong><br>
                 MATRICULA <strong>${deal.vehiculo?.matricula || 'matricula vehiculo'}</strong>
             </div>
         </div>
@@ -1088,7 +1088,7 @@ export async function generarContratoVenta(
 
   // Datos del cliente y vehículo
   const nombreCompleto =
-    `${deal.cliente?.nombre || ''} ${deal.cliente?.apellidos || ''}`.trim()
+    `${capitalizeText(deal.cliente?.nombre) || ''} ${capitalizeText(deal.cliente?.apellidos) || ''}`.trim()
   const direccionCompleta = construirDireccionCompleta(deal.cliente)
   const precio = deal.importeTotal || deal.vehiculo?.precioPublicacion || 0
   const precioEnLetras = numeroALetras(Math.floor(precio))
@@ -1152,7 +1152,7 @@ export async function generarContratoVenta(
   writeField(
     doc,
     'MARCA',
-    deal.vehiculo?.marca || 'marca vehiculo',
+    capitalizeText(deal.vehiculo?.marca) || 'marca vehiculo',
     margin + 5,
     yPosition
   )
@@ -1160,7 +1160,7 @@ export async function generarContratoVenta(
   writeField(
     doc,
     'MODELO',
-    deal.vehiculo?.modelo || 'modelo vehiculo',
+    capitalizeText(deal.vehiculo?.modelo) || 'modelo vehiculo',
     margin + 5,
     yPosition + 4
   )
@@ -1405,7 +1405,7 @@ export async function generarFactura(
 
     doc.setFont('helvetica', 'normal')
     doc.text(
-      `${deal.cliente?.nombre || 'No especificado'} ${deal.cliente?.apellidos || ''}`,
+      `${capitalizeText(deal.cliente?.nombre) || 'No especificado'} ${capitalizeText(deal.cliente?.apellidos) || ''}`,
       margin,
       yPosition
     )
@@ -1480,7 +1480,7 @@ export async function generarFactura(
 
     // Concepto principal
     doc.setFont('helvetica', 'normal')
-    const concepto = `Venta de vehículo: ${deal.vehiculo?.marca || 'No especificada'} ${deal.vehiculo?.modelo || 'No especificado'}`
+    const concepto = `Venta de vehículo: ${capitalizeText(deal.vehiculo?.marca) || 'No especificada'} ${capitalizeText(deal.vehiculo?.modelo) || 'No especificado'}`
     const conceptoLineas = doc.splitTextToSize(concepto, 100)
     doc.text(conceptoLineas, margin, yPosition)
 
