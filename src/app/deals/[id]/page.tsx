@@ -869,7 +869,26 @@ export default function DealDetail() {
         const contentType = response.headers.get('content-type')
         console.log('🔍 [FRONTEND] Content-Type detectado:', contentType)
 
-        if (contentType?.includes('application/pdf')) {
+        // Detectar si es PDF por content-type o por contenido
+        const isPdfByContentType = contentType?.includes('application/pdf')
+
+        // Si no es PDF por content-type, verificar por contenido
+        let isPdfByContent = false
+        if (!isPdfByContentType) {
+          try {
+            const responseClone = response.clone()
+            const text = await responseClone.text()
+            isPdfByContent = text.startsWith('%PDF-')
+            console.log('🔍 [FRONTEND] Verificando contenido PDF:', {
+              startsWithPDF: text.startsWith('%PDF-'),
+              firstChars: text.substring(0, 10),
+            })
+          } catch (error) {
+            console.error('❌ [FRONTEND] Error verificando contenido:', error)
+          }
+        }
+
+        if (isPdfByContentType || isPdfByContent) {
           // Respuesta directa de PDF (Vercel)
           console.log('📄 [FACTURA] Recibiendo PDF directo de Vercel')
 
