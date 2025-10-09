@@ -1210,18 +1210,6 @@ export async function generarContratoVenta(
     yPosition + 8
   )
 
-  // TEST: Escribir directamente sin writeField para verificar si el problema está en writeField
-  console.log('🔍 [TEST] Escribiendo directamente sin writeField...')
-  doc.setFont('helvetica', 'normal')
-  doc.text('TEST-BASTIDOR:', margin + 5, yPosition + 16)
-  doc.setFont('helvetica', 'bold')
-  doc.text('VALOR-FIJO-BASTIDOR', margin + 5 + 60, yPosition + 16)
-
-  doc.setFont('helvetica', 'normal')
-  doc.text('TEST-KMS:', pageWidth / 2, yPosition + 16)
-  doc.setFont('helvetica', 'bold')
-  doc.text('VALOR-FIJO-KMS', pageWidth / 2 + 50, yPosition + 16)
-
   yPosition += 12
 
   // Precio y garantía con negrita para datos dinámicos
@@ -1291,11 +1279,11 @@ export async function generarContratoVenta(
 
   // Checkbox Entregada
   doc.rect(margin + 5, yPosition - 2, 4, 4)
-  doc.text('Entregada', margin + 15, yPosition)
+  doc.text('Entregada', margin + 15, yPosition - 1)
 
   // Checkbox Pendiente
   doc.rect(margin + 50, yPosition - 2, 4, 4)
-  doc.text('Pendiente', margin + 60, yPosition)
+  doc.text('Pendiente', margin + 60, yPosition - 1)
   yPosition += 15
 
   // Espacio adicional antes de la firma
