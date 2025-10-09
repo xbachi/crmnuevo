@@ -832,6 +832,7 @@ export default function DealDetail() {
 
       // Siempre generar una nueva factura (no usar caché)
       // Generar la factura
+      console.log('🔍 [FRONTEND] Enviando request a /api/documents/generate...')
       const response = await fetch('/api/documents/generate', {
         method: 'POST',
         headers: {
@@ -857,9 +858,16 @@ export default function DealDetail() {
         }),
       })
 
+      console.log('🔍 [FRONTEND] Respuesta recibida:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+      })
+
       if (response.ok) {
         // Detectar si la respuesta es PDF directo o JSON
         const contentType = response.headers.get('content-type')
+        console.log('🔍 [FRONTEND] Content-Type detectado:', contentType)
 
         if (contentType?.includes('application/pdf')) {
           // Respuesta directa de PDF (Vercel)
@@ -958,8 +966,24 @@ export default function DealDetail() {
           }
         }
       } else {
-        const error = await response.json()
-        showToast(error.error || 'Error generando factura', 'error')
+        console.error('❌ [FRONTEND] Error en la respuesta:', {
+          status: response.status,
+          statusText: response.statusText,
+        })
+
+        try {
+          const error = await response.json()
+          console.error('❌ [FRONTEND] Error JSON:', error)
+          showToast(error.error || 'Error generando factura', 'error')
+        } catch (jsonError) {
+          console.error('❌ [FRONTEND] Error parseando JSON:', jsonError)
+          const errorText = await response.text()
+          console.error(
+            '❌ [FRONTEND] Respuesta como texto:',
+            errorText.substring(0, 200)
+          )
+          showToast('Error generando factura', 'error')
+        }
       }
     } catch (error) {
       console.error('Error generando factura:', error)
