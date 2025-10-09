@@ -124,20 +124,25 @@ export default function DashboardReminders() {
         return
       }
 
+      const requestBody = {
+        vehiculoId: itemType === 'vehiculo' ? itemId : undefined,
+        dealId: itemType === 'deal' ? itemId : undefined,
+        tipo: reminderId, // Usar el tipo de reminder como tipo de recordatorio
+      }
+
       console.log(
         `📊 [DASHBOARD REMINDERS] Enviando eliminación a /api/dashboard-reminders/delete`
       )
+      console.log('📊 [DASHBOARD REMINDERS] Request body:', requestBody)
 
       // Usar el nuevo endpoint para eliminar recordatorios automáticos
       const response = await fetch('/api/dashboard-reminders/delete', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          vehiculoId: itemType === 'vehiculo' ? itemId : undefined,
-          dealId: itemType === 'deal' ? itemId : undefined,
-          tipo: reminderId, // Usar el tipo de reminder como tipo de recordatorio
-        }),
+        body: JSON.stringify(requestBody),
       })
+
+      console.log('📊 [DASHBOARD REMINDERS] Response status:', response.status)
 
       if (response.ok) {
         console.log(`✅ [DASHBOARD REMINDERS] Item eliminado de BD`)
@@ -162,11 +167,27 @@ export default function DashboardReminders() {
         // Recargar todos los reminders para asegurar consistencia
         setTimeout(() => loadReminders(), 500)
       } else {
-        const errorData = await response.json()
         console.error(
-          '❌ [DASHBOARD REMINDERS] Error eliminando item:',
-          errorData
+          '❌ [DASHBOARD REMINDERS] Error eliminando item. Status:',
+          response.status,
+          response.statusText
         )
+
+        // Intentar obtener el error del response, pero manejar si está vacío
+        try {
+          const errorData = await response.json()
+          console.error('❌ [DASHBOARD REMINDERS] Error data:', errorData)
+        } catch (parseError) {
+          console.error(
+            '❌ [DASHBOARD REMINDERS] No se pudo parsear error response:',
+            parseError
+          )
+          console.error(
+            '❌ [DASHBOARD REMINDERS] Response text:',
+            await response.text()
+          )
+        }
+
         loadReminders() // Recargar para mostrar estado actual
       }
     } catch (error) {
