@@ -1279,11 +1279,11 @@ export async function generarContratoVenta(
 
   // Checkbox Entregada
   doc.rect(margin + 5, yPosition - 2, 4, 4)
-  doc.text('Entregada', margin + 15, yPosition + 4.5)
+  doc.text('Entregada', margin + 15, yPosition + 2.5)
 
   // Checkbox Pendiente
   doc.rect(margin + 50, yPosition - 2, 4, 4)
-  doc.text('Pendiente', margin + 60, yPosition + 4.5)
+  doc.text('Pendiente', margin + 60, yPosition + 2.5)
   yPosition += 15
 
   // Espacio adicional antes de la firma
