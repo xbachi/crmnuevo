@@ -869,26 +869,29 @@ export default function DealDetail() {
         const contentType = response.headers.get('content-type')
         console.log('🔍 [FRONTEND] Content-Type detectado:', contentType)
 
-        // Detectar si es PDF por content-type o por contenido
-        const isPdfByContentType = contentType?.includes('application/pdf')
+        // Siempre intentar detectar PDF primero por seguridad
+        let isPdfResponse = false
 
-        // Si no es PDF por content-type, verificar por contenido
-        let isPdfByContent = false
-        if (!isPdfByContentType) {
-          try {
-            const responseClone = response.clone()
-            const text = await responseClone.text()
-            isPdfByContent = text.startsWith('%PDF-')
-            console.log('🔍 [FRONTEND] Verificando contenido PDF:', {
-              startsWithPDF: text.startsWith('%PDF-'),
-              firstChars: text.substring(0, 10),
-            })
-          } catch (error) {
-            console.error('❌ [FRONTEND] Error verificando contenido:', error)
-          }
+        try {
+          // Clonar la respuesta para verificar el contenido
+          const responseClone = response.clone()
+          const text = await responseClone.text()
+
+          isPdfResponse = text.startsWith('%PDF-')
+          console.log('🔍 [FRONTEND] Verificando contenido PDF:', {
+            startsWithPDF: text.startsWith('%PDF-'),
+            firstChars: text.substring(0, 10),
+            contentType: contentType,
+            isPdfByContentType: contentType?.includes('application/pdf'),
+            finalDecision: isPdfResponse,
+          })
+        } catch (error) {
+          console.error('❌ [FRONTEND] Error verificando contenido:', error)
+          // Fallback: usar content-type si no podemos verificar contenido
+          isPdfResponse = contentType?.includes('application/pdf') || false
         }
 
-        if (isPdfByContentType || isPdfByContent) {
+        if (isPdfResponse) {
           // Respuesta directa de PDF (Vercel)
           console.log('📄 [FACTURA] Recibiendo PDF directo de Vercel')
 
@@ -909,6 +912,7 @@ export default function DealDetail() {
           )
         } else {
           // Respuesta JSON (desarrollo local)
+          console.log('📄 [FACTURA] Intentando parsear como JSON...')
           const result = await response.json()
 
           showToast(`Factura ${tipoFactura} generada exitosamente`, 'success')
