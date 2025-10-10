@@ -16,18 +16,8 @@ interface Vehiculo {
   color: string
   año: number
   kms: number
-  precioCompra: number
-  precioVenta: number
   estado: string
   tipo: string
-  tipo_vehiculo: string
-  fechaCompra: string
-  fechaMatriculacion: string
-  combustible: string
-  cambio: string
-  potencia: number
-  cilindrada: number
-  itv: string
   createdAt: string
   updatedAt: string
 }
@@ -355,9 +345,9 @@ export default function CochesRPage() {
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span>Precio:</span>
+                        <span>Tipo:</span>
                         <span className="font-bold text-red-600">
-                          {vehiculo.precioVenta.toLocaleString()}€
+                          {vehiculo.tipo}
                         </span>
                       </div>
                     </div>
@@ -387,7 +377,7 @@ export default function CochesRPage() {
                         Kms
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Precio
+                        Tipo
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Estado
@@ -442,7 +432,7 @@ export default function CochesRPage() {
                         </td>
                         <td className="px-4 py-3">
                           <span className="text-xs lg:text-sm font-bold text-red-600">
-                            {vehiculo.precioVenta.toLocaleString()}€
+                            {vehiculo.tipo}
                           </span>
                         </td>
                         <td className="px-4 py-3">
