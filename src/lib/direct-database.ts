@@ -47,6 +47,7 @@ export interface Vehiculo {
   bastidor: string
   kms: number
   tipo: string
+  tipo_vehiculo?: string
   estado:
     | 'SIN_ESTADO'
     | 'REVI_INIC'
@@ -871,7 +872,7 @@ export async function saveVehiculo(
     const result = await client.query(
       `
       INSERT INTO "Vehiculo" (
-        referencia, marca, modelo, matricula, bastidor, kms, tipo, estado, orden,
+        referencia, marca, modelo, matricula, bastidor, kms, tipo, tipo_vehiculo, estado, orden,
         color, "fechaMatriculacion", año, itv, seguro, "segundaLlave", documentacion,
         carpeta, master, "hojasA", "esCocheInversor", "inversorId",
         "fechaCompra", "precioCompra", "gastosTransporte", "gastosTasas",
@@ -879,8 +880,8 @@ export async function saveVehiculo(
         "precioPublicacion", "precioVenta", "beneficioNeto", "notasInversor",
         "fotoInversor", "createdAt", "updatedAt"
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21,
-        $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, NOW(), NOW()
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22,
+        $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, NOW(), NOW()
       ) RETURNING *
     `,
       [
@@ -891,6 +892,7 @@ export async function saveVehiculo(
         vehiculoData.bastidor,
         vehiculoData.kms,
         vehiculoData.tipo,
+        vehiculoData.tipo_vehiculo || 'normal',
         vehiculoData.estado,
         vehiculoData.orden,
         vehiculoData.color,

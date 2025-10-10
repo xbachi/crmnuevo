@@ -31,6 +31,17 @@ const VehiculosIcon = () => (
   </svg>
 )
 
+const CochesRIcon = () => (
+  <svg
+    className="w-6 h-6 md:w-7 md:h-7"
+    fill="currentColor"
+    viewBox="0 0 20 20"
+  >
+    <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+    <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1V8a1 1 0 00-1-1h-3z" />
+  </svg>
+)
+
 const ClientesIcon = () => (
   <svg
     className="w-6 h-6 md:w-7 md:h-7"
@@ -252,6 +263,12 @@ export default function Navigation() {
       href: '/vehiculos',
       label: 'Vehículos',
       icon: VehiculosIcon,
+      roles: ['admin', 'asesor'],
+    },
+    {
+      href: '/coches-r',
+      label: 'Coches R',
+      icon: CochesRIcon,
       roles: ['admin', 'asesor'],
     },
     {
