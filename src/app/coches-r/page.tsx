@@ -15,21 +15,21 @@ interface Vehiculo {
   bastidor: string
   color: string
   año: number
-  kilometraje: number
-  precio_compra: number
-  precio_venta: number
+  kms: number
+  precioCompra: number
+  precioVenta: number
   estado: string
   tipo: string
   tipo_vehiculo: string
-  fecha_compra: string
-  fecha_matriculacion: string
+  fechaCompra: string
+  fechaMatriculacion: string
   combustible: string
   cambio: string
   potencia: number
   cilindrada: number
-  itv_vencimiento: string
-  created_at: string
-  updated_at: string
+  itv: string
+  createdAt: string
+  updatedAt: string
 }
 
 export default function CochesRPage() {
@@ -351,13 +351,13 @@ export default function CochesRPage() {
                       <div className="flex justify-between">
                         <span>Kms:</span>
                         <span className="font-medium">
-                          {vehiculo.kilometraje.toLocaleString()}
+                          {vehiculo.kms.toLocaleString()}
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span>Precio:</span>
                         <span className="font-bold text-red-600">
-                          {vehiculo.precio_venta.toLocaleString()}€
+                          {vehiculo.precioVenta.toLocaleString()}€
                         </span>
                       </div>
                     </div>
@@ -437,12 +437,12 @@ export default function CochesRPage() {
                         </td>
                         <td className="px-4 py-3">
                           <span className="text-xs lg:text-sm">
-                            {vehiculo.kilometraje.toLocaleString()}
+                            {vehiculo.kms.toLocaleString()}
                           </span>
                         </td>
                         <td className="px-4 py-3">
                           <span className="text-xs lg:text-sm font-bold text-red-600">
-                            {vehiculo.precio_venta.toLocaleString()}€
+                            {vehiculo.precioVenta.toLocaleString()}€
                           </span>
                         </td>
                         <td className="px-4 py-3">

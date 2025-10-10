@@ -15,21 +15,21 @@ interface Vehiculo {
   bastidor: string
   color: string
   año: number
-  kilometraje: number
-  precio_compra: number
-  precio_venta: number
+  kms: number
+  precioCompra: number
+  precioVenta: number
   estado: string
   tipo: string
   tipo_vehiculo: string
-  fecha_compra: string
-  fecha_matriculacion: string
+  fechaCompra: string
+  fechaMatriculacion: string
   combustible: string
   cambio: string
   potencia: number
   cilindrada: number
-  itv_vencimiento: string
-  created_at: string
-  updated_at: string
+  itv: string
+  createdAt: string
+  updatedAt: string
 }
 
 interface Cliente {
@@ -396,7 +396,7 @@ export default function CocheRDetailPage() {
                           Precio Compra:
                         </span>
                         <span className="text-sm font-medium text-gray-900">
-                          {vehiculo.precio_compra.toLocaleString()}€
+                          {vehiculo.precioCompra.toLocaleString()}€
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
@@ -404,14 +404,14 @@ export default function CocheRDetailPage() {
                           Precio Venta:
                         </span>
                         <span className="text-sm font-bold text-red-600">
-                          {vehiculo.precio_venta.toLocaleString()}€
+                          {vehiculo.precioVenta.toLocaleString()}€
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-gray-600">Margen:</span>
                         <span className="text-sm font-medium text-green-600">
                           {(
-                            vehiculo.precio_venta - vehiculo.precio_compra
+                            vehiculo.precioVenta - vehiculo.precioCompra
                           ).toLocaleString()}
                           €
                         </span>
@@ -428,7 +428,7 @@ export default function CocheRDetailPage() {
                           Kilometraje:
                         </span>
                         <span className="text-sm font-medium text-gray-900">
-                          {vehiculo.kilometraje.toLocaleString()} km
+                          {vehiculo.kms.toLocaleString()} km
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
@@ -436,9 +436,7 @@ export default function CocheRDetailPage() {
                           ITV Vencimiento:
                         </span>
                         <span className="text-sm font-medium text-gray-900">
-                          {new Date(
-                            vehiculo.itv_vencimiento
-                          ).toLocaleDateString('es-ES')}
+                          {vehiculo.itv || 'No especificado'}
                         </span>
                       </div>
                     </div>

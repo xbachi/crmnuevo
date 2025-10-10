@@ -18,12 +18,12 @@ export async function GET(request: NextRequest) {
     const result = await client.query(
       `SELECT 
         id, referencia, marca, modelo, matricula, bastidor, color, año, 
-        kilometraje, precio_compra, precio_venta, estado, tipo, tipo_vehiculo,
-        fecha_compra, fecha_matriculacion, combustible, cambio, potencia, 
-        cilindrada, itv_vencimiento, created_at, updated_at
+        kms, "precioCompra", "precioVenta", estado, tipo, tipo_vehiculo,
+        "fechaCompra", "fechaMatriculacion", combustible, cambio, potencia, 
+        cilindrada, itv, "createdAt", "updatedAt"
        FROM "Vehiculo" 
-       WHERE tipo_vehiculo = 'coche_r'
-       ORDER BY created_at DESC`
+       WHERE tipo = 'Coche R'
+       ORDER BY "createdAt" DESC`
     )
 
     client.release()

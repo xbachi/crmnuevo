@@ -31,9 +31,9 @@ export async function POST(request: NextRequest) {
     try {
       // Obtener datos del vehículo
       const vehiculoResult = await client.query(
-        `SELECT marca, modelo, año, matricula, bastidor, kilometraje
+        `SELECT marca, modelo, año, matricula, bastidor, kms
          FROM "Vehiculo" 
-         WHERE id = $1 AND tipo_vehiculo = 'coche_r'`,
+         WHERE id = $1 AND tipo = 'Coche R'`,
         [parseInt(vehiculoId)]
       )
 
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
           año: vehiculo.año,
           matricula: vehiculo.matricula,
           bastidor: vehiculo.bastidor,
-          kilometraje: vehiculo.kilometraje,
+          kilometraje: vehiculo.kms,
         },
         cliente: {
           nombre: capitalizeText(cliente.nombre),
