@@ -2,9 +2,18 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { useToast } from '@/components/Toast'
+import { useConfirmModal } from '@/components/ConfirmModal'
+import {
+  formatCurrency,
+  formatVehicleReference,
+  formatDate,
+  generateVehicleSlug,
+  capitalizeText,
+} from '@/lib/utils'
+import { useAuth } from '@/contexts/AuthContext'
 import ProtectedRoute from '@/components/ProtectedRoute'
-import { LoadingSkeleton } from '@/components/LoadingSkeleton'
-import { capitalizeText } from '@/lib/utils'
 
 interface Vehiculo {
   id: number
@@ -13,23 +22,48 @@ interface Vehiculo {
   modelo: string
   matricula: string
   bastidor: string
-  color: string
-  año: number
   kms: number
-  precioCompra: number
-  precioVenta: number
-  estado: string
   tipo: string
-  tipo_vehiculo: string
-  fechaCompra: string
-  fechaMatriculacion: string
-  combustible: string
-  cambio: string
-  potencia: number
-  cilindrada: number
-  itv: string
+  estado: string
+  orden: number
+  color?: string
+  fechaMatriculacion?: string
+  año?: number
+  combustible?: string
+  cambio?: string
+  potencia?: number
+  cilindrada?: number
+  puertas?: number
+  plazas?: number
+  categoria?: string
+  precioCompra?: number
+  gastosTransporte?: number
+  gastosTasas?: number
+  gastosMecanica?: number
+  gastosPintura?: number
+  gastosLimpieza?: number
+  gastosOtros?: number
+  precioPublicacion?: number
+  precioVenta?: number
+  beneficioNeto?: number
+  esCocheInversor?: boolean
+  inversorId?: number
+  inversorNombre?: string
+  fechaCompra?: string
+  notasInversor?: string
+  fotoInversor?: string
+  itv?: string
+  fechaItv?: string
+  fechaVencimientoItv?: string
+  seguro?: string
+  segundaLlave?: string
+  carpeta?: string
+  master?: string
+  hojasA?: string
+  documentacion?: string
+  ubicacion?: string
   createdAt: string
-  updatedAt: string
+  updatedAt?: string
 }
 
 interface Cliente {
@@ -46,16 +80,25 @@ export default function CocheRDetailPage() {
   const params = useParams()
   const router = useRouter()
   const vehiculoId = params.id as string
+  const { showToast, ToastContainer } = useToast()
+  const { showConfirm, ConfirmModalComponent } = useConfirmModal()
+  const { isAdmin } = useAuth()
 
   const [vehiculo, setVehiculo] = useState<Vehiculo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'general' | 'financiero'>(
+    'general'
+  )
+
+  // Estados para el modal de contrato
   const [showContratoModal, setShowContratoModal] = useState(false)
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null)
   const [clienteSearchTerm, setClienteSearchTerm] = useState('')
   const [showClienteDropdown, setShowClienteDropdown] = useState(false)
   const [precioVenta, setPrecioVenta] = useState('')
   const [isGeneratingContrato, setIsGeneratingContrato] = useState(false)
+  const [clientes, setClientes] = useState<Cliente[]>([])
 
   useEffect(() => {
     if (vehiculoId) {
@@ -102,12 +145,29 @@ export default function CocheRDetailPage() {
   const handleClienteSearch = async (term: string) => {
     setClienteSearchTerm(term)
     if (term.length >= 2) {
-      const clientes = await fetchClientes(term)
-      setShowClienteDropdown(clientes.length > 0)
+      const clientesEncontrados = await fetchClientes(term)
+      setClientes(clientesEncontrados)
+      setShowClienteDropdown(clientesEncontrados.length > 0)
     } else {
+      setClientes([])
       setShowClienteDropdown(false)
     }
   }
+
+  // Cerrar dropdown al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      if (!target.closest('.cliente-dropdown-container')) {
+        setShowClienteDropdown(false)
+      }
+    }
+
+    if (showClienteDropdown) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showClienteDropdown])
 
   const handleSelectCliente = (cliente: Cliente) => {
     setSelectedCliente(cliente)
@@ -119,7 +179,10 @@ export default function CocheRDetailPage() {
 
   const handleGenerarContrato = async () => {
     if (!selectedCliente || !precioVenta) {
-      alert('Por favor selecciona un cliente e ingresa el precio de venta')
+      showToast(
+        'Por favor selecciona un cliente e ingresa el precio de venta',
+        'error'
+      )
       return
     }
 
@@ -150,12 +213,15 @@ export default function CocheRDetailPage() {
         setSelectedCliente(null)
         setClienteSearchTerm('')
         setPrecioVenta('')
+        setClientes([])
+        setShowClienteDropdown(false)
+        showToast('Contrato generado exitosamente', 'success')
       } else {
-        alert('Error al generar el contrato')
+        showToast('Error al generar el contrato', 'error')
       }
     } catch (error) {
       console.error('Error generating contract:', error)
-      alert('Error al generar el contrato')
+      showToast('Error al generar el contrato', 'error')
     } finally {
       setIsGeneratingContrato(false)
     }
@@ -169,41 +235,68 @@ export default function CocheRDetailPage() {
   }
 
   const getEstadoColor = (estado: string) => {
-    switch (estado) {
-      case 'PUBLICADO':
+    switch (estado?.toLowerCase()) {
+      case 'publicado':
         return 'bg-green-100 text-green-800 border-green-200'
-      case 'RESERVADO':
+      case 'reservado':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'VENDIDO':
+      case 'vendido':
         return 'bg-red-100 text-red-800 border-red-200'
-      case 'EN_PROCESO':
-        return 'bg-blue-100 text-blue-800 border-blue-200'
-      default:
+      case 'inicial':
+      case 'sin_estado':
         return 'bg-gray-100 text-gray-800 border-gray-200'
+      default:
+        return 'bg-blue-100 text-blue-800 border-blue-200'
     }
   }
 
   const getEstadoLabel = (estado: string) => {
-    switch (estado) {
-      case 'PUBLICADO':
-        return 'Disponible'
-      case 'RESERVADO':
+    switch (estado?.toLowerCase()) {
+      case 'publicado':
+        return 'Publicado'
+      case 'reservado':
         return 'Reservado'
-      case 'VENDIDO':
+      case 'vendido':
         return 'Vendido'
-      case 'EN_PROCESO':
-        return 'En Proceso'
+      case 'inicial':
+      case 'sin_estado':
+        return 'Inicial'
       default:
-        return estado
+        return estado || 'Sin Estado'
+    }
+  }
+
+  const getCondicionColor = (estado: string) => {
+    switch (estado?.toLowerCase()) {
+      case 'vendido':
+        return 'text-red-600'
+      case 'reservado':
+        return 'text-yellow-600'
+      default:
+        return 'text-green-600'
+    }
+  }
+
+  const getCondicionLabel = (estado: string) => {
+    switch (estado?.toLowerCase()) {
+      case 'vendido':
+        return 'VENDIDO'
+      case 'reservado':
+        return 'RESERVADO'
+      default:
+        return 'DISPONIBLE'
     }
   }
 
   if (isLoading) {
     return (
       <ProtectedRoute>
-        <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
-          <div className="w-[85%] mx-auto">
-            <LoadingSkeleton />
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-red-100">
+          <div className="w-[85%] mx-auto px-6 py-8">
+            <div className="animate-pulse">
+              <div className="h-8 bg-gray-200 rounded mb-4"></div>
+              <div className="h-64 bg-gray-200 rounded"></div>
+            </div>
           </div>
         </div>
       </ProtectedRoute>
@@ -213,8 +306,8 @@ export default function CocheRDetailPage() {
   if (error || !vehiculo) {
     return (
       <ProtectedRoute>
-        <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
-          <div className="w-[85%] mx-auto">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-red-100">
+          <div className="w-[85%] mx-auto px-6 py-8">
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
               <p className="text-red-800">{error || 'Coche R no encontrado'}</p>
               <button
@@ -232,33 +325,18 @@ export default function CocheRDetailPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
-        <div className="w-[85%] mx-auto">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-red-100">
+        <div className="w-[85%] mx-auto px-6 py-8">
           {/* Header */}
-          <div className="mb-6 sm:mb-8">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-              <div>
-                <h1 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">
-                  {formatVehicleReference(vehiculo.referencia, vehiculo.tipo)} -{' '}
-                  {capitalizeText(vehiculo.marca)}{' '}
-                  {capitalizeText(vehiculo.modelo)}
-                </h1>
-                <p className="text-sm text-gray-600">
-                  Coche R - Vendido "en el estado"
-                </p>
-              </div>
+          <div className="mb-6">
+            <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
               <div className="flex items-center space-x-3">
-                <span
-                  className={`px-3 py-1 rounded-full text-sm font-medium border ${getEstadoColor(vehiculo.estado)}`}
-                >
-                  {getEstadoLabel(vehiculo.estado)}
-                </span>
-                <button
-                  onClick={() => setShowContratoModal(true)}
-                  className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-sm"
+                <Link
+                  href="/coches-r"
+                  className="text-gray-600 hover:text-gray-800 transition-colors"
                 >
                   <svg
-                    className="w-4 h-4"
+                    className="w-5 h-5"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -267,11 +345,31 @@ export default function CocheRDetailPage() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      d="M15 19l-7-7 7-7"
                     />
                   </svg>
-                  <span>Generar Contrato Venta</span>
-                </button>
+                </Link>
+                <div>
+                  <h1 className="text-xl font-semibold text-gray-900">
+                    {formatVehicleReference(vehiculo.referencia, vehiculo.tipo)}{' '}
+                    - {capitalizeText(vehiculo.marca)}{' '}
+                    {capitalizeText(vehiculo.modelo)}
+                  </h1>
+                  <p className="text-sm text-gray-600">
+                    {vehiculo.matricula} • {vehiculo.kms?.toLocaleString() || 0}{' '}
+                    km • {vehiculo.fechaMatriculacion || 'N/A'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-3">
+                <span
+                  className={`px-3 py-1 rounded-full text-sm font-medium border ${getEstadoColor(vehiculo.estado)}`}
+                >
+                  {getEstadoLabel(vehiculo.estado)}
+                </span>
+                <span className="px-3 py-1 rounded-full text-sm font-medium border bg-red-100 text-red-800 border-red-200">
+                  COCHE R
+                </span>
               </div>
             </div>
           </div>
@@ -279,170 +377,207 @@ export default function CocheRDetailPage() {
           <div className="grid grid-cols-1 2xl:grid-cols-10 gap-6">
             {/* Contenido principal */}
             <div className="2xl:col-span-7">
-              {/* Información General */}
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                  Información General
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Identificación */}
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
-                      Identificación
-                    </h3>
-                    <div className="space-y-2">
-                      <div className="flex flex-col 2xl:flex-row 2xl:items-center gap-2">
-                        <span className="text-sm text-gray-600">Marca:</span>
-                        <span className="text-sm lg:text-base font-medium text-blue-900 bg-white border border-blue-300 rounded px-2 py-1 capitalize">
-                          {capitalizeText(vehiculo.marca)}
-                        </span>
-                      </div>
-                      <div className="flex flex-col 2xl:flex-row 2xl:items-center gap-2">
-                        <span className="text-sm text-gray-600">Modelo:</span>
-                        <span className="text-sm lg:text-base font-medium text-blue-900 bg-white border border-blue-300 rounded px-2 py-1 capitalize">
-                          {capitalizeText(vehiculo.modelo)}
-                        </span>
-                      </div>
-                      <div className="flex flex-col 2xl:flex-row 2xl:items-center gap-2">
-                        <span className="text-sm text-gray-600">Año:</span>
-                        <span className="text-sm lg:text-base font-medium text-blue-900 bg-white border border-blue-300 rounded px-2 py-1">
-                          {vehiculo.año}
-                        </span>
-                      </div>
-                      <div className="flex flex-col 2xl:flex-row 2xl:items-center gap-2">
-                        <span className="text-sm text-gray-600">Color:</span>
-                        <span className="text-sm lg:text-base font-medium text-blue-900 bg-white border border-blue-300 rounded px-2 py-1 capitalize">
-                          {capitalizeText(vehiculo.color)}
-                        </span>
+              {/* Pestañas */}
+              <div className="mb-6">
+                <div className="border-b border-gray-200">
+                  <nav className="-mb-px flex space-x-8">
+                    <button
+                      onClick={() => setActiveTab('general')}
+                      className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                        activeTab === 'general'
+                          ? 'border-red-500 text-red-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      Información General
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('financiero')}
+                      className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                        activeTab === 'financiero'
+                          ? 'border-red-500 text-red-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      Información Financiera
+                    </button>
+                  </nav>
+                </div>
+              </div>
+
+              {activeTab === 'general' && (
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                    Información General
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Identificación */}
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
+                        Identificación
+                      </h3>
+                      <div className="space-y-2">
+                        <div className="flex flex-col 2xl:flex-row 2xl:items-center gap-2">
+                          <span className="text-sm text-gray-600">Marca:</span>
+                          <span className="text-sm lg:text-base font-medium text-blue-900 bg-white border border-blue-300 rounded px-2 py-1 capitalize">
+                            {capitalizeText(vehiculo.marca)}
+                          </span>
+                        </div>
+                        <div className="flex flex-col 2xl:flex-row 2xl:items-center gap-2">
+                          <span className="text-sm text-gray-600">Modelo:</span>
+                          <span className="text-sm lg:text-base font-medium text-blue-900 bg-white border border-blue-300 rounded px-2 py-1 capitalize">
+                            {capitalizeText(vehiculo.modelo)}
+                          </span>
+                        </div>
+                        <div className="flex flex-col 2xl:flex-row 2xl:items-center gap-2">
+                          <span className="text-sm text-gray-600">Año:</span>
+                          <span className="text-sm lg:text-base font-medium text-blue-900 bg-white border border-blue-300 rounded px-2 py-1">
+                            {vehiculo.año || 'N/A'}
+                          </span>
+                        </div>
+                        <div className="flex flex-col 2xl:flex-row 2xl:items-center gap-2">
+                          <span className="text-sm text-gray-600">Color:</span>
+                          <span className="text-sm lg:text-base font-medium text-blue-900 bg-white border border-blue-300 rounded px-2 py-1 capitalize">
+                            {capitalizeText(vehiculo.color) || 'N/A'}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Documentación */}
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
-                      Documentación
-                    </h3>
-                    <div className="space-y-2">
-                      <div className="flex flex-col gap-2">
-                        <span className="text-sm text-gray-600">
-                          Matrícula:
-                        </span>
-                        <span className="text-sm lg:text-base font-medium text-green-900 bg-white border border-green-300 rounded px-2 py-1 font-mono uppercase">
-                          {vehiculo.matricula}
-                        </span>
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        <span className="text-sm text-gray-600">Bastidor:</span>
-                        <span className="text-sm lg:text-base font-medium text-green-900 bg-white border border-green-300 rounded px-2 py-1 font-mono font-bold">
-                          {vehiculo.bastidor}
-                        </span>
+                    {/* Documentación */}
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
+                        Documentación
+                      </h3>
+                      <div className="space-y-2">
+                        <div className="flex flex-col gap-2">
+                          <span className="text-sm text-gray-600">
+                            Matrícula:
+                          </span>
+                          <span className="text-sm lg:text-base font-medium text-green-900 bg-white border border-green-300 rounded px-2 py-1 font-mono uppercase">
+                            {vehiculo.matricula}
+                          </span>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <span className="text-sm text-gray-600">
+                            Bastidor:
+                          </span>
+                          <span className="text-sm lg:text-base font-medium text-green-900 bg-white border border-green-300 rounded px-2 py-1 font-mono font-bold">
+                            {vehiculo.bastidor}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Características */}
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
-                      Características
-                    </h3>
-                    <div className="space-y-2">
-                      <div className="flex flex-col 2xl:flex-row 2xl:items-center gap-2">
-                        <span className="text-sm text-gray-600">
-                          Combustible:
-                        </span>
-                        <span className="text-sm lg:text-base font-medium text-purple-900 bg-white border border-purple-300 rounded px-2 py-1 capitalize">
-                          {capitalizeText(vehiculo.combustible)}
-                        </span>
-                      </div>
-                      <div className="flex flex-col 2xl:flex-row 2xl:items-center gap-2">
-                        <span className="text-sm text-gray-600">Cambio:</span>
-                        <span className="text-sm lg:text-base font-medium text-purple-900 bg-white border border-purple-300 rounded px-2 py-1 capitalize">
-                          {capitalizeText(vehiculo.cambio)}
-                        </span>
-                      </div>
-                      <div className="flex flex-col 2xl:flex-row 2xl:items-center gap-2">
-                        <span className="text-sm text-gray-600">Potencia:</span>
-                        <span className="text-sm lg:text-base font-medium text-purple-900 bg-white border border-purple-300 rounded px-2 py-1">
-                          {vehiculo.potencia} CV
-                        </span>
-                      </div>
-                      <div className="flex flex-col 2xl:flex-row 2xl:items-center gap-2">
-                        <span className="text-sm text-gray-600">
-                          Cilindrada:
-                        </span>
-                        <span className="text-sm lg:text-base font-medium text-purple-900 bg-white border border-purple-300 rounded px-2 py-1">
-                          {vehiculo.cilindrada} cc
-                        </span>
+                    {/* Características */}
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
+                        Características
+                      </h3>
+                      <div className="space-y-2">
+                        <div className="flex flex-col 2xl:flex-row 2xl:items-center gap-2">
+                          <span className="text-sm text-gray-600">
+                            Combustible:
+                          </span>
+                          <span className="text-sm lg:text-base font-medium text-purple-900 bg-white border border-purple-300 rounded px-2 py-1 capitalize">
+                            {capitalizeText(vehiculo.combustible) || 'N/A'}
+                          </span>
+                        </div>
+                        <div className="flex flex-col 2xl:flex-row 2xl:items-center gap-2">
+                          <span className="text-sm text-gray-600">Cambio:</span>
+                          <span className="text-sm lg:text-base font-medium text-purple-900 bg-white border border-purple-300 rounded px-2 py-1 capitalize">
+                            {capitalizeText(vehiculo.cambio) || 'N/A'}
+                          </span>
+                        </div>
+                        <div className="flex flex-col 2xl:flex-row 2xl:items-center gap-2">
+                          <span className="text-sm text-gray-600">
+                            Potencia:
+                          </span>
+                          <span className="text-sm lg:text-base font-medium text-purple-900 bg-white border border-purple-300 rounded px-2 py-1">
+                            {vehiculo.potencia
+                              ? `${vehiculo.potencia} CV`
+                              : 'N/A'}
+                          </span>
+                        </div>
+                        <div className="flex flex-col 2xl:flex-row 2xl:items-center gap-2">
+                          <span className="text-sm text-gray-600">
+                            Cilindrada:
+                          </span>
+                          <span className="text-sm lg:text-base font-medium text-purple-900 bg-white border border-purple-300 rounded px-2 py-1">
+                            {vehiculo.cilindrada
+                              ? `${vehiculo.cilindrada} cc`
+                              : 'N/A'}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* Información Financiera */}
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                  Información Financiera
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
-                      Precios
-                    </h3>
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">
-                          Precio Compra:
-                        </span>
-                        <span className="text-sm font-medium text-gray-900">
-                          {vehiculo.precioCompra.toLocaleString()}€
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">
-                          Precio Venta:
-                        </span>
-                        <span className="text-sm font-bold text-red-600">
-                          {vehiculo.precioVenta.toLocaleString()}€
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Margen:</span>
-                        <span className="text-sm font-medium text-green-600">
-                          {(
-                            vehiculo.precioVenta - vehiculo.precioCompra
-                          ).toLocaleString()}
-                          €
-                        </span>
+              {activeTab === 'financiero' && (
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                    Información Financiera
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
+                        Precios
+                      </h3>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">
+                            Precio Compra:
+                          </span>
+                          <span className="text-sm font-medium text-gray-900">
+                            {vehiculo.precioCompra?.toLocaleString() || 0}€
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">
+                            Precio Venta:
+                          </span>
+                          <span className="text-sm font-bold text-red-600">
+                            {vehiculo.precioVenta?.toLocaleString() || 0}€
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">Margen:</span>
+                          <span className="text-sm font-medium text-green-600">
+                            {(
+                              (vehiculo.precioVenta || 0) -
+                              (vehiculo.precioCompra || 0)
+                            ).toLocaleString()}
+                            €
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
-                      Detalles
-                    </h3>
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">
-                          Kilometraje:
-                        </span>
-                        <span className="text-sm font-medium text-gray-900">
-                          {vehiculo.kms.toLocaleString()} km
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">
-                          ITV Vencimiento:
-                        </span>
-                        <span className="text-sm font-medium text-gray-900">
-                          {vehiculo.itv || 'No especificado'}
-                        </span>
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
+                        Detalles
+                      </h3>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">
+                            Kilometraje:
+                          </span>
+                          <span className="text-sm font-medium text-gray-900">
+                            {vehiculo.kms?.toLocaleString() || 0} km
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">ITV:</span>
+                          <span className="text-sm font-medium text-gray-900">
+                            {vehiculo.itv || 'No especificado'}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Sidebar */}
@@ -468,6 +603,14 @@ export default function CocheRDetailPage() {
                         Coche R
                       </span>
                     </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Condición:</span>
+                      <span
+                        className={`text-sm font-medium ${getCondicionColor(vehiculo.estado)}`}
+                      >
+                        {getCondicionLabel(vehiculo.estado)}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -479,10 +622,10 @@ export default function CocheRDetailPage() {
                   <div className="space-y-2">
                     <button
                       onClick={() => setShowContratoModal(true)}
-                      className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                      className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
                     >
                       <svg
-                        className="w-4 h-4"
+                        className="w-5 h-5"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -494,7 +637,7 @@ export default function CocheRDetailPage() {
                           d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                         />
                       </svg>
-                      <span>Generar Contrato</span>
+                      <span>GENERAR CONTRATO VENTA</span>
                     </button>
                   </div>
                 </div>
@@ -514,7 +657,14 @@ export default function CocheRDetailPage() {
                   Generar Contrato de Venta
                 </h3>
                 <button
-                  onClick={() => setShowContratoModal(false)}
+                  onClick={() => {
+                    setShowContratoModal(false)
+                    setSelectedCliente(null)
+                    setClienteSearchTerm('')
+                    setPrecioVenta('')
+                    setClientes([])
+                    setShowClienteDropdown(false)
+                  }}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <svg
@@ -539,7 +689,7 @@ export default function CocheRDetailPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Cliente *
                   </label>
-                  <div className="relative">
+                  <div className="relative cliente-dropdown-container">
                     <input
                       type="text"
                       placeholder="Buscar cliente..."
@@ -548,19 +698,56 @@ export default function CocheRDetailPage() {
                       onFocus={() => setShowClienteDropdown(true)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
                     />
-                    {showClienteDropdown && (
+                    {showClienteDropdown && clientes.length > 0 && (
                       <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                        {/* Aquí se cargarían los clientes */}
+                        {clientes.map((cliente) => (
+                          <button
+                            key={cliente.id}
+                            onClick={() => handleSelectCliente(cliente)}
+                            className="w-full px-3 py-2 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                          >
+                            <div className="font-medium text-gray-900">
+                              {capitalizeText(cliente.nombre)}{' '}
+                              {capitalizeText(cliente.apellidos)}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {cliente.dni} • {cliente.telefono}
+                            </div>
+                          </button>
+                        ))}
                       </div>
                     )}
                   </div>
                   {selectedCliente && (
                     <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
-                      <p className="text-sm text-green-800">
-                        Cliente seleccionado:{' '}
-                        {capitalizeText(selectedCliente.nombre)}{' '}
-                        {capitalizeText(selectedCliente.apellidos)}
-                      </p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm text-green-800">
+                          Cliente seleccionado:{' '}
+                          {capitalizeText(selectedCliente.nombre)}{' '}
+                          {capitalizeText(selectedCliente.apellidos)}
+                        </p>
+                        <button
+                          onClick={() => {
+                            setSelectedCliente(null)
+                            setClienteSearchTerm('')
+                          }}
+                          className="text-red-500 hover:text-red-700 ml-2"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -582,7 +769,14 @@ export default function CocheRDetailPage() {
                 {/* Botones */}
                 <div className="flex space-x-3 pt-4">
                   <button
-                    onClick={() => setShowContratoModal(false)}
+                    onClick={() => {
+                      setShowContratoModal(false)
+                      setSelectedCliente(null)
+                      setClienteSearchTerm('')
+                      setPrecioVenta('')
+                      setClientes([])
+                      setShowClienteDropdown(false)
+                    }}
                     className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     Cancelar
@@ -592,9 +786,34 @@ export default function CocheRDetailPage() {
                     disabled={
                       isGeneratingContrato || !selectedCliente || !precioVenta
                     }
-                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                   >
-                    {isGeneratingContrato ? 'Generando...' : 'Generar Contrato'}
+                    {isGeneratingContrato ? (
+                      <>
+                        <svg
+                          className="w-4 h-4 animate-spin"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        <span>Generando...</span>
+                      </>
+                    ) : (
+                      'Generar Contrato'
+                    )}
                   </button>
                 </div>
               </div>
@@ -602,6 +821,9 @@ export default function CocheRDetailPage() {
           </div>
         </div>
       )}
+
+      <ToastContainer />
+      <ConfirmModalComponent />
     </ProtectedRoute>
   )
 }

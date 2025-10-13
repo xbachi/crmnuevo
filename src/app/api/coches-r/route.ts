@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
         id, referencia, marca, modelo, matricula, bastidor, color, año, 
         kms, estado, tipo, "createdAt", "updatedAt"
        FROM "Vehiculo" 
-       WHERE tipo = 'Coche R'
+       WHERE tipo = 'R'
        ORDER BY "createdAt" DESC`
     )
 

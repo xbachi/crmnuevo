@@ -16,8 +16,13 @@ export async function GET(
   try {
     const { id: vehiculoId } = await params
     console.log(`🚗 [COCHE R API] Obteniendo Coche R ${vehiculoId}`)
+    console.log(
+      `🚗 [COCHE R API] DATABASE_URL existe?`,
+      !!process.env.DATABASE_URL
+    )
 
     const client = await pool.connect()
+    console.log(`🚗 [COCHE R API] Conexión establecida`)
 
     const result = await client.query(
       `SELECT 
@@ -26,9 +31,16 @@ export async function GET(
         "fechaCompra", "fechaMatriculacion", combustible, cambio, potencia, 
         cilindrada, itv, "createdAt", "updatedAt"
        FROM "Vehiculo" 
-       WHERE id = $1 AND tipo = 'Coche R'`,
+       WHERE id = $1 AND tipo = 'R'`,
       [parseInt(vehiculoId)]
     )
+
+    console.log(
+      `🚗 [COCHE R API] Consulta ejecutada, ${result.rows.length} resultados`
+    )
+    if (result.rows.length > 0) {
+      console.log(`🚗 [COCHE R API] Vehículo encontrado:`, result.rows[0])
+    }
 
     client.release()
 
