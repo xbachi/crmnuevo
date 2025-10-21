@@ -16,10 +16,19 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🔍 [API CLIENTES] Iniciando creación de cliente...')
+
     const data = await request.json()
+    console.log('🔍 [API CLIENTES] Datos recibidos:', {
+      nombre: data.nombre,
+      apellidos: data.apellidos,
+      telefono: data.telefono,
+      email: data.email,
+    })
 
     // Validaciones básicas
     if (!data.nombre || data.nombre.trim() === '') {
+      console.log('❌ [API CLIENTES] Error: Nombre faltante')
       return NextResponse.json(
         { error: 'El nombre es obligatorio' },
         { status: 400 }
@@ -27,6 +36,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!data.apellidos || data.apellidos.trim() === '') {
+      console.log('❌ [API CLIENTES] Error: Apellidos faltantes')
       return NextResponse.json(
         { error: 'Los apellidos son obligatorios' },
         { status: 400 }
@@ -34,6 +44,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!data.telefono || data.telefono.trim() === '') {
+      console.log('❌ [API CLIENTES] Error: Teléfono faltante')
       return NextResponse.json(
         { error: 'El teléfono es obligatorio' },
         { status: 400 }
@@ -71,13 +82,23 @@ export async function POST(request: NextRequest) {
       etiquetas: data.etiquetas,
     }
 
+    console.log('🔍 [API CLIENTES] Preparando datos para guardar:', clienteData)
+
     const cliente = await saveCliente(clienteData)
+    console.log('✅ [API CLIENTES] Cliente creado exitosamente:', cliente.id)
 
     return NextResponse.json(cliente, { status: 201 })
   } catch (error) {
-    console.error('Error al crear cliente:', error)
+    console.error('❌ [API CLIENTES] Error al crear cliente:', error)
+    console.error('❌ [API CLIENTES] Tipo de error:', typeof error)
+    console.error('❌ [API CLIENTES] Mensaje:', (error as Error).message)
+    console.error('❌ [API CLIENTES] Stack:', (error as Error).stack)
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      {
+        error: 'Error interno del servidor',
+        details: (error as Error).message,
+        timestamp: new Date().toISOString(),
+      },
       { status: 500 }
     )
   }
