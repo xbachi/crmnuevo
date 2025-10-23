@@ -3,7 +3,8 @@ import { pool } from '@/lib/direct-database'
 
 export async function GET() {
   try {
-    const result = await pool.query(`
+    // Obtener depósitos tradicionales de la tabla depositos
+    const depositosResult = await pool.query(`
       SELECT 
         d.*,
         c.id as cliente_id, c.nombre, c.apellidos, c.email, c.telefono,
@@ -14,7 +15,37 @@ export async function GET() {
       ORDER BY d.created_at DESC
     `)
 
-    const depositos = result.rows.map((row) => ({
+    // Obtener vehículos de tipo "D" (Deposito Venta) que no estén ya en depósitos
+    const vehiculosDepositoResult = await pool.query(`
+      SELECT 
+        v.id as vehiculo_id,
+        v.referencia,
+        v.marca,
+        v.modelo,
+        v.matricula,
+        v.tipo,
+        v.bastidor,
+        v.kms,
+        v."fechaMatriculacion",
+        v.estado,
+        v."createdAt",
+        NULL as cliente_id,
+        'Sin cliente asignado' as nombre,
+        '' as apellidos,
+        '' as email,
+        '' as telefono
+      FROM "Vehiculo" v
+      WHERE v.tipo = 'D'
+      AND v.id NOT IN (
+        SELECT DISTINCT vehiculo_id 
+        FROM depositos 
+        WHERE vehiculo_id IS NOT NULL
+      )
+      ORDER BY v."createdAt" DESC
+    `)
+
+    // Procesar depósitos tradicionales
+    const depositos = depositosResult.rows.map((row) => ({
       id: row.id,
       cliente_id: row.cliente_id,
       vehiculo_id: row.vehiculo_id,
@@ -29,6 +60,7 @@ export async function GET() {
       multa_retiro_anticipado: row.multa_retiro_anticipado,
       numero_cuenta: row.numero_cuenta,
       created_at: row.created_at,
+      tipo_deposito: 'deposito_tradicional',
       cliente: {
         id: row.cliente_id,
         nombre: row.nombre,
@@ -54,7 +86,55 @@ export async function GET() {
       },
     }))
 
-    return NextResponse.json(depositos)
+    // Procesar vehículos de tipo "D" como depósitos virtuales
+    const vehiculosDeposito = vehiculosDepositoResult.rows.map((row) => ({
+      id: `vehiculo_${row.vehiculo_id}`, // ID único para vehículos
+      cliente_id: row.cliente_id,
+      vehiculo_id: row.vehiculo_id,
+      estado: 'DISPONIBLE', // Estado por defecto para vehículos de depósito
+      fecha_inicio: null,
+      fecha_fin: null,
+      precio_venta: null,
+      comision_porcentaje: 5.0, // Porcentaje por defecto
+      notas: 'Vehículo de depósito disponible para venta',
+      monto_recibir: null,
+      dias_gestion: 90, // Días por defecto
+      multa_retiro_anticipado: null,
+      numero_cuenta: null,
+      created_at: row.createdAt,
+      tipo_deposito: 'vehiculo_deposito',
+      cliente: {
+        id: row.cliente_id,
+        nombre: row.nombre,
+        apellidos: row.apellidos,
+        email: row.email,
+        telefono: row.telefono,
+        dni: '',
+        direccion: '',
+        ciudad: '',
+        provincia: '',
+        codPostal: '',
+      },
+      vehiculo: {
+        id: row.vehiculo_id,
+        referencia: row.referencia,
+        marca: row.marca,
+        modelo: row.modelo,
+        matricula: row.matricula,
+        tipo: row.tipo,
+        bastidor: row.bastidor || '',
+        kms: row.kms || 0,
+        fechaMatriculacion: row.fechaMatriculacion || '',
+      },
+    }))
+
+    // Combinar ambos tipos y ordenar por fecha de creación
+    const todosLosDepositos = [...depositos, ...vehiculosDeposito].sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )
+
+    return NextResponse.json(todosLosDepositos)
   } catch (error) {
     console.error('Error fetching depositos:', error)
     return NextResponse.json(

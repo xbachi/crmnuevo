@@ -189,6 +189,9 @@ const VehicleCard = memo(function VehicleCard({
   const getTipoText = useCallback(
     (referencia: string) => {
       const detectedType = detectVehicleType(referencia)
+      console.log(
+        `🔤 [VehicleCard getTipoText] Referencia: "${referencia}" -> Tipo: "${detectedType}"`
+      )
       return TIPO_TEXTS[detectedType as keyof typeof TIPO_TEXTS] || detectedType
     },
     [detectVehicleType]

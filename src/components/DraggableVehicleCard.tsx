@@ -128,18 +128,21 @@ export default function DraggableVehicleCard({
 
   const getTipoLetra = (referencia: string) => {
     const detectedType = detectVehicleType(referencia)
+    console.log(
+      `🔤 [getTipoLetra] Referencia: "${referencia}" -> Tipo: "${detectedType}"`
+    )
 
     switch (detectedType) {
       case 'Compra':
-        return 'C'
+        return 'Compra'
       case 'R':
         return 'R'
       case 'Depósito':
-        return 'D'
+        return 'Depósito'
       case 'Inversor':
-        return 'I'
+        return 'Inversor'
       default:
-        return 'C'
+        return 'Compra'
     }
   }
 

@@ -113,9 +113,9 @@ export default function NuevoDepositoPage() {
     }
   }, [])
 
-  // Filtrar vehículos de depósito
+  // Filtrar vehículos de depósito (más permisivo: incluye 'Depósito' y 'D')
   const vehiculosDeposito = Array.isArray(vehiculos)
-    ? vehiculos.filter((v) => v.tipo === 'Depósito')
+    ? vehiculos.filter((v) => v.tipo === 'Depósito' || v.tipo === 'D')
     : []
 
   // Filtrar clientes basado en el término de búsqueda

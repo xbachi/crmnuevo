@@ -1,25 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getClientes, saveCliente } from '@/lib/direct-database'
+import { pool } from '@/lib/direct-database'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url)
-    const limit = searchParams.get('limit')
+    console.log('🔍 [API CLIENTES] Obteniendo lista de clientes...')
 
-    const clientes = await getClientes()
+    const client = await pool.connect()
+    try {
+      const result = await client.query(
+        `SELECT * FROM "Cliente" ORDER BY "createdAt" DESC`
+      )
 
-    // Si se especifica un límite, devolver solo los primeros N clientes
-    if (limit) {
-      const limitNumber = parseInt(limit)
-      const limitedClientes = clientes.slice(0, limitNumber)
-      return NextResponse.json(limitedClientes)
+      console.log(
+        `✅ [API CLIENTES] ${result.rows.length} clientes encontrados`
+      )
+      return NextResponse.json(result.rows)
+    } finally {
+      client.release()
     }
-
-    return NextResponse.json(clientes)
   } catch (error) {
-    console.error('Error al obtener clientes:', error)
+    console.error('❌ [API CLIENTES] Error al obtener clientes:', error)
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { error: 'Error al cargar clientes' },
       { status: 500 }
     )
   }
@@ -62,43 +64,38 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Preparar datos para la base de datos
-    const clienteData = {
-      nombre: data.nombre.trim(),
-      apellidos: data.apellidos.trim(),
-      telefono: data.telefono.trim(),
-      email: data.email?.trim(),
-      dni: data.dni?.trim(),
-      direccion: data.calle?.trim(), // Mapear calle a direccion
-      ciudad: data.ciudad?.trim(),
-      provincia: data.provincia?.trim(),
-      codigoPostal: data.codPostal?.trim(), // Mapear codPostal a codigoPostal
-      comoLlego: data.comoLlego || 'No especificado',
-      fechaPrimerContacto:
-        data.fechaPrimerContacto || new Date().toISOString().split('T')[0],
-      estado: data.estado || 'nuevo',
-      prioridad: data.prioridad || 'media',
-      proximoPaso: data.proximoPaso?.trim(),
-      // Campos de intereses mapeados directamente
-      vehiculosInteres: data.vehiculosInteres,
-      presupuestoMaximo: data.presupuestoMaximo,
-      kilometrajeMaximo: data.kilometrajeMaximo,
-      añoMinimo: data.añoMinimo,
-      combustiblePreferido: data.combustiblePreferido,
-      cambioPreferido: data.cambioPreferido,
-      coloresDeseados: data.coloresDeseados,
-      necesidadesEspeciales: data.necesidadesEspeciales,
-      formaPagoPreferida: data.formaPagoPreferida,
-      notasAdicionales: data.notasAdicionales,
-      etiquetas: data.etiquetas,
+    // Crear cliente directamente con SQL simplificado
+    const client = await pool.connect()
+    try {
+      console.log('🔍 [API CLIENTES] Conectando a la base de datos...')
+
+      const result = await client.query(
+        `
+        INSERT INTO "Cliente" (
+          nombre, apellidos, telefono, email, estado, prioridad, activo,
+          "createdAt", "updatedAt"
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, NOW(), NOW()
+        ) RETURNING *
+      `,
+        [
+          data.nombre.trim(),
+          data.apellidos.trim(),
+          data.telefono.trim(),
+          data.email?.trim() || null,
+          data.estado || 'nuevo',
+          data.prioridad || 'media',
+          data.activo !== false, // true por defecto
+        ]
+      )
+
+      const cliente = result.rows[0]
+      console.log('✅ [API CLIENTES] Cliente creado exitosamente:', cliente.id)
+
+      return NextResponse.json(cliente, { status: 201 })
+    } finally {
+      client.release()
     }
-
-    console.log('🔍 [API CLIENTES] Preparando datos para guardar:', clienteData)
-
-    const cliente = await saveCliente(clienteData)
-    console.log('✅ [API CLIENTES] Cliente creado exitosamente:', cliente.id)
-
-    return NextResponse.json(cliente, { status: 201 })
   } catch (error) {
     console.error('❌ [API CLIENTES] Error al crear cliente:', error)
     console.error('❌ [API CLIENTES] Tipo de error:', typeof error)

@@ -9,11 +9,11 @@ import Link from 'next/link'
 import ProtectedRoute from '@/components/ProtectedRoute'
 
 interface Deposito {
-  id: number
+  id: number | string
   cliente_id: number
   vehiculo_id: number
-  estado: 'BORRADOR' | 'ACTIVO' | 'FINALIZADO' | 'VENDIDO'
-  fecha_inicio: string
+  estado: 'BORRADOR' | 'ACTIVO' | 'FINALIZADO' | 'VENDIDO' | 'DISPONIBLE'
+  fecha_inicio?: string
   fecha_fin?: string
   precio_venta?: number
   comision_porcentaje: number
@@ -23,6 +23,7 @@ interface Deposito {
   multa_retiro_anticipado?: number
   numero_cuenta?: string
   created_at: string
+  tipo_deposito?: 'deposito_tradicional' | 'vehiculo_deposito'
   // Datos relacionados
   cliente: {
     id: number
@@ -154,7 +155,7 @@ export default function DepositosPage() {
     if (!Array.isArray(depositos)) return []
 
     if (estado === 'ACTIVO') {
-      // Activos: todos excepto VENDIDO
+      // Activos: todos excepto VENDIDO (incluye DISPONIBLE)
       return depositos.filter((deposito) => deposito.estado !== 'VENDIDO')
     } else if (estado === 'FINALIZADO') {
       // Finalizados: solo VENDIDO
@@ -230,7 +231,7 @@ export default function DepositosPage() {
     // Solo si NO hay búsqueda, aplicar filtro de estado
     if (activeTab !== 'todos') {
       if (activeTab === 'activo') {
-        // Activos: todos excepto VENDIDO
+        // Activos: todos excepto VENDIDO (incluye DISPONIBLE)
         filtered = filtered.filter((deposito) => deposito.estado !== 'VENDIDO')
       } else if (activeTab === 'finalizado') {
         // Finalizados: solo VENDIDO
@@ -298,6 +299,8 @@ export default function DepositosPage() {
         return 'bg-red-100 text-red-700'
       case 'BORRADOR':
         return 'bg-gray-100 text-gray-700'
+      case 'DISPONIBLE':
+        return 'bg-blue-100 text-blue-700'
       default:
         return 'bg-gray-100 text-gray-700'
     }
@@ -311,8 +314,32 @@ export default function DepositosPage() {
         return 'Finalizado'
       case 'BORRADOR':
         return 'Borrador'
+      case 'DISPONIBLE':
+        return 'Disponible'
       default:
         return estado
+    }
+  }
+
+  const getTipoDepositoLabel = (tipoDeposito?: string) => {
+    switch (tipoDeposito) {
+      case 'deposito_tradicional':
+        return 'Depósito'
+      case 'vehiculo_deposito':
+        return 'Vehículo D'
+      default:
+        return 'Depósito'
+    }
+  }
+
+  const getTipoDepositoColor = (tipoDeposito?: string) => {
+    switch (tipoDeposito) {
+      case 'deposito_tradicional':
+        return 'bg-purple-100 text-purple-700'
+      case 'vehiculo_deposito':
+        return 'bg-orange-100 text-orange-700'
+      default:
+        return 'bg-purple-100 text-purple-700'
     }
   }
 
@@ -620,6 +647,9 @@ export default function DepositosPage() {
                         <th className="hidden xl:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
                           Estado
                         </th>
+                        <th className="hidden lg:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                          Tipo
+                        </th>
                         <th className="hidden 2xl:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">
                           Acciones
                         </th>
@@ -766,6 +796,13 @@ export default function DepositosPage() {
                               className={`px-2 py-1 rounded-full text-xs font-medium ${getEstadoColor(deposito.estado)}`}
                             >
                               {getEstadoLabel(deposito.estado)}
+                            </span>
+                          </td>
+                          <td className="hidden lg:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs font-medium ${getTipoDepositoColor(deposito.tipo_deposito)}`}
+                            >
+                              {getTipoDepositoLabel(deposito.tipo_deposito)}
                             </span>
                           </td>
                           <td className="hidden 2xl:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">

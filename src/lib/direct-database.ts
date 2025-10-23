@@ -872,7 +872,7 @@ export async function saveVehiculo(
     const result = await client.query(
       `
       INSERT INTO "Vehiculo" (
-        referencia, marca, modelo, matricula, bastidor, kms, tipo, tipo_vehiculo, estado, orden,
+        referencia, marca, modelo, matricula, bastidor, kms, tipo, estado, orden,
         color, "fechaMatriculacion", año, itv, seguro, "segundaLlave", documentacion,
         carpeta, master, "hojasA", "esCocheInversor", "inversorId",
         "fechaCompra", "precioCompra", "gastosTransporte", "gastosTasas",
@@ -880,8 +880,8 @@ export async function saveVehiculo(
         "precioPublicacion", "precioVenta", "beneficioNeto", "notasInversor",
         "fotoInversor", "createdAt", "updatedAt"
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22,
-        $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, NOW(), NOW()
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21,
+        $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, NOW(), NOW()
       ) RETURNING *
     `,
       [
@@ -892,7 +892,6 @@ export async function saveVehiculo(
         vehiculoData.bastidor,
         vehiculoData.kms,
         vehiculoData.tipo,
-        vehiculoData.tipo_vehiculo || 'normal',
         vehiculoData.estado,
         vehiculoData.orden,
         vehiculoData.color,
@@ -1313,10 +1312,24 @@ export async function updateCliente(id: number, clienteData: any) {
       'activo',
     ]
 
-    // Filtrar solo campos válidos
-    const fields = Object.keys(clienteData).filter(
-      (key) => key !== 'id' && validFields.includes(key)
-    )
+    // Filtrar solo campos válidos y que no estén vacíos o sean null
+    const fields = Object.keys(clienteData).filter((key) => {
+      if (key === 'id' || !validFields.includes(key)) return false
+
+      const value = clienteData[key]
+
+      // Para campos únicos como DNI, solo incluir si tienen valor válido
+      if (key === 'dni') {
+        return value && value.toString().trim() !== ''
+      }
+
+      // Para campos de fecha, convertir cadenas vacías a null
+      if (['fechaNacimiento', 'fechaPrimerContacto'].includes(key)) {
+        return value && value.toString().trim() !== ''
+      }
+
+      return true
+    })
 
     // Si no hay campos válidos, no hacer nada
     if (fields.length === 0) {
@@ -1326,10 +1339,11 @@ export async function updateCliente(id: number, clienteData: any) {
     const values = fields.map((field) => {
       // Mapear codPostal a codigoPostal para la base de datos
       if (field === 'codPostal') {
-        return clienteData[field]
+        return clienteData['codPostal']
       }
       return clienteData[field]
     })
+
     const setClause = fields
       .map((field, index) => {
         // Mapear codPostal a codigoPostal en la consulta SQL
@@ -1337,6 +1351,12 @@ export async function updateCliente(id: number, clienteData: any) {
         return `"${dbField}" = $${index + 2}`
       })
       .join(', ')
+
+    console.log(
+      `🔍 [updateCliente] Actualizando cliente ${id} con campos:`,
+      fields
+    )
+    console.log(`🔍 [updateCliente] Valores:`, values)
 
     const result = await client.query(
       `

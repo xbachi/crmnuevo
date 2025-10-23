@@ -102,7 +102,6 @@ export async function POST(request: NextRequest) {
       bastidor,
       kms: parseInt(kms),
       tipo: tipoLetra,
-      tipo_vehiculo: tipo_vehiculo || 'normal',
       color: color || undefined,
       fechaMatriculacion: fechaMatriculacion || undefined,
       esCocheInversor: esCocheInversor || false,
