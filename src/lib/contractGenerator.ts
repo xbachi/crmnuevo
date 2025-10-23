@@ -138,7 +138,7 @@ async function loadLogoSVG(): Promise<string> {
             const baseUrl = process.env.VERCEL_URL
               ? `https://${process.env.VERCEL_URL}`
               : process.env.NODE_ENV === 'production'
-                ? 'https://crmnuevo.vercel.app' // URL específica de Vercel
+                ? 'https://sevencars.vercel.app' // URL específica de Vercel
                 : 'http://localhost:3000'
 
             console.log('🌐 [LOGO] Usando URL base:', baseUrl)
@@ -230,31 +230,61 @@ async function loadLogoSVG(): Promise<string> {
 // Función para agregar logo a los contratos
 async function addLogoToContract(doc: any, yPosition: number): Promise<number> {
   try {
+    console.log('🖼️ [LOGO] Intentando cargar logo PNG...')
+
     const logoDataURL = await loadLogoSVG()
     if (logoDataURL) {
+      console.log('✅ [LOGO] Logo cargado exitosamente, agregando al PDF...')
+
       // Centrar el logo en el documento (ancho de página 210mm, logo 50mm)
       const pageWidth = 210
       const logoWidth = 50
       const logoHeight = 20
       const logoX = (pageWidth - logoWidth) / 2
 
-      doc.addImage(logoDataURL, 'PNG', logoX, yPosition, logoWidth, logoHeight)
-      return yPosition + logoHeight + 15 // Espacio después del logo
+      try {
+        doc.addImage(
+          logoDataURL,
+          'PNG',
+          logoX,
+          yPosition,
+          logoWidth,
+          logoHeight
+        )
+        console.log('✅ [LOGO] Logo agregado al PDF exitosamente')
+        return yPosition + logoHeight + 15 // Espacio después del logo
+      } catch (addImageError) {
+        console.warn(
+          '⚠️ [LOGO] Error agregando imagen al PDF:',
+          (addImageError as Error).message
+        )
+        // Fallback al texto si addImage falla
+        doc.setFontSize(14)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(30, 64, 175) // Azul
+        doc.text('SEVEN CARS MOTORS S.L.', 105, yPosition, { align: 'center' })
+        doc.setTextColor(0, 0, 0) // Volver a negro
+        return yPosition + 15
+      }
     } else {
+      console.warn('⚠️ [LOGO] No se pudo cargar el logo, usando texto')
       // Fallback al texto si no se puede cargar el logo
-      doc.setFontSize(12)
+      doc.setFontSize(14)
       doc.setFont('helvetica', 'bold')
-      doc.setTextColor(0, 0, 0)
+      doc.setTextColor(30, 64, 175) // Azul
       doc.text('SEVEN CARS MOTORS S.L.', 105, yPosition, { align: 'center' })
-      return yPosition + 10
+      doc.setTextColor(0, 0, 0) // Volver a negro
+      return yPosition + 15
     }
   } catch (error) {
+    console.error('❌ [LOGO] Error general:', (error as Error).message)
     // Fallback al texto si hay error
-    doc.setFontSize(12)
+    doc.setFontSize(14)
     doc.setFont('helvetica', 'bold')
-    doc.setTextColor(0, 0, 0)
+    doc.setTextColor(30, 64, 175) // Azul
     doc.text('SEVEN CARS MOTORS S.L.', 105, yPosition, { align: 'center' })
-    return yPosition + 10
+    doc.setTextColor(0, 0, 0) // Volver a negro
+    return yPosition + 15
   }
 }
 
@@ -631,7 +661,7 @@ export async function generarContratoReserva(
     yPosition += 6
 
     const nombreCompleto =
-      `${deal.cliente?.nombre || ''} ${deal.cliente?.apellidos || ''}`.trim()
+      `${capitalizeText(deal.cliente?.nombre) || ''} ${capitalizeText(deal.cliente?.apellidos) || ''}`.trim()
     const direccionCompleta = construirDireccionCompleta(deal.cliente)
     const textoComprador = `D/DÑA ${nombreCompleto || 'NOMBRE DE CLIENTE'} Mayor de edad, con DNI ${deal.cliente?.dni || 'DNI CLIENTE'}, con domicilio ${direccionCompleta}, con telefono ${deal.cliente?.telefono || 'TEL CLIENTE'} y email ${deal.cliente?.email || 'EMAIL CLIENTE'} en calidad de compradores, y en adelante parte compradora.`
     doc.text(
@@ -665,14 +695,14 @@ export async function generarContratoReserva(
     writeField(
       doc,
       'MARCA',
-      deal.vehiculo?.marca || 'marca vehiculo',
+      capitalizeText(deal.vehiculo?.marca) || 'marca vehiculo',
       columnaIzquierda,
       yPosition
     )
     writeField(
       doc,
       'MODELO',
-      deal.vehiculo?.modelo || 'modelo vehiculo',
+      capitalizeText(deal.vehiculo?.modelo) || 'modelo vehiculo',
       columnaIzquierda,
       yPosition + 6
     )
@@ -688,7 +718,7 @@ export async function generarContratoReserva(
     writeField(
       doc,
       'MATRÍCULA',
-      deal.vehiculo?.matricula || 'matricula vehiculo',
+      (deal.vehiculo?.matricula || 'matricula vehiculo').toUpperCase(),
       columnaDerecha,
       yPosition
     )
@@ -826,7 +856,7 @@ export async function generarContratoReserva(
 function generarContratoHTML(deal: DealData): void {
   const fechaContrato = deal.fechaReservaDesde || deal.fechaCreacion
   const nombreCompleto =
-    `${deal.cliente?.nombre || ''} ${deal.cliente?.apellidos || ''}`.trim()
+    `${capitalizeText(deal.cliente?.nombre) || ''} ${capitalizeText(deal.cliente?.apellidos) || ''}`.trim()
   const precio = deal.importeTotal || deal.vehiculo?.precioPublicacion || 0
   const precioEnLetras = numeroALetras(Math.floor(precio))
   const montoReserva = deal.importeSena || 0
@@ -949,8 +979,8 @@ function generarContratoHTML(deal: DealData): void {
         <div class="punto">
             <strong>1.</strong> La parte vendedora es propietaria del siguiente vehículo:<br>
             <div class="indentado">
-                MARCA <strong>${deal.vehiculo?.marca || 'marca vehiculo'}</strong><br>
-                MODELO <strong>${deal.vehiculo?.modelo || 'modelo vehiculo'}</strong><br>
+                MARCA <strong>${capitalizeText(deal.vehiculo?.marca) || 'marca vehiculo'}</strong><br>
+                MODELO <strong>${capitalizeText(deal.vehiculo?.modelo) || 'modelo vehiculo'}</strong><br>
                 MATRICULA <strong>${deal.vehiculo?.matricula || 'matricula vehiculo'}</strong>
             </div>
         </div>
@@ -1058,7 +1088,7 @@ export async function generarContratoVenta(
 
   // Datos del cliente y vehículo
   const nombreCompleto =
-    `${deal.cliente?.nombre || ''} ${deal.cliente?.apellidos || ''}`.trim()
+    `${capitalizeText(deal.cliente?.nombre) || ''} ${capitalizeText(deal.cliente?.apellidos) || ''}`.trim()
   const direccionCompleta = construirDireccionCompleta(deal.cliente)
   const precio = deal.importeTotal || deal.vehiculo?.precioPublicacion || 0
   const precioEnLetras = numeroALetras(Math.floor(precio))
@@ -1122,7 +1152,7 @@ export async function generarContratoVenta(
   writeField(
     doc,
     'MARCA',
-    deal.vehiculo?.marca || 'marca vehiculo',
+    capitalizeText(deal.vehiculo?.marca) || 'marca vehiculo',
     margin + 5,
     yPosition
   )
@@ -1130,7 +1160,7 @@ export async function generarContratoVenta(
   writeField(
     doc,
     'MODELO',
-    deal.vehiculo?.modelo || 'modelo vehiculo',
+    capitalizeText(deal.vehiculo?.modelo) || 'modelo vehiculo',
     margin + 5,
     yPosition + 4
   )
@@ -1179,18 +1209,6 @@ export async function generarContratoVenta(
     pageWidth / 2,
     yPosition + 8
   )
-
-  // TEST: Escribir directamente sin writeField para verificar si el problema está en writeField
-  console.log('🔍 [TEST] Escribiendo directamente sin writeField...')
-  doc.setFont('helvetica', 'normal')
-  doc.text('TEST-BASTIDOR:', margin + 5, yPosition + 16)
-  doc.setFont('helvetica', 'bold')
-  doc.text('VALOR-FIJO-BASTIDOR', margin + 5 + 60, yPosition + 16)
-
-  doc.setFont('helvetica', 'normal')
-  doc.text('TEST-KMS:', pageWidth / 2, yPosition + 16)
-  doc.setFont('helvetica', 'bold')
-  doc.text('VALOR-FIJO-KMS', pageWidth / 2 + 50, yPosition + 16)
 
   yPosition += 12
 
@@ -1261,11 +1279,11 @@ export async function generarContratoVenta(
 
   // Checkbox Entregada
   doc.rect(margin + 5, yPosition - 2, 4, 4)
-  doc.text('Entregada', margin + 15, yPosition)
+  doc.text('Entregada', margin + 15, yPosition + 2.5)
 
   // Checkbox Pendiente
   doc.rect(margin + 50, yPosition - 2, 4, 4)
-  doc.text('Pendiente', margin + 60, yPosition)
+  doc.text('Pendiente', margin + 60, yPosition + 2.5)
   yPosition += 15
 
   // Espacio adicional antes de la firma
@@ -1387,7 +1405,7 @@ export async function generarFactura(
 
     doc.setFont('helvetica', 'normal')
     doc.text(
-      `${deal.cliente?.nombre || 'No especificado'} ${deal.cliente?.apellidos || ''}`,
+      `${capitalizeText(deal.cliente?.nombre) || 'No especificado'} ${capitalizeText(deal.cliente?.apellidos) || ''}`,
       margin,
       yPosition
     )
@@ -1462,7 +1480,7 @@ export async function generarFactura(
 
     // Concepto principal
     doc.setFont('helvetica', 'normal')
-    const concepto = `Venta de vehículo: ${deal.vehiculo?.marca || 'No especificada'} ${deal.vehiculo?.modelo || 'No especificado'}`
+    const concepto = `Venta de vehículo: ${capitalizeText(deal.vehiculo?.marca) || 'No especificada'} ${capitalizeText(deal.vehiculo?.modelo) || 'No especificado'}`
     const conceptoLineas = doc.splitTextToSize(concepto, 100)
     doc.text(conceptoLineas, margin, yPosition)
 

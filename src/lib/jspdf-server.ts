@@ -4,31 +4,13 @@ import jsPDF from 'jspdf'
 // Configurar jsPDF para el entorno de servidor
 if (typeof window === 'undefined') {
   try {
-    // Intentar cargar canvas de forma más segura
-    let canvas: any = null
-
-    try {
-      const canvasModule = require('canvas')
-      canvas = canvasModule.createCanvas
-      console.log('✅ Canvas cargado correctamente')
-    } catch (canvasError) {
-      console.warn('⚠️ Canvas no disponible:', (canvasError as Error).message)
-    }
-
-    // Configurar jsPDF solo si canvas está disponible
-    if (canvas && jsPDF.prototype) {
-      jsPDF.prototype.canvas = canvas
-      console.log('✅ jsPDF configurado para servidor con canvas')
-    } else {
-      console.log('ℹ️ jsPDF funcionará sin canvas (modo básico)')
-    }
-
-    // Configuración adicional para Vercel
+    // Configuración para Vercel - sin canvas
     if (process.env.VERCEL) {
-      console.log('🌐 Ejecutándose en Vercel')
+      console.log('🌐 Ejecutándose en Vercel - modo sin canvas')
 
-      // Configurar polyfills para Vercel si es necesario
+      // Configurar polyfills básicos para Vercel
       if (typeof global !== 'undefined') {
+        // Polyfill para Blob
         global.Blob =
           global.Blob ||
           class Blob {
@@ -39,11 +21,25 @@ if (typeof window === 'undefined') {
             parts: any[]
             options: any
           }
+
+        // Polyfill para File
+        global.File =
+          global.File ||
+          class File extends Blob {
+            constructor(parts: any[], filename: string, options: any) {
+              super(parts, options)
+              this.name = filename
+              this.lastModified = Date.now()
+            }
+            name: string
+            lastModified: number
+          }
       }
     }
+
+    console.log('✅ jsPDF configurado para servidor (modo básico)')
   } catch (error) {
     console.error('❌ Error configurando jsPDF:', (error as Error).message)
-    console.error('❌ Stack trace:', (error as Error).stack)
   }
 }
 

@@ -230,6 +230,15 @@ export default function VehiculoDetailPage() {
   })
   const [showAddRecordatorioForm, setShowAddRecordatorioForm] = useState(false)
 
+  // Estados para el modal de contrato de Coches R
+  const [showContratoModal, setShowContratoModal] = useState(false)
+  const [selectedCliente, setSelectedCliente] = useState<any>(null)
+  const [clienteSearchTerm, setClienteSearchTerm] = useState('')
+  const [showClienteDropdown, setShowClienteDropdown] = useState(false)
+  const [precioVenta, setPrecioVenta] = useState('')
+  const [isGeneratingContrato, setIsGeneratingContrato] = useState(false)
+  const [clientes, setClientes] = useState<any[]>([])
+
   // Helper function para mostrar valores de documentación legal
   const getDocumentacionValue = (value: string | null | undefined): string => {
     if (!value || value === '' || value === 'null' || value === 'undefined') {
@@ -506,6 +515,21 @@ export default function VehiculoDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vehiculoId])
 
+  // Cerrar dropdowns al hacer clic fuera (igual que en deals)
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      if (!target.closest('.dropdown-container')) {
+        setShowClienteDropdown(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
   // Funciones para manejar documentos
   const handleFileUpload = async (
     event: React.ChangeEvent<HTMLInputElement>
@@ -638,6 +662,67 @@ export default function VehiculoDetailPage() {
     } catch (error) {
       console.error('❌ [DELETE] Error eliminando archivo:', error)
       showToast('Error eliminando archivo', 'error')
+    }
+  }
+
+  const handleAnularContrato = async (docId: string) => {
+    try {
+      console.log(
+        `🚫 [ANULAR] Anulando contrato ${docId} del vehículo ${vehiculo?.id}`
+      )
+
+      // Eliminar el archivo del contrato
+      const response = await fetch(
+        `/api/vehiculos/${vehiculo?.id}/files/${docId}`,
+        {
+          method: 'DELETE',
+        }
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('❌ [ANULAR] Error eliminando contrato:', errorData)
+        showToast(`Error anulando contrato: ${errorData.error}`, 'error')
+        return
+      }
+
+      const result = await response.json()
+      console.log('✅ [ANULAR] Contrato anulado exitosamente:', result)
+
+      // Actualizar lista de documentos
+      await fetchDocumentos()
+
+      // Cambiar estado del vehículo de vuelta a "en stock" o "disponible"
+      try {
+        const updateResponse = await fetch(`/api/vehiculos/${vehiculo?.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ estado: 'EN_STOCK' }), // Volver al estado anterior
+        })
+
+        if (updateResponse.ok) {
+          // Recargar datos del vehículo para reflejar el cambio de estado
+          await fetchVehiculo()
+          showToast(
+            'Contrato anulado y vehículo disponible nuevamente',
+            'success'
+          )
+        } else {
+          showToast(
+            'Contrato anulado pero error al actualizar estado del vehículo',
+            'warning'
+          )
+        }
+      } catch (updateError) {
+        console.error('Error actualizando estado del vehículo:', updateError)
+        showToast(
+          'Contrato anulado pero error al actualizar estado del vehículo',
+          'warning'
+        )
+      }
+    } catch (error) {
+      console.error('❌ [ANULAR] Error anulando contrato:', error)
+      showToast('Error anulando contrato', 'error')
     }
   }
 
@@ -1178,6 +1263,145 @@ export default function VehiculoDetailPage() {
     } catch (error) {
       console.error('❌ [RECORDATORIO] Error completando recordatorio:', error)
       showToast('Error al completar el recordatorio', 'error')
+    }
+  }
+
+  // Funciones para el modal de contrato de Coches R
+  const fetchClientes = async (searchTerm: string) => {
+    if (searchTerm.length < 2) return []
+
+    try {
+      const response = await fetch(
+        `/api/clientes?search=${encodeURIComponent(searchTerm)}`
+      )
+      if (response.ok) {
+        return await response.json()
+      }
+      return []
+    } catch (error) {
+      console.error('Error fetching clientes:', error)
+      return []
+    }
+  }
+
+  const handleClienteSearch = async (term: string) => {
+    setClienteSearchTerm(term)
+    if (term.length >= 2) {
+      const clientesEncontrados = await fetchClientes(term)
+      setClientes(clientesEncontrados)
+      setShowClienteDropdown(clientesEncontrados.length > 0)
+    } else {
+      setClientes([])
+      setShowClienteDropdown(false)
+    }
+  }
+
+  const handleSelectCliente = (cliente: any) => {
+    setSelectedCliente(cliente)
+    setClienteSearchTerm(
+      `${capitalizeText(cliente.nombre)} ${capitalizeText(cliente.apellidos)}`
+    )
+    setShowClienteDropdown(false)
+  }
+
+  // Filtrar clientes basado en el término de búsqueda (igual que en deals)
+  const filteredClientes = clientes.filter((cliente) => {
+    if (!clienteSearchTerm) return true
+    const searchLower = clienteSearchTerm.toLowerCase()
+    return (
+      cliente.nombre.toLowerCase().includes(searchLower) ||
+      cliente.apellidos.toLowerCase().includes(searchLower) ||
+      cliente.telefono?.includes(searchLower) ||
+      cliente.email?.toLowerCase().includes(searchLower) ||
+      cliente.dni?.includes(searchLower)
+    )
+  })
+
+  const handleGenerarContrato = async () => {
+    if (!selectedCliente || !precioVenta) {
+      showToast(
+        'Por favor selecciona un cliente e ingresa el precio de venta',
+        'error'
+      )
+      return
+    }
+
+    setIsGeneratingContrato(true)
+    try {
+      const response = await fetch('/api/coches-r/generar-contrato', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vehiculoId: vehiculo?.id,
+          clienteId: selectedCliente.id,
+          precioVenta: parseFloat(precioVenta),
+        }),
+      })
+
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `contrato-coche-r-${vehiculo?.referencia}.pdf`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+
+        // Guardar el contrato como documento del vehículo
+        const formData = new FormData()
+        formData.append(
+          'file',
+          blob,
+          `contrato-coche-r-${vehiculo?.referencia}.pdf`
+        )
+        formData.append('vehiculoId', vehiculo?.id.toString() || '')
+
+        const saveResponse = await fetch('/api/vehiculos/upload-document', {
+          method: 'POST',
+          body: formData,
+        })
+
+        if (saveResponse.ok) {
+          showToast('Contrato generado y guardado exitosamente', 'success')
+          // Recargar documentos para mostrar el nuevo contrato
+          await fetchDocumentos()
+        } else {
+          showToast('Contrato generado pero no se pudo guardar', 'warning')
+        }
+
+        // Cambiar estado del vehículo a "vendido"
+        try {
+          const updateResponse = await fetch(`/api/vehiculos/${vehiculo?.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ estado: 'vendido' }),
+          })
+
+          if (updateResponse.ok) {
+            // Recargar datos del vehículo para reflejar el cambio de estado
+            await fetchVehiculo()
+            showToast('Vehículo marcado como vendido', 'success')
+          }
+        } catch (updateError) {
+          console.error('Error actualizando estado del vehículo:', updateError)
+        }
+
+        setShowContratoModal(false)
+        setSelectedCliente(null)
+        setClienteSearchTerm('')
+        setPrecioVenta('')
+        setClientes([])
+        setShowClienteDropdown(false)
+      } else {
+        showToast('Error al generar el contrato', 'error')
+      }
+    } catch (error) {
+      console.error('Error generating contract:', error)
+      showToast('Error al generar el contrato', 'error')
+    } finally {
+      setIsGeneratingContrato(false)
     }
   }
 
@@ -3296,56 +3520,80 @@ export default function VehiculoDetailPage() {
                       </p>
                     </div>
                   ) : (
-                    documentos.map((doc) => (
-                      <div
-                        key={doc.id}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                            <svg
-                              className="w-4 h-4 text-blue-600"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                              />
-                            </svg>
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">
-                              {doc.nombre}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {doc.tamañoFormateado} • {doc.fechaSubida}
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => handleDeleteFile(doc.id)}
-                          className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                    documentos.map((doc) => {
+                      // Validar que el documento tiene las propiedades necesarias
+                      if (!doc || !doc.id || !doc.nombre) {
+                        console.warn(
+                          'Documento con propiedades faltantes:',
+                          doc
+                        )
+                        return null
+                      }
+
+                      return (
+                        <div
+                          key={doc.id}
+                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
                         >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                    ))
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                              <svg
+                                className="w-4 h-4 text-blue-600"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                />
+                              </svg>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">
+                                {doc.nombre}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {doc.tamañoFormateado} • {doc.fechaSubida}
+                              </p>
+                            </div>
+                          </div>
+                          {/* Botón Anular para contratos de Coches R, Eliminar para otros documentos */}
+                          {doc.nombre &&
+                          doc.nombre
+                            .toLowerCase()
+                            .includes('contrato-coche-r') ? (
+                            <button
+                              onClick={() => handleAnularContrato(doc.id)}
+                              className="px-3 py-1 text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded transition-colors text-sm font-medium border border-orange-200"
+                            >
+                              Anular
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleDeleteFile(doc.id)}
+                              className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })
                   )}
                 </div>
               </div>
@@ -3896,6 +4144,63 @@ export default function VehiculoDetailPage() {
                 </div>
               )}
 
+              {/* Botón de Contrato para Coches R - Solo visible en pantallas >= 1500px */}
+              {vehiculo?.tipo === 'R' && (
+                <div className="hidden 2xl:block bg-white rounded-xl shadow-sm border border-slate-200 p-3 sm:p-4 lg:p-6">
+                  <div className="flex items-center space-x-2 mb-4">
+                    <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center">
+                      <svg
+                        className="w-4 h-4 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                    </div>
+                    <h2 className="text-base sm:text-lg font-semibold text-gray-900">
+                      Contrato de Venta
+                    </h2>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      setShowContratoModal(true)
+                      // Cargar últimos 5 clientes al abrir el modal (igual que en deals)
+                      try {
+                        const response = await fetch('/api/clientes?limit=5')
+                        if (response.ok) {
+                          const data = await response.json()
+                          setClientes(data)
+                        }
+                      } catch (error) {
+                        console.error('Error cargando clientes:', error)
+                      }
+                    }}
+                    className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                    <span>GENERAR CONTRATO VENTA</span>
+                  </button>
+                </div>
+              )}
+
               {/* Documentos del Vehículo - Solo visible en pantallas >= 1500px */}
               <div className="hidden 2xl:block bg-white rounded-xl shadow-sm border border-slate-200 p-3 sm:p-4 lg:p-6">
                 <div className="flex items-center justify-between mb-4">
@@ -4416,6 +4721,218 @@ export default function VehiculoDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Modal de Generación de Contrato para Coches R */}
+        {showContratoModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Generar Contrato de Venta
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setShowContratoModal(false)
+                      setSelectedCliente(null)
+                      setClienteSearchTerm('')
+                      setPrecioVenta('')
+                      setClientes([])
+                      setShowClienteDropdown(false)
+                    }}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Selección de Cliente - Mismo diseño que deals */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Cliente *
+                    </label>
+                    <div className="relative dropdown-container">
+                      <input
+                        type="text"
+                        value={clienteSearchTerm}
+                        onChange={(e) => {
+                          setClienteSearchTerm(e.target.value)
+                          setShowClienteDropdown(true)
+                          handleClienteSearch(e.target.value)
+                        }}
+                        onFocus={() => setShowClienteDropdown(true)}
+                        placeholder="Buscar cliente por nombre, apellidos, teléfono, email o DNI..."
+                        className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        required
+                      />
+                      <svg
+                        className="absolute right-3 top-3.5 h-5 w-5 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                        />
+                      </svg>
+
+                      {/* Dropdown de clientes */}
+                      {showClienteDropdown && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                          {filteredClientes.length === 0 ? (
+                            <div className="px-3 py-2 text-sm text-gray-500">
+                              {clienteSearchTerm
+                                ? 'No se encontraron clientes'
+                                : 'Escribe para buscar clientes'}
+                            </div>
+                          ) : (
+                            filteredClientes.map((cliente) => (
+                              <button
+                                key={cliente.id}
+                                type="button"
+                                onClick={() => {
+                                  handleSelectCliente(cliente)
+                                  setClienteSearchTerm(
+                                    `${capitalizeText(cliente.nombre)} ${capitalizeText(cliente.apellidos)}`
+                                  )
+                                  setShowClienteDropdown(false)
+                                }}
+                                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                              >
+                                <div className="font-medium text-gray-900">
+                                  {capitalizeText(cliente.nombre)}{' '}
+                                  {capitalizeText(cliente.apellidos)}
+                                </div>
+                                <div className="text-gray-500">
+                                  {cliente.telefono}{' '}
+                                  {cliente.email && `• ${cliente.email}`}
+                                </div>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {selectedCliente && (
+                      <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm text-green-800">
+                            Cliente seleccionado:{' '}
+                            {capitalizeText(selectedCliente.nombre)}{' '}
+                            {capitalizeText(selectedCliente.apellidos)}
+                          </p>
+                          <button
+                            onClick={() => {
+                              setSelectedCliente(null)
+                              setClienteSearchTerm('')
+                            }}
+                            className="text-red-500 hover:text-red-700 ml-2"
+                          >
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M6 18L18 6M6 6l12 12"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Precio de Venta */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Precio de Venta (€) *
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="0.00"
+                      value={precioVenta}
+                      onChange={(e) => setPrecioVenta(e.target.value)}
+                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  {/* Botones */}
+                  <div className="flex space-x-3 pt-4">
+                    <button
+                      onClick={() => {
+                        setShowContratoModal(false)
+                        setSelectedCliente(null)
+                        setClienteSearchTerm('')
+                        setPrecioVenta('')
+                        setClientes([])
+                        setShowClienteDropdown(false)
+                      }}
+                      className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleGenerarContrato}
+                      disabled={
+                        isGeneratingContrato || !selectedCliente || !precioVenta
+                      }
+                      className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                    >
+                      {isGeneratingContrato ? (
+                        <>
+                          <svg
+                            className="w-4 h-4 animate-spin"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
+                          <span>Generando...</span>
+                        </>
+                      ) : (
+                        'Generar Contrato'
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <ConfirmModalComponent />
       </div>

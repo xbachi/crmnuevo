@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getClientes, saveCliente } from '@/lib/direct-database'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const limit = searchParams.get('limit')
+
     const clientes = await getClientes()
+
+    // Si se especifica un límite, devolver solo los primeros N clientes
+    if (limit) {
+      const limitNumber = parseInt(limit)
+      const limitedClientes = clientes.slice(0, limitNumber)
+      return NextResponse.json(limitedClientes)
+    }
+
     return NextResponse.json(clientes)
   } catch (error) {
     console.error('Error al obtener clientes:', error)

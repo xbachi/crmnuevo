@@ -396,47 +396,111 @@ export default function DealDetail() {
       })
 
       if (response.ok) {
-        const result = await response.json()
+        // Detectar si la respuesta es PDF directo o JSON
+        const contentType = response.headers.get('content-type')
 
-        // Calcular fecha de expiración (7 días desde hoy)
-        const fechaReservaDesde = new Date()
-        const fechaReservaExpira = new Date()
-        fechaReservaExpira.setDate(fechaReservaExpira.getDate() + 7)
+        if (contentType?.includes('application/pdf')) {
+          // Respuesta directa de PDF (Vercel)
+          console.log('📄 [DEAL] Recibiendo PDF directo de Vercel')
 
-        // Actualizar el deal para marcar que tiene contrato de reserva
-        // Usar timestamp para evitar caché del navegador
-        const timestamp = Date.now()
-        const updatedDeal = {
-          ...deal,
-          contratoReserva: `contrato-reserva-${deal.numero}-${timestamp}.pdf`,
-          estado: 'reservado',
-          fechaReservaDesde: fechaReservaDesde,
-          fechaReservaExpira: fechaReservaExpira,
-        }
-        setDeal(updatedDeal)
+          // Crear blob y descargar directamente
+          const pdfBlob = await response.blob()
+          const url = window.URL.createObjectURL(pdfBlob)
+          const link = document.createElement('a')
+          link.href = url
+          link.download = `contrato-reserva-${deal.numero}.pdf`
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          window.URL.revokeObjectURL(url)
 
-        // Actualizar en la base de datos
-        try {
-          await fetch(`/api/deals/${deal.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              estado: 'reservado',
-              contratoReserva: `contrato-reserva-${deal.numero}.pdf`,
-              fechaReservaDesde: fechaReservaDesde.toISOString(),
-              fechaReservaExpira: fechaReservaExpira.toISOString(),
-            }),
-          })
+          // Calcular fecha de expiración (7 días desde hoy)
+          const fechaReservaDesde = new Date()
+          const fechaReservaExpira = new Date()
+          fechaReservaExpira.setDate(fechaReservaExpira.getDate() + 7)
 
-          showToast('Contrato de reserva generado exitosamente', 'success')
+          // Actualizar el deal para marcar que tiene contrato de reserva
+          const timestamp = Date.now()
+          const updatedDeal = {
+            ...deal,
+            contratoReserva: `contrato-reserva-${deal.numero}-${timestamp}.pdf`,
+            estado: 'reservado',
+            fechaReservaDesde: fechaReservaDesde,
+            fechaReservaExpira: fechaReservaExpira,
+          }
+          setDeal(updatedDeal)
 
-          // Recargar el deal para actualizar el estado
-          await loadDeal()
+          // Actualizar en la base de datos
+          try {
+            await fetch(`/api/deals/${deal.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                estado: 'reservado',
+                contratoReserva: `contrato-reserva-${deal.numero}.pdf`,
+                fechaReservaDesde: fechaReservaDesde.toISOString(),
+                fechaReservaExpira: fechaReservaExpira.toISOString(),
+              }),
+            })
 
-          // Descargar el documento
-          window.open(result.url, '_blank')
-        } catch (error) {
-          console.error('Error actualizando estado:', error)
+            showToast(
+              'Contrato de reserva generado y descargado exitosamente',
+              'success'
+            )
+
+            // Recargar el deal para actualizar el estado
+            await loadDeal()
+          } catch (error) {
+            console.error('Error actualizando estado:', error)
+            showToast(
+              'Contrato generado pero error actualizando estado',
+              'warning'
+            )
+          }
+        } else {
+          // Respuesta JSON (desarrollo local)
+          const result = await response.json()
+
+          // Calcular fecha de expiración (7 días desde hoy)
+          const fechaReservaDesde = new Date()
+          const fechaReservaExpira = new Date()
+          fechaReservaExpira.setDate(fechaReservaExpira.getDate() + 7)
+
+          // Actualizar el deal para marcar que tiene contrato de reserva
+          // Usar timestamp para evitar caché del navegador
+          const timestamp = Date.now()
+          const updatedDeal = {
+            ...deal,
+            contratoReserva: `contrato-reserva-${deal.numero}-${timestamp}.pdf`,
+            estado: 'reservado',
+            fechaReservaDesde: fechaReservaDesde,
+            fechaReservaExpira: fechaReservaExpira,
+          }
+          setDeal(updatedDeal)
+
+          // Actualizar en la base de datos
+          try {
+            await fetch(`/api/deals/${deal.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                estado: 'reservado',
+                contratoReserva: `contrato-reserva-${deal.numero}.pdf`,
+                fechaReservaDesde: fechaReservaDesde.toISOString(),
+                fechaReservaExpira: fechaReservaExpira.toISOString(),
+              }),
+            })
+
+            showToast('Contrato de reserva generado exitosamente', 'success')
+
+            // Recargar el deal para actualizar el estado
+            await loadDeal()
+
+            // Descargar el documento
+            window.open(result.url, '_blank')
+          } catch (error) {
+            console.error('Error actualizando estado:', error)
+          }
         }
       } else {
         const error = await response.json()
@@ -485,38 +549,96 @@ export default function DealDetail() {
       })
 
       if (response.ok) {
-        const result = await response.json()
+        // Detectar si la respuesta es PDF directo o JSON
+        const contentType = response.headers.get('content-type')
 
-        // Actualizar el deal
-        const updatedDeal = {
-          ...deal,
-          contratoVenta: `contrato-venta-${deal.numero}.pdf`,
-          estado: 'vendido',
-          fechaVentaFirmada: new Date(),
-        }
-        setDeal(updatedDeal)
+        if (contentType?.includes('application/pdf')) {
+          // Respuesta directa de PDF (Vercel)
+          console.log('📄 [DEAL] Recibiendo PDF directo de Vercel')
 
-        // Actualizar en la base de datos
-        try {
-          await fetch(`/api/deals/${deal.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              estado: 'vendido',
-              contratoVenta: `contrato-venta-${deal.numero}.pdf`,
-              fechaVentaFirmada: new Date().toISOString(),
-            }),
-          })
+          // Crear blob y descargar directamente
+          const pdfBlob = await response.blob()
+          const url = window.URL.createObjectURL(pdfBlob)
+          const link = document.createElement('a')
+          link.href = url
+          link.download = `contrato-venta-${deal.numero}.pdf`
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          window.URL.revokeObjectURL(url)
 
-          showToast('Contrato de venta generado exitosamente', 'success')
+          // Actualizar el deal con timestamp para evitar caché
+          const timestamp = Date.now()
+          const updatedDeal = {
+            ...deal,
+            contratoVenta: `contrato-venta-${deal.numero}-${timestamp}.pdf`,
+            estado: 'vendido',
+            fechaVentaFirmada: new Date(),
+          }
+          setDeal(updatedDeal)
 
-          // Recargar el deal para actualizar el estado
-          await loadDeal()
+          // Actualizar en la base de datos
+          try {
+            await fetch(`/api/deals/${deal.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                estado: 'vendido',
+                contratoVenta: `contrato-venta-${deal.numero}-${timestamp}.pdf`,
+                fechaVentaFirmada: new Date().toISOString(),
+              }),
+            })
 
-          // Descargar el documento
-          window.open(result.url, '_blank')
-        } catch (error) {
-          console.error('Error actualizando estado:', error)
+            showToast(
+              'Contrato de venta generado y descargado exitosamente',
+              'success'
+            )
+
+            // Recargar el deal para actualizar el estado
+            await loadDeal()
+          } catch (error) {
+            console.error('Error actualizando estado:', error)
+            showToast(
+              'Contrato generado pero error actualizando estado',
+              'warning'
+            )
+          }
+        } else {
+          // Respuesta JSON (desarrollo local)
+          const result = await response.json()
+
+          // Actualizar el deal con timestamp para evitar caché
+          const timestamp = Date.now()
+          const updatedDeal = {
+            ...deal,
+            contratoVenta: `contrato-venta-${deal.numero}-${timestamp}.pdf`,
+            estado: 'vendido',
+            fechaVentaFirmada: new Date(),
+          }
+          setDeal(updatedDeal)
+
+          // Actualizar en la base de datos
+          try {
+            await fetch(`/api/deals/${deal.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                estado: 'vendido',
+                contratoVenta: `contrato-venta-${deal.numero}-${timestamp}.pdf`,
+                fechaVentaFirmada: new Date().toISOString(),
+              }),
+            })
+
+            showToast('Contrato de venta generado exitosamente', 'success')
+
+            // Recargar el deal para actualizar el estado
+            await loadDeal()
+
+            // Descargar el documento
+            window.open(result.url, '_blank')
+          } catch (error) {
+            console.error('Error actualizando estado:', error)
+          }
         }
       } else {
         const error = await response.json()
@@ -710,6 +832,7 @@ export default function DealDetail() {
 
       // Siempre generar una nueva factura (no usar caché)
       // Generar la factura
+      console.log('🔍 [FRONTEND] Enviando request a /api/documents/generate...')
       const response = await fetch('/api/documents/generate', {
         method: 'POST',
         headers: {
@@ -735,15 +858,70 @@ export default function DealDetail() {
         }),
       })
 
+      console.log('🔍 [FRONTEND] Respuesta recibida:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+      })
+
       if (response.ok) {
-        const result = await response.json()
+        // Detectar si la respuesta es PDF directo o JSON
+        const contentType = response.headers.get('content-type')
+        console.log('🔍 [FRONTEND] Content-Type detectado:', contentType)
 
-        showToast(`Factura ${tipoFactura} generada exitosamente`, 'success')
+        // Siempre intentar detectar PDF primero por seguridad
+        let isPdfResponse = false
 
-        // Recargar el deal para actualizar el estado
-        await loadDeal()
+        try {
+          // Clonar la respuesta para verificar el contenido
+          const responseClone = response.clone()
+          const text = await responseClone.text()
 
-        // Actualizar el deal
+          isPdfResponse = text.startsWith('%PDF-')
+          console.log('🔍 [FRONTEND] Verificando contenido PDF:', {
+            startsWithPDF: text.startsWith('%PDF-'),
+            firstChars: text.substring(0, 10),
+            contentType: contentType,
+            isPdfByContentType: contentType?.includes('application/pdf'),
+            finalDecision: isPdfResponse,
+          })
+        } catch (error) {
+          console.error('❌ [FRONTEND] Error verificando contenido:', error)
+          // Fallback: usar content-type si no podemos verificar contenido
+          isPdfResponse = contentType?.includes('application/pdf') || false
+        }
+
+        if (isPdfResponse) {
+          // Respuesta directa de PDF (Vercel)
+          console.log('📄 [FACTURA] Recibiendo PDF directo de Vercel')
+
+          // Crear blob y descargar directamente
+          const pdfBlob = await response.blob()
+          const url = window.URL.createObjectURL(pdfBlob)
+          const link = document.createElement('a')
+          link.href = url
+          link.download = `factura-${tipoFactura.toLowerCase()}-${numeroFacturaFinal}.pdf`
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          window.URL.revokeObjectURL(url)
+
+          showToast(
+            `Factura ${tipoFactura} generada y descargada exitosamente`,
+            'success'
+          )
+        } else {
+          // Respuesta JSON (desarrollo local)
+          console.log('📄 [FACTURA] Intentando parsear como JSON...')
+          const result = await response.json()
+
+          showToast(`Factura ${tipoFactura} generada exitosamente`, 'success')
+
+          // Descargar el documento
+          window.open(result.url, '_blank')
+        }
+
+        // Actualizar el deal y base de datos (común para ambos casos)
         const updatedDeal = {
           ...deal,
           factura: `factura-${tipoFactura.toLowerCase()}-${numeroFacturaFinal}.pdf`,
@@ -764,51 +942,71 @@ export default function DealDetail() {
             }),
           })
 
-          // Descargar el documento
-          window.open(result.url, '_blank')
-
-          // Crear recordatorio para documentación de cambio de nombre en la base de datos
-          if (deal.cliente && deal.vehiculo) {
-            try {
-              const response = await fetch(
-                `/api/clientes/${deal.clienteId}/recordatorios`,
-                {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    clienteId: deal.clienteId,
-                    titulo: 'Solicitar cambio de nombre',
-                    descripcion: `Solicitar documentación para cambio de nombre del vehículo ${formatVehicleReference(deal.vehiculo.referencia, deal.vehiculo.tipo)} al cliente ${capitalizeText(deal.cliente.nombre)} ${capitalizeText(deal.cliente.apellidos)}`,
-                    tipo: 'otro',
-                    prioridad: 'alta',
-                    fechaRecordatorio: new Date(
-                      new Date().getTime() + 7 * 24 * 60 * 60 * 1000
-                    ).toISOString(), // 7 días desde ahora
-                    dealId: deal.id,
-                  }),
-                }
-              )
-
-              if (response.ok) {
-                console.log(
-                  '📝 Recordatorio de cambio de nombre creado en la base de datos'
-                )
-              } else {
-                console.error(
-                  'Error creando recordatorio:',
-                  await response.text()
-                )
-              }
-            } catch (error) {
-              console.error('Error creando recordatorio:', error)
-            }
-          }
+          // Recargar el deal para actualizar el estado
+          await loadDeal()
         } catch (error) {
           console.error('Error actualizando estado:', error)
+          showToast(
+            'Factura generada pero error actualizando estado',
+            'warning'
+          )
+        }
+
+        // Crear recordatorio para documentación de cambio de nombre en la base de datos
+        if (deal.cliente && deal.vehiculo) {
+          try {
+            const response = await fetch(
+              `/api/clientes/${deal.clienteId}/recordatorios`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  clienteId: deal.clienteId,
+                  titulo: 'Solicitar cambio de nombre',
+                  descripcion: `Solicitar documentación para cambio de nombre del vehículo ${formatVehicleReference(deal.vehiculo.referencia, deal.vehiculo.tipo)} al cliente ${capitalizeText(deal.cliente.nombre)} ${capitalizeText(deal.cliente.apellidos)}`,
+                  tipo: 'otro',
+                  prioridad: 'alta',
+                  fechaRecordatorio: new Date(
+                    new Date().getTime() + 7 * 24 * 60 * 60 * 1000
+                  ).toISOString(), // 7 días desde ahora
+                  dealId: deal.id,
+                }),
+              }
+            )
+
+            if (response.ok) {
+              console.log(
+                '📝 Recordatorio de cambio de nombre creado en la base de datos'
+              )
+            } else {
+              console.error(
+                'Error creando recordatorio:',
+                await response.text()
+              )
+            }
+          } catch (error) {
+            console.error('Error creando recordatorio:', error)
+          }
         }
       } else {
-        const error = await response.json()
-        showToast(error.error || 'Error generando factura', 'error')
+        console.error('❌ [FRONTEND] Error en la respuesta:', {
+          status: response.status,
+          statusText: response.statusText,
+        })
+
+        try {
+          const error = await response.json()
+          console.error('❌ [FRONTEND] Error JSON:', error)
+          showToast(error.error || 'Error generando factura', 'error')
+        } catch (jsonError) {
+          console.error('❌ [FRONTEND] Error parseando JSON:', jsonError)
+          const errorText = await response.text()
+          console.error(
+            '❌ [FRONTEND] Respuesta como texto:',
+            errorText.substring(0, 200)
+          )
+          showToast('Error generando factura', 'error')
+        }
       }
     } catch (error) {
       console.error('Error generando factura:', error)

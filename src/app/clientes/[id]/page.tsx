@@ -1159,6 +1159,15 @@ export default function ClienteDetailPage() {
                     {/* Información básica */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
+                        <p className="text-sm text-gray-500">
+                          Nombre y Apellido
+                        </p>
+                        <p className="font-medium text-gray-900">
+                          {capitalizeText(cliente.nombre)}{' '}
+                          {capitalizeText(cliente.apellidos)}
+                        </p>
+                      </div>
+                      <div>
                         <p className="text-sm text-gray-500">Teléfono</p>
                         <p className="font-medium text-gray-900">
                           {cliente.telefono}

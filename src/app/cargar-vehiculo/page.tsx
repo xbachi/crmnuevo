@@ -161,6 +161,7 @@ export default function CargarVehiculo() {
           ...formData,
           kms: parseInt(formData.kms),
           tipo: formData.tipo, // Mantener el tipo original
+          tipo_vehiculo: formData.tipo === 'Coche R' ? 'coche_r' : 'normal',
           esCocheInversor: formData.tipo === 'Inversor',
           inversorId:
             formData.tipo === 'Inversor' && formData.inversorId
