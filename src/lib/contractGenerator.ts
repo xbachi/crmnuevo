@@ -1264,13 +1264,276 @@ export async function generarContratoVenta(
   yPosition += lineasPunto2.length * 4.5 + 8
 
   // Punto 3 - Responsabilidad de reparaciones
-  doc.setFontSize(11) // Cambiar a 11px (igual que reserva)
+  doc.setFontSize(11) // Cambir a 11px (igual que reserva)
   yPosition -= 3 // Subir 3px el punto 3
   const textoPunto3 =
     '3. El vendedor no se responsabilizara si el comprador reparase el vehículo por su cuenta, sin que el vendedor hubiera dado su autorización, determinando el taller y manera de llevar a cabo la reparación.'
   const lineasPunto3 = doc.splitTextToSize(textoPunto3, pageWidth - margin * 2)
   doc.text(lineasPunto3, margin, yPosition)
   yPosition += lineasPunto3.length * 4.5 + 10
+
+  // Segunda llave con checkboxes
+  doc.setFontSize(11) // Cambiar a 11px (igual que reserva)
+  doc.text('SEGUNDA LLAVE', margin, yPosition)
+  yPosition += 6
+
+  // Checkbox Entregada
+  doc.rect(margin + 5, yPosition - 2, 4, 4)
+  doc.text('Entregada', margin + 15, yPosition + 2.5)
+
+  // Checkbox Pendiente
+  doc.rect(margin + 50, yPosition - 2, 4, 4)
+  doc.text('Pendiente', margin + 60, yPosition + 2.5)
+  yPosition += 15
+
+  // Espacio adicional antes de la firma
+  yPosition += 8
+
+  // Firma
+  doc.setFontSize(11) // Cambiar a 11px (igual que reserva)
+  yPosition -= 10 // Subir 10px "Y en prueba de conformidad, firman" (antes 15px, ahora 5px menos)
+  doc.text('Y en prueba de conformidad, firman', margin, yPosition)
+  yPosition += 12
+
+  // Firmas
+  doc.setFontSize(11) // Cambiar a 11px (igual que reserva)
+  yPosition -= 5 // Subir 5px las líneas de firma
+  yPosition += 5 // Bajar 5px "La parte vendedora" y "La parte compradora"
+  doc.text('La parte vendedora', margin, yPosition)
+  doc.text('La parte compradora', pageWidth / 2 + 10, yPosition)
+  yPosition += 15 // Achicar 5px la distancia de las líneas de firma (antes 20px, ahora 15px)
+
+  // Líneas para firmas
+  doc.line(margin, yPosition, margin + 70, yPosition)
+  doc.line(pageWidth / 2 + 10, yPosition, pageWidth / 2 + 80, yPosition)
+
+  // Retornar el buffer del PDF
+  const pdfBuffer = doc.output('arraybuffer')
+  return new Uint8Array(pdfBuffer)
+}
+
+// Función para generar contrato de venta CON cláusula de garantía de 14 días (versión especial)
+export async function generarContratoVentaConGarantia(
+  deal: DealData
+): Promise<Uint8Array> {
+  const doc = new jsPDF()
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
+  const margin = 15
+  let yPosition = margin - 5 // Subir logo 5px más arriba (igual que reserva)
+
+  // Logo de Seven Cars (primero)
+  yPosition = await addLogoToContract(doc, yPosition)
+
+  // Título del contrato (después del logo)
+  doc.setFontSize(14) // Reducido de 16px a 14px (igual que reserva)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(0, 0, 0)
+  doc.text('CONTRATO DE VENTA DE VEHÍCULO', pageWidth / 2, yPosition, {
+    align: 'center',
+  })
+  yPosition += 7 // Reducido de 12px a 7px (línea más cerca del título)
+
+  // Línea decorativa
+  doc.setDrawColor(0, 0, 0)
+  doc.setLineWidth(0.5)
+  doc.line(margin, yPosition, pageWidth - margin, yPosition)
+  yPosition += 15 // Aumentado de 10px a 15px (separar "En Alaquàs" 5px más)
+
+  // Fecha del contrato
+  const fechaContrato = new Date()
+  doc.setFontSize(11) // Mantener 11px (igual que reserva)
+  doc.setFont('helvetica', 'normal')
+  doc.text(
+    `En Alaquàs, a ${formatearFechaCompleta(fechaContrato)}`,
+    margin,
+    yPosition
+  )
+  yPosition += 12
+
+  // Datos del cliente y vehículo
+  const nombreCompleto =
+    `${capitalizeText(deal.cliente?.nombre) || ''} ${capitalizeText(deal.cliente?.apellidos) || ''}`.trim()
+  const direccionCompleta = construirDireccionCompleta(deal.cliente)
+  const precio = deal.importeTotal || deal.vehiculo?.precioPublicacion || 0
+  const precioEnLetras = numeroALetras(Math.floor(precio))
+
+  // Reunidos
+  doc.setFontSize(11) // Cambiar a 11px (igual que reserva)
+  doc.setFont('helvetica', 'bold')
+  doc.text('Reunidos:', margin, yPosition)
+  yPosition += 8
+
+  // Parte vendedora
+  doc.setFontSize(11) // Cambiar a 11px (igual que reserva)
+  doc.setFont('helvetica', 'normal')
+  doc.text('De una parte:', margin, yPosition)
+  yPosition += 6
+
+  const textoVendedor =
+    'D. Sebastián Pelella mayor de edad, con NIE Z0147238C en representación de Seven Cars Motors, s.l.. con CIF B-75939868 y con domicilio Camí dels Mollons, 36 de Alaquàs, Valencia, en calidad de vendedores, y en adelante parte vendedora.'
+  const lineasVendedor = doc.splitTextToSize(
+    textoVendedor,
+    pageWidth - margin * 2
+  )
+  doc.text(lineasVendedor, margin, yPosition)
+  yPosition += lineasVendedor.length * 4.5 + 4
+
+  // Parte compradora
+  doc.text('Y de otra parte:', margin, yPosition)
+  yPosition += 6
+
+  // Datos del cliente en un párrafo continuo
+  doc.setFontSize(11) // Cambiar a 11px (igual que reserva)
+  const textoComprador = `D/DÑA ${nombreCompleto || 'NOMBRE DE CLIENTE'} mayor de edad, con DNI ${deal.cliente?.dni || 'DNI CLIENTE'}, con domicilio ${direccionCompleta}, con telefono ${deal.cliente?.telefono || 'TEL CLIENTE'} y email ${deal.cliente?.email || 'EMAIL CLIENTE'} en calidad de compradores, y en adelante parte compradora.`
+  const lineasComprador = doc.splitTextToSize(
+    textoComprador,
+    pageWidth - margin * 2
+  )
+  doc.text(lineasComprador, margin, yPosition)
+  yPosition += lineasComprador.length * 4.5 + 4
+
+  // Acuerdo común
+  doc.setFontSize(11) // Cambiar a 11px (igual que reserva)
+  const textoAcuerdo =
+    'Ambos de común acuerdo y reconociéndose capacidad legal para ello, formalizan la compraventa, con arreglo a las siguientes condiciones:'
+  const lineasAcuerdo = doc.splitTextToSize(
+    textoAcuerdo,
+    pageWidth - margin * 2
+  )
+  doc.text(lineasAcuerdo, margin, yPosition)
+  yPosition += lineasAcuerdo.length * 4.5 + 4
+
+  // Punto 1 - Información del vehículo
+  doc.setFontSize(11) // Cambiar a 11px (igual que reserva)
+  const textoPunto1 =
+    '1. El vendedor vende al comprador el siguiente vehículo después de comprobarlo y examinarlo a su entera conformidad, aceptando su estado, las características de uso y su fecha de matriculación:'
+  const lineasPunto1 = doc.splitTextToSize(textoPunto1, pageWidth - margin * 2)
+  doc.text(lineasPunto1, margin, yPosition)
+  yPosition += lineasPunto1.length * 4.5 + 6
+
+  // Datos del vehículo en 2 columnas de 3 datos cada una
+  // Columna 1
+  writeField(
+    doc,
+    'MARCA',
+    capitalizeText(deal.vehiculo?.marca) || 'marca vehiculo',
+    margin + 5,
+    yPosition
+  )
+
+  writeField(
+    doc,
+    'MODELO',
+    capitalizeText(deal.vehiculo?.modelo) || 'modelo vehiculo',
+    margin + 5,
+    yPosition + 4
+  )
+
+  writeField(
+    doc,
+    'BASTIDOR',
+    deal.vehiculo?.bastidor || 'TEST-BASTIDOR-12345',
+    margin + 5,
+    yPosition + 8
+  )
+
+  // Columna 2
+  writeField(
+    doc,
+    'FECHA MATRICULACIÓN',
+    getFechaMatriculacion(deal.vehiculo),
+    pageWidth / 2,
+    yPosition
+  )
+
+  writeField(
+    doc,
+    'KMS',
+    deal.vehiculo?.kms
+      ? `${(deal.vehiculo.kms as number).toLocaleString('es-ES')} km`
+      : 'TEST-99999 km',
+    pageWidth / 2,
+    yPosition + 4
+  )
+
+  writeField(
+    doc,
+    'MATRÍCULA',
+    deal.vehiculo?.matricula || 'no especificada',
+    pageWidth / 2,
+    yPosition + 8
+  )
+
+  yPosition += 12
+
+  // Precio y garantía con negrita para datos dinámicos
+  doc.setFontSize(11) // Cambiar a 11px (igual que reserva)
+  doc.setFont('helvetica', 'normal')
+  yPosition += 5 // Bajar 5px "Por la cantidad de"
+  doc.text('Por la cantidad de ', margin, yPosition)
+
+  // Calcular posición del precio
+  const textoInicial = 'Por la cantidad de '
+  const anchoInicial = doc.getTextWidth(textoInicial)
+  const posicionPrecio = margin + anchoInicial
+
+  doc.setFont('helvetica', 'bold')
+  doc.text(`${formatCurrency(precio)}`, posicionPrecio, yPosition)
+
+  // Calcular posición del texto en paréntesis
+  const anchoPrecio = doc.getTextWidth(formatCurrency(precio))
+  const posicionParentesis = posicionPrecio + anchoPrecio
+
+  doc.setFont('helvetica', 'normal')
+  doc.text(' (', posicionParentesis, yPosition)
+
+  // Calcular posición del texto en letras
+  const anchoParentesis = doc.getTextWidth(' (')
+  const posicionLetras = posicionParentesis + anchoParentesis
+
+  doc.setFont('helvetica', 'bold')
+  doc.text(`${precioEnLetras} euros`, posicionLetras, yPosition)
+
+  // Calcular posición del texto final
+  const anchoLetras = doc.getTextWidth(`${precioEnLetras} euros`)
+  const posicionFinal = posicionLetras + anchoLetras
+
+  doc.setFont('helvetica', 'normal')
+  doc.text(') - Garantizado por 12 Meses', posicionFinal, yPosition)
+  yPosition += 10
+
+  // Sección ENTREGA DE VEHÍCULO
+  doc.setFontSize(11) // Cambiar a 11px (igual que reserva)
+  doc.setFont('helvetica', 'bold')
+  doc.text('ENTREGA DE VEHÍCULO', margin, yPosition)
+  yPosition += 11 // Aumentado de 6px a 11px (bajar 5px)
+
+  // Punto 2 - Entrega de vehículo
+  doc.setFontSize(11) // Cambiar a 11px (igual que reserva)
+  doc.setFont('helvetica', 'normal')
+  const textoPunto2 =
+    '2. El vendedor entrega al comprador, las llaves del vehículo, el permiso de circulación, ficha técnica, el manual y recibe la documentación indicada en este acto'
+  const lineasPunto2 = doc.splitTextToSize(textoPunto2, pageWidth - margin * 2)
+  doc.text(lineasPunto2, margin, yPosition)
+  yPosition += lineasPunto2.length * 4.5 + 8
+
+  // Punto 3 - Responsabilidad de reparaciones
+  doc.setFontSize(11) // Cambiar a 11px (igual que reserva)
+  yPosition -= 3 // Subir 3px el punto 3
+  const textoPunto3 =
+    '3. El vendedor no se responsabilizara si el comprador reparase el vehículo por su cuenta, sin que el vendedor hubiera dado su autorización, determinando el taller y manera de llevar a cabo la reparación.'
+  const lineasPunto3 = doc.splitTextToSize(textoPunto3, pageWidth - margin * 2)
+  doc.text(lineasPunto3, margin, yPosition)
+  yPosition += lineasPunto3.length * 4.5 + 8
+
+  // Punto 4 - CLAUSULA DE GARANTÍA DE 14 DÍAS (NUEVA)
+  doc.setFontSize(11) // Cambiar a 11px (igual que reserva)
+  const textoPunto4 =
+    '4. El comprador dispondrá de un plazo de catorce (14) días naturales contados a partir de la fecha de entrega del vehículo, con el fin de comprobar su correcto funcionamiento. Durante éste periodo, el comprador podrá realizar las pruebas necesarias para verificar el estado mecánico y general del vehículo. En caso de detectar alguna anomalía ó defecto no atribuible al mal uso del comprador el vendedor se compromete a reparar sin coste adicional ó si no fuera posible a la devolución del mismo.'
+  const lineasPunto4 = doc.splitTextToSize(textoPunto4, pageWidth - margin * 2)
+  doc.text(lineasPunto4, margin, yPosition)
+  yPosition += lineasPunto4.length * 4.5 + 10
 
   // Segunda llave con checkboxes
   doc.setFontSize(11) // Cambiar a 11px (igual que reserva)
