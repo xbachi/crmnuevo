@@ -69,6 +69,21 @@ export default function NuevoDealPage() {
   // Estado del formulario de 3 pasos
   const [currentStep, setCurrentStep] = useState(1) // 1: Cliente, 2: Vehículo, 3: Información de reserva
 
+  // Estados para crear cliente
+  const [showCreateClientModal, setShowCreateClientModal] = useState(false)
+  const [isCreatingClient, setIsCreatingClient] = useState(false)
+  const [newClientData, setNewClientData] = useState({
+    nombre: '',
+    apellidos: '',
+    dni: '',
+    direccion: '',
+    codigoPostal: '',
+    ciudad: '',
+    provincia: '',
+    telefono: '',
+    email: '',
+  })
+
   useEffect(() => {
     fetchClientes()
     fetchVehiculos()
@@ -189,6 +204,87 @@ export default function NuevoDealPage() {
       vehiculoId,
       importeTotal: vehiculo?.precioPublicacion?.toString() || '',
     }))
+  }
+
+  // Función para crear nuevo cliente
+  const handleCreateClient = async () => {
+    // Validar campos obligatorios
+    if (
+      !newClientData.nombre ||
+      !newClientData.apellidos ||
+      !newClientData.dni ||
+      !newClientData.direccion ||
+      !newClientData.codigoPostal ||
+      !newClientData.ciudad ||
+      !newClientData.provincia ||
+      !newClientData.telefono
+    ) {
+      showToast('Por favor completa todos los campos obligatorios', 'error')
+      return
+    }
+
+    setIsCreatingClient(true)
+
+    try {
+      const response = await fetch('/api/clientes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nombre: newClientData.nombre.trim(),
+          apellidos: newClientData.apellidos.trim(),
+          dni: newClientData.dni.trim(),
+          direccion: newClientData.direccion.trim(),
+          codigoPostal: newClientData.codigoPostal.trim(),
+          ciudad: newClientData.ciudad.trim(),
+          provincia: newClientData.provincia.trim(),
+          telefono: newClientData.telefono.trim(),
+          email: newClientData.email.trim() || undefined,
+        }),
+      })
+
+      if (response.ok) {
+        const newClient = await response.json()
+
+        // Actualizar la lista de clientes
+        await fetchClientes()
+
+        // Seleccionar el nuevo cliente automáticamente
+        setSelectedCliente(newClient)
+        setFormData((prev) => ({ ...prev, clienteId: newClient.id.toString() }))
+        setClienteSearchTerm(
+          `${capitalizeText(newClient.nombre)} ${capitalizeText(newClient.apellidos)}`
+        )
+
+        // Cerrar modal y limpiar formulario
+        setShowCreateClientModal(false)
+        setNewClientData({
+          nombre: '',
+          apellidos: '',
+          dni: '',
+          direccion: '',
+          codigoPostal: '',
+          ciudad: '',
+          provincia: '',
+          telefono: '',
+          email: '',
+        })
+
+        showToast(
+          `Cliente ${newClient.nombre} ${newClient.apellidos} creado correctamente`,
+          'success'
+        )
+      } else {
+        const error = await response.json()
+        showToast(error.error || 'Error al crear el cliente', 'error')
+      }
+    } catch (error) {
+      console.error('Error creating client:', error)
+      showToast('Error al crear el cliente', 'error')
+    } finally {
+      setIsCreatingClient(false)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -496,6 +592,32 @@ export default function NuevoDealPage() {
                         </div>
                       )}
                     </div>
+
+                    {/* Botón para crear cliente - solo se muestra cuando no hay cliente seleccionado */}
+                    {!selectedCliente && (
+                      <div className="mt-3">
+                        <button
+                          type="button"
+                          onClick={() => setShowCreateClientModal(true)}
+                          className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors flex items-center justify-center space-x-2"
+                        >
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                            />
+                          </svg>
+                          <span>Crear Nuevo Cliente</span>
+                        </button>
+                      </div>
+                    )}
 
                     {selectedCliente && (
                       <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200 relative">
@@ -984,6 +1106,283 @@ export default function NuevoDealPage() {
           </div>
         </form>
       </div>
+
+      {/* Modal para crear cliente */}
+      {showCreateClientModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold text-gray-900">
+                Crear Nuevo Cliente
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowCreateClientModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Campos obligatorios */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nombre *
+                  </label>
+                  <input
+                    type="text"
+                    value={newClientData.nombre}
+                    onChange={(e) =>
+                      setNewClientData((prev) => ({
+                        ...prev,
+                        nombre: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Nombre del cliente"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Apellidos *
+                  </label>
+                  <input
+                    type="text"
+                    value={newClientData.apellidos}
+                    onChange={(e) =>
+                      setNewClientData((prev) => ({
+                        ...prev,
+                        apellidos: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Apellidos del cliente"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    DNI *
+                  </label>
+                  <input
+                    type="text"
+                    value={newClientData.dni}
+                    onChange={(e) =>
+                      setNewClientData((prev) => ({
+                        ...prev,
+                        dni: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="DNI del cliente"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Teléfono *
+                  </label>
+                  <input
+                    type="tel"
+                    value={newClientData.telefono}
+                    onChange={(e) =>
+                      setNewClientData((prev) => ({
+                        ...prev,
+                        telefono: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Teléfono del cliente"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Dirección */}
+              <div className="space-y-4">
+                <h4 className="text-md font-medium text-gray-700">
+                  Dirección *
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Calle *
+                    </label>
+                    <input
+                      type="text"
+                      value={newClientData.direccion}
+                      onChange={(e) =>
+                        setNewClientData((prev) => ({
+                          ...prev,
+                          direccion: e.target.value,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Calle y número"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Código Postal *
+                    </label>
+                    <input
+                      type="text"
+                      value={newClientData.codigoPostal}
+                      onChange={(e) =>
+                        setNewClientData((prev) => ({
+                          ...prev,
+                          codigoPostal: e.target.value,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Código postal"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Ciudad *
+                    </label>
+                    <input
+                      type="text"
+                      value={newClientData.ciudad}
+                      onChange={(e) =>
+                        setNewClientData((prev) => ({
+                          ...prev,
+                          ciudad: e.target.value,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Ciudad"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Provincia *
+                    </label>
+                    <input
+                      type="text"
+                      value={newClientData.provincia}
+                      onChange={(e) =>
+                        setNewClientData((prev) => ({
+                          ...prev,
+                          provincia: e.target.value,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Provincia"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Campo opcional */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email (opcional)
+                </label>
+                <input
+                  type="email"
+                  value={newClientData.email}
+                  onChange={(e) =>
+                    setNewClientData((prev) => ({
+                      ...prev,
+                      email: e.target.value,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Email del cliente"
+                />
+              </div>
+            </div>
+
+            {/* Botones del modal */}
+            <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => setShowCreateClientModal(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleCreateClient}
+                disabled={isCreatingClient}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+              >
+                {isCreatingClient ? (
+                  <>
+                    <svg
+                      className="w-4 h-4 animate-spin"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    <span>Creando...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                      />
+                    </svg>
+                    <span>Crear Cliente</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ToastContainer />
     </div>
   )
 }

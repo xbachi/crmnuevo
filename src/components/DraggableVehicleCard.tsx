@@ -81,8 +81,25 @@ export default function DraggableVehicleCard({
     transition,
   }
 
-  // Función helper para detectar tipo de vehículo basado en la referencia
-  const detectVehicleType = (referencia: string) => {
+  // Función helper para detectar tipo de vehículo basado en la referencia y el tipo de BD
+  const detectVehicleType = (referencia: string, tipoBD?: string) => {
+    // Si tenemos el tipo de la base de datos, usarlo como prioridad
+    if (tipoBD) {
+      const tipoMapping: { [key: string]: string } = {
+        C: 'Compra',
+        R: 'R',
+        D: 'Depósito',
+        I: 'Inversor',
+        Compra: 'Compra',
+        'Coche R': 'R',
+        'Deposito Venta': 'Depósito',
+        Depósito: 'Depósito', // Agregado para reconocer "Depósito"
+        Inversor: 'Inversor',
+      }
+      return tipoMapping[tipoBD] || 'Compra'
+    }
+
+    // Fallback: detectar por referencia
     if (!referencia) return 'Compra'
 
     const refUpper = referencia.toUpperCase().trim()
@@ -107,7 +124,7 @@ export default function DraggableVehicleCard({
   }
 
   const getTipoColor = (referencia: string) => {
-    const detectedType = detectVehicleType(referencia)
+    const detectedType = detectVehicleType(referencia, vehiculo.tipo)
     console.log(
       `🎨 [DraggableVehicleCard] Referencia: "${referencia}" -> Detectado: "${detectedType}"`
     )
@@ -127,7 +144,7 @@ export default function DraggableVehicleCard({
   }
 
   const getTipoLetra = (referencia: string) => {
-    const detectedType = detectVehicleType(referencia)
+    const detectedType = detectVehicleType(referencia, vehiculo.tipo)
     console.log(
       `🔤 [getTipoLetra] Referencia: "${referencia}" -> Tipo: "${detectedType}"`
     )
@@ -193,11 +210,14 @@ export default function DraggableVehicleCard({
             {/* Logo del vehículo - últimos 2 números */}
             <div
               className={`min-w-6 h-6 xl:min-w-8 xl:h-8 px-1 xl:px-2 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                detectVehicleType(vehiculo.referencia) === 'Depósito'
+                detectVehicleType(vehiculo.referencia, vehiculo.tipo) ===
+                'Depósito'
                   ? 'bg-gradient-to-br from-orange-500 to-orange-600'
-                  : detectVehicleType(vehiculo.referencia) === 'R'
+                  : detectVehicleType(vehiculo.referencia, vehiculo.tipo) ===
+                      'R'
                     ? 'bg-gradient-to-br from-red-500 to-red-600'
-                    : detectVehicleType(vehiculo.referencia) === 'Inversor'
+                    : detectVehicleType(vehiculo.referencia, vehiculo.tipo) ===
+                        'Inversor'
                       ? 'bg-gradient-to-br from-purple-500 to-purple-600'
                       : 'bg-gradient-to-br from-green-500 to-green-600'
               }`}

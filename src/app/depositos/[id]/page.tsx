@@ -450,7 +450,14 @@ export default function DepositoDetail() {
       }
 
       // Generar el contrato de depósito en PDF
-      await generarContratoDeposito(contratoData)
+      const pdfBuffer = await generarContratoDeposito(contratoData)
+
+      // Crear URL temporal para el PDF
+      const blob = new Blob([pdfBuffer], { type: 'application/pdf' })
+      const pdfUrl = URL.createObjectURL(blob)
+
+      // Abrir el PDF en una nueva ventana
+      window.open(pdfUrl, '_blank')
 
       // Actualizar el depósito con el nombre del contrato de depósito
       const contratoFilename = `contrato-deposito-${deposito.id}.pdf`
@@ -484,7 +491,10 @@ export default function DepositoDetail() {
       })
 
       if (updateResponse.ok) {
-        showToast('Contrato de depósito generado exitosamente', 'success')
+        showToast(
+          'Contrato de depósito generado y abierto exitosamente',
+          'success'
+        )
       } else {
         const errorData = await updateResponse.json()
         console.error('Error updating deposito:', errorData)
@@ -493,11 +503,55 @@ export default function DepositoDetail() {
           'warning'
         )
       }
+
+      // Limpiar la URL temporal después de un tiempo
+      setTimeout(() => {
+        URL.revokeObjectURL(pdfUrl)
+      }, 10000) // 10 segundos
     } catch (error) {
       console.error('Error generando contrato de depósito:', error)
       showToast('Error al generar el contrato de depósito', 'error')
     } finally {
       setIsGeneratingContrato(false)
+    }
+  }
+
+  const handleAnularContratoDeposito = async () => {
+    if (!deposito?.contrato_deposito) return
+
+    try {
+      // Eliminar archivo físico del servidor (si existe)
+      try {
+        await fetch(`/api/documents/${deposito.id}/contrato-deposito`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ depositoId: deposito.id }),
+        })
+      } catch (fileError) {
+        console.warn('No se pudo eliminar el archivo físico:', fileError)
+        // Continuar aunque falle la eliminación del archivo físico
+      }
+
+      // Actualizar base de datos
+      const response = await fetch(`/api/depositos/${deposito.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contrato_deposito: null,
+          estado: deposito.estado === 'ACTIVO' ? 'BORRADOR' : deposito.estado, // Si era ACTIVO, volver a BORRADOR
+        }),
+      })
+
+      if (response.ok) {
+        showToast('Contrato de depósito anulado exitosamente', 'success')
+        // Recargar el depósito para actualizar el estado
+        await fetchDeposito()
+      } else {
+        showToast('Error al anular el contrato de depósito', 'error')
+      }
+    } catch (error) {
+      console.error('Error anulando contrato de depósito:', error)
+      showToast('Error al anular el contrato de depósito', 'error')
     }
   }
 
@@ -1492,12 +1546,20 @@ export default function DepositoDetail() {
                       </span>
                     </div>
                     {deposito.contrato_deposito ? (
-                      <button
-                        onClick={handleGenerarContratoDeposito}
-                        className="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-lg hover:bg-blue-200"
-                      >
-                        Descargar
-                      </button>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={handleGenerarContratoDeposito}
+                          className="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-lg hover:bg-blue-200"
+                        >
+                          Descargar
+                        </button>
+                        <button
+                          onClick={handleAnularContratoDeposito}
+                          className="px-3 py-1 bg-red-100 text-red-700 text-xs rounded-lg hover:bg-red-200"
+                        >
+                          Anular
+                        </button>
+                      </div>
                     ) : (
                       <span className="text-xs text-gray-400">No generado</span>
                     )}

@@ -134,11 +134,12 @@ export default function ListaVehiculos() {
     if (type === 'todos') return vehiculos.length
     if (type === 'inversores') {
       return vehiculos.filter(
-        (v) => detectVehicleType(v.referencia) === 'Inversor'
+        (v) => detectVehicleType(v.referencia, v.tipo) === 'Inversor'
       ).length
     }
-    return vehiculos.filter((v) => detectVehicleType(v.referencia) === type)
-      .length
+    return vehiculos.filter(
+      (v) => detectVehicleType(v.referencia, v.tipo) === type
+    ).length
   }
 
   const getTipoText = (tipo: string) => {
@@ -155,8 +156,24 @@ export default function ListaVehiculos() {
     return tipos[tipo as keyof typeof tipos] || tipo
   }
 
-  // Función helper para detectar tipo de vehículo basado en la referencia
-  const detectVehicleType = (referencia: string) => {
+  // Función helper para detectar tipo de vehículo basado en la referencia y el tipo de BD
+  const detectVehicleType = (referencia: string, tipoBD?: string) => {
+    // Si tenemos el tipo de la base de datos, usarlo como prioridad
+    if (tipoBD) {
+      const tipoMapping: { [key: string]: string } = {
+        C: 'Compra',
+        R: 'R',
+        D: 'Depósito',
+        I: 'Inversor',
+        Compra: 'Compra',
+        'Coche R': 'R',
+        'Deposito Venta': 'Depósito',
+        Inversor: 'Inversor',
+      }
+      return tipoMapping[tipoBD] || 'Compra'
+    }
+
+    // Fallback: detectar por referencia
     if (!referencia) return 'Compra'
 
     const refUpper = referencia.toUpperCase().trim()
@@ -180,11 +197,8 @@ export default function ListaVehiculos() {
     return 'Compra'
   }
 
-  const getTipoColor = (referencia: string) => {
-    const detectedType = detectVehicleType(referencia)
-    console.log(
-      `🎨 [LISTA VEHICULOS] Referencia: "${referencia}" -> Detectado: "${detectedType}"`
-    )
+  const getTipoColor = (referencia: string, tipoBD?: string) => {
+    const detectedType = detectVehicleType(referencia, tipoBD)
 
     switch (detectedType) {
       case 'Compra':
@@ -201,14 +215,79 @@ export default function ListaVehiculos() {
   }
 
   const loadMoreVehiculos = async () => {
-    if (pagination.hasNext && !isLoadingMore) {
-      await fetchVehiculos(currentPage + 1)
+    console.log('🔄 [LOAD MORE] Iniciando carga de más vehículos...')
+    console.log('🔄 [LOAD MORE] Vehículos actuales:', vehiculos.length)
+    console.log('🔄 [LOAD MORE] Total disponible:', pagination.total)
+    console.log('🔄 [LOAD MORE] Página actual:', currentPage)
+    console.log('🔄 [LOAD MORE] isLoadingMore:', isLoadingMore)
+    console.log('🔄 [LOAD MORE] Filtros activos:', {
+      statusFilter,
+      typeFilter,
+      searchTerm,
+    })
+
+    // Solo cargar más si no hay filtros aplicados
+    if (
+      pagination.total > vehiculos.length &&
+      !isLoadingMore &&
+      statusFilter === 'todos' &&
+      typeFilter === 'todos' &&
+      searchTerm === ''
+    ) {
+      const nextPage = currentPage + 1
+      console.log('🔄 [LOAD MORE] Cargando página:', nextPage)
+      await fetchVehiculos(nextPage)
+    } else {
+      console.log('🔄 [LOAD MORE] No se puede cargar más vehículos')
+      if (
+        statusFilter !== 'todos' ||
+        typeFilter !== 'todos' ||
+        searchTerm !== ''
+      ) {
+        console.log(
+          '🔄 [LOAD MORE] Razón: Filtros aplicados - cargar todos los vehículos primero'
+        )
+      } else if (pagination.total <= vehiculos.length) {
+        console.log('🔄 [LOAD MORE] Razón: Todos los vehículos ya cargados')
+      } else {
+        console.log('🔄 [LOAD MORE] Razón: Ya está cargando')
+      }
     }
   }
 
-  const refreshVehiculos = async () => {
-    setCurrentPage(1)
-    await fetchVehiculos(1, true)
+  const loadAllVehiculos = async () => {
+    console.log('🔄 [LOAD ALL] Cargando todos los vehículos para filtros...')
+    try {
+      setIsLoadingMore(true)
+
+      // Cargar todas las páginas restantes
+      let currentPageToLoad = currentPage + 1
+      const totalPages = Math.ceil(pagination.total / 50)
+
+      while (currentPageToLoad <= totalPages) {
+        console.log(
+          `🔄 [LOAD ALL] Cargando página ${currentPageToLoad} de ${totalPages}`
+        )
+        const response = await fetch(
+          `/api/vehiculos?page=${currentPageToLoad}&limit=50`
+        )
+
+        if (response.ok) {
+          const data = await response.json()
+          setVehiculos((prev) => [...prev, ...data.vehiculos])
+          setCurrentPage(currentPageToLoad)
+        }
+
+        currentPageToLoad++
+      }
+
+      console.log('✅ [LOAD ALL] Todos los vehículos cargados')
+    } catch (error) {
+      console.error('❌ [LOAD ALL] Error cargando todos los vehículos:', error)
+      showToast('Error al cargar todos los vehículos', 'error')
+    } finally {
+      setIsLoadingMore(false)
+    }
   }
 
   const handleCleanupOrphanVehicles = async () => {
@@ -375,7 +454,12 @@ export default function ListaVehiculos() {
         if (typeFilter === 'inversores') {
           return vehiculo.esCocheInversor === true
         } else {
-          return vehiculo.tipo === typeFilter
+          // Usar detectVehicleType para comparar correctamente
+          const detectedType = detectVehicleType(
+            vehiculo.referencia,
+            vehiculo.tipo
+          )
+          return detectedType === typeFilter
         }
       })
     }
@@ -435,7 +519,12 @@ export default function ListaVehiculos() {
         if (typeFilter === 'inversores') {
           return vehiculo.esCocheInversor === true
         } else {
-          return vehiculo.tipo === typeFilter
+          // Usar detectVehicleType para comparar correctamente
+          const detectedType = detectVehicleType(
+            vehiculo.referencia,
+            vehiculo.tipo
+          )
+          return detectedType === typeFilter
         }
       })
     }
@@ -506,16 +595,27 @@ export default function ListaVehiculos() {
       if (response.ok) {
         const data = await response.json()
         console.log(
-          `🚗 Vehículos cargados - Página ${page}:`,
-          data.vehiculos.length
+          `🚗 Vehículos cargados - Página ${page}: ${data.vehiculos.length} vehículos`
         )
 
         if (page === 1) {
           setVehiculos(data.vehiculos)
+          setPagination(data.pagination)
         } else {
-          setVehiculos((prev) => [...prev, ...data.vehiculos])
+          setVehiculos((prev) => {
+            const newList = [...prev, ...data.vehiculos]
+            console.log(
+              `📊 Lista actualizada: ${prev.length} -> ${newList.length} vehículos`
+            )
+            return newList
+          })
+          // Para páginas adicionales, mantener la paginación original pero actualizar el total
+          setPagination((prevPagination) => ({
+            ...prevPagination,
+            total: data.pagination.total,
+            hasNext: data.pagination.hasNext,
+          }))
         }
-        setPagination(data.pagination)
         setCurrentPage(page)
       } else {
         showToast('Error al cargar los vehículos', 'error')
@@ -546,8 +646,6 @@ export default function ListaVehiculos() {
       fechaMatriculacion: vehiculo.fechaMatriculacion || '',
       inversorId: vehiculo.inversorId?.toString() || '',
     }
-    console.log('✏️ Datos del formulario inicializados:', formData)
-    console.log('✏️ Color inicializado:', formData.color)
     setEditFormData(formData)
     setShowEditModal(true)
   }
@@ -947,63 +1045,30 @@ export default function ListaVehiculos() {
 
               {/* LÍNEA 2: Filtros responsive */}
               <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-center gap-3 xl:gap-8">
-                {/* Filtros de tipo sin iconos */}
+                {/* Filtro de tipo como dropdown */}
                 <div className="flex flex-col xl:flex-row items-start xl:items-center gap-2 xl:gap-4">
                   <span className="text-xs xl:text-sm font-semibold text-slate-700">
                     Tipo:
                   </span>
-                  <div className="flex flex-wrap bg-slate-50 rounded-lg p-1 border border-slate-200 gap-1">
-                    <button
-                      onClick={() => setTypeFilter('todos')}
-                      className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm font-medium rounded-md transition-all ${
-                        typeFilter === 'todos'
-                          ? 'bg-white text-slate-800 shadow-sm border border-slate-200'
-                          : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
-                      }`}
-                    >
+                  <select
+                    value={typeFilter}
+                    onChange={(e) => setTypeFilter(e.target.value as any)}
+                    className="px-3 py-2 text-xs xl:text-sm border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[140px]"
+                  >
+                    <option value="todos">
                       Todos ({getVehicleCountByType('todos')})
-                    </button>
-                    <button
-                      onClick={() => setTypeFilter('Compra')}
-                      className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm font-medium rounded-md transition-all ${
-                        typeFilter === 'Compra'
-                          ? 'bg-green-50 text-green-700 shadow-sm border border-green-200'
-                          : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
-                      }`}
-                    >
+                    </option>
+                    <option value="Compra">
                       Compra ({getVehicleCountByType('Compra')})
-                    </button>
-                    <button
-                      onClick={() => setTypeFilter('R')}
-                      className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm font-medium rounded-md transition-all ${
-                        typeFilter === 'R'
-                          ? 'bg-red-50 text-red-700 shadow-sm border border-red-200'
-                          : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
-                      }`}
-                    >
-                      R ({getVehicleCountByType('R')})
-                    </button>
-                    <button
-                      onClick={() => setTypeFilter('Depósito')}
-                      className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm font-medium rounded-md transition-all ${
-                        typeFilter === 'Depósito'
-                          ? 'bg-orange-50 text-orange-700 shadow-sm border border-orange-200'
-                          : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
-                      }`}
-                    >
-                      Dep. ({getVehicleCountByType('Depósito')})
-                    </button>
-                    <button
-                      onClick={() => setTypeFilter('inversores')}
-                      className={`px-2 xl:px-4 py-1 xl:py-2 text-xs xl:text-sm font-medium rounded-md transition-all ${
-                        typeFilter === 'inversores'
-                          ? 'bg-amber-50 text-amber-700 shadow-sm border border-amber-200'
-                          : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
-                      }`}
-                    >
-                      Inv. ({getVehicleCountByType('inversores')})
-                    </button>
-                  </div>
+                    </option>
+                    <option value="R">R ({getVehicleCountByType('R')})</option>
+                    <option value="Depósito">
+                      Depósito ({getVehicleCountByType('Depósito')})
+                    </option>
+                    <option value="inversores">
+                      Inversores ({getVehicleCountByType('inversores')})
+                    </option>
+                  </select>
                 </div>
 
                 {/* Filtros de estado con iconos - Orden: Publicados, En Proceso, Reservados, Vendidos, Todos */}
@@ -1222,10 +1287,13 @@ export default function ListaVehiculos() {
                       const vehiculoVendido = isVendido(vehiculo.estado)
 
                       // Determinar el color de fondo según la referencia (más oscuros como las cabeceras de tarjetas)
-                      const getRowBackgroundColor = (referencia: string) => {
-                        const detectedType = detectVehicleType(referencia)
-                        console.log(
-                          `🎨 [LISTA ROWS] Referencia: "${referencia}" -> Detectado: "${detectedType}"`
+                      const getRowBackgroundColor = (
+                        referencia: string,
+                        tipoBD?: string
+                      ) => {
+                        const detectedType = detectVehicleType(
+                          referencia,
+                          tipoBD
                         )
 
                         switch (detectedType) {
@@ -1245,7 +1313,7 @@ export default function ListaVehiculos() {
                       return (
                         <tr
                           key={`${vehiculo.id}-${vehiculo.updatedAt}-${index}`}
-                          className={`${getRowBackgroundColor(vehiculo.referencia)} transition-colors duration-200 ${vehiculoVendido ? 'opacity-60 grayscale' : ''} cursor-pointer`}
+                          className={`${getRowBackgroundColor(vehiculo.referencia, vehiculo.tipo)} transition-colors duration-200 ${vehiculoVendido ? 'opacity-60 grayscale' : ''} cursor-pointer`}
                           onClick={() =>
                             router.push(
                               `/vehiculos/${generateVehicleSlug(vehiculo)}`
@@ -1258,15 +1326,19 @@ export default function ListaVehiculos() {
                                 className={`min-w-8 h-6 lg:min-w-12 lg:h-10 px-1 lg:px-2 rounded-lg flex items-center justify-center mr-1 lg:mr-2 ${
                                   vehiculoVendido
                                     ? 'bg-red-600'
-                                    : detectVehicleType(vehiculo.referencia) ===
-                                        'Depósito'
+                                    : detectVehicleType(
+                                          vehiculo.referencia,
+                                          vehiculo.tipo
+                                        ) === 'Depósito'
                                       ? 'bg-gradient-to-br from-orange-500 to-orange-600'
                                       : detectVehicleType(
-                                            vehiculo.referencia
+                                            vehiculo.referencia,
+                                            vehiculo.tipo
                                           ) === 'R'
                                         ? 'bg-gradient-to-br from-red-500 to-red-600'
                                         : detectVehicleType(
-                                              vehiculo.referencia
+                                              vehiculo.referencia,
+                                              vehiculo.tipo
                                             ) === 'Inversor'
                                           ? 'bg-gradient-to-br from-purple-500 to-purple-600'
                                           : 'bg-gradient-to-br from-green-500 to-green-600'
@@ -1393,7 +1465,10 @@ export default function ListaVehiculos() {
                               className={`inline-flex px-2 py-1 text-xs font-semibold rounded ${
                                 vehiculoVendido
                                   ? 'bg-red-600 text-white'
-                                  : getTipoColor(vehiculo.referencia)
+                                  : getTipoColor(
+                                      vehiculo.referencia,
+                                      vehiculo.tipo
+                                    )
                               }`}
                             >
                               {vehiculoVendido
@@ -1483,61 +1558,123 @@ export default function ListaVehiculos() {
             </div>
           )}
 
-          {/* Botón para cargar más vehículos */}
-          {pagination.hasNext && (
-            <div className="mt-8 flex justify-center">
-              <button
-                onClick={loadMoreVehiculos}
-                disabled={isLoadingMore}
-                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 text-white rounded-lg font-medium transition-all duration-200 flex items-center space-x-2"
-              >
-                {isLoadingMore ? (
-                  <>
-                    <svg
-                      className="w-5 h-5 animate-spin"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
+          {/* Botón para cargar todos los vehículos cuando hay filtros aplicados */}
+          {pagination.total > vehiculos.length &&
+            (statusFilter !== 'todos' ||
+              typeFilter !== 'todos' ||
+              searchTerm !== '') && (
+              <div className="mt-8 flex justify-center">
+                <button
+                  onClick={loadAllVehiculos}
+                  disabled={isLoadingMore}
+                  className="px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 disabled:from-gray-400 disabled:to-gray-500 text-white rounded-lg font-medium transition-all duration-200 flex items-center space-x-2"
+                >
+                  {isLoadingMore ? (
+                    <>
+                      <svg
+                        className="w-5 h-5 animate-spin"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      <span>Cargando todos...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
                         stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    <span>Cargando...</span>
-                  </>
-                ) : (
-                  <>
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                      />
-                    </svg>
-                    <span>
-                      Cargar más vehículos (
-                      {pagination.total - vehiculos.length} restantes)
-                    </span>
-                  </>
-                )}
-              </button>
-            </div>
-          )}
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                        />
+                      </svg>
+                      <span>
+                        Cargar todos los vehículos (
+                        {pagination.total - vehiculos.length} restantes)
+                      </span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+
+          {/* Botón para cargar más vehículos - Solo mostrar si no hay filtros aplicados */}
+          {pagination.total > vehiculos.length &&
+            statusFilter === 'todos' &&
+            typeFilter === 'todos' &&
+            searchTerm === '' && (
+              <div className="mt-8 flex justify-center">
+                <button
+                  onClick={loadMoreVehiculos}
+                  disabled={isLoadingMore}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 text-white rounded-lg font-medium transition-all duration-200 flex items-center space-x-2"
+                >
+                  {isLoadingMore ? (
+                    <>
+                      <svg
+                        className="w-5 h-5 animate-spin"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      <span>Cargando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                        />
+                      </svg>
+                      <span>
+                        Cargar más vehículos (
+                        {pagination.total - vehiculos.length} restantes)
+                      </span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
 
           {/* Información de paginación */}
           {pagination.total > 0 && (

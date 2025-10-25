@@ -131,30 +131,50 @@ const VehicleCard = memo(function VehicleCard({
     seguro: isPositive(vehiculo.seguro),
   })
 
-  // Función helper para detectar tipo de vehículo basado en la referencia
-  const detectVehicleType = useCallback((referencia: string) => {
-    if (!referencia) return 'Compra'
+  // Función helper para detectar tipo de vehículo basado en la referencia y el tipo de BD
+  const detectVehicleType = useCallback(
+    (referencia: string, tipoBD?: string) => {
+      // Si tenemos el tipo de la base de datos, usarlo como prioridad
+      if (tipoBD) {
+        const tipoMapping: { [key: string]: string } = {
+          C: 'Compra',
+          R: 'R',
+          D: 'Depósito',
+          I: 'Inversor',
+          Compra: 'Compra',
+          'Coche R': 'R',
+          'Deposito Venta': 'Depósito',
+          Depósito: 'Depósito', // Agregado para reconocer "Depósito"
+          Inversor: 'Inversor',
+        }
+        return tipoMapping[tipoBD] || 'Compra'
+      }
 
-    const refUpper = referencia.toUpperCase().trim()
+      // Fallback: detectar por referencia
+      if (!referencia) return 'Compra'
 
-    // Detectar tipo R - referencia que empieza con "R-"
-    if (refUpper.startsWith('R-')) {
-      return 'R'
-    }
+      const refUpper = referencia.toUpperCase().trim()
 
-    // Detectar tipo Depósito - referencia que empieza con "D-"
-    if (refUpper.startsWith('D-')) {
-      return 'Depósito'
-    }
+      // Detectar tipo R - referencia que empieza con "R-"
+      if (refUpper.startsWith('R-')) {
+        return 'R'
+      }
 
-    // Detectar tipo Inversor - referencia que empieza con "I-"
-    if (refUpper.startsWith('I-')) {
-      return 'Inversor'
-    }
+      // Detectar tipo Depósito - referencia que empieza con "D-"
+      if (refUpper.startsWith('D-')) {
+        return 'Depósito'
+      }
 
-    // Por defecto, tipo Compra (referencias que empiezan con "#" o solo números)
-    return 'Compra'
-  }, [])
+      // Detectar tipo Inversor - referencia que empieza con "I-"
+      if (refUpper.startsWith('I-')) {
+        return 'Inversor'
+      }
+
+      // Por defecto, tipo Compra (referencias que empiezan con "#" o solo números)
+      return 'Compra'
+    },
+    []
+  )
 
   // Constantes para colores de tipo - optimización
   const TIPO_COLORS = {
@@ -172,12 +192,8 @@ const VehicleCard = memo(function VehicleCard({
   } as const
 
   const getTipoColor = useCallback(
-    (referencia: string) => {
-      const detectedType = detectVehicleType(referencia)
-      console.log(
-        `🎨 [VehicleCard] Referencia: "${referencia}" -> Detectado: "${detectedType}"`
-      )
-
+    (referencia: string, tipoBD?: string) => {
+      const detectedType = detectVehicleType(referencia, tipoBD)
       return (
         TIPO_COLORS[detectedType as keyof typeof TIPO_COLORS] ||
         'bg-gray-100 text-gray-700 border-gray-200'
@@ -187,11 +203,8 @@ const VehicleCard = memo(function VehicleCard({
   )
 
   const getTipoText = useCallback(
-    (referencia: string) => {
-      const detectedType = detectVehicleType(referencia)
-      console.log(
-        `🔤 [VehicleCard getTipoText] Referencia: "${referencia}" -> Tipo: "${detectedType}"`
-      )
+    (referencia: string, tipoBD?: string) => {
+      const detectedType = detectVehicleType(referencia, tipoBD)
       return TIPO_TEXTS[detectedType as keyof typeof TIPO_TEXTS] || detectedType
     },
     [detectVehicleType]
@@ -244,8 +257,8 @@ const VehicleCard = memo(function VehicleCard({
   )
 
   const getTipoIcon = useCallback(
-    (referencia: string) => {
-      const detectedType = detectVehicleType(referencia)
+    (referencia: string, tipoBD?: string) => {
+      const detectedType = detectVehicleType(referencia, tipoBD)
       return TIPO_ICONS[detectedType as keyof typeof TIPO_ICONS] || DEFAULT_ICON
     },
     [detectVehicleType]
@@ -336,16 +349,16 @@ const VehicleCard = memo(function VehicleCard({
     [vehiculo.estado, isReservado]
   )
   const esDeposito = useMemo(
-    () => detectVehicleType(vehiculo.referencia) === 'Depósito',
-    [vehiculo.referencia, detectVehicleType]
+    () => detectVehicleType(vehiculo.referencia, vehiculo.tipo) === 'Depósito',
+    [vehiculo.referencia, vehiculo.tipo, detectVehicleType]
   )
   const esInversor = useMemo(
-    () => detectVehicleType(vehiculo.referencia) === 'Inversor',
-    [vehiculo.referencia, detectVehicleType]
+    () => detectVehicleType(vehiculo.referencia, vehiculo.tipo) === 'Inversor',
+    [vehiculo.referencia, vehiculo.tipo, detectVehicleType]
   )
   const esTipoR = useMemo(
-    () => detectVehicleType(vehiculo.referencia) === 'R',
-    [vehiculo.referencia, detectVehicleType]
+    () => detectVehicleType(vehiculo.referencia, vehiculo.tipo) === 'R',
+    [vehiculo.referencia, vehiculo.tipo, detectVehicleType]
   )
 
   return (
@@ -368,9 +381,7 @@ const VehicleCard = memo(function VehicleCard({
                 : 'bg-gradient-to-r from-green-200 to-green-300 border-green-300'
         }`}
         onClick={() => {
-          console.log(`🎯 [VEHICLE CARD] Header clicked - ID: ${vehiculo.id}`)
           const slug = generateVehicleSlug(vehiculo)
-          console.log(`🔗 [VEHICLE CARD] Navegando a: /vehiculos/${slug}`)
           router.push(`/vehiculos/${slug}`)
         }}
         title="Ver detalles del vehículo"
@@ -448,11 +459,11 @@ const VehicleCard = memo(function VehicleCard({
           {/* Badge de tipo con nombre del inversor */}
           <div className="flex flex-col items-end space-y-1">
             <div
-              className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border ${getTipoColor(vehiculo.referencia)}`}
+              className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border ${getTipoColor(vehiculo.referencia, vehiculo.tipo)}`}
             >
-              {getTipoIcon(vehiculo.referencia)}
+              {getTipoIcon(vehiculo.referencia, vehiculo.tipo)}
               <span className="text-xs sm:text-sm font-medium">
-                {getTipoText(vehiculo.referencia)}
+                {getTipoText(vehiculo.referencia, vehiculo.tipo)}
               </span>
             </div>
             {/* Nombre del inversor debajo del badge - CLICKEABLE CON Z-INDEX ALTO */}

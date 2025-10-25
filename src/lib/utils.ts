@@ -105,44 +105,44 @@ export function formatVehicleReference(
   }
 
   switch (tipoReal) {
-    case 'I': // Inversores: I-XXXX
+    case 'I': // Inversores: #I-XXXX
       // Si ya tiene I- al inicio, mantenerlo
       if (cleanRef.startsWith('I-')) {
-        return cleanRef
+        return `#${cleanRef}`
       }
       // Si tiene I sin guión, extraer el número y agregar guión
       if (cleanRef.startsWith('I')) {
         const numero = cleanRef.substring(1)
-        return numero ? `I-${numero}` : 'I-'
+        return numero ? `#I-${numero}` : '#I-'
       }
       // Si es solo número, agregar I-
-      return `I-${cleanRef}`
+      return `#I-${cleanRef}`
 
-    case 'D': // Depósitos: D-XXXX
+    case 'D': // Depósitos: #D-XXXX
       // Si ya tiene D- al inicio, mantenerlo
       if (cleanRef.startsWith('D-')) {
-        return cleanRef
+        return `#${cleanRef}`
       }
       // Si tiene D sin guión, extraer el número y agregar guión
       if (cleanRef.startsWith('D')) {
         const numero = cleanRef.substring(1)
-        return numero ? `D-${numero}` : 'D-'
+        return numero ? `#D-${numero}` : '#D-'
       }
       // Si es solo número, agregar D-
-      return `D-${cleanRef}`
+      return `#D-${cleanRef}`
 
-    case 'R': // Renting: R-XXXX
+    case 'R': // Renting: #R-XXXX
       // Si ya tiene R- al inicio, mantenerlo
       if (cleanRef.startsWith('R-')) {
-        return cleanRef
+        return `#${cleanRef}`
       }
       // Si tiene R sin guión, extraer el número y agregar guión
       if (cleanRef.startsWith('R')) {
         const numero = cleanRef.substring(1)
-        return numero ? `R-${numero}` : 'R-'
+        return numero ? `#R-${numero}` : '#R-'
       }
       // Si es solo número, agregar R-
-      return `R-${cleanRef}`
+      return `#R-${cleanRef}`
 
     default: // Compras: #XXXX
       // Si ya tiene # al inicio, mantenerlo sin duplicar
@@ -164,6 +164,32 @@ export function formatVehicleReferenceShort(
 
   const normalizedTipo = tipo?.toUpperCase()
 
+  // Para depósitos: mostrar #D-X (mantener el # y la letra D)
+  if (
+    normalizedTipo === 'D' ||
+    normalizedTipo === 'DEPOSITO VENTA' ||
+    normalizedTipo === 'DEPOSITO'
+  ) {
+    // Para depósitos, siempre mostrar la referencia completa con #
+    return fullRef
+  }
+
+  // Para renting: mostrar #R-X (mantener el # y la letra R)
+  if (
+    normalizedTipo === 'R' ||
+    normalizedTipo === 'COCHE R' ||
+    normalizedTipo === 'RENTING'
+  ) {
+    // Para renting, siempre mostrar la referencia completa con #
+    return fullRef
+  }
+
+  // Para inversores: mostrar #I-X (mantener el # y la letra I)
+  if (normalizedTipo === 'I' || normalizedTipo === 'INVERSOR') {
+    // Para inversores, siempre mostrar la referencia completa con #
+    return fullRef
+  }
+
   // Para compras: solo # + últimos 2 dígitos
   if (
     normalizedTipo === 'C' ||
@@ -174,15 +200,6 @@ export function formatVehicleReferenceShort(
     const numbers = fullRef.replace(/[^0-9]/g, '')
     if (numbers.length >= 2) {
       return `#${numbers.slice(-2)}`
-    }
-    return fullRef
-  }
-
-  // Para otros tipos: LETRA-últimos dígitos (máximo 5 caracteres)
-  if (fullRef.includes('-')) {
-    const [prefix, suffix] = fullRef.split('-')
-    if (suffix && suffix.length > 2) {
-      return `${prefix}-${suffix.slice(-1)}`
     }
     return fullRef
   }

@@ -267,37 +267,51 @@ export default function DealVentaInfo({
 
               {/* Montos específicos para pago mixto */}
               {formData.formaPago === 'mixto' && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Monto Contado
-                    </label>
-                    <CurrencyInput
-                      value={formData.montoContado}
-                      onChange={(value) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          montoContado: value,
-                        }))
-                      }
-                      placeholder="0"
-                    />
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Monto Contado
+                      </label>
+                      <CurrencyInput
+                        value={formData.montoContado}
+                        onChange={(value) => {
+                          const montoFinanciado = formData.montoVenta - value
+                          setFormData((prev) => ({
+                            ...prev,
+                            montoContado: value,
+                            montoFinanciado: Math.max(0, montoFinanciado), // No permitir valores negativos
+                          }))
+                        }}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Monto Financiado
+                      </label>
+                      <CurrencyInput
+                        value={formData.montoFinanciado}
+                        onChange={() => {}} // Campo de solo lectura
+                        placeholder="0"
+                        disabled={true}
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Monto Financiado
-                    </label>
-                    <CurrencyInput
-                      value={formData.montoFinanciado}
-                      onChange={(value) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          montoFinanciado: value,
-                        }))
-                      }
-                      placeholder="0"
-                    />
-                  </div>
+
+                  {/* Mostrar porcentaje financiado */}
+                  {formData.montoVenta > 0 && (
+                    <div className="text-center">
+                      <span className="text-sm text-gray-600">
+                        Financiado:{' '}
+                        {(
+                          (formData.montoFinanciado / formData.montoVenta) *
+                          100
+                        ).toFixed(1)}
+                        %
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

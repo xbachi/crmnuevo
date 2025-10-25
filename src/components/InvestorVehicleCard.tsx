@@ -39,8 +39,25 @@ export function InvestorVehicleCard({
   const [isExpanded, setIsExpanded] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Función helper para detectar tipo de vehículo basado en la referencia
-  const detectVehicleType = (referencia: string) => {
+  // Función helper para detectar tipo de vehículo basado en la referencia y el tipo de BD
+  const detectVehicleType = (referencia: string, tipoBD?: string) => {
+    // Si tenemos el tipo de la base de datos, usarlo como prioridad
+    if (tipoBD) {
+      const tipoMapping: { [key: string]: string } = {
+        C: 'Compra',
+        R: 'R',
+        D: 'Depósito',
+        I: 'Inversor',
+        Compra: 'Compra',
+        'Coche R': 'R',
+        'Deposito Venta': 'Depósito',
+        Depósito: 'Depósito', // Agregado para reconocer "Depósito"
+        Inversor: 'Inversor',
+      }
+      return tipoMapping[tipoBD] || 'Compra'
+    }
+
+    // Fallback: detectar por referencia
     if (!referencia) return 'Compra'
 
     const refUpper = referencia.toUpperCase().trim()
@@ -65,9 +82,11 @@ export function InvestorVehicleCard({
   }
 
   // Determinar si es un vehículo de depósito o inversor
-  const esDeposito = detectVehicleType(vehiculo.referencia) === 'Depósito'
-  const esInversor = detectVehicleType(vehiculo.referencia) === 'Inversor'
-  const esTipoR = detectVehicleType(vehiculo.referencia) === 'R'
+  const esDeposito =
+    detectVehicleType(vehiculo.referencia, vehiculo.tipo) === 'Depósito'
+  const esInversor =
+    detectVehicleType(vehiculo.referencia, vehiculo.tipo) === 'Inversor'
+  const esTipoR = detectVehicleType(vehiculo.referencia, vehiculo.tipo) === 'R'
 
   // Helper function para normalizar valores booleanos
   const isPositive = (value: string | boolean | null | undefined): boolean => {
@@ -181,7 +200,7 @@ export function InvestorVehicleCard({
     >
       {/* Header con estado destacado */}
       <div
-        className={`px-6 py-4 border-b ${
+        className={`px-5 py-4 border-b ${
           esDeposito
             ? 'bg-gradient-to-r from-orange-200 to-orange-300 border-orange-300'
             : esTipoR
@@ -194,7 +213,7 @@ export function InvestorVehicleCard({
         <div className="flex justify-between items-start">
           <div className="flex items-start space-x-4">
             <div
-              className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-sm ${
+              className={`w-14 h-14 rounded-xl flex items-center justify-center shadow-sm ${
                 esDeposito
                   ? 'bg-gradient-to-br from-orange-500 to-orange-600'
                   : esTipoR
@@ -204,7 +223,7 @@ export function InvestorVehicleCard({
                       : 'bg-gradient-to-br from-green-500 to-green-600'
               }`}
             >
-              <span className="text-white font-bold text-sm">
+              <span className="text-white font-bold text-xs px-1 text-center leading-tight">
                 {formatVehicleReferenceShort(
                   vehiculo.referencia,
                   vehiculo.tipo
@@ -337,30 +356,38 @@ export function InvestorVehicleCard({
       </div>
 
       {/* Contenido principal */}
-      <div className="p-6">
+      <div className="p-5">
         {/* Información básica del vehículo */}
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 mb-4 border border-blue-200">
-          <div className="space-y-3 text-sm">
-            {/* Primera fila: Matrícula y Color */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-center space-x-2">
-                <span className="text-gray-600 font-medium">Matrícula:</span>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+            {/* Columna izquierda */}
+            <div className="space-y-3">
+              <div className="flex items-center">
+                <span className="text-gray-600 font-medium mr-2">
+                  Matrícula:
+                </span>
                 <span className="font-semibold text-gray-900">
-                  {vehiculo.matricula}
+                  {vehiculo.matricula || 'No especificada'}
                 </span>
               </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-gray-600 font-medium">Color:</span>
+              <div className="flex items-center">
+                <span className="text-gray-600 font-medium mr-2">Color:</span>
                 <span className="font-semibold text-gray-900">
                   {(vehiculo as any).color || 'No especificado'}
                 </span>
               </div>
+              <div className="flex items-center">
+                <span className="text-gray-600 font-medium mr-2">KMs:</span>
+                <span className="font-semibold text-gray-900">
+                  {vehiculo.kms?.toLocaleString() || 'No especificados'}
+                </span>
+              </div>
             </div>
 
-            {/* Segunda fila: Fecha de matriculación y KMs */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-center space-x-2">
-                <span className="text-gray-600 font-medium">
+            {/* Columna derecha */}
+            <div className="space-y-3">
+              <div className="flex items-center">
+                <span className="text-gray-600 font-medium mr-2">
                   Fecha Matriculación:
                 </span>
                 <span className="font-semibold text-gray-900">
@@ -371,20 +398,14 @@ export function InvestorVehicleCard({
                     : 'No especificada'}
                 </span>
               </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-gray-600 font-medium">KMs:</span>
-                <span className="font-semibold text-gray-900">
-                  {vehiculo.kms?.toLocaleString()}
+              <div className="flex items-center">
+                <span className="text-gray-600 font-medium mr-2">
+                  Bastidor:
+                </span>
+                <span className="font-semibold text-gray-900 text-xs break-all">
+                  {vehiculo.bastidor || 'No especificado'}
                 </span>
               </div>
-            </div>
-
-            {/* Tercera fila: Bastidor (ancho completo) */}
-            <div className="flex items-center space-x-2">
-              <span className="text-gray-600 font-medium">Bastidor:</span>
-              <span className="font-semibold text-gray-900 text-xs break-all flex-1">
-                {vehiculo.bastidor}
-              </span>
             </div>
           </div>
         </div>
