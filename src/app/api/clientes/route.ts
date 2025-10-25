@@ -37,6 +37,11 @@ export async function POST(request: NextRequest) {
       apellidos: data.apellidos,
       telefono: data.telefono,
       email: data.email,
+      dni: data.dni,
+      direccion: data.direccion,
+      ciudad: data.ciudad,
+      provincia: data.provincia,
+      codPostal: data.codPostal,
     })
 
     // Validaciones básicas
@@ -64,7 +69,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Crear cliente directamente con SQL simplificado
+    // Crear cliente con todos los campos
     const client = await pool.connect()
     try {
       console.log('🔍 [API CLIENTES] Conectando a la base de datos...')
@@ -72,10 +77,13 @@ export async function POST(request: NextRequest) {
       const result = await client.query(
         `
         INSERT INTO "Cliente" (
-          nombre, apellidos, telefono, email, estado, prioridad, activo,
-          "createdAt", "updatedAt"
+          nombre, apellidos, telefono, email, dni, direccion, ciudad, provincia, 
+          "codigoPostal", estado, prioridad, activo, "comoLlego", "fechaPrimerContacto",
+          "proximoPaso", "notasAdicionales", "vehiculosInteres", "presupuestoMaximo", 
+          "kilometrajeMaximo", "añoMinimo", "combustiblePreferido", 
+          "cambioPreferido", "formaPagoPreferida", "createdAt", "updatedAt"
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, NOW(), NOW()
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, NOW(), NOW()
         ) RETURNING *
       `,
         [
@@ -83,9 +91,25 @@ export async function POST(request: NextRequest) {
           data.apellidos.trim(),
           data.telefono.trim(),
           data.email?.trim() || null,
+          data.dni?.trim() || null,
+          data.direccion?.trim() || null,
+          data.ciudad?.trim() || null,
+          data.provincia?.trim() || null,
+          data.codPostal?.trim() || null,
           data.estado || 'nuevo',
           data.prioridad || 'media',
           data.activo !== false, // true por defecto
+          data.comoLlego || 'No especificado',
+          data.fechaPrimerContacto || new Date().toISOString().split('T')[0],
+          data.proximoPaso?.trim() || null,
+          data.notas?.trim() || null,
+          data.vehiculosInteres || null,
+          data.presupuestoMaximo || null,
+          data.kilometrajeMaximo || null,
+          data.añoMinimo || null,
+          data.combustiblePreferido || 'cualquiera',
+          data.cambioPreferido || 'cualquiera',
+          data.formaPagoPreferida || 'cualquiera',
         ]
       )
 
@@ -96,15 +120,43 @@ export async function POST(request: NextRequest) {
     } finally {
       client.release()
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ [API CLIENTES] Error al crear cliente:', error)
-    console.error('❌ [API CLIENTES] Tipo de error:', typeof error)
-    console.error('❌ [API CLIENTES] Mensaje:', (error as Error).message)
-    console.error('❌ [API CLIENTES] Stack:', (error as Error).stack)
+
+    // Manejar errores específicos de la base de datos
+    if (error.code === '23505') {
+      // PostgreSQL unique violation error code
+      if (error.constraint === 'Cliente_dni_key') {
+        return NextResponse.json(
+          {
+            error:
+              'Ya existe un cliente con este DNI. Por favor, verifica el número de documento.',
+          },
+          { status: 400 }
+        )
+      }
+      return NextResponse.json(
+        { error: 'Los datos proporcionados ya existen en el sistema.' },
+        { status: 400 }
+      )
+    }
+
+    // Manejar errores de formato de fecha/timestamp
+    if (error.code === '22007') {
+      return NextResponse.json(
+        {
+          error:
+            'Error en el formato de fecha. Por favor, verifica las fechas ingresadas.',
+        },
+        { status: 400 }
+      )
+    }
+
+    // Error genérico
     return NextResponse.json(
       {
         error: 'Error interno del servidor',
-        details: (error as Error).message,
+        details: error.message,
         timestamp: new Date().toISOString(),
       },
       { status: 500 }
