@@ -31,7 +31,7 @@ export default function InteresadoDetailPage() {
 
   useEffect(() => {
     fetchInteresado()
-  }, [interesadoId])
+  }, [interesadoId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchInteresado = async () => {
     try {
