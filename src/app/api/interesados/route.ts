@@ -23,6 +23,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json()
+    console.log('📥 [API POST] Datos recibidos:', JSON.stringify(data, null, 2))
 
     if (!data.nombre || !data.apellidos || !data.telefono) {
       return NextResponse.json(
@@ -33,6 +34,9 @@ export async function POST(request: NextRequest) {
 
     const client = await pool.connect()
     try {
+      console.log('📥 [API POST] vehiculosInteres:', data.vehiculosInteres)
+      console.log('📥 [API POST] tipo:', typeof data.vehiculosInteres)
+
       const result = await client.query(
         `INSERT INTO interesados (
           nombre, apellidos, telefono,
@@ -58,11 +62,13 @@ export async function POST(request: NextRequest) {
           data.formaPagoPreferida || 'cualquiera',
         ]
       )
+      console.log('✅ [API POST] Interesado creado:', result.rows[0])
       return NextResponse.json(result.rows[0], { status: 201 })
     } finally {
       client.release()
     }
   } catch (error) {
+    console.error('❌ [API POST] Error:', error)
     return NextResponse.json(
       { error: 'Error creando interesado' },
       { status: 500 }
