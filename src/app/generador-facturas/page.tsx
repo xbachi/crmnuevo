@@ -74,6 +74,8 @@ export default function GeneradorFacturas() {
   const [showFacturaModal, setShowFacturaModal] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [errors, setErrors] = useState<Record<string, boolean>>({})
+  const [showErrorModal, setShowErrorModal] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
 
   const clearError = (field: string) => {
     if (errors[field]) {
@@ -81,6 +83,10 @@ export default function GeneradorFacturas() {
       delete newErrors[field]
       setErrors(newErrors)
     }
+  }
+
+  const getPlaceholder = (field: string, defaultPlaceholder: string) => {
+    return errors[field] ? 'Campo obligatorio' : defaultPlaceholder
   }
 
   const handleClienteChange = (field: keyof ClienteData, value: string) => {
@@ -144,10 +150,8 @@ export default function GeneradorFacturas() {
 
     if (camposFaltantes.length > 0) {
       setErrors(newErrors)
-      showToast(
-        `Faltan campos obligatorios: ${camposFaltantes.join(', ')}`,
-        'error'
-      )
+      setErrorMessage(camposFaltantes.join(', '))
+      setShowErrorModal(true)
       return false
     }
 
@@ -315,7 +319,10 @@ export default function GeneradorFacturas() {
                           ? 'border-red-500'
                           : 'border-gray-300'
                       }`}
-                      placeholder="Nombre del cliente"
+                      placeholder={getPlaceholder(
+                        'cliente.nombre',
+                        'Nombre del cliente'
+                      )}
                     />
                   </div>
                   <div>
@@ -333,7 +340,10 @@ export default function GeneradorFacturas() {
                           ? 'border-red-500'
                           : 'border-gray-300'
                       }`}
-                      placeholder="Apellidos del cliente"
+                      placeholder={getPlaceholder(
+                        'cliente.apellidos',
+                        'Apellidos del cliente'
+                      )}
                     />
                   </div>
                 </div>
@@ -354,7 +364,10 @@ export default function GeneradorFacturas() {
                           ? 'border-red-500'
                           : 'border-gray-300'
                       }`}
-                      placeholder="DNI del cliente"
+                      placeholder={getPlaceholder(
+                        'cliente.dni',
+                        'DNI del cliente'
+                      )}
                     />
                   </div>
                   <div>
@@ -473,7 +486,10 @@ export default function GeneradorFacturas() {
                           ? 'border-red-500'
                           : 'border-gray-300'
                       }`}
-                      placeholder="Marca del vehículo"
+                      placeholder={getPlaceholder(
+                        'vehiculo.marca',
+                        'Marca del vehículo'
+                      )}
                     />
                   </div>
                   <div>
@@ -491,7 +507,10 @@ export default function GeneradorFacturas() {
                           ? 'border-red-500'
                           : 'border-gray-300'
                       }`}
-                      placeholder="Modelo del vehículo"
+                      placeholder={getPlaceholder(
+                        'vehiculo.modelo',
+                        'Modelo del vehículo'
+                      )}
                     />
                   </div>
                 </div>
@@ -512,7 +531,10 @@ export default function GeneradorFacturas() {
                           ? 'border-red-500'
                           : 'border-gray-300'
                       }`}
-                      placeholder="Matrícula del vehículo"
+                      placeholder={getPlaceholder(
+                        'vehiculo.matricula',
+                        'Matrícula del vehículo'
+                      )}
                     />
                   </div>
                   <div>
@@ -624,7 +646,7 @@ export default function GeneradorFacturas() {
                         ? 'border-red-500'
                         : 'border-gray-300'
                     }`}
-                    placeholder="0.00"
+                    placeholder={getPlaceholder('factura.importeTotal', '0.00')}
                   />
                 </div>
                 <div>
@@ -685,6 +707,50 @@ export default function GeneradorFacturas() {
           />
         </div>
       </div>
+
+      {/* Modal de error */}
+      {showErrorModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-center mb-4">
+              <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-red-100">
+                <svg
+                  className="w-6 h-6 text-red-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <h3 className="ml-3 text-lg font-semibold text-gray-900">
+                Campos faltantes
+              </h3>
+            </div>
+            <div className="mb-4">
+              <p className="text-sm text-gray-600">
+                Por favor, completa los siguientes campos obligatorios:
+              </p>
+              <p className="mt-2 text-sm font-medium text-red-600">
+                {errorMessage}
+              </p>
+            </div>
+            <div className="flex justify-end">
+              <button
+                onClick={() => setShowErrorModal(false)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </ProtectedRoute>
   )
 }

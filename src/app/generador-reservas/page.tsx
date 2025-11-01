@@ -67,6 +67,8 @@ export default function GeneradorReservasPage() {
 
   const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, boolean>>({})
+  const [showErrorModal, setShowErrorModal] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
 
   const clearError = (field: string) => {
     if (errors[field]) {
@@ -74,6 +76,10 @@ export default function GeneradorReservasPage() {
       delete newErrors[field]
       setErrors(newErrors)
     }
+  }
+
+  const getPlaceholder = (field: string, defaultPlaceholder: string) => {
+    return errors[field] ? 'Campo obligatorio' : defaultPlaceholder
   }
 
   const handleGenerarContrato = async () => {
@@ -139,10 +145,8 @@ export default function GeneradorReservasPage() {
 
     if (camposFaltantes.length > 0) {
       setErrors(newErrors)
-      showToast(
-        `Faltan campos obligatorios: ${camposFaltantes.join(', ')}`,
-        'error'
-      )
+      setErrorMessage(camposFaltantes.join(', '))
+      setShowErrorModal(true)
       return
     }
 
@@ -314,7 +318,7 @@ export default function GeneradorReservasPage() {
                           ? 'border-red-500'
                           : 'border-gray-300'
                       }`}
-                      placeholder="Ej: Juan"
+                      placeholder={getPlaceholder('cliente.nombre', 'Ej: Juan')}
                     />
                   </div>
                   <div>
@@ -333,7 +337,10 @@ export default function GeneradorReservasPage() {
                           ? 'border-red-500'
                           : 'border-gray-300'
                       }`}
-                      placeholder="Ej: Pérez García"
+                      placeholder={getPlaceholder(
+                        'cliente.apellidos',
+                        'Ej: Pérez García'
+                      )}
                     />
                   </div>
                   <div>
@@ -352,7 +359,10 @@ export default function GeneradorReservasPage() {
                           ? 'border-red-500'
                           : 'border-gray-300'
                       }`}
-                      placeholder="Ej: 12345678A"
+                      placeholder={getPlaceholder(
+                        'cliente.dni',
+                        'Ej: 12345678A'
+                      )}
                     />
                   </div>
                   <div>
@@ -371,7 +381,10 @@ export default function GeneradorReservasPage() {
                           ? 'border-red-500'
                           : 'border-gray-300'
                       }`}
-                      placeholder="Ej: 600123456"
+                      placeholder={getPlaceholder(
+                        'cliente.telefono',
+                        'Ej: 600123456'
+                      )}
                     />
                   </div>
                   <div>
@@ -404,7 +417,10 @@ export default function GeneradorReservasPage() {
                           ? 'border-red-500'
                           : 'border-gray-300'
                       }`}
-                      placeholder="Ej: Calle Mayor 123"
+                      placeholder={getPlaceholder(
+                        'cliente.calle',
+                        'Ej: Calle Mayor 123'
+                      )}
                     />
                   </div>
                   <div>
@@ -423,7 +439,10 @@ export default function GeneradorReservasPage() {
                           ? 'border-red-500'
                           : 'border-gray-300'
                       }`}
-                      placeholder="Ej: Madrid"
+                      placeholder={getPlaceholder(
+                        'cliente.ciudad',
+                        'Ej: Madrid'
+                      )}
                     />
                   </div>
                   <div>
@@ -442,7 +461,10 @@ export default function GeneradorReservasPage() {
                           ? 'border-red-500'
                           : 'border-gray-300'
                       }`}
-                      placeholder="Ej: Madrid"
+                      placeholder={getPlaceholder(
+                        'cliente.provincia',
+                        'Ej: Madrid'
+                      )}
                     />
                   </div>
                   <div>
@@ -484,7 +506,10 @@ export default function GeneradorReservasPage() {
                           ? 'border-red-500'
                           : 'border-gray-300'
                       }`}
-                      placeholder="Ej: Volkswagen"
+                      placeholder={getPlaceholder(
+                        'vehiculo.marca',
+                        'Ej: Volkswagen'
+                      )}
                     />
                   </div>
                   <div>
@@ -503,7 +528,10 @@ export default function GeneradorReservasPage() {
                           ? 'border-red-500'
                           : 'border-gray-300'
                       }`}
-                      placeholder="Ej: Golf VIII"
+                      placeholder={getPlaceholder(
+                        'vehiculo.modelo',
+                        'Ej: Golf VIII'
+                      )}
                     />
                   </div>
                   <div>
@@ -522,7 +550,10 @@ export default function GeneradorReservasPage() {
                           ? 'border-red-500'
                           : 'border-gray-300'
                       }`}
-                      placeholder="Ej: 1234ABC"
+                      placeholder={getPlaceholder(
+                        'vehiculo.matricula',
+                        'Ej: 1234ABC'
+                      )}
                     />
                   </div>
                   <div>
@@ -541,7 +572,10 @@ export default function GeneradorReservasPage() {
                           ? 'border-red-500'
                           : 'border-gray-300'
                       }`}
-                      placeholder="Ej: WVWZZZCDZMW088838"
+                      placeholder={getPlaceholder(
+                        'vehiculo.bastidor',
+                        'Ej: WVWZZZCDZMW088838'
+                      )}
                     />
                   </div>
                   <div>
@@ -606,7 +640,10 @@ export default function GeneradorReservasPage() {
                           ? 'border-red-500'
                           : 'border-gray-300'
                       }`}
-                      placeholder="Ej: 15000.00"
+                      placeholder={getPlaceholder(
+                        'reserva.precioVehiculo',
+                        'Ej: 15000.00'
+                      )}
                     />
                   </div>
                   <div>
@@ -629,7 +666,10 @@ export default function GeneradorReservasPage() {
                           ? 'border-red-500'
                           : 'border-gray-300'
                       }`}
-                      placeholder="Ej: 1000.00"
+                      placeholder={getPlaceholder(
+                        'reserva.montoReserva',
+                        'Ej: 1000.00'
+                      )}
                     />
                   </div>
                   <div>
@@ -680,6 +720,50 @@ export default function GeneradorReservasPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal de error */}
+      {showErrorModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-center mb-4">
+              <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-red-100">
+                <svg
+                  className="w-6 h-6 text-red-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <h3 className="ml-3 text-lg font-semibold text-gray-900">
+                Campos faltantes
+              </h3>
+            </div>
+            <div className="mb-4">
+              <p className="text-sm text-gray-600">
+                Por favor, completa los siguientes campos obligatorios:
+              </p>
+              <p className="mt-2 text-sm font-medium text-red-600">
+                {errorMessage}
+              </p>
+            </div>
+            <div className="flex justify-end">
+              <button
+                onClick={() => setShowErrorModal(false)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </ProtectedRoute>
   )
 }
