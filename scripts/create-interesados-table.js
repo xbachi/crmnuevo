@@ -1,56 +1,81 @@
 const { Pool } = require('pg')
-const fs = require('fs')
 const path = require('path')
-require('dotenv').config({ path: '.env.local' })
+const fs = require('fs')
+
+// Cargar .env
+require('dotenv').config({ path: path.join(__dirname, '..', '.env.local') })
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false,
-  },
+  ssl: process.env.DATABASE_URL?.includes('localhost')
+    ? false
+    : { rejectUnauthorized: false },
 })
 
+const colors = {
+  cyan: '\x1b[36m',
+  blue: '\x1b[34m',
+  green: '\x1b[32m',
+  yellow: '\x1b[33m',
+  red: '\x1b[31m',
+  reset: '\x1b[0m',
+  bold: '\x1b[1m',
+}
+
+const log = (color, ...args) =>
+  console.log(color + args.join(' ') + colors.reset)
+
 async function createInteresadosTable() {
-  const client = await pool.connect()
+  log(colors.cyan + colors.bold, '🚀 CREANDO TABLA DE INTERESADOS')
+  log(colors.cyan, '='.repeat(50))
+
   try {
-    console.log('🔄 Creando tabla de interesados...')
+    // Verificar conexión
+    await pool.query('SELECT NOW()')
+    log(colors.green, '✅ Conexión a base de datos exitosa')
 
     // Leer el archivo SQL
     const sqlPath = path.join(__dirname, 'create-interesados-table.sql')
-    const sql = fs.readFileSync(sqlPath, 'utf8')
+    if (!fs.existsSync(sqlPath)) {
+      throw new Error(`Archivo SQL no encontrado: ${sqlPath}`)
+    }
+
+    const sqlContent = fs.readFileSync(sqlPath, 'utf8')
+    log(colors.blue, '📄 Archivo SQL leído correctamente')
 
     // Ejecutar el SQL
-    await client.query(sql)
+    log(colors.yellow, '⚡ Ejecutando script SQL...')
+    await pool.query(sqlContent)
 
-    console.log('✅ Tabla de interesados creada exitosamente')
+    log(colors.green, '✅ Tabla creada exitosamente: interesados')
 
     // Verificar que la tabla existe
-    const result = await client.query(`
+    const tablesResult = await pool.query(`
       SELECT table_name 
       FROM information_schema.tables 
-      WHERE table_name = 'interesados'
+      WHERE table_schema = 'public' 
+      AND table_name = 'interesados'
     `)
 
-    if (result.rows.length > 0) {
-      console.log('✅ Tabla interesados verificada en la base de datos')
+    log(colors.cyan, '\n📊 VERIFICACIÓN DE TABLA:')
+    if (tablesResult.rows.length > 0) {
+      log(colors.green, `   ✅ ${tablesResult.rows[0].table_name}`)
     } else {
-      console.log('❌ Error: La tabla no se creó correctamente')
+      log(colors.red, '   ❌ Tabla no encontrada')
     }
+
+    log(
+      colors.cyan + colors.bold,
+      '\n🎉 CONFIGURACIÓN COMPLETADA EXITOSAMENTE!'
+    )
+    log(colors.cyan, 'La tabla de interesados está lista para usar.')
   } catch (error) {
-    console.error('❌ Error creando tabla:', error.message)
-    throw error
+    log(colors.red, '❌ Error creando tabla:', error.message)
+    console.error(error)
+    process.exit(1)
   } finally {
-    client.release()
     await pool.end()
   }
 }
 
 createInteresadosTable()
-  .then(() => {
-    console.log('🎉 Proceso completado')
-    process.exit(0)
-  })
-  .catch((error) => {
-    console.error('❌ Error fatal:', error)
-    process.exit(1)
-  })
