@@ -260,6 +260,12 @@ export default function Navigation() {
       roles: ['admin', 'asesor'],
     },
     {
+      href: '/interesados',
+      label: 'Interesados',
+      icon: ClientesIcon,
+      roles: ['admin', 'asesor'],
+    },
+    {
       href: '/vehiculos',
       label: 'Vehículos',
       icon: VehiculosIcon,

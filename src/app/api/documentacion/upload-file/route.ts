@@ -5,21 +5,46 @@ import { v4 as uuidv4 } from 'uuid'
 
 export async function POST(request: NextRequest) {
   try {
+    // IMPORTANTE: En producción (Vercel), los archivos NO se pueden subir dinámicamente
+    // porque el filesystem es read-only. Los archivos subidos manualmente deben estar
+    // en la carpeta public/uploads/ dentro del repositorio.
+    const isVercel = process.env.VERCEL || process.env.VERCEL_ENV
+
+    if (isVercel) {
+      return NextResponse.json(
+        {
+          error:
+            'La subida de archivos no está disponible en producción. Los archivos deben estar pre-cargados en public/uploads/ dentro del repositorio.',
+          info: 'Para agregar archivos: súbelos localmente, commitéalos a Git y haz push.',
+        },
+        { status: 503 }
+      )
+    }
+
     const formData = await request.formData()
     const file = formData.get('file') as File
 
     if (!file) {
-      return NextResponse.json({ error: 'No se proporcionó ningún archivo' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'No se proporcionó ningún archivo' },
+        { status: 400 }
+      )
     }
 
     // Validar tipo de archivo
     if (file.type !== 'application/pdf') {
-      return NextResponse.json({ error: 'Solo se permiten archivos PDF' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Solo se permiten archivos PDF' },
+        { status: 400 }
+      )
     }
 
     // Validar tamaño (máximo 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      return NextResponse.json({ error: 'El archivo no puede ser mayor a 10MB' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'El archivo no puede ser mayor a 10MB' },
+        { status: 400 }
+      )
     }
 
     // Crear directorio si no existe
@@ -41,7 +66,7 @@ export async function POST(request: NextRequest) {
     const fileUrl = `/uploads/documentacion/${fileName}`
 
     // Usar el tipo específico enviado desde el frontend
-    const fileType = formData.get('type') as string || 'otro'
+    const fileType = (formData.get('type') as string) || 'otro'
 
     const fileData = {
       id: fileId,
@@ -49,17 +74,20 @@ export async function POST(request: NextRequest) {
       type: fileType,
       url: fileUrl,
       uploadedAt: new Date().toISOString(),
-      size: file.size
+      size: file.size,
     }
 
     // Guardar metadatos
     try {
-      const metadataResponse = await fetch(`${request.nextUrl.origin}/api/documentacion/metadata`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(fileData)
-      })
-      
+      const metadataResponse = await fetch(
+        `${request.nextUrl.origin}/api/documentacion/metadata`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(fileData),
+        }
+      )
+
       if (!metadataResponse.ok) {
         console.error('Error saving metadata:', await metadataResponse.text())
       }
@@ -70,6 +98,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(fileData, { status: 201 })
   } catch (error) {
     console.error('Error uploading file:', error)
-    return NextResponse.json({ error: 'Error interno del servidor al subir archivo' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Error interno del servidor al subir archivo' },
+      { status: 500 }
+    )
   }
 }
