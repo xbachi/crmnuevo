@@ -8,7 +8,26 @@ export async function GET() {
       const result = await client.query(
         `SELECT * FROM interesados ORDER BY "createdAt" DESC`
       )
-      return NextResponse.json(result.rows)
+
+      // Mapear nombres de columnas de snake_case/camelCase a camelCase
+      const mappedRows = result.rows.map((row) => ({
+        id: row.id,
+        nombre: row.nombre,
+        apellidos: row.apellidos,
+        telefono: row.telefono,
+        vehiculosInteres: row.vehiculosinteres || row.vehiculosInteres,
+        presupuestoMaximo: row.presupuestomaximo || row.presupuestoMaximo,
+        kilometrajeMaximo: row.kilometrajemaximo || row.kilometrajeMaximo,
+        añoMinimo: row.añominimo || row.añoMinimo,
+        combustiblePreferido:
+          row.combustiblepreferido || row.combustiblePreferido,
+        cambioPreferido: row.cambiopreferido || row.cambioPreferido,
+        formaPagoPreferida: row.formapagopreferida || row.formaPagoPreferida,
+        createdAt: row.createdat || row.createdAt,
+        updatedAt: row.updatedat || row.updatedAt,
+      }))
+
+      return NextResponse.json(mappedRows)
     } finally {
       client.release()
     }
@@ -63,7 +82,27 @@ export async function POST(request: NextRequest) {
         ]
       )
       console.log('✅ [API POST] Interesado creado:', result.rows[0])
-      return NextResponse.json(result.rows[0], { status: 201 })
+
+      // Mapear nombres de columnas de snake_case a camelCase
+      const row = result.rows[0]
+      const mappedRow = {
+        id: row.id,
+        nombre: row.nombre,
+        apellidos: row.apellidos,
+        telefono: row.telefono,
+        vehiculosInteres: row.vehiculosinteres || row.vehiculosInteres,
+        presupuestoMaximo: row.presupuestomaximo || row.presupuestoMaximo,
+        kilometrajeMaximo: row.kilometrajemaximo || row.kilometrajeMaximo,
+        añoMinimo: row.añominimo || row.añoMinimo,
+        combustiblePreferido:
+          row.combustiblepreferido || row.combustiblePreferido,
+        cambioPreferido: row.cambiopreferido || row.cambioPreferido,
+        formaPagoPreferida: row.formapagopreferida || row.formaPagoPreferida,
+        createdAt: row.createdat || row.createdAt,
+        updatedAt: row.updatedat || row.updatedAt,
+      }
+
+      return NextResponse.json(mappedRow, { status: 201 })
     } finally {
       client.release()
     }
