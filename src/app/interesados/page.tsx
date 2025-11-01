@@ -110,7 +110,13 @@ export default function InteresadosPage() {
                         Contacto
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Interés
+                        Vehículo Interesado
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Precio Máx
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Forma de Pago
                       </th>
                     </tr>
                   </thead>
@@ -129,13 +135,7 @@ export default function InteresadosPage() {
                         <tr
                           key={i.id}
                           className="hover:bg-gray-50 cursor-pointer"
-                          onClick={() => {
-                            console.log(
-                              '🔍 [CLICK] Navegando a interesado:',
-                              i.id
-                            )
-                            router.push(`/interesados/${i.id}`)
-                          }}
+                          onClick={() => router.push(`/interesados/${i.id}`)}
                         >
                           <td className="px-4 py-3 font-medium text-gray-900">
                             {i.nombre} {i.apellidos}
@@ -145,6 +145,14 @@ export default function InteresadosPage() {
                           </td>
                           <td className="px-4 py-3 text-gray-700">
                             {vehs.join(', ') || 'No especificado'}
+                          </td>
+                          <td className="px-4 py-3 text-gray-700">
+                            {i.presupuestoMaximo
+                              ? `€${i.presupuestoMaximo.toLocaleString()}`
+                              : '-'}
+                          </td>
+                          <td className="px-4 py-3 text-gray-700 capitalize">
+                            {i.formaPagoPreferida || '-'}
                           </td>
                         </tr>
                       )
