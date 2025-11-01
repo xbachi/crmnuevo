@@ -705,7 +705,7 @@ export default function GeneradorContratos() {
 
       {/* Modal de error */}
       {showErrorModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-30 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
             <div className="flex items-center mb-4">
               <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-red-100">
@@ -724,16 +724,8 @@ export default function GeneradorContratos() {
                 </svg>
               </div>
               <h3 className="ml-3 text-lg font-semibold text-gray-900">
-                Campos faltantes
+                Falta completar campos obligatorios
               </h3>
-            </div>
-            <div className="mb-4">
-              <p className="text-sm text-gray-600">
-                Por favor, completa los siguientes campos obligatorios:
-              </p>
-              <p className="mt-2 text-sm font-medium text-red-600">
-                {errorMessage}
-              </p>
             </div>
             <div className="flex justify-end">
               <button
