@@ -161,7 +161,29 @@ export default function GeneradorReservasPage() {
         }),
       })
 
-      if (response.ok) {
+      // Detectar si la respuesta es PDF directo o JSON
+      const contentType = response.headers.get('content-type')
+
+      if (contentType?.includes('application/pdf')) {
+        // Respuesta directa de PDF (Vercel/producción)
+        console.log('📄 [GENERADOR RESERVAS] Recibiendo PDF directo')
+
+        const pdfBlob = await response.blob()
+        const url = window.URL.createObjectURL(pdfBlob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `contrato-reserva-${dealData.numero}.pdf`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+
+        showToast('Contrato de reserva generado exitosamente', 'success')
+
+        // Limpiar formulario
+        limpiarFormulario()
+      } else if (response.ok) {
+        // Respuesta JSON (desarrollo local)
         const result = await response.json()
 
         // Descargar el documento

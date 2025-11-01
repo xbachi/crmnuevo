@@ -215,31 +215,29 @@ export default function GeneradorFacturas() {
         }),
       })
 
-      if (response.ok) {
-        // Detectar si la respuesta es PDF directo o JSON
-        const contentType = response.headers.get('content-type')
+      // Detectar si la respuesta es PDF directo o JSON
+      const contentType = response.headers.get('content-type')
 
-        if (contentType?.includes('application/pdf')) {
-          // Respuesta directa de PDF (Vercel/producción)
-          console.log('📄 [GENERADOR FACTURAS] Recibiendo PDF directo')
+      if (contentType?.includes('application/pdf')) {
+        // Respuesta directa de PDF (Vercel/producción)
+        console.log('📄 [GENERADOR FACTURAS] Recibiendo PDF directo')
 
-          const pdfBlob = await response.blob()
-          const url = window.URL.createObjectURL(pdfBlob)
-          const link = document.createElement('a')
-          link.href = url
-          link.download = `factura-${numeroFacturaFinal}.pdf`
-          document.body.appendChild(link)
-          link.click()
-          document.body.removeChild(link)
-          window.URL.revokeObjectURL(url)
+        const pdfBlob = await response.blob()
+        const url = window.URL.createObjectURL(pdfBlob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `factura-${numeroFacturaFinal}.pdf`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
 
-          showToast(`Factura ${tipoFactura} generada exitosamente`, 'success')
-        } else {
-          // Respuesta JSON (desarrollo local)
-          const result = await response.json()
-          showToast(`Factura ${tipoFactura} generada exitosamente`, 'success')
-          window.open(result.url, '_blank')
-        }
+        showToast(`Factura ${tipoFactura} generada exitosamente`, 'success')
+      } else if (response.ok) {
+        // Respuesta JSON (desarrollo local)
+        const result = await response.json()
+        showToast(`Factura ${tipoFactura} generada exitosamente`, 'success')
+        window.open(result.url, '_blank')
       } else {
         const error = await response.json()
         showToast(error.error || 'Error generando factura', 'error')
