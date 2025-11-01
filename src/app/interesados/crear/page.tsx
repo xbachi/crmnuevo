@@ -39,23 +39,26 @@ export default function CrearInteresadoPage() {
       return
     setSubmitting(true)
     try {
+      const bodyData = {
+        nombre: form.nombre.trim(),
+        apellidos: form.apellidos.trim(),
+        telefono: form.telefono.trim(),
+        vehiculosInteres: JSON.stringify(
+          form.intereses.vehiculosInteres.filter((v) => v.trim() !== '')
+        ),
+        presupuestoMaximo: form.intereses.precioMaximo || null,
+        kilometrajeMaximo: form.intereses.kilometrajeMaximo || null,
+        añoMinimo: form.intereses.añoMinimo || null,
+        combustiblePreferido: form.intereses.combustiblePreferido,
+        cambioPreferido: form.intereses.cambioPreferido,
+        formaPagoPreferida: form.intereses.formaPagoPreferida,
+      }
+      console.log('📤 [FORM] Enviando datos:', bodyData)
+      console.log('📤 [FORM] vehiculosInteres:', bodyData.vehiculosInteres)
       const res = await fetch('/api/interesados', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nombre: form.nombre.trim(),
-          apellidos: form.apellidos.trim(),
-          telefono: form.telefono.trim(),
-          vehiculosInteres: JSON.stringify(
-            form.intereses.vehiculosInteres.filter((v) => v.trim() !== '')
-          ),
-          presupuestoMaximo: form.intereses.precioMaximo || null,
-          kilometrajeMaximo: form.intereses.kilometrajeMaximo || null,
-          añoMinimo: form.intereses.añoMinimo || null,
-          combustiblePreferido: form.intereses.combustiblePreferido,
-          cambioPreferido: form.intereses.cambioPreferido,
-          formaPagoPreferida: form.intereses.formaPagoPreferida,
-        }),
+        body: JSON.stringify(bodyData),
       })
       if (res.ok) router.push('/interesados')
     } finally {
