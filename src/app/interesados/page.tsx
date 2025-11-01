@@ -129,7 +129,13 @@ export default function InteresadosPage() {
                         <tr
                           key={i.id}
                           className="hover:bg-gray-50 cursor-pointer"
-                          onClick={() => router.push(`/interesados/${i.id}`)}
+                          onClick={() => {
+                            console.log(
+                              '🔍 [CLICK] Navegando a interesado:',
+                              i.id
+                            )
+                            router.push(`/interesados/${i.id}`)
+                          }}
                         >
                           <td className="px-4 py-3 font-medium text-gray-900">
                             {i.nombre} {i.apellidos}
