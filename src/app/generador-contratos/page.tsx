@@ -72,38 +72,32 @@ export default function GeneradorContratos() {
   const [isLoading, setIsLoading] = useState(false)
 
   const handleGenerarContrato = async () => {
-    // Validar campos obligatorios
-    if (
-      !cliente.nombre.trim() ||
-      !cliente.apellidos.trim() ||
-      !cliente.dni.trim() ||
-      !cliente.telefono.trim() ||
-      !cliente.calle.trim() ||
-      !cliente.ciudad.trim() ||
-      !cliente.provincia.trim()
-    ) {
-      showToast(
-        'Por favor, completa todos los campos obligatorios del cliente',
-        'error'
-      )
-      return
-    }
+    const camposFaltantes: string[] = []
 
-    if (
-      !vehiculo.marca.trim() ||
-      !vehiculo.modelo.trim() ||
-      !vehiculo.matricula.trim() ||
-      !vehiculo.bastidor.trim()
-    ) {
-      showToast(
-        'Por favor, completa todos los campos obligatorios del vehículo',
-        'error'
-      )
-      return
-    }
+    // Validar campos obligatorios
+    if (!cliente.nombre.trim()) camposFaltantes.push('Nombre del cliente')
+    if (!cliente.apellidos.trim()) camposFaltantes.push('Apellidos del cliente')
+    if (!cliente.dni.trim()) camposFaltantes.push('DNI del cliente')
+    if (!cliente.telefono.trim()) camposFaltantes.push('Teléfono del cliente')
+    if (!cliente.calle.trim()) camposFaltantes.push('Calle del cliente')
+    if (!cliente.ciudad.trim()) camposFaltantes.push('Ciudad del cliente')
+    if (!cliente.provincia.trim()) camposFaltantes.push('Provincia del cliente')
+
+    if (!vehiculo.marca.trim()) camposFaltantes.push('Marca del vehículo')
+    if (!vehiculo.modelo.trim()) camposFaltantes.push('Modelo del vehículo')
+    if (!vehiculo.matricula.trim())
+      camposFaltantes.push('Matrícula del vehículo')
+    if (!vehiculo.bastidor.trim()) camposFaltantes.push('Bastidor del vehículo')
 
     if (!contrato.precioCompra || contrato.precioCompra <= 0) {
-      showToast('Por favor, introduce un precio de compra válido', 'error')
+      camposFaltantes.push('Precio de compra válido')
+    }
+
+    if (camposFaltantes.length > 0) {
+      showToast(
+        `Faltan campos obligatorios: ${camposFaltantes.join(', ')}`,
+        'error'
+      )
       return
     }
 

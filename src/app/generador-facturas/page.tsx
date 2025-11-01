@@ -93,35 +93,28 @@ export default function GeneradorFacturas() {
   }
 
   const validateForm = () => {
+    const camposFaltantes: string[] = []
+
     // Validar datos del cliente
-    if (
-      !cliente.nombre.trim() ||
-      !cliente.apellidos.trim() ||
-      !cliente.dni.trim()
-    ) {
-      showToast(
-        'Por favor completa los datos obligatorios del cliente',
-        'error'
-      )
-      return false
-    }
+    if (!cliente.nombre.trim()) camposFaltantes.push('Nombre del cliente')
+    if (!cliente.apellidos.trim()) camposFaltantes.push('Apellidos del cliente')
+    if (!cliente.dni.trim()) camposFaltantes.push('DNI del cliente')
 
     // Validar datos del vehículo
-    if (
-      !vehiculo.marca.trim() ||
-      !vehiculo.modelo.trim() ||
-      !vehiculo.matricula.trim()
-    ) {
-      showToast(
-        'Por favor completa los datos obligatorios del vehículo',
-        'error'
-      )
-      return false
-    }
+    if (!vehiculo.marca.trim()) camposFaltantes.push('Marca del vehículo')
+    if (!vehiculo.modelo.trim()) camposFaltantes.push('Modelo del vehículo')
+    if (!vehiculo.matricula.trim())
+      camposFaltantes.push('Matrícula del vehículo')
 
     // Validar importe
-    if (factura.importeTotal <= 0) {
-      showToast('El importe total debe ser mayor a 0', 'error')
+    if (factura.importeTotal <= 0)
+      camposFaltantes.push('Importe total mayor a 0')
+
+    if (camposFaltantes.length > 0) {
+      showToast(
+        `Faltan campos obligatorios: ${camposFaltantes.join(', ')}`,
+        'error'
+      )
       return false
     }
 
