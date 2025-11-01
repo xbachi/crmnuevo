@@ -73,9 +73,19 @@ export default function GeneradorFacturas() {
   // Estados para el modal y generación
   const [showFacturaModal, setShowFacturaModal] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [errors, setErrors] = useState<Record<string, boolean>>({})
+
+  const clearError = (field: string) => {
+    if (errors[field]) {
+      const newErrors = { ...errors }
+      delete newErrors[field]
+      setErrors(newErrors)
+    }
+  }
 
   const handleClienteChange = (field: keyof ClienteData, value: string) => {
     setCliente((prev) => ({ ...prev, [field]: value }))
+    clearError(`cliente.${field}`)
   }
 
   const handleVehiculoChange = (
@@ -83,6 +93,7 @@ export default function GeneradorFacturas() {
     value: string | number
   ) => {
     setVehiculo((prev) => ({ ...prev, [field]: value }))
+    clearError(`vehiculo.${field}`)
   }
 
   const handleFacturaChange = (
@@ -90,27 +101,49 @@ export default function GeneradorFacturas() {
     value: string | number
   ) => {
     setFactura((prev) => ({ ...prev, [field]: value }))
+    clearError(`factura.${field}`)
   }
 
   const validateForm = () => {
     const camposFaltantes: string[] = []
+    const newErrors: Record<string, boolean> = {}
 
     // Validar datos del cliente
-    if (!cliente.nombre.trim()) camposFaltantes.push('Nombre del cliente')
-    if (!cliente.apellidos.trim()) camposFaltantes.push('Apellidos del cliente')
-    if (!cliente.dni.trim()) camposFaltantes.push('DNI del cliente')
+    if (!cliente.nombre.trim()) {
+      camposFaltantes.push('Nombre del cliente')
+      newErrors['cliente.nombre'] = true
+    }
+    if (!cliente.apellidos.trim()) {
+      camposFaltantes.push('Apellidos del cliente')
+      newErrors['cliente.apellidos'] = true
+    }
+    if (!cliente.dni.trim()) {
+      camposFaltantes.push('DNI del cliente')
+      newErrors['cliente.dni'] = true
+    }
 
     // Validar datos del vehículo
-    if (!vehiculo.marca.trim()) camposFaltantes.push('Marca del vehículo')
-    if (!vehiculo.modelo.trim()) camposFaltantes.push('Modelo del vehículo')
-    if (!vehiculo.matricula.trim())
+    if (!vehiculo.marca.trim()) {
+      camposFaltantes.push('Marca del vehículo')
+      newErrors['vehiculo.marca'] = true
+    }
+    if (!vehiculo.modelo.trim()) {
+      camposFaltantes.push('Modelo del vehículo')
+      newErrors['vehiculo.modelo'] = true
+    }
+    if (!vehiculo.matricula.trim()) {
       camposFaltantes.push('Matrícula del vehículo')
+      newErrors['vehiculo.matricula'] = true
+    }
 
     // Validar importe
-    if (factura.importeTotal <= 0)
+    if (factura.importeTotal <= 0) {
       camposFaltantes.push('Importe total mayor a 0')
+      newErrors['factura.importeTotal'] = true
+    }
 
     if (camposFaltantes.length > 0) {
+      setErrors(newErrors)
       showToast(
         `Faltan campos obligatorios: ${camposFaltantes.join(', ')}`,
         'error'
@@ -118,6 +151,7 @@ export default function GeneradorFacturas() {
       return false
     }
 
+    setErrors({})
     return true
   }
 
@@ -276,7 +310,11 @@ export default function GeneradorFacturas() {
                       onChange={(e) =>
                         handleClienteChange('nombre', e.target.value)
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        errors['cliente.nombre']
+                          ? 'border-red-500'
+                          : 'border-gray-300'
+                      }`}
                       placeholder="Nombre del cliente"
                     />
                   </div>
@@ -290,7 +328,11 @@ export default function GeneradorFacturas() {
                       onChange={(e) =>
                         handleClienteChange('apellidos', e.target.value)
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        errors['cliente.apellidos']
+                          ? 'border-red-500'
+                          : 'border-gray-300'
+                      }`}
                       placeholder="Apellidos del cliente"
                     />
                   </div>
@@ -307,7 +349,11 @@ export default function GeneradorFacturas() {
                       onChange={(e) =>
                         handleClienteChange('dni', e.target.value)
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        errors['cliente.dni']
+                          ? 'border-red-500'
+                          : 'border-gray-300'
+                      }`}
                       placeholder="DNI del cliente"
                     />
                   </div>
@@ -422,7 +468,11 @@ export default function GeneradorFacturas() {
                       onChange={(e) =>
                         handleVehiculoChange('marca', e.target.value)
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        errors['vehiculo.marca']
+                          ? 'border-red-500'
+                          : 'border-gray-300'
+                      }`}
                       placeholder="Marca del vehículo"
                     />
                   </div>
@@ -436,7 +486,11 @@ export default function GeneradorFacturas() {
                       onChange={(e) =>
                         handleVehiculoChange('modelo', e.target.value)
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        errors['vehiculo.modelo']
+                          ? 'border-red-500'
+                          : 'border-gray-300'
+                      }`}
                       placeholder="Modelo del vehículo"
                     />
                   </div>
@@ -453,7 +507,11 @@ export default function GeneradorFacturas() {
                       onChange={(e) =>
                         handleVehiculoChange('matricula', e.target.value)
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        errors['vehiculo.matricula']
+                          ? 'border-red-500'
+                          : 'border-gray-300'
+                      }`}
                       placeholder="Matrícula del vehículo"
                     />
                   </div>
@@ -561,7 +619,11 @@ export default function GeneradorFacturas() {
                         parseFloat(e.target.value) || 0
                       )
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      errors['factura.importeTotal']
+                        ? 'border-red-500'
+                        : 'border-gray-300'
+                    }`}
                     placeholder="0.00"
                   />
                 </div>

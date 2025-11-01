@@ -70,36 +70,82 @@ export default function GeneradorContratos() {
   })
 
   const [isLoading, setIsLoading] = useState(false)
+  const [errors, setErrors] = useState<Record<string, boolean>>({})
+
+  const clearError = (field: string) => {
+    if (errors[field]) {
+      const newErrors = { ...errors }
+      delete newErrors[field]
+      setErrors(newErrors)
+    }
+  }
 
   const handleGenerarContrato = async () => {
     const camposFaltantes: string[] = []
+    const newErrors: Record<string, boolean> = {}
 
     // Validar campos obligatorios
-    if (!cliente.nombre.trim()) camposFaltantes.push('Nombre del cliente')
-    if (!cliente.apellidos.trim()) camposFaltantes.push('Apellidos del cliente')
-    if (!cliente.dni.trim()) camposFaltantes.push('DNI del cliente')
-    if (!cliente.telefono.trim()) camposFaltantes.push('Teléfono del cliente')
-    if (!cliente.calle.trim()) camposFaltantes.push('Calle del cliente')
-    if (!cliente.ciudad.trim()) camposFaltantes.push('Ciudad del cliente')
-    if (!cliente.provincia.trim()) camposFaltantes.push('Provincia del cliente')
+    if (!cliente.nombre.trim()) {
+      camposFaltantes.push('Nombre del cliente')
+      newErrors['cliente.nombre'] = true
+    }
+    if (!cliente.apellidos.trim()) {
+      camposFaltantes.push('Apellidos del cliente')
+      newErrors['cliente.apellidos'] = true
+    }
+    if (!cliente.dni.trim()) {
+      camposFaltantes.push('DNI del cliente')
+      newErrors['cliente.dni'] = true
+    }
+    if (!cliente.telefono.trim()) {
+      camposFaltantes.push('Teléfono del cliente')
+      newErrors['cliente.telefono'] = true
+    }
+    if (!cliente.calle.trim()) {
+      camposFaltantes.push('Calle del cliente')
+      newErrors['cliente.calle'] = true
+    }
+    if (!cliente.ciudad.trim()) {
+      camposFaltantes.push('Ciudad del cliente')
+      newErrors['cliente.ciudad'] = true
+    }
+    if (!cliente.provincia.trim()) {
+      camposFaltantes.push('Provincia del cliente')
+      newErrors['cliente.provincia'] = true
+    }
 
-    if (!vehiculo.marca.trim()) camposFaltantes.push('Marca del vehículo')
-    if (!vehiculo.modelo.trim()) camposFaltantes.push('Modelo del vehículo')
-    if (!vehiculo.matricula.trim())
+    if (!vehiculo.marca.trim()) {
+      camposFaltantes.push('Marca del vehículo')
+      newErrors['vehiculo.marca'] = true
+    }
+    if (!vehiculo.modelo.trim()) {
+      camposFaltantes.push('Modelo del vehículo')
+      newErrors['vehiculo.modelo'] = true
+    }
+    if (!vehiculo.matricula.trim()) {
       camposFaltantes.push('Matrícula del vehículo')
-    if (!vehiculo.bastidor.trim()) camposFaltantes.push('Bastidor del vehículo')
+      newErrors['vehiculo.matricula'] = true
+    }
+    if (!vehiculo.bastidor.trim()) {
+      camposFaltantes.push('Bastidor del vehículo')
+      newErrors['vehiculo.bastidor'] = true
+    }
 
     if (!contrato.precioCompra || contrato.precioCompra <= 0) {
       camposFaltantes.push('Precio de compra válido')
+      newErrors['contrato.precioCompra'] = true
     }
 
     if (camposFaltantes.length > 0) {
+      setErrors(newErrors)
       showToast(
         `Faltan campos obligatorios: ${camposFaltantes.join(', ')}`,
         'error'
       )
       return
     }
+
+    setErrors({})
 
     try {
       setIsLoading(true)
@@ -223,10 +269,15 @@ export default function GeneradorContratos() {
                     <input
                       type="text"
                       value={cliente.nombre}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setCliente({ ...cliente, nombre: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        clearError('cliente.nombre')
+                      }}
+                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        errors['cliente.nombre']
+                          ? 'border-red-500'
+                          : 'border-gray-300'
+                      }`}
                       placeholder="Ej: Juan"
                     />
                   </div>
@@ -237,10 +288,15 @@ export default function GeneradorContratos() {
                     <input
                       type="text"
                       value={cliente.apellidos}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setCliente({ ...cliente, apellidos: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        clearError('cliente.apellidos')
+                      }}
+                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        errors['cliente.apellidos']
+                          ? 'border-red-500'
+                          : 'border-gray-300'
+                      }`}
                       placeholder="Ej: Pérez García"
                     />
                   </div>
@@ -251,10 +307,15 @@ export default function GeneradorContratos() {
                     <input
                       type="text"
                       value={cliente.dni}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setCliente({ ...cliente, dni: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        clearError('cliente.dni')
+                      }}
+                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        errors['cliente.dni']
+                          ? 'border-red-500'
+                          : 'border-gray-300'
+                      }`}
                       placeholder="Ej: 12345678A"
                     />
                   </div>
@@ -265,10 +326,15 @@ export default function GeneradorContratos() {
                     <input
                       type="tel"
                       value={cliente.telefono}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setCliente({ ...cliente, telefono: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        clearError('cliente.telefono')
+                      }}
+                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        errors['cliente.telefono']
+                          ? 'border-red-500'
+                          : 'border-gray-300'
+                      }`}
                       placeholder="Ej: 600123456"
                     />
                   </div>
@@ -293,10 +359,15 @@ export default function GeneradorContratos() {
                     <input
                       type="text"
                       value={cliente.calle}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setCliente({ ...cliente, calle: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        clearError('cliente.calle')
+                      }}
+                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        errors['cliente.calle']
+                          ? 'border-red-500'
+                          : 'border-gray-300'
+                      }`}
                       placeholder="Ej: Calle Mayor 123"
                     />
                   </div>
@@ -307,10 +378,15 @@ export default function GeneradorContratos() {
                     <input
                       type="text"
                       value={cliente.ciudad}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setCliente({ ...cliente, ciudad: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        clearError('cliente.ciudad')
+                      }}
+                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        errors['cliente.ciudad']
+                          ? 'border-red-500'
+                          : 'border-gray-300'
+                      }`}
                       placeholder="Ej: Madrid"
                     />
                   </div>
@@ -321,10 +397,15 @@ export default function GeneradorContratos() {
                     <input
                       type="text"
                       value={cliente.provincia}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setCliente({ ...cliente, provincia: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        clearError('cliente.provincia')
+                      }}
+                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        errors['cliente.provincia']
+                          ? 'border-red-500'
+                          : 'border-gray-300'
+                      }`}
                       placeholder="Ej: Madrid"
                     />
                   </div>
@@ -358,10 +439,15 @@ export default function GeneradorContratos() {
                     <input
                       type="text"
                       value={vehiculo.marca}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setVehiculo({ ...vehiculo, marca: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        clearError('vehiculo.marca')
+                      }}
+                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        errors['vehiculo.marca']
+                          ? 'border-red-500'
+                          : 'border-gray-300'
+                      }`}
                       placeholder="Ej: Volkswagen"
                     />
                   </div>
@@ -372,10 +458,15 @@ export default function GeneradorContratos() {
                     <input
                       type="text"
                       value={vehiculo.modelo}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setVehiculo({ ...vehiculo, modelo: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        clearError('vehiculo.modelo')
+                      }}
+                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        errors['vehiculo.modelo']
+                          ? 'border-red-500'
+                          : 'border-gray-300'
+                      }`}
                       placeholder="Ej: Golf VIII"
                     />
                   </div>
@@ -386,10 +477,15 @@ export default function GeneradorContratos() {
                     <input
                       type="text"
                       value={vehiculo.matricula}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setVehiculo({ ...vehiculo, matricula: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        clearError('vehiculo.matricula')
+                      }}
+                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        errors['vehiculo.matricula']
+                          ? 'border-red-500'
+                          : 'border-gray-300'
+                      }`}
                       placeholder="Ej: 1234ABC"
                     />
                   </div>
@@ -400,10 +496,15 @@ export default function GeneradorContratos() {
                     <input
                       type="text"
                       value={vehiculo.bastidor}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setVehiculo({ ...vehiculo, bastidor: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        clearError('vehiculo.bastidor')
+                      }}
+                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        errors['vehiculo.bastidor']
+                          ? 'border-red-500'
+                          : 'border-gray-300'
+                      }`}
                       placeholder="Ej: WVWZZZCDZMW088838"
                     />
                   </div>
@@ -488,13 +589,18 @@ export default function GeneradorContratos() {
                       type="number"
                       step="0.01"
                       value={contrato.precioCompra || ''}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setContrato({
                           ...contrato,
                           precioCompra: parseFloat(e.target.value) || 0,
                         })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        clearError('contrato.precioCompra')
+                      }}
+                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        errors['contrato.precioCompra']
+                          ? 'border-red-500'
+                          : 'border-gray-300'
+                      }`}
                       placeholder="Ej: 15000.00"
                     />
                   </div>
