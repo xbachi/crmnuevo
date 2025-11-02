@@ -63,12 +63,24 @@ export async function PUT(
       )
     }
 
+    // Si el tipo cambia a 'I' (Inversor), establecer esCocheInversor y inversorId
+    const updateData = { ...body }
+    if (body.tipo === 'I' && !body.esCocheInversor && !body.inversorId) {
+      // Si ya tiene inversorId, mantenerlo y activar esCocheInversor. Si no, dejarlo null
+      updateData.inversorId = vehiculoExistente.inversorId || null
+      updateData.esCocheInversor = vehiculoExistente.inversorId ? true : false
+    } else if (body.tipo !== 'I' && body.tipo !== undefined) {
+      // Si el tipo cambia a algo que no sea Inversor, limpiar esCocheInversor e inversorId
+      updateData.esCocheInversor = false
+      updateData.inversorId = null
+    }
+
     // console.log('📝 Vehículo existente:', vehiculoExistente)
     // console.log('📝 Vehículo existente.color:', vehiculoExistente.color)
     // console.log('📝 Vehículo existente.fechaMatriculacion:', vehiculoExistente.fechaMatriculacion)
 
     // Actualizar el vehículo con los nuevos datos
-    const vehiculoActualizado = await updateVehiculo(id, body)
+    const vehiculoActualizado = await updateVehiculo(id, updateData)
 
     // console.log('✅ Vehículo actualizado:', vehiculoActualizado)
     // console.log('✅ Vehículo actualizado.color:', vehiculoActualizado?.color)

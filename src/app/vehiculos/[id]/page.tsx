@@ -207,7 +207,11 @@ export default function VehiculoDetailPage() {
     gastosLimpieza: 0,
     gastosOtros: 0,
     precioVenta: 0,
+    inversorId: 0,
   })
+  const [inversores, setInversores] = useState<
+    Array<{ id: number; nombre: string }>
+  >([])
 
   // Estados para nuevo recordatorio
   const [nuevoRecordatorio, setNuevoRecordatorio] = useState({
@@ -761,6 +765,7 @@ export default function VehiculoDetailPage() {
         master: vehiculo.master || '',
         hojasA: vehiculo.hojasA || '',
         documentacion: vehiculo.documentacion || '',
+        inversorId: vehiculo.inversorId || 0,
       }
 
       console.log('🔧 [EDIT] Datos de edición preparados:', newEditingData)
