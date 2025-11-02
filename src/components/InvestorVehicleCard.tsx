@@ -679,63 +679,110 @@ export function InvestorVehicleCard({
                   </div>
                 </div>
 
-                {/* Costo total */}
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-2 border border-green-200">
-                  <div className="flex justify-between items-center bg-green-100 rounded-lg px-3 py-1.5 border border-green-300">
-                    <span className="text-xs font-bold text-green-800">
-                      COSTO TOTAL:
-                    </span>
-                    <span className="font-bold text-green-900 text-sm">
-                      {(() => {
-                        const totalGastos =
-                          (vehiculo.gastosTransporte || 0) +
-                          (vehiculo.gastosTasas || 0) +
-                          (vehiculo.gastosMecanica || 0) +
-                          (vehiculo.gastosPintura || 0) +
-                          (vehiculo.gastosLimpieza || 0) +
-                          (vehiculo.gastosOtros || 0)
-                        const precioCompra = vehiculo.precioCompra || 0
-                        const costoTotal = precioCompra + totalGastos
-                        return formatCurrency(costoTotal)
-                      })()}
-                    </span>
-                  </div>
-                </div>
-
                 {/* Información de venta si está vendido */}
                 {esVendido && vehiculo.precioVenta && (
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="flex justify-between bg-white rounded px-2 py-1">
-                      <span className="text-gray-600">Precio venta:</span>
-                      <span className="font-semibold text-gray-900">
-                        {formatCurrency(vehiculo.precioVenta)}
-                      </span>
+                  <>
+                    {/* Resumen de costos */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between bg-gray-100 rounded px-3 py-1.5 border border-gray-200">
+                        <span className="text-xs font-semibold text-gray-700">
+                          Costo total:
+                        </span>
+                        <span className="text-xs font-bold text-gray-900">
+                          {(() => {
+                            const totalGastos =
+                              (vehiculo.gastosTransporte || 0) +
+                              (vehiculo.gastosTasas || 0) +
+                              (vehiculo.gastosMecanica || 0) +
+                              (vehiculo.gastosPintura || 0) +
+                              (vehiculo.gastosLimpieza || 0) +
+                              (vehiculo.gastosOtros || 0)
+                            const precioCompra = vehiculo.precioCompra || 0
+                            const costoTotal = precioCompra + totalGastos
+                            return formatCurrency(costoTotal)
+                          })()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between bg-gray-100 rounded px-3 py-1.5 border border-gray-200">
+                        <span className="text-xs font-semibold text-gray-700">
+                          IVA + Impuesto SL:
+                        </span>
+                        <span className="text-xs font-bold text-gray-900">
+                          {(() => {
+                            const precioVenta = vehiculo.precioVenta || 0
+                            const iva = precioVenta * 0.21
+                            const impuestoSL = precioVenta * 0.04
+                            const total = iva + impuestoSL
+                            return formatCurrency(total)
+                          })()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between bg-gray-100 rounded px-3 py-1.5 border border-gray-200">
+                        <span className="text-xs font-semibold text-gray-700">
+                          Precio venta:
+                        </span>
+                        <span className="text-xs font-bold text-gray-900">
+                          {formatCurrency(vehiculo.precioVenta)}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex justify-between bg-white rounded px-2 py-1">
-                      <span className="text-gray-600">IVA + Impuesto SL:</span>
-                      <span className="font-semibold text-gray-900">
+
+                    {/* Beneficio destacado */}
+                    {vehiculo.beneficioNeto !== undefined && (
+                      <div
+                        className={`rounded-lg p-3 border-2 ${
+                          vehiculo.beneficioNeto >= 0
+                            ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-300'
+                            : 'bg-gradient-to-r from-red-50 to-rose-50 border-red-300'
+                        }`}
+                      >
+                        <div className="flex justify-between items-center">
+                          <span
+                            className={`text-base font-bold ${
+                              vehiculo.beneficioNeto >= 0
+                                ? 'text-green-800'
+                                : 'text-red-800'
+                            }`}
+                          >
+                            BENEFICIO:
+                          </span>
+                          <span
+                            className={`font-bold text-xl ${
+                              vehiculo.beneficioNeto >= 0
+                                ? 'text-green-700'
+                                : 'text-red-700'
+                            }`}
+                          >
+                            {formatCurrency(vehiculo.beneficioNeto)}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Costo total si NO está vendido */}
+                {!esVendido && (
+                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-2 border border-green-200">
+                    <div className="flex justify-between items-center bg-green-100 rounded-lg px-3 py-1.5 border border-green-300">
+                      <span className="text-xs font-bold text-green-800">
+                        COSTO TOTAL:
+                      </span>
+                      <span className="font-bold text-green-900 text-sm">
                         {(() => {
-                          // Calcular IVA (21%) + Impuesto especial sobre vehículos nuevos
-                          const precioVenta = vehiculo.precioVenta || 0
-                          const iva = precioVenta * 0.21
-                          const impuestoSL = precioVenta * 0.04 // 4% impuesto especial
-                          const total = iva + impuestoSL
-                          return formatCurrency(total)
+                          const totalGastos =
+                            (vehiculo.gastosTransporte || 0) +
+                            (vehiculo.gastosTasas || 0) +
+                            (vehiculo.gastosMecanica || 0) +
+                            (vehiculo.gastosPintura || 0) +
+                            (vehiculo.gastosLimpieza || 0) +
+                            (vehiculo.gastosOtros || 0)
+                          const precioCompra = vehiculo.precioCompra || 0
+                          const costoTotal = precioCompra + totalGastos
+                          return formatCurrency(costoTotal)
                         })()}
                       </span>
                     </div>
-                    {vehiculo.beneficioNeto !== undefined && (
-                      <div className="col-span-2 flex justify-between bg-white rounded px-2 py-1">
-                        <span className="text-gray-600 font-semibold">
-                          Beneficio:
-                        </span>
-                        <span
-                          className={`font-bold text-base ${vehiculo.beneficioNeto >= 0 ? 'text-green-600' : 'text-red-600'}`}
-                        >
-                          {formatCurrency(vehiculo.beneficioNeto)}
-                        </span>
-                      </div>
-                    )}
                   </div>
                 )}
 
