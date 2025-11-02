@@ -47,6 +47,21 @@ export default function InteresadoDetailPage() {
   const [notasInteresado, setNotasInteresado] = useState<NotaInteresado[]>([])
   const [editingNotaId, setEditingNotaId] = useState<number | null>(null)
   const [editingContent, setEditingContent] = useState('')
+  const [isEditing, setIsEditing] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+
+  const [editData, setEditData] = useState({
+    nombre: '',
+    apellidos: '',
+    telefono: '',
+    vehiculosInteres: [] as string[],
+    presupuestoMaximo: '',
+    kilometrajeMaximo: '',
+    añoMinimo: '',
+    combustiblePreferido: 'cualquiera' as const,
+    cambioPreferido: 'cualquiera' as const,
+    formaPagoPreferida: 'cualquiera' as const,
+  })
 
   useEffect(() => {
     fetchInteresado()
@@ -64,6 +79,29 @@ export default function InteresadoDetailPage() {
 
       const data = await response.json()
       setInteresado(data)
+
+      // Parsear vehiculosInteres para editData
+      let vehiculos = []
+      if (data.vehiculosInteres) {
+        try {
+          vehiculos = JSON.parse(data.vehiculosInteres)
+        } catch (e) {
+          vehiculos = []
+        }
+      }
+
+      setEditData({
+        nombre: data.nombre || '',
+        apellidos: data.apellidos || '',
+        telefono: data.telefono || '',
+        vehiculosInteres: vehiculos,
+        presupuestoMaximo: data.presupuestoMaximo?.toString() || '',
+        kilometrajeMaximo: data.kilometrajeMaximo?.toString() || '',
+        añoMinimo: data.añoMinimo?.toString() || '',
+        combustiblePreferido: data.combustiblePreferido || 'cualquiera',
+        cambioPreferido: data.cambioPreferido || 'cualquiera',
+        formaPagoPreferida: data.formaPagoPreferida || 'cualquiera',
+      })
     } catch (error) {
       console.error('Error:', error)
     } finally {
@@ -190,6 +228,99 @@ export default function InteresadoDetailPage() {
     setEditingContent('')
   }
 
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target
+    setEditData((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
+  }
+
+  const handleSave = async () => {
+    if (!interesado) return
+
+    try {
+      setIsSaving(true)
+      const response = await fetch(`/api/interesados/${interesado.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nombre: editData.nombre.trim(),
+          apellidos: editData.apellidos.trim(),
+          telefono: editData.telefono.trim(),
+          vehiculosInteres: JSON.stringify(
+            editData.vehiculosInteres.filter((v) => v.trim() !== '')
+          ),
+          presupuestoMaximo: editData.presupuestoMaximo || null,
+          kilometrajeMaximo: editData.kilometrajeMaximo || null,
+          añoMinimo: editData.añoMinimo || null,
+          combustiblePreferido: editData.combustiblePreferido,
+          cambioPreferido: editData.cambioPreferido,
+          formaPagoPreferida: editData.formaPagoPreferida,
+        }),
+      })
+
+      if (response.ok) {
+        await fetchInteresado()
+        setIsEditing(false)
+        showToast('Interesado actualizado correctamente', 'success')
+      } else {
+        const error = await response.json()
+        showToast(error.error || 'Error al actualizar interesado', 'error')
+      }
+    } catch (error) {
+      console.error('Error:', error)
+      showToast('Error al actualizar interesado', 'error')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const addVehiculoInteres = () => {
+    setEditData((prev) => ({
+      ...prev,
+      vehiculosInteres: [...prev.vehiculosInteres, ''],
+    }))
+  }
+
+  const updateVehiculoInteres = (index: number, value: string) => {
+    setEditData((prev) => ({
+      ...prev,
+      vehiculosInteres: prev.vehiculosInteres.map((v, i) =>
+        i === index ? value : v
+      ),
+    }))
+  }
+
+  const handleVehiculoKeyPress = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    index: number
+  ) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      const value = (e.target as HTMLInputElement).value.trim()
+      if (value) {
+        updateVehiculoInteres(index, value)
+        if (index === (editData.vehiculosInteres.length || 0) - 1) {
+          setTimeout(() => {
+            addVehiculoInteres()
+          }, 100)
+        }
+      }
+    }
+  }
+
+  const removeVehiculoInteres = (index: number) => {
+    setEditData((prev) => ({
+      ...prev,
+      vehiculosInteres: prev.vehiculosInteres.filter((_, i) => i !== index),
+    }))
+  }
+
   if (isLoading) {
     return (
       <ProtectedRoute>
@@ -243,25 +374,39 @@ export default function InteresadoDetailPage() {
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <div className="mb-8">
-            <button
-              onClick={() => router.push('/interesados')}
-              className="text-gray-500 hover:text-gray-700 mb-2 flex items-center"
-            >
-              <svg
-                className="w-4 h-4 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            <div className="flex items-center justify-between mb-4">
+              <button
+                onClick={() => router.push('/interesados')}
+                className="text-gray-500 hover:text-gray-700 flex items-center"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
-              Volver a Interesados
-            </button>
+                <svg
+                  className="w-4 h-4 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+                Volver a Interesados
+              </button>
+              <button
+                onClick={() =>
+                  isEditing ? setIsEditing(false) : setIsEditing(true)
+                }
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  isEditing
+                    ? 'bg-gray-500 hover:bg-gray-600 text-white'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
+              >
+                {isEditing ? 'Cancelar' : 'Editar'}
+              </button>
+            </div>
             <h1 className="text-3xl font-bold text-slate-800 mb-2">
               {capitalizeText(interesado.nombre)}{' '}
               {capitalizeText(interesado.apellidos)}
@@ -276,24 +421,69 @@ export default function InteresadoDetailPage() {
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">
                   Información Personal
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-500">Teléfono</p>
-                    <p className="font-medium text-gray-900">
-                      {interesado.telefono}
-                    </p>
-                  </div>
-                  {interesado.createdAt && (
+                {!isEditing ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-gray-500">Fecha de registro</p>
+                      <p className="text-sm text-gray-500">Teléfono</p>
                       <p className="font-medium text-gray-900">
-                        {new Date(interesado.createdAt).toLocaleDateString(
-                          'es-ES'
-                        )}
+                        {interesado.telefono}
                       </p>
                     </div>
-                  )}
-                </div>
+                    {interesado.createdAt && (
+                      <div>
+                        <p className="text-sm text-gray-500">
+                          Fecha de registro
+                        </p>
+                        <p className="font-medium text-gray-900">
+                          {new Date(interesado.createdAt).toLocaleDateString(
+                            'es-ES'
+                          )}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Nombre
+                        </label>
+                        <input
+                          type="text"
+                          name="nombre"
+                          value={editData.nombre}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Apellidos
+                        </label>
+                        <input
+                          type="text"
+                          name="apellidos"
+                          value={editData.apellidos}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Teléfono
+                        </label>
+                        <input
+                          type="text"
+                          name="telefono"
+                          value={editData.telefono}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Intereses */}
@@ -301,83 +491,277 @@ export default function InteresadoDetailPage() {
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">
                   Intereses
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-500">
-                      Vehículos de interés
-                    </p>
-                    <div className="font-medium text-gray-900">
-                      {vehiculos && vehiculos.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {vehiculos.map((vehiculo: string, index: number) => (
-                            <span
-                              key={index}
-                              className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium"
-                            >
-                              {vehiculo}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-gray-500">No especificado</span>
-                      )}
+                {!isEditing ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        Vehículos de interés
+                      </p>
+                      <div className="font-medium text-gray-900">
+                        {vehiculos && vehiculos.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {vehiculos.map(
+                              (vehiculo: string, index: number) => (
+                                <span
+                                  key={index}
+                                  className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium"
+                                >
+                                  {vehiculo}
+                                </span>
+                              )
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-gray-500">No especificado</span>
+                        )}
+                      </div>
                     </div>
+                    {interesado.presupuestoMaximo && (
+                      <div>
+                        <p className="text-sm text-gray-500">Precio máximo</p>
+                        <p className="font-medium text-gray-900">
+                          €{interesado.presupuestoMaximo.toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                    {interesado.kilometrajeMaximo && (
+                      <div>
+                        <p className="text-sm text-gray-500">
+                          Kilometraje máximo
+                        </p>
+                        <p className="font-medium text-gray-900">
+                          {interesado.kilometrajeMaximo.toLocaleString()} km
+                        </p>
+                      </div>
+                    )}
+                    {interesado.añoMinimo && (
+                      <div>
+                        <p className="text-sm text-gray-500">Año mínimo</p>
+                        <p className="font-medium text-gray-900">
+                          {interesado.añoMinimo}
+                        </p>
+                      </div>
+                    )}
+                    {interesado.combustiblePreferido && (
+                      <div>
+                        <p className="text-sm text-gray-500">
+                          Combustible preferido
+                        </p>
+                        <p className="font-medium text-gray-900 capitalize">
+                          {interesado.combustiblePreferido}
+                        </p>
+                      </div>
+                    )}
+                    {interesado.cambioPreferido && (
+                      <div>
+                        <p className="text-sm text-gray-500">
+                          Cambio preferido
+                        </p>
+                        <p className="font-medium text-gray-900 capitalize">
+                          {interesado.cambioPreferido}
+                        </p>
+                      </div>
+                    )}
+                    {interesado.formaPagoPreferida && (
+                      <div>
+                        <p className="text-sm text-gray-500">
+                          Forma de pago preferida
+                        </p>
+                        <p className="font-medium text-gray-900 capitalize">
+                          {interesado.formaPagoPreferida}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                  {interesado.presupuestoMaximo && (
+                ) : (
+                  <div className="space-y-4">
+                    {/* Vehículos de interés */}
                     <div>
-                      <p className="text-sm text-gray-500">Precio máximo</p>
-                      <p className="font-medium text-gray-900">
-                        €{interesado.presupuestoMaximo.toLocaleString()}
-                      </p>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Vehículos de interés
+                      </label>
+                      <div className="space-y-2">
+                        {editData.vehiculosInteres.map((vehiculo, index) => (
+                          <div key={index} className="flex gap-2">
+                            <input
+                              type="text"
+                              value={vehiculo}
+                              onChange={(e) =>
+                                updateVehiculoInteres(index, e.target.value)
+                              }
+                              onKeyPress={(e) =>
+                                handleVehiculoKeyPress(e as any, index)
+                              }
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="Escribe un vehículo y presiona Enter"
+                            />
+                            <button
+                              onClick={() => removeVehiculoInteres(index)}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-md"
+                            >
+                              <svg
+                                className="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M6 18L18 6M6 6l12 12"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          onClick={addVehiculoInteres}
+                          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                        >
+                          + Agregar vehículo
+                        </button>
+                      </div>
                     </div>
-                  )}
-                  {interesado.kilometrajeMaximo && (
-                    <div>
-                      <p className="text-sm text-gray-500">
-                        Kilometraje máximo
-                      </p>
-                      <p className="font-medium text-gray-900">
-                        {interesado.kilometrajeMaximo.toLocaleString()} km
-                      </p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Precio máximo (€)
+                        </label>
+                        <input
+                          type="number"
+                          name="presupuestoMaximo"
+                          value={editData.presupuestoMaximo}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Kilometraje máximo
+                        </label>
+                        <input
+                          type="number"
+                          name="kilometrajeMaximo"
+                          value={editData.kilometrajeMaximo}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Año mínimo
+                        </label>
+                        <input
+                          type="number"
+                          name="añoMinimo"
+                          value={editData.añoMinimo}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Combustible preferido
+                        </label>
+                        <select
+                          name="combustiblePreferido"
+                          value={editData.combustiblePreferido}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          <option value="cualquiera">Cualquiera</option>
+                          <option value="diesel">Diésel</option>
+                          <option value="gasolina">Gasolina</option>
+                          <option value="hibrido">Híbrido</option>
+                          <option value="electrico">Eléctrico</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Cambio preferido
+                        </label>
+                        <select
+                          name="cambioPreferido"
+                          value={editData.cambioPreferido}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          <option value="cualquiera">Cualquiera</option>
+                          <option value="manual">Manual</option>
+                          <option value="automatico">Automático</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Forma de pago
+                        </label>
+                        <select
+                          name="formaPagoPreferida"
+                          value={editData.formaPagoPreferida}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          <option value="cualquiera">Cualquiera</option>
+                          <option value="financiacion">Financiación</option>
+                          <option value="contado">Contado</option>
+                          <option value="entrega_usado">
+                            Entrega de usado
+                          </option>
+                        </select>
+                      </div>
                     </div>
-                  )}
-                  {interesado.añoMinimo && (
-                    <div>
-                      <p className="text-sm text-gray-500">Año mínimo</p>
-                      <p className="font-medium text-gray-900">
-                        {interesado.añoMinimo}
-                      </p>
-                    </div>
-                  )}
-                  {interesado.combustiblePreferido && (
-                    <div>
-                      <p className="text-sm text-gray-500">
-                        Combustible preferido
-                      </p>
-                      <p className="font-medium text-gray-900 capitalize">
-                        {interesado.combustiblePreferido}
-                      </p>
-                    </div>
-                  )}
-                  {interesado.cambioPreferido && (
-                    <div>
-                      <p className="text-sm text-gray-500">Cambio preferido</p>
-                      <p className="font-medium text-gray-900 capitalize">
-                        {interesado.cambioPreferido}
-                      </p>
-                    </div>
-                  )}
-                  {interesado.formaPagoPreferida && (
-                    <div>
-                      <p className="text-sm text-gray-500">
-                        Forma de pago preferida
-                      </p>
-                      <p className="font-medium text-gray-900 capitalize">
-                        {interesado.formaPagoPreferida}
-                      </p>
-                    </div>
-                  )}
-                </div>
+
+                    <button
+                      onClick={handleSave}
+                      disabled={isSaving}
+                      className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                    >
+                      {isSaving ? (
+                        <>
+                          <svg
+                            className="animate-spin h-4 w-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
+                          Guardando...
+                        </>
+                      ) : (
+                        <>
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                          Guardar Cambios
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Notas */}

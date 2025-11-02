@@ -34,6 +34,13 @@ export default function InteresadosPage() {
     useState<Interesado | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('list')
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
+  const [precioMaxFilter, setPrecioMaxFilter] = useState('')
+  const [kilometrajeFilter, setKilometrajeFilter] = useState('')
+  const [añoMinFilter, setAñoMinFilter] = useState('')
+  const [combustibleFilter, setCombustibleFilter] = useState('')
+  const [cambioFilter, setCambioFilter] = useState('')
+  const [pagoFilter, setPagoFilter] = useState('')
 
   const fetchInteresados = async () => {
     try {
@@ -109,7 +116,54 @@ export default function InteresadosPage() {
           vehiculo.toLowerCase().includes(searchTerm.toLowerCase())
         ))
 
-    return matchesSearch
+    // Filtros por intereses
+    const precioMaxValue = parseInt(precioMaxFilter)
+    const interesadoPrecio = interesado.presupuestoMaximo || 0
+    const matchesPrecioMax =
+      !precioMaxFilter ||
+      (interesadoPrecio > 0 &&
+        precioMaxValue > 0 &&
+        interesadoPrecio >= precioMaxValue)
+
+    const matchesKilometraje =
+      !kilometrajeFilter ||
+      ((interesado.kilometrajeMaximo || 0) > 0 &&
+        parseInt(kilometrajeFilter) > 0 &&
+        (interesado.kilometrajeMaximo || 0) >= parseInt(kilometrajeFilter))
+
+    const matchesAñoMin =
+      !añoMinFilter ||
+      ((interesado.añoMinimo || 0) > 0 &&
+        parseInt(añoMinFilter) > 0 &&
+        (interesado.añoMinimo || 0) <= parseInt(añoMinFilter))
+
+    const matchesCombustible =
+      !combustibleFilter ||
+      interesado.combustiblePreferido === combustibleFilter ||
+      (combustibleFilter === 'cualquiera' &&
+        interesado.combustiblePreferido === 'cualquiera')
+
+    const matchesCambio =
+      !cambioFilter ||
+      interesado.cambioPreferido === cambioFilter ||
+      (cambioFilter === 'cualquiera' &&
+        interesado.cambioPreferido === 'cualquiera')
+
+    const matchesPago =
+      !pagoFilter ||
+      interesado.formaPagoPreferida === pagoFilter ||
+      (pagoFilter === 'cualquiera' &&
+        interesado.formaPagoPreferida === 'cualquiera')
+
+    return (
+      matchesSearch &&
+      matchesPrecioMax &&
+      matchesKilometraje &&
+      matchesAñoMin &&
+      matchesCombustible &&
+      matchesCambio &&
+      matchesPago
+    )
   })
 
   if (isLoading) {
@@ -290,6 +344,155 @@ export default function InteresadosPage() {
                   </div>
                 </div>
               </div>
+
+              {/* LÍNEA 2: Filtros avanzados */}
+              <div className="flex items-center justify-center">
+                {/* Filtros avanzados */}
+                <button
+                  onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                  className={`px-3 lg:px-4 py-2 text-sm font-medium rounded-lg transition-all flex items-center space-x-1 lg:space-x-2 ${
+                    showAdvancedFilters
+                      ? 'bg-orange-100 text-orange-700 border border-orange-200'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'
+                  }`}
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"
+                    />
+                  </svg>
+                  <span className="hidden lg:inline">Filtros Avanzados</span>
+                  <span className="lg:hidden">Avanzados</span>
+                </button>
+              </div>
+
+              {/* Filtros avanzados expandibles */}
+              {showAdvancedFilters && (
+                <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200/60 p-4">
+                  <h3 className="text-sm font-medium text-slate-700 mb-4">
+                    🔍 Filtros por Intereses
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                    <div>
+                      <label className="block text-xs text-slate-600 mb-1">
+                        Precio máximo (€)
+                      </label>
+                      <input
+                        type="number"
+                        placeholder="Ej: 15000"
+                        value={precioMaxFilter}
+                        onChange={(e) => setPrecioMaxFilter(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs text-slate-600 mb-1">
+                        Kilometraje máximo
+                      </label>
+                      <input
+                        type="number"
+                        placeholder="Ej: 50000"
+                        value={kilometrajeFilter}
+                        onChange={(e) => setKilometrajeFilter(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs text-slate-600 mb-1">
+                        Año mínimo
+                      </label>
+                      <input
+                        type="number"
+                        placeholder="Ej: 2020"
+                        value={añoMinFilter}
+                        onChange={(e) => setAñoMinFilter(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs text-slate-600 mb-1">
+                        Combustible
+                      </label>
+                      <select
+                        value={combustibleFilter}
+                        onChange={(e) => setCombustibleFilter(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      >
+                        <option value="">Todos</option>
+                        <option value="diesel">Diésel</option>
+                        <option value="gasolina">Gasolina</option>
+                        <option value="hibrido">Híbrido</option>
+                        <option value="electrico">Eléctrico</option>
+                        <option value="cualquiera">Cualquiera</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs text-slate-600 mb-1">
+                        Cambio
+                      </label>
+                      <select
+                        value={cambioFilter}
+                        onChange={(e) => setCambioFilter(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      >
+                        <option value="">Todos</option>
+                        <option value="manual">Manual</option>
+                        <option value="automatico">Automático</option>
+                        <option value="cualquiera">Cualquiera</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs text-slate-600 mb-1">
+                        Forma de pago
+                      </label>
+                      <select
+                        value={pagoFilter}
+                        onChange={(e) => setPagoFilter(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      >
+                        <option value="">Todas</option>
+                        <option value="financiacion">Financiación</option>
+                        <option value="contado">Contado</option>
+                        <option value="entrega_usado">Entrega de usado</option>
+                        <option value="cualquiera">Cualquiera</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-4">
+                    <div className="text-sm text-gray-600">
+                      Mostrando {filteredInteresados.length} de{' '}
+                      {interesados.length} interesados
+                    </div>
+                    <button
+                      onClick={() => {
+                        setPrecioMaxFilter('')
+                        setKilometrajeFilter('')
+                        setAñoMinFilter('')
+                        setCombustibleFilter('')
+                        setCambioFilter('')
+                        setPagoFilter('')
+                      }}
+                      className="text-sm text-gray-600 hover:text-gray-800 underline"
+                    >
+                      Limpiar filtros
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
