@@ -212,6 +212,7 @@ export function InvestorVehicleCard({
 
   // Calcular valores fiscales para vehículos vendidos
   const calcularValoresFiscales = () => {
+    // Sumar todos los gastos del vehículo (sin IVA ni Impuesto Sociedades)
     const totalGastos =
       (vehiculo.gastosTransporte || 0) +
       (vehiculo.gastosTasas || 0) +
@@ -220,13 +221,22 @@ export function InvestorVehicleCard({
       (vehiculo.gastosLimpieza || 0) +
       (vehiculo.gastosOtros || 0)
     const precioCompra = vehiculo.precioCompra || 0
+    // Costo total = precio compra + todos los gastos (sin impuestos)
     const costoTotal = precioCompra + totalGastos
     const precioVenta = vehiculo.precioVenta || 0
+
+    // Calcular IVA: 21% de (precio venta - costo total)
     const diferencia = precioVenta - costoTotal
     const iva = diferencia * 0.21
-    const beneficioPreImpuestos = diferencia - iva
-    const impuestoSociedades = beneficioPreImpuestos * 0.2
-    const beneficioNetoTotal = beneficioPreImpuestos - impuestoSociedades
+
+    // Calcular Impuesto Sociedades: 20% de (precio venta - costo total - IVA)
+    const baseImpuestoSociedades = diferencia - iva
+    const impuestoSociedades = baseImpuestoSociedades * 0.2
+
+    // Beneficio neto = precio venta - costo total - IVA - Impuesto Sociedades
+    const beneficioNetoTotal =
+      precioVenta - costoTotal - iva - impuestoSociedades
+
     // Inversor se lleva el 50% del beneficio neto
     const beneficioNeto = beneficioNetoTotal * 0.5
 

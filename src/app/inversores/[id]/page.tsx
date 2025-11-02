@@ -106,11 +106,18 @@ export default function InvestorDashboardPage() {
       const costoTotal = precioCompra + totalGastos
       const precioVenta = vehiculo.precioVenta
 
+      // Calcular IVA: 21% de (precio venta - costo total)
       const diferencia = precioVenta - costoTotal
       const iva = diferencia * 0.21
-      const beneficioPreImpuestos = diferencia - iva
-      const impuestoSociedades = beneficioPreImpuestos * 0.2
-      const beneficioNetoTotal = beneficioPreImpuestos - impuestoSociedades
+
+      // Calcular Impuesto Sociedades: 20% de (precio venta - costo total - IVA)
+      const baseImpuestoSociedades = diferencia - iva
+      const impuestoSociedades = baseImpuestoSociedades * 0.2
+
+      // Beneficio neto = precio venta - costo total - IVA - Impuesto Sociedades
+      const beneficioNetoTotal =
+        precioVenta - costoTotal - iva - impuestoSociedades
+
       // Inversor se lleva el 50% del beneficio neto
       const beneficioNeto = beneficioNetoTotal * 0.5
 
