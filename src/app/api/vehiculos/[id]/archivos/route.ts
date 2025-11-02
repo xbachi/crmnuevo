@@ -16,12 +16,75 @@ async function loadMetadata(vehiculoId: number) {
         console.log(
           `📁 [VEHICULO ARCHIVOS] Buscando archivos con prefijo: "${prefix}"`
         )
+        console.log(
+          `📁 [VEHICULO ARCHIVOS] Vehículo ID: ${vehiculoId}, Tipo: ${typeof vehiculoId}`
+        )
+
+        // Intentar listar con el prefijo específico
         const { blobs } = await list({ prefix })
         console.log(`📁 [VEHICULO ARCHIVOS] Blobs encontrados:`, blobs.length)
         console.log(
           `📁 [VEHICULO ARCHIVOS] Blobs:`,
           blobs.map((b) => b.path)
         )
+
+        // Si no hay archivos, intentar buscar todos los blobs que contengan el ID del vehículo
+        if (blobs.length === 0) {
+          console.log(
+            `⚠️ [VEHICULO ARCHIVOS] No se encontraron archivos con prefijo específico, buscando alternativas...`
+          )
+
+          // Buscar sin prefijo específico para ver qué hay
+          try {
+            const { blobs: allBlobs } = await list({ limit: 1000 })
+            const relatedBlobs = allBlobs.filter(
+              (b) =>
+                b.path.includes(`vehiculos/${vehiculoId}/`) ||
+                b.path.includes(`/${vehiculoId}/`)
+            )
+            console.log(
+              `📁 [VEHICULO ARCHIVOS] Blobs relacionados encontrados en búsqueda amplia:`,
+              relatedBlobs.length
+            )
+            console.log(
+              `📁 [VEHICULO ARCHIVOS] Rutas relacionadas:`,
+              relatedBlobs.map((b) => b.path)
+            )
+
+            if (relatedBlobs.length > 0) {
+              // Usar los blobs encontrados en la búsqueda amplia
+              const mappedBlobs = relatedBlobs.map((blob) => {
+                const fileName = blob.path.split('/').pop() || 'unknown'
+                const timestampMatch = fileName.match(/^(\d+)-/)
+                const id = timestampMatch
+                  ? timestampMatch[1]
+                  : blob.uploadedAt.toString()
+                const name = fileName.replace(/^\d+-/, '') || 'unknown'
+
+                return {
+                  id,
+                  name,
+                  fileName,
+                  size: blob.size,
+                  type: blob.contentType || 'application/octet-stream',
+                  uploadDate: blob.uploadedAt.toISOString(),
+                  path: blob.url,
+                }
+              })
+
+              console.log(
+                `📁 [VEHICULO ARCHIVOS] Archivos mapeados (búsqueda amplia):`,
+                mappedBlobs.length
+              )
+              return mappedBlobs
+            }
+          } catch (wideSearchError: any) {
+            console.error(
+              '⚠️ [VEHICULO ARCHIVOS] Error en búsqueda amplia:',
+              wideSearchError
+            )
+          }
+        }
 
         const mappedBlobs = blobs.map((blob) => {
           const fileName = blob.path.split('/').pop() || 'unknown'
