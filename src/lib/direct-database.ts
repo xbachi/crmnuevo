@@ -1453,13 +1453,71 @@ export async function getVehiculosByInversor(inversorId: number) {
   try {
     const result = await client.query(
       `
-      SELECT * FROM "Vehiculo" 
-      WHERE "inversorId" = $1 
-      ORDER BY id ASC
+      SELECT 
+        v.id, v.referencia, v.marca, v.modelo, v.matricula, v.bastidor, 
+        v.kms, v.tipo, v.estado, v.orden, v."createdAt", v."updatedAt",
+        v.color, v."fechaMatriculacion", v.año, v."esCocheInversor", 
+        v."inversorId", v."fechaCompra", v."precioCompra", v."gastosTransporte",
+        v."gastosTasas", v."gastosMecanica", v."gastosPintura", v."gastosLimpieza",
+        v."gastosOtros", v."precioPublicacion", v."precioVenta", v."beneficioNeto",
+        v."notasInversor", v."fotoInversor", v.itv, v.seguro, v."segundaLlave",
+        v.carpeta, v.master, v."hojasA", v.documentacion, i.nombre as inversor_nombre,
+        d.id as deposito_id, d.estado as deposito_estado
+      FROM "Vehiculo" v
+      LEFT JOIN "Inversor" i ON v."inversorId" = i.id
+      LEFT JOIN "depositos" d ON v.id = d.vehiculo_id AND d.estado = 'ACTIVO'
+      WHERE v."inversorId" = $1 
+      ORDER BY v.id ASC
     `,
       [inversorId]
     )
-    return result.rows
+    return result.rows.map((row) => ({
+      id: row.id,
+      referencia: row.referencia,
+      marca: row.marca,
+      modelo: row.modelo,
+      matricula: row.matricula,
+      bastidor: row.bastidor,
+      kms: row.kms,
+      tipo: row.tipo,
+      estado: row.estado,
+      orden: row.orden,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      color: row.color,
+      fechaMatriculacion: row.fechaMatriculacion,
+      año: row.año,
+      esCocheInversor: row.esCocheInversor,
+      inversorId: row.inversorId,
+      inversor: row.inversor_nombre
+        ? {
+            id: row.inversorId,
+            nombre: row.inversor_nombre,
+          }
+        : null,
+      fechaCompra: row.fechaCompra,
+      precioCompra: row.precioCompra,
+      gastosTransporte: row.gastosTransporte,
+      gastosTasas: row.gastosTasas,
+      gastosMecanica: row.gastosMecanica,
+      gastosPintura: row.gastosPintura,
+      gastosLimpieza: row.gastosLimpieza,
+      gastosOtros: row.gastosOtros,
+      precioPublicacion: row.precioPublicacion,
+      precioVenta: row.precioVenta,
+      beneficioNeto: row.beneficioNeto,
+      notasInversor: row.notasInversor,
+      fotoInversor: row.fotoInversor,
+      itv: row.itv,
+      seguro: row.seguro,
+      segundaLlave: row.segundaLlave,
+      carpeta: row.carpeta,
+      master: row.master,
+      hojasA: row.hojasA,
+      documentacion: row.documentacion,
+      enDeposito: !!row.deposito_id,
+      depositoId: row.deposito_id,
+    }))
   } catch (error) {
     console.error('Error obteniendo vehículos por inversor:', error)
     return []
