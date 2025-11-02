@@ -1682,10 +1682,9 @@ export async function getInversorMetrics(inversorId: number) {
     const capitalInvertidoReal = parseFloat(metrics.total_costo_real) || 0 // Capital realmente invertido en vehículos
     const capitalDisponible = capitalAportado - capitalInvertidoReal // Puede ser negativo
     const beneficioAcumulado = parseFloat(metrics.beneficio_total) || 0
+    // ROI: beneficio vs capital aportado (no capital invertido)
     const roi =
-      capitalInvertidoReal > 0
-        ? (beneficioAcumulado / capitalInvertidoReal) * 100
-        : 0
+      capitalAportado > 0 ? (beneficioAcumulado / capitalAportado) * 100 : 0
 
     return {
       beneficioAcumulado: beneficioAcumulado,

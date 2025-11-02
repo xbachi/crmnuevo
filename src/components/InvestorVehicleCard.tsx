@@ -230,12 +230,17 @@ export function InvestorVehicleCard({
     // Inversor se lleva el 50% del beneficio neto
     const beneficioNeto = beneficioNetoTotal * 0.5
 
+    // Calcular porcentaje de beneficio sobre costo total
+    const porcentajeBeneficio =
+      costoTotal > 0 ? (beneficioNeto / costoTotal) * 100 : 0
+
     return {
       costoTotal,
       precioVenta,
       iva,
       impuestoSociedades,
       beneficioNeto,
+      porcentajeBeneficio,
       esBeneficio: beneficioNeto >= 0,
     }
   }
@@ -577,15 +582,26 @@ export function InvestorVehicleCard({
                 >
                   BENEFICIO:
                 </span>
-                <span
-                  className={`font-bold text-xl ${
-                    valoresFiscales.esBeneficio
-                      ? 'text-green-700'
-                      : 'text-red-700'
-                  }`}
-                >
-                  {formatCurrency(valoresFiscales.beneficioNeto)}
-                </span>
+                <div className="text-right">
+                  <span
+                    className={`font-bold text-xl ${
+                      valoresFiscales.esBeneficio
+                        ? 'text-green-700'
+                        : 'text-red-700'
+                    }`}
+                  >
+                    {formatCurrency(valoresFiscales.beneficioNeto)}
+                  </span>
+                  <span
+                    className={`text-sm ml-2 ${
+                      valoresFiscales.esBeneficio
+                        ? 'text-green-600'
+                        : 'text-red-600'
+                    }`}
+                  >
+                    ({valoresFiscales.porcentajeBeneficio.toFixed(1)}%)
+                  </span>
+                </div>
               </div>
             </div>
           </div>
