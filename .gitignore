@@ -48,8 +48,18 @@ next-env.d.ts
 !next.config.js
 !next.config.ts
 !eslint.config.mjs
+
 # Permitir archivos de metadatos de documentación y archivos subidos
+!public/uploads
+!public/uploads/**
+!public/uploads/**/*.pdf
+!public/uploads/**/*.jpg
+!public/uploads/**/*.jpeg
+!public/uploads/**/*.png
+!public/uploads/**/*.gif
+!public/uploads/**/*.webp
 !public/uploads/**/*-metadata.json
 !public/uploads/**/archivos-metadata.json
+!public/uploads/**/.gitkeep
 
 /src/generated/prisma
