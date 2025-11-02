@@ -906,75 +906,6 @@ export function InvestorVehicleCard({
                     </div>
                   </div>
                 )}
-
-                {/* Foto */}
-                <div className="mt-4">
-                  {vehiculo.fotoInversor || localPhotoUrl ? (
-                    <div
-                      className="cursor-pointer group relative"
-                      onClick={handlePhotoClick}
-                    >
-                      <img
-                        src={localPhotoUrl || vehiculo.fotoInversor}
-                        alt={`${capitalizeText(vehiculo.marca)} ${capitalizeText(vehiculo.modelo)}`}
-                        className="w-full h-32 object-cover rounded-lg shadow-sm group-hover:shadow-md transition-shadow border border-gray-200"
-                        onError={(e) => {
-                          console.error('Error al cargar imagen:', e)
-                          setImageError(true)
-                        }}
-                        onLoad={() => {
-                          console.log('Imagen cargada correctamente')
-                          setImageError(false)
-                        }}
-                      />
-                      <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-                        Ver grande
-                      </div>
-                    </div>
-                  ) : (
-                    <div
-                      className="bg-gray-100 rounded-lg h-32 flex items-center justify-center border-2 border-dashed border-gray-300 cursor-pointer hover:border-gray-400 hover:bg-gray-50 transition-colors"
-                      onClick={handlePhotoClick}
-                    >
-                      <div className="text-center text-gray-500">
-                        {isUploading ? (
-                          <div className="flex flex-col items-center">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-500 mb-2"></div>
-                            <p className="text-sm font-medium">Cargando...</p>
-                          </div>
-                        ) : (
-                          <>
-                            <svg
-                              className="w-8 h-8 mx-auto mb-2"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                              />
-                            </svg>
-                            <p className="text-sm font-medium">
-                              Haz clic para cargar foto
-                            </p>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Input oculto para carga de archivos */}
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                </div>
               </div>
             )}
           </div>
@@ -1147,6 +1078,75 @@ export function InvestorVehicleCard({
               </div>
             )}
           </div>
+        </div>
+
+        {/* Foto del vehículo - Siempre visible, debajo de Archivos */}
+        <div className="mt-4">
+          {vehiculo.fotoInversor || localPhotoUrl ? (
+            <div
+              className="cursor-pointer group relative"
+              onClick={handlePhotoClick}
+            >
+              <img
+                src={localPhotoUrl || vehiculo.fotoInversor}
+                alt={`${capitalizeText(vehiculo.marca)} ${capitalizeText(vehiculo.modelo)}`}
+                className="w-full h-32 object-cover rounded-lg shadow-sm group-hover:shadow-md transition-shadow border border-gray-200"
+                onError={(e) => {
+                  console.error('Error al cargar imagen:', e)
+                  setImageError(true)
+                }}
+                onLoad={() => {
+                  console.log('Imagen cargada correctamente')
+                  setImageError(false)
+                }}
+              />
+              <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                Ver grande
+              </div>
+            </div>
+          ) : (
+            <div
+              className="bg-gray-100 rounded-lg h-32 flex items-center justify-center border-2 border-dashed border-gray-300 cursor-pointer hover:border-gray-400 hover:bg-gray-50 transition-colors"
+              onClick={handlePhotoClick}
+            >
+              <div className="text-center text-gray-500">
+                {isUploading ? (
+                  <div className="flex flex-col items-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-500 mb-2"></div>
+                    <p className="text-sm font-medium">Cargando...</p>
+                  </div>
+                ) : (
+                  <>
+                    <svg
+                      className="w-8 h-8 mx-auto mb-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                    <p className="text-sm font-medium">
+                      Haz clic para cargar foto
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Input oculto para carga de archivos de foto */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
         </div>
       </div>
 
