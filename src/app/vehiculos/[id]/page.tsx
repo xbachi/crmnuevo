@@ -893,6 +893,31 @@ export default function VehiculoDetailPage() {
         camposAGuardar.fechaCompra = editingData.fechaCompra
       if (editingData.color !== undefined)
         camposAGuardar.color = editingData.color
+      // Guardar inversorId si está definido
+      if (editingData.inversorId !== undefined) {
+        camposAGuardar.inversorId = editingData.inversorId
+      }
+      // Si el tipo es "I" (Inversor) y hay inversorId, establecer esCocheInversor
+      if (editingData.tipo === 'I' || camposAGuardar.tipo === 'I') {
+        if (
+          editingData.inversorId !== undefined &&
+          editingData.inversorId > 0
+        ) {
+          camposAGuardar.esCocheInversor = true
+        } else if (
+          editingData.inversorId === 0 ||
+          editingData.inversorId === null
+        ) {
+          // Si se quita el inversor, también quitar esCocheInversor
+          camposAGuardar.esCocheInversor = false
+        }
+      } else if (editingData.tipo !== undefined && editingData.tipo !== 'I') {
+        // Si el tipo cambia a algo que no sea Inversor, limpiar inversorId y esCocheInversor
+        camposAGuardar.esCocheInversor = false
+        if (editingData.inversorId === undefined && vehiculo.inversorId) {
+          camposAGuardar.inversorId = null
+        }
+      }
     }
 
     if (isEditingDocumentacion) {

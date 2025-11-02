@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile, mkdir, readFile, unlink, access } from 'fs/promises'
+import { writeFile, mkdir, readFile, unlink } from 'fs/promises'
 import { join } from 'path'
-import { constants } from 'fs'
 import { put, list, del } from '@vercel/blob'
 
 const METADATA_FILE = 'archivos-metadata.json'
@@ -11,176 +10,20 @@ async function loadMetadata(vehiculoId: number) {
   try {
     if (USE_BLOB_STORAGE) {
       // En producción, cargar desde Vercel Blob
-      try {
-        const prefix = `vehiculos/${vehiculoId}/`
-        console.log(
-          `📁 [VEHICULO ARCHIVOS] Buscando archivos con prefijo: "${prefix}"`
-        )
-        console.log(
-          `📁 [VEHICULO ARCHIVOS] Vehículo ID: ${vehiculoId}, Tipo: ${typeof vehiculoId}`
-        )
+      const prefix = `vehiculos/${vehiculoId}/`
+      const { blobs } = await list({ prefix })
 
-        // Intentar listar con el prefijo específico
-        const { blobs } = await list({ prefix })
-        console.log(`📁 [VEHICULO ARCHIVOS] Blobs encontrados:`, blobs.length)
-        console.log(
-          `📁 [VEHICULO ARCHIVOS] Blobs:`,
-          blobs.map((b) => b.path)
-        )
-
-        // Si no hay archivos, intentar buscar todos los blobs que contengan el ID del vehículo
-        if (blobs.length === 0) {
-          console.log(
-            `⚠️ [VEHICULO ARCHIVOS] No se encontraron archivos con prefijo específico, buscando alternativas...`
-          )
-
-          // Buscar sin prefijo específico para ver qué hay
-          try {
-            const { blobs: allBlobs } = await list({ limit: 1000 })
-            console.log(
-              `📁 [VEHICULO ARCHIVOS] Total de blobs encontrados en búsqueda amplia:`,
-              allBlobs.length
-            )
-            console.log(
-              `📁 [VEHICULO ARCHIVOS] Estructura de primer blob:`,
-              allBlobs[0] ? Object.keys(allBlobs[0]) : 'No hay blobs'
-            )
-            const relatedBlobs = allBlobs.filter((b) => {
-              const path = b.path || b.url || ''
-              return (
-                path.includes(`vehiculos/${vehiculoId}/`) ||
-                path.includes(`/${vehiculoId}/`)
-              )
-            })
-            console.log(
-              `📁 [VEHICULO ARCHIVOS] Blobs relacionados encontrados en búsqueda amplia:`,
-              relatedBlobs.length
-            )
-            console.log(
-              `📁 [VEHICULO ARCHIVOS] Rutas relacionadas:`,
-              relatedBlobs.map((b) => b.path || b.url || 'unknown')
-            )
-
-            if (relatedBlobs.length > 0) {
-              // Usar los blobs encontrados en la búsqueda amplia
-              const mappedBlobs = relatedBlobs.map((blob) => {
-                const blobPath = blob.path || blob.url || ''
-                let fileName = 'unknown'
-                if (blobPath) {
-                  try {
-                    if (blobPath.startsWith('http')) {
-                      const urlObj = new URL(blobPath)
-                      fileName = urlObj.pathname.split('/').pop() || 'unknown'
-                    } else {
-                      fileName = blobPath.split('/').pop() || 'unknown'
-                    }
-                  } catch (e) {
-                    fileName = blobPath.split('/').pop() || 'unknown'
-                  }
-                }
-
-                const timestampMatch = fileName.match(/^(\d+)-/)
-                const id = timestampMatch
-                  ? timestampMatch[1]
-                  : blob.uploadedAt
-                    ? blob.uploadedAt.toString()
-                    : Date.now().toString()
-                const name = fileName.replace(/^\d+-/, '') || 'unknown'
-
-                return {
-                  id,
-                  name,
-                  fileName,
-                  size: blob.size || 0,
-                  type: blob.contentType || 'application/octet-stream',
-                  uploadDate: blob.uploadedAt
-                    ? blob.uploadedAt.toISOString()
-                    : new Date().toISOString(),
-                  path: blob.url || blobPath || '',
-                }
-              })
-
-              console.log(
-                `📁 [VEHICULO ARCHIVOS] Archivos mapeados (búsqueda amplia):`,
-                mappedBlobs.length
-              )
-              return mappedBlobs
-            }
-          } catch (wideSearchError: any) {
-            console.error(
-              '⚠️ [VEHICULO ARCHIVOS] Error en búsqueda amplia:',
-              wideSearchError
-            )
-          }
-        }
-
-        const mappedBlobs = blobs.map((blob) => {
-          // Obtener el path o url del blob - Vercel Blob puede usar 'path' o 'url'
-          const blobPath = blob.path || blob.url || ''
-          console.log(`📁 [VEHICULO ARCHIVOS] Procesando blob:`, {
-            path: blob.path,
-            url: blob.url,
-            blobPath,
-            hasPath: !!blob.path,
-            hasUrl: !!blob.url,
-          })
-
-          // Extraer el nombre del archivo del path o url
-          let fileName = 'unknown'
-          if (blobPath) {
-            // Si es una URL completa, extraer solo el pathname
-            try {
-              if (blobPath.startsWith('http')) {
-                const urlObj = new URL(blobPath)
-                fileName = urlObj.pathname.split('/').pop() || 'unknown'
-              } else {
-                fileName = blobPath.split('/').pop() || 'unknown'
-              }
-            } catch (e) {
-              // Si falla el parsing, intentar split directo
-              fileName = blobPath.split('/').pop() || 'unknown'
-            }
-          }
-
-          // Extraer el timestamp del inicio del nombre del archivo
-          const timestampMatch = fileName.match(/^(\d+)-/)
-          const id = timestampMatch
-            ? timestampMatch[1]
-            : blob.uploadedAt
-              ? blob.uploadedAt.toString()
-              : Date.now().toString()
-          // Extraer el nombre original removiendo el timestamp y guiones
-          const name = fileName.replace(/^\d+-/, '') || 'unknown'
-
-          return {
-            id,
-            name,
-            fileName,
-            size: blob.size || 0,
-            type: blob.contentType || 'application/octet-stream',
-            uploadDate: blob.uploadedAt
-              ? blob.uploadedAt.toISOString()
-              : new Date().toISOString(),
-            path: blob.url || blobPath || '',
-          }
-        })
-
-        console.log(
-          `📁 [VEHICULO ARCHIVOS] Archivos mapeados desde Blob:`,
-          mappedBlobs.length
-        )
-        return mappedBlobs
-      } catch (blobError: any) {
-        console.error(
-          '❌ [VEHICULO ARCHIVOS] Error cargando desde Vercel Blob:',
-          {
-            message: blobError?.message,
-            code: blobError?.code,
-          }
-        )
-        // Si falla Vercel Blob, devolver array vacío
-        return []
-      }
+      return blobs.map((blob) => ({
+        id:
+          blob.path.split('/').pop()?.split('-')[0] ||
+          blob.uploadedAt.toString(),
+        name: blob.path.split('/').pop()?.replace(/^\d+-/, '') || 'unknown',
+        fileName: blob.path.split('/').pop() || 'unknown',
+        size: blob.size,
+        type: blob.contentType || 'application/octet-stream',
+        uploadDate: blob.uploadedAt.toISOString(),
+        path: blob.url,
+      }))
     } else {
       // En desarrollo, cargar desde filesystem
       const metadataDir = join(
@@ -192,20 +35,8 @@ async function loadMetadata(vehiculoId: number) {
       )
       await mkdir(metadataDir, { recursive: true })
       const metadataPath = join(metadataDir, METADATA_FILE)
-
-      // Verificar si el archivo existe antes de leerlo
-      try {
-        await access(metadataPath, constants.F_OK)
-        const data = await readFile(metadataPath, 'utf-8')
-        return JSON.parse(data)
-      } catch (accessError: any) {
-        // Si el archivo no existe (ENOENT), devolver array vacío
-        if (accessError.code === 'ENOENT') {
-          return []
-        }
-        // Si es otro error, lanzarlo para que lo capture el catch externo
-        throw accessError
-      }
+      const data = await readFile(metadataPath, 'utf-8')
+      return JSON.parse(data)
     }
   } catch (error) {
     console.error('Error loading metadata:', error)
@@ -244,17 +75,8 @@ export async function GET(
 
     const metadata = await loadMetadata(vehiculoId)
     console.log(`📁 [VEHICULO ARCHIVOS] Archivos encontrados:`, metadata.length)
-    console.log(
-      `📁 [VEHICULO ARCHIVOS] Archivos:`,
-      JSON.stringify(metadata, null, 2)
-    )
 
-    return NextResponse.json(metadata, {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
+    return NextResponse.json(metadata, { status: 200 })
   } catch (error) {
     console.error('❌ [VEHICULO ARCHIVOS] Error:', error)
     return NextResponse.json(
@@ -270,12 +92,6 @@ export async function POST(
 ) {
   try {
     console.log(`🔍 [VEHICULO UPLOAD] Iniciando subida de archivo`)
-    console.log(`🔍 [VEHICULO UPLOAD] Detección Vercel:`, {
-      VERCEL: !!process.env.VERCEL,
-      VERCEL_ENV: process.env.VERCEL_ENV,
-      USE_BLOB_STORAGE,
-      BLOB_TOKEN_EXISTS: !!process.env.BLOB_READ_WRITE_TOKEN,
-    })
 
     const { id } = await params
     const vehiculoId = parseInt(id)
@@ -297,68 +113,32 @@ export async function POST(
 
     if (USE_BLOB_STORAGE) {
       // Producción: subir a Vercel Blob
-      try {
-        console.log(
-          `📦 [VEHICULO UPLOAD] Intentando subir a Vercel Blob... Token disponible: ${!!process.env.BLOB_READ_WRITE_TOKEN}`
-        )
-
-        // Vercel Blob detecta automáticamente el token de las variables de entorno
-        const blob = await put(
-          `vehiculos/${vehiculoId}/${uniqueFileName}`,
-          file,
-          {
-            access: 'public',
-            contentType: file.type,
-          }
-        )
-
-        console.log(`✅ [VEHICULO UPLOAD] Archivo subido a Blob: ${blob.url}`)
-
-        const newFileMetadata = {
-          id: timestamp.toString(),
-          name: file.name,
-          fileName: uniqueFileName,
-          size: file.size,
-          type: file.type,
-          uploadDate: new Date().toISOString(),
-          path: blob.url,
+      const blob = await put(
+        `vehiculos/${vehiculoId}/${uniqueFileName}`,
+        file,
+        {
+          access: 'public',
+          contentType: file.type,
         }
+      )
 
-        return NextResponse.json({
-          success: true,
-          message: 'Archivo subido exitosamente',
-          file: newFileMetadata,
-        })
-      } catch (blobError: any) {
-        console.error('❌ [VEHICULO UPLOAD] Error con Vercel Blob:', {
-          message: blobError?.message,
-          status: blobError?.status,
-          statusText: blobError?.statusText,
-          code: blobError?.code,
-          name: blobError?.name,
-        })
+      console.log(`✅ [VEHICULO UPLOAD] Archivo subido a Blob: ${blob.url}`)
 
-        // Si el error es de autenticación o configuración, dar un mensaje más claro
-        if (
-          blobError?.message?.includes('token') ||
-          blobError?.message?.includes('authentication') ||
-          blobError?.message?.includes('unauthorized') ||
-          !process.env.BLOB_READ_WRITE_TOKEN
-        ) {
-          return NextResponse.json(
-            {
-              success: false,
-              error:
-                'Error de configuración: Vercel Blob Storage no está configurado correctamente. Verifica que BLOB_READ_WRITE_TOKEN esté configurado en Vercel.',
-              details: blobError?.message || 'Token no encontrado',
-            },
-            { status: 500 }
-          )
-        }
-
-        // Para otros errores, re-lanzar para que lo capture el catch externo
-        throw blobError
+      const newFileMetadata = {
+        id: timestamp.toString(),
+        name: file.name,
+        fileName: uniqueFileName,
+        size: file.size,
+        type: file.type,
+        uploadDate: new Date().toISOString(),
+        path: blob.url,
       }
+
+      return NextResponse.json({
+        success: true,
+        message: 'Archivo subido exitosamente',
+        file: newFileMetadata,
+      })
     } else {
       // Desarrollo: guardar en filesystem
       const uploadDir = join(
@@ -399,18 +179,12 @@ export async function POST(
         file: newFileMetadata,
       })
     }
-  } catch (error: any) {
-    console.error('❌ [VEHICULO UPLOAD] Error completo:', {
-      message: error?.message,
-      stack: error?.stack,
-      name: error?.name,
-      code: error?.code,
-    })
+  } catch (error) {
+    console.error('❌ [VEHICULO UPLOAD] Error:', error)
     return NextResponse.json(
       {
         success: false,
         error: 'Error al subir archivo',
-        details: error?.message || 'Error desconocido',
       },
       { status: 500 }
     )

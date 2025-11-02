@@ -212,33 +212,54 @@ export function InvestorVehicleCard({
 
   // Calcular valores fiscales para vehículos vendidos
   const calcularValoresFiscales = () => {
+    const gastosTransporte = vehiculo.gastosTransporte || 0
+    const gastosTasas = vehiculo.gastosTasas || 0
+    const gastosMecanica = vehiculo.gastosMecanica || 0
+    const gastosPintura = vehiculo.gastosPintura || 0
+    const gastosLimpieza = vehiculo.gastosLimpieza || 0
+    const gastosOtros = vehiculo.gastosOtros || 0
+
     // Sumar todos los gastos del vehículo (sin IVA ni Impuesto Sociedades)
     const totalGastos =
-      (vehiculo.gastosTransporte || 0) +
-      (vehiculo.gastosTasas || 0) +
-      (vehiculo.gastosMecanica || 0) +
-      (vehiculo.gastosPintura || 0) +
-      (vehiculo.gastosLimpieza || 0) +
-      (vehiculo.gastosOtros || 0)
+      gastosTransporte +
+      gastosTasas +
+      gastosMecanica +
+      gastosPintura +
+      gastosLimpieza +
+      gastosOtros
+
     const precioCompra = vehiculo.precioCompra || 0
-    // Costo total = precio compra + todos los gastos (sin impuestos)
-    const costoTotal = precioCompra + totalGastos
+
+    // CN y Garantía se suma a los costos del vehículo (es un costo que se paga antes de la venta)
+    const gastosCNGarantia = vehiculo.gastosCNGarantia || 0
+
+    // Costo total = precio compra + todos los gastos + CN y Garantía
+    // CN y Garantía se incluye en el costo total porque es un costo que se paga antes de calcular impuestos
+    const costoTotal = precioCompra + totalGastos + gastosCNGarantia
     const precioVenta = vehiculo.precioVenta || 0
 
     // Calcular IVA: 21% de (precio venta - costo total)
+    // Costo total ahora incluye CN y Garantía
     const diferencia = precioVenta - costoTotal
-    const iva = diferencia * 0.21
+    const iva = Math.round(diferencia * 0.21 * 100) / 100
 
     // Calcular Impuesto Sociedades: 20% de (precio venta - costo total - IVA)
+    // Costo total ahora incluye CN y Garantía
     const baseImpuestoSociedades = diferencia - iva
-    const impuestoSociedades = baseImpuestoSociedades * 0.2
+    const impuestoSociedades =
+      Math.round(baseImpuestoSociedades * 0.2 * 100) / 100
 
     // Beneficio neto = precio venta - costo total - IVA - Impuesto Sociedades
+    // Costo total incluye CN y Garantía, así que no se resta por separado
     const beneficioNetoTotal =
       precioVenta - costoTotal - iva - impuestoSociedades
+    // Redondear beneficio neto total a 2 decimales
+    const beneficioNetoTotalRedondeado =
+      Math.round(beneficioNetoTotal * 100) / 100
 
     // Inversor se lleva el 50% del beneficio neto
-    const beneficioNeto = beneficioNetoTotal * 0.5
+    const beneficioNeto =
+      Math.round(beneficioNetoTotalRedondeado * 0.5 * 100) / 100
 
     // Calcular porcentaje de beneficio sobre costo total
     const porcentajeBeneficio =
@@ -249,6 +270,7 @@ export function InvestorVehicleCard({
       precioVenta,
       iva,
       impuestoSociedades,
+      gastosCNGarantia,
       beneficioNeto,
       porcentajeBeneficio,
       esBeneficio: beneficioNeto >= 0,
@@ -260,43 +282,13 @@ export function InvestorVehicleCard({
   // Funciones para gestionar archivos
   const fetchArchivos = async () => {
     try {
-      console.log(
-        `📁 [FRONTEND] Cargando archivos para vehículo ${vehiculo.id}`
-      )
       const response = await fetch(`/api/vehiculos/${vehiculo.id}/archivos`)
-      console.log(`📁 [FRONTEND] Response status:`, response.status)
-
       if (response.ok) {
         const data = await response.json()
-        console.log(`📁 [FRONTEND] Archivos recibidos:`, data)
-        console.log(
-          `📁 [FRONTEND] Tipo de datos:`,
-          Array.isArray(data) ? 'Array' : typeof data
-        )
-        console.log(
-          `📁 [FRONTEND] Cantidad:`,
-          Array.isArray(data) ? data.length : 'No es array'
-        )
-
-        // Asegurar que siempre sea un array
-        if (Array.isArray(data)) {
-          setArchivos(data)
-        } else {
-          console.error('❌ [FRONTEND] La respuesta no es un array:', data)
-          setArchivos([])
-        }
-      } else {
-        const errorText = await response.text()
-        console.error(
-          '❌ [FRONTEND] Error en respuesta:',
-          response.status,
-          errorText
-        )
-        setArchivos([])
+        setArchivos(data)
       }
     } catch (error) {
-      console.error('❌ [FRONTEND] Error al cargar archivos:', error)
-      setArchivos([])
+      console.error('Error al cargar archivos:', error)
     }
   }
 
@@ -380,30 +372,26 @@ export function InvestorVehicleCard({
 
   // Cargar archivos cuando se expande la sección
   const toggleArchivosSection = () => {
-    const willBeExpanded = !isArchivosExpanded
-    setIsArchivosExpanded(willBeExpanded)
-
-    // Si se está expandiendo y no hay archivos cargados, cargarlos
-    if (willBeExpanded && archivos.length === 0) {
-      console.log(`📁 [FRONTEND] Expandiendo sección, cargando archivos...`)
+    setIsArchivosExpanded(!isArchivosExpanded)
+    if (!isArchivosExpanded && archivos.length === 0) {
       fetchArchivos()
     }
   }
 
   return (
-    <div
-      className={`rounded-xl border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden bg-white border-gray-200`}
-    >
+    <div className="rounded-xl border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden bg-white border-gray-200">
       {/* Header con estado destacado */}
       <div
         className={`px-5 py-4 border-b ${
-          esDeposito
-            ? 'bg-gradient-to-r from-orange-200 to-orange-300 border-orange-300'
-            : esTipoR
-              ? 'bg-gradient-to-r from-red-200 to-red-300 border-red-300'
-              : esInversor
-                ? 'bg-gradient-to-r from-purple-200 to-purple-300 border-purple-300'
-                : 'bg-gradient-to-r from-green-200 to-green-300 border-green-300'
+          esVendido
+            ? 'bg-gradient-to-r from-gray-300 to-gray-400 border-gray-400 opacity-60 grayscale'
+            : esDeposito
+              ? 'bg-gradient-to-r from-orange-200 to-orange-300 border-orange-300'
+              : esTipoR
+                ? 'bg-gradient-to-r from-red-200 to-red-300 border-red-300'
+                : esInversor
+                  ? 'bg-gradient-to-r from-purple-200 to-purple-300 border-purple-300'
+                  : 'bg-gradient-to-r from-green-200 to-green-300 border-green-300'
         }`}
       >
         <div className="flex justify-between items-start">
@@ -524,9 +512,13 @@ export function InvestorVehicleCard({
               Estado Actual:
             </span>
             <span
-              className={`px-2 py-1 text-xs font-semibold rounded-full ${getEstadoColor(vehiculo.estado)}`}
+              className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                esVendido
+                  ? 'bg-red-600 text-white'
+                  : getEstadoColor(vehiculo.estado)
+              }`}
             >
-              {vehiculo.estado || 'Inicial'}
+              {esVendido ? 'VENDIDO' : vehiculo.estado || 'Inicial'}
             </span>
           </div>
           <div className="flex items-center space-x-2">
@@ -606,17 +598,17 @@ export function InvestorVehicleCard({
           </div>
         </div>
 
-        {/* Beneficio destacado para vehículos vendidos - Visible siempre */}
+        {/* Bloque de Beneficio Prominente (solo si está vendido) - Visible antes del acordeón */}
         {esVendido && vehiculo.precioVenta && (
-          <div className="mt-6 mb-6">
-            <div
-              className={`rounded-lg p-3 border-2 ${
-                valoresFiscales.esBeneficio
-                  ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-300'
-                  : 'bg-gradient-to-r from-red-50 to-rose-50 border-red-300'
-              }`}
-            >
-              <div className="flex justify-between items-center">
+          <div
+            className={`rounded-lg p-4 border-2 mb-6 ${
+              valoresFiscales.esBeneficio
+                ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-300'
+                : 'bg-gradient-to-r from-red-50 to-rose-50 border-red-300'
+            }`}
+          >
+            <div className="flex justify-between items-center">
+              <div className="flex flex-col">
                 <span
                   className={`text-base font-bold ${
                     valoresFiscales.esBeneficio
@@ -626,27 +618,28 @@ export function InvestorVehicleCard({
                 >
                   BENEFICIO:
                 </span>
-                <div className="text-right">
+                {valoresFiscales.porcentajeBeneficio > 0 && (
                   <span
-                    className={`font-bold text-xl ${
-                      valoresFiscales.esBeneficio
-                        ? 'text-green-700'
-                        : 'text-red-700'
-                    }`}
-                  >
-                    {formatCurrency(valoresFiscales.beneficioNeto)}
-                  </span>
-                  <span
-                    className={`text-sm ml-2 ${
+                    className={`text-xs mt-1 ${
                       valoresFiscales.esBeneficio
                         ? 'text-green-600'
                         : 'text-red-600'
                     }`}
                   >
-                    ({valoresFiscales.porcentajeBeneficio.toFixed(1)}%)
+                    ({valoresFiscales.porcentajeBeneficio.toFixed(1)}% sobre
+                    costo total)
                   </span>
-                </div>
+                )}
               </div>
+              <span
+                className={`font-bold text-2xl ${
+                  valoresFiscales.esBeneficio
+                    ? 'text-green-700'
+                    : 'text-red-700'
+                }`}
+              >
+                {formatCurrency(valoresFiscales.beneficioNeto)}
+              </span>
             </div>
           </div>
         )}
@@ -754,109 +747,141 @@ export function InvestorVehicleCard({
             {/* Contenido expandible del acordeón */}
             {isExpanded && (
               <div className="px-4 pb-4 space-y-4">
-                {/* Desglose de gastos */}
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="flex justify-between bg-white rounded px-2 py-1">
-                    <span className="text-gray-600">Precio compra:</span>
-                    <span className="font-semibold text-gray-900">
-                      {vehiculo.precioCompra
-                        ? formatCurrency(vehiculo.precioCompra)
-                        : '-'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between bg-white rounded px-2 py-1">
-                    <span className="text-gray-600">Transporte:</span>
-                    <span className="font-semibold text-gray-900">
-                      {vehiculo.gastosTransporte
-                        ? formatCurrency(vehiculo.gastosTransporte)
-                        : '-'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between bg-white rounded px-2 py-1">
-                    <span className="text-gray-600">Tasas/Gestoría:</span>
-                    <span className="font-semibold text-gray-900">
-                      {vehiculo.gastosTasas
-                        ? formatCurrency(vehiculo.gastosTasas)
-                        : '-'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between bg-white rounded px-2 py-1">
-                    <span className="text-gray-600">Mecánica:</span>
-                    <span className="font-semibold text-gray-900">
-                      {vehiculo.gastosMecanica
-                        ? formatCurrency(vehiculo.gastosMecanica)
-                        : '-'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between bg-white rounded px-2 py-1">
-                    <span className="text-gray-600">Pintura:</span>
-                    <span className="font-semibold text-gray-900">
-                      {vehiculo.gastosPintura
-                        ? formatCurrency(vehiculo.gastosPintura)
-                        : '-'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between bg-white rounded px-2 py-1">
-                    <span className="text-gray-600">Limpieza:</span>
-                    <span className="font-semibold text-gray-900">
-                      {vehiculo.gastosLimpieza
-                        ? formatCurrency(vehiculo.gastosLimpieza)
-                        : '-'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between bg-white rounded px-2 py-1">
-                    <span className="text-gray-600">Otros:</span>
-                    <span className="font-semibold text-gray-900">
-                      {vehiculo.gastosOtros
-                        ? formatCurrency(vehiculo.gastosOtros)
-                        : '-'}
-                    </span>
-                  </div>
-                </div>
-
                 {/* Información de venta si está vendido */}
                 {esVendido && vehiculo.precioVenta && (
                   <>
-                    {/* Resumen de costos */}
-                    <div className="space-y-2">
-                      {/* Costo total */}
-                      <div className="flex justify-between bg-gray-100 rounded px-3 py-1.5 border border-gray-200">
-                        <span className="text-xs font-semibold text-gray-700">
-                          Costo total:
+                    {/* Bloque Gastos de Compra (azul) */}
+                    <div className="space-y-2 bg-blue-50 rounded-lg p-3 border-2 border-blue-300">
+                      <h4 className="text-sm font-bold text-blue-800 mb-2 flex items-center gap-2">
+                        <span className="text-base">💰</span>
+                        Gastos de Compra
+                      </h4>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="flex justify-between bg-blue-100 rounded px-2 py-1.5 border border-blue-200">
+                          <span className="text-blue-700 font-medium">
+                            Precio compra:
+                          </span>
+                          <span className="font-bold text-blue-900">
+                            {formatCurrency(vehiculo.precioCompra || 0)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between bg-blue-100 rounded px-2 py-1.5 border border-blue-200">
+                          <span className="text-blue-700 font-medium">
+                            Transporte:
+                          </span>
+                          <span className="font-bold text-blue-900">
+                            {formatCurrency(vehiculo.gastosTransporte || 0)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between bg-blue-100 rounded px-2 py-1.5 border border-blue-200">
+                          <span className="text-blue-700 font-medium">
+                            Tasas/Gestoría:
+                          </span>
+                          <span className="font-bold text-blue-900">
+                            {formatCurrency(vehiculo.gastosTasas || 0)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between bg-blue-100 rounded px-2 py-1.5 border border-blue-200">
+                          <span className="text-blue-700 font-medium">
+                            Mecánica:
+                          </span>
+                          <span className="font-bold text-blue-900">
+                            {formatCurrency(vehiculo.gastosMecanica || 0)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between bg-blue-100 rounded px-2 py-1.5 border border-blue-200">
+                          <span className="text-blue-700 font-medium">
+                            Pintura:
+                          </span>
+                          <span className="font-bold text-blue-900">
+                            {formatCurrency(vehiculo.gastosPintura || 0)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between bg-blue-100 rounded px-2 py-1.5 border border-blue-200">
+                          <span className="text-blue-700 font-medium">
+                            Limpieza:
+                          </span>
+                          <span className="font-bold text-blue-900">
+                            {formatCurrency(vehiculo.gastosLimpieza || 0)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between bg-blue-100 rounded px-2 py-1.5 border border-blue-200">
+                          <span className="text-blue-700 font-medium">
+                            Otros:
+                          </span>
+                          <span className="font-bold text-blue-900">
+                            {formatCurrency(vehiculo.gastosOtros || 0)}
+                          </span>
+                        </div>
+                        {/* CN y Garantía - incluido en costos de compra */}
+                        {vehiculo.gastosCNGarantia && (
+                          <div className="flex justify-between bg-blue-100 rounded px-2 py-1.5 border border-blue-200">
+                            <span className="text-blue-700 font-medium">
+                              CN y Garantía:
+                            </span>
+                            <span className="font-bold text-blue-900">
+                              {formatCurrency(vehiculo.gastosCNGarantia)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      {/* Total costos compra */}
+                      <div className="flex justify-between bg-blue-200 rounded-md px-3 py-2.5 border-2 border-blue-400 mt-3 shadow-sm">
+                        <span className="text-sm font-bold text-blue-900">
+                          Total costos compra:
                         </span>
-                        <span className="text-xs font-bold text-gray-900">
+                        <span className="text-sm font-bold text-blue-900">
                           {formatCurrency(valoresFiscales.costoTotal)}
                         </span>
                       </div>
+                    </div>
 
-                      {/* Precio venta */}
-                      <div className="flex justify-between bg-gray-100 rounded px-3 py-1.5 border border-gray-200">
-                        <span className="text-xs font-semibold text-gray-700">
+                    {/* Bloque Gastos de Venta (naranja) */}
+                    <div className="space-y-2 bg-orange-50 rounded-lg p-3 border-2 border-orange-300">
+                      {/* Precio de venta */}
+                      <div className="flex justify-between bg-orange-100 rounded-md px-3 py-2 border-2 border-orange-200 mb-2">
+                        <span className="text-sm font-bold text-orange-800">
                           Precio venta:
                         </span>
-                        <span className="text-xs font-bold text-gray-900">
+                        <span className="text-sm font-bold text-orange-900">
                           {formatCurrency(valoresFiscales.precioVenta)}
                         </span>
                       </div>
-
-                      {/* IVA e Impuesto Sociedades en dos columnas */}
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="flex justify-between bg-gray-100 rounded px-3 py-1.5 border border-gray-200">
-                          <span className="text-xs font-semibold text-gray-700">
+                      <h4 className="text-sm font-bold text-orange-800 mb-2 flex items-center gap-2">
+                        <span className="text-base">💸</span>
+                        Gastos de Venta
+                      </h4>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        {/* IVA */}
+                        <div className="flex justify-between bg-orange-100 rounded px-2 py-1.5 border border-orange-200">
+                          <span className="text-orange-700 font-medium">
                             IVA:
                           </span>
-                          <span className="text-xs font-bold text-gray-900">
+                          <span className="font-bold text-orange-900">
                             {formatCurrency(valoresFiscales.iva)}
                           </span>
                         </div>
-                        <div className="flex justify-between bg-gray-100 rounded px-3 py-1.5 border border-gray-200">
-                          <span className="text-xs font-semibold text-gray-700">
+                        {/* Impuesto Sociedades */}
+                        <div className="flex justify-between bg-orange-100 rounded px-2 py-1.5 border border-orange-200">
+                          <span className="text-orange-700 font-medium">
                             Impuesto Sociedades:
                           </span>
-                          <span className="text-xs font-bold text-gray-900">
+                          <span className="font-bold text-orange-900">
                             {formatCurrency(valoresFiscales.impuestoSociedades)}
                           </span>
                         </div>
+                      </div>
+                      {/* Total gastos venta (solo IVA + Impuesto Sociedades, CN y Garantía está en costo total) */}
+                      <div className="flex justify-between bg-orange-200 rounded-md px-3 py-2.5 border-2 border-orange-400 mt-3 shadow-sm">
+                        <span className="text-sm font-bold text-orange-900">
+                          Total gastos venta (IVA + Imp. Soc.):
+                        </span>
+                        <span className="text-sm font-bold text-orange-900">
+                          {formatCurrency(
+                            (valoresFiscales.iva || 0) +
+                              (valoresFiscales.impuestoSociedades || 0)
+                          )}
+                        </span>
                       </div>
                     </div>
 
@@ -1090,7 +1115,7 @@ export function InvestorVehicleCard({
           </div>
         </div>
 
-        {/* Foto del vehículo - Siempre visible, debajo de Archivos */}
+        {/* Foto siempre visible (debajo de archivos) */}
         <div className="mt-4">
           {vehiculo.fotoInversor || localPhotoUrl ? (
             <div
@@ -1149,7 +1174,7 @@ export function InvestorVehicleCard({
             </div>
           )}
 
-          {/* Input oculto para carga de archivos de foto */}
+          {/* Input oculto para carga de archivos */}
           <input
             ref={fileInputRef}
             type="file"

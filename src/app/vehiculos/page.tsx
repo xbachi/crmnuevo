@@ -727,8 +727,10 @@ export default function ListaVehiculos() {
         esCocheInversor: editFormData.tipo === 'Inversor',
         inversorId:
           editFormData.tipo === 'Inversor'
-            ? parseInt(editFormData.inversorId)
-            : undefined,
+            ? editFormData.inversorId && editFormData.inversorId !== ''
+              ? parseInt(editFormData.inversorId)
+              : null
+            : null,
       }
 
       // console.log('📤 Enviando a API:', updatedVehiculo)
@@ -1927,14 +1929,13 @@ export default function ListaVehiculos() {
                         htmlFor="edit-inversor"
                         className="block text-sm font-semibold text-slate-700"
                       >
-                        Inversor *
+                        Inversor
                       </label>
                       <select
                         id="edit-inversor"
                         name="inversorId"
                         value={editFormData.inversorId}
                         onChange={handleEditInputChange}
-                        required={editFormData.tipo === 'Inversor'}
                         className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white/80 backdrop-blur-sm transition-all duration-300"
                       >
                         <option value="">Seleccionar inversor...</option>

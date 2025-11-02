@@ -1,11 +1,38 @@
 [
   {
-    "id": "1762085184647",
-    "name": "e3d4d218-85be-4156-a3be-f8428340ad94.pdf",
-    "fileName": "1762085184647-e3d4d218-85be-4156-a3be-f8428340ad94.pdf",
-    "size": 626770,
+    "id": "1762087189721",
+    "name": "cambio-nombre.pdf",
+    "fileName": "1762087189721-cambio-nombre.pdf",
+    "size": 160676,
     "type": "application/pdf",
-    "uploadDate": "2025-11-02T12:06:24.651Z",
-    "path": "/uploads/vehiculos/275/1762085184647-e3d4d218-85be-4156-a3be-f8428340ad94.pdf"
+    "uploadDate": "2025-11-02T12:39:49.723Z",
+    "path": "/uploads/vehiculos/275/1762087189721-cambio-nombre.pdf"
+  },
+  {
+    "id": "1762087189902",
+    "name": "Factura-7793LPD.pdf",
+    "fileName": "1762087189902-Factura-7793LPD.pdf",
+    "size": 124453,
+    "type": "application/pdf",
+    "uploadDate": "2025-11-02T12:39:49.928Z",
+    "path": "/uploads/vehiculos/275/1762087189902-Factura-7793LPD.pdf"
+  },
+  {
+    "id": "1762087190143",
+    "name": "factura-mecauto.pdf",
+    "fileName": "1762087190143-factura-mecauto.pdf",
+    "size": 100398,
+    "type": "application/pdf",
+    "uploadDate": "2025-11-02T12:39:50.169Z",
+    "path": "/uploads/vehiculos/275/1762087190143-factura-mecauto.pdf"
+  },
+  {
+    "id": "1762087190385",
+    "name": "factura-pintura.pdf",
+    "fileName": "1762087190385-factura-pintura.pdf",
+    "size": 77427,
+    "type": "application/pdf",
+    "uploadDate": "2025-11-02T12:39:50.412Z",
+    "path": "/uploads/vehiculos/275/1762087190385-factura-pintura.pdf"
   }
 ]

@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Inversor } from '@/lib/database'
-import { Vehiculo } from '@/lib/direct-database'
+import { Inversor, Vehiculo } from '@/lib/direct-database'
 import { InvestorMetrics } from '@/components/InvestorMetrics'
 import { InvestorVehicleCard } from '@/components/InvestorVehicleCard'
 import { useSimpleToast } from '@/hooks/useSimpleToast'
@@ -39,7 +38,7 @@ export default function InvestorDashboardPage() {
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards')
   const [searchTerm, setSearchTerm] = useState('')
   const [estadoFilter, setEstadoFilter] = useState('')
-  const [stockFilter, setStockFilter] = useState('activos')
+  const [stockFilter, setStockFilter] = useState('activos') // Por defecto mostrar activos
   const [periodo, setPeriodo] = useState('all')
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -83,63 +82,9 @@ export default function InvestorDashboardPage() {
   // Verificar si el usuario actual es un inversor autenticado
   const isInvestorUser = inversor && inversor.id === parseInt(inversorId)
 
-  // Calcular beneficio acumulado usando la nueva fórmula del 50%
-  const calculateBeneficioAcumulado = () => {
-    const vendidos = vehiculos.filter((v) => {
-      const estadoNormalized = v.estado?.toLowerCase().trim() || ''
-      return estadoNormalized === 'vendido'
-    })
-
-    let totalBeneficio = 0
-    for (const vehiculo of vendidos) {
-      if (!vehiculo.precioVenta) continue
-
-      // Calcular según la misma fórmula que InvestorVehicleCard
-      const totalGastos =
-        (vehiculo.gastosTransporte || 0) +
-        (vehiculo.gastosTasas || 0) +
-        (vehiculo.gastosMecanica || 0) +
-        (vehiculo.gastosPintura || 0) +
-        (vehiculo.gastosLimpieza || 0) +
-        (vehiculo.gastosOtros || 0)
-      const precioCompra = vehiculo.precioCompra || 0
-      const costoTotal = precioCompra + totalGastos
-      const precioVenta = vehiculo.precioVenta
-
-      // Calcular IVA: 21% de (precio venta - costo total)
-      const diferencia = precioVenta - costoTotal
-      const iva = diferencia * 0.21
-
-      // Calcular Impuesto Sociedades: 20% de (precio venta - costo total - IVA)
-      const baseImpuestoSociedades = diferencia - iva
-      const impuestoSociedades = baseImpuestoSociedades * 0.2
-
-      // Beneficio neto = precio venta - costo total - IVA - Impuesto Sociedades
-      const beneficioNetoTotal =
-        precioVenta - costoTotal - iva - impuestoSociedades
-
-      // Inversor se lleva el 50% del beneficio neto
-      const beneficioNeto = beneficioNetoTotal * 0.5
-
-      totalBeneficio += beneficioNeto
-    }
-
-    return totalBeneficio
-  }
-
-  // Calcular ROI basado en capital aportado
-  const calculateROI = () => {
-    const beneficioAcumulado = calculateBeneficioAcumulado()
-    const capitalAportado = inversorData?.capitalAportado || 0
-    return capitalAportado > 0
-      ? (beneficioAcumulado / capitalAportado) * 100
-      : 0
-  }
-
   const calculateAnnualizedROI = () => {
-    if (!inversorData?.fechaAporte) return 0
+    if (!inversorData?.fechaAporte || !metrics?.roi) return 0
 
-    const roi = calculateROI()
     const fechaInversion = new Date(inversorData.fechaAporte)
     const ahora = new Date()
     const diasTranscurridos = Math.floor(
@@ -147,9 +92,9 @@ export default function InvestorDashboardPage() {
     )
     const añosTranscurridos = diasTranscurridos / 365
 
-    if (añosTranscurridos <= 0) return roi
+    if (añosTranscurridos <= 0) return metrics.roi
 
-    return (Math.pow(1 + roi / 100, 1 / añosTranscurridos) - 1) * 100
+    return (Math.pow(1 + metrics.roi / 100, 1 / añosTranscurridos) - 1) * 100
   }
 
   const fetchData = async () => {
@@ -510,7 +455,6 @@ export default function InvestorDashboardPage() {
     // Normalizar estado a minúsculas para comparación
     const estadoNormalized = vehiculo.estado?.toLowerCase().trim() || ''
     const matchesStock =
-      !stockFilter ||
       (stockFilter === 'activos' && estadoNormalized !== 'vendido') ||
       (stockFilter === 'vendidos' && estadoNormalized === 'vendido')
 
@@ -1015,7 +959,10 @@ export default function InvestorDashboardPage() {
                               </span>
                             </div>
                             <span className="font-bold text-green-700 text-lg">
-                              €{calculateBeneficioAcumulado().toLocaleString()}
+                              €
+                              {(
+                                metrics.beneficioAcumulado || 0
+                              ).toLocaleString()}
                             </span>
                           </div>
                           <div className="flex items-center justify-between bg-white rounded-lg p-3 border border-gray-200">
@@ -1040,7 +987,7 @@ export default function InvestorDashboardPage() {
                               </span>
                             </div>
                             <span className="font-bold text-blue-700 text-lg">
-                              {calculateROI().toFixed(1)}%
+                              {(metrics.roi || 0).toFixed(1)}%
                             </span>
                           </div>
                           <div className="flex items-center justify-between bg-white rounded-lg p-3 border border-gray-200">
@@ -1097,7 +1044,7 @@ export default function InvestorDashboardPage() {
 
                   {/* Botones de filtro y controles - 60% del espacio */}
                   <div className="lg:w-3/5 flex flex-row items-center justify-between space-x-2">
-                    {/* Botones de filtro Activos/Vendidos */}
+                    {/* Botones de filtro Todos/Activos/Vendidos */}
                     <div className="flex space-x-1 lg:space-x-2">
                       <button
                         onClick={() => setStockFilter('activos')}

@@ -973,6 +973,18 @@ export async function updateVehiculo(
       ) {
         return null
       }
+      // Asegurar que inversorId se maneje correctamente (puede venir como string, número o null)
+      if (field === 'inversorId') {
+        if (value === null || value === undefined || value === '') {
+          return null
+        }
+        // Convertir string a número si es necesario
+        return typeof value === 'string'
+          ? value.trim() !== ''
+            ? parseInt(value)
+            : null
+          : value
+      }
       return value
     })
     const setClause = fields
@@ -1682,9 +1694,10 @@ export async function getInversorMetrics(inversorId: number) {
     const capitalInvertidoReal = parseFloat(metrics.total_costo_real) || 0 // Capital realmente invertido en vehículos
     const capitalDisponible = capitalAportado - capitalInvertidoReal // Puede ser negativo
     const beneficioAcumulado = parseFloat(metrics.beneficio_total) || 0
-    // ROI: beneficio vs capital aportado (no capital invertido)
     const roi =
-      capitalAportado > 0 ? (beneficioAcumulado / capitalAportado) * 100 : 0
+      capitalInvertidoReal > 0
+        ? (beneficioAcumulado / capitalInvertidoReal) * 100
+        : 0
 
     return {
       beneficioAcumulado: beneficioAcumulado,

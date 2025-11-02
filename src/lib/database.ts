@@ -35,6 +35,7 @@ export interface Vehiculo {
   gastosPintura?: number
   gastosLimpieza?: number
   gastosOtros?: number
+  gastosCNGarantia?: number
   precioPublicacion?: number
   precioVenta?: number
   beneficioNeto?: number
