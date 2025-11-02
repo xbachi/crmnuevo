@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { writeFile, mkdir, readFile, unlink } from 'fs/promises'
 import { join } from 'path'
+import { del } from '@vercel/blob'
 
 const METADATA_FILE = 'archivos-metadata.json'
+const USE_BLOB_STORAGE = process.env.VERCEL || process.env.VERCEL_ENV
 
 async function loadMetadata(vehiculoId: number) {
   try {
@@ -48,16 +50,14 @@ export async function DELETE(
     const vehiculoId = parseInt(id)
 
     console.log(
-      `🗑️ [VEHICULO DELETE] Eliminando archivo ${fileId} del vehículo ${vehiculoId}`
+      `🗑️ [VEHICULO DELETE] Eliminando archivo ${fileId} del vehículo ${vehiculoId}, Blob: ${USE_BLOB_STORAGE}`
     )
 
-    // Cargar metadatos existentes
     const existingMetadata = await loadMetadata(vehiculoId)
-
-    // Buscar el archivo a eliminar
     const fileIndex = existingMetadata.findIndex((f: any) => f.id === fileId)
+
     if (fileIndex === -1) {
-      console.error('❌ [VEHICULO DELETE] Archivo no encontrado en metadatos')
+      console.error('❌ [VEHICULO DELETE] Archivo no encontrado')
       return NextResponse.json(
         { error: 'Archivo no encontrado' },
         { status: 404 }
@@ -66,24 +66,28 @@ export async function DELETE(
 
     const fileToDelete = existingMetadata[fileIndex]
 
-    // Intentar eliminar el archivo físico
-    try {
-      const filePath = join(process.cwd(), 'public', fileToDelete.path)
-      await unlink(filePath)
-      console.log(`✅ [VEHICULO DELETE] Archivo físico eliminado: ${filePath}`)
-    } catch (unlinkError) {
-      console.warn(
-        `⚠️ [VEHICULO DELETE] No se pudo eliminar el archivo físico:`,
-        unlinkError
-      )
-      // Continuar con la eliminación de metadatos aunque falle la eliminación física
+    if (USE_BLOB_STORAGE) {
+      // Producción: eliminar de Vercel Blob
+      const blobUrl = fileToDelete.path
+      await del(blobUrl)
+      console.log(`✅ [VEHICULO DELETE] Archivo eliminado de Blob: ${blobUrl}`)
+    } else {
+      // Desarrollo: eliminar de filesystem
+      try {
+        const filePath = join(process.cwd(), 'public', fileToDelete.path)
+        await unlink(filePath)
+        console.log(`✅ [VEHICULO DELETE] Archivo eliminado: ${filePath}`)
+      } catch (unlinkError) {
+        console.warn(
+          `⚠️ [VEHICULO DELETE] No se pudo eliminar archivo:`,
+          unlinkError
+        )
+      }
+
+      existingMetadata.splice(fileIndex, 1)
+      await saveMetadata(vehiculoId, existingMetadata)
+      console.log(`✅ [VEHICULO DELETE] Metadatos actualizados`)
     }
-
-    // Eliminar de metadatos
-    existingMetadata.splice(fileIndex, 1)
-    await saveMetadata(vehiculoId, existingMetadata)
-
-    console.log(`✅ [VEHICULO DELETE] Archivo eliminado de metadatos`)
 
     return NextResponse.json({
       success: true,

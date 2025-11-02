@@ -1,23 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { writeFile, mkdir, readFile, unlink } from 'fs/promises'
 import { join } from 'path'
+import { put, list, del } from '@vercel/blob'
 
 const METADATA_FILE = 'archivos-metadata.json'
+const USE_BLOB_STORAGE = process.env.VERCEL || process.env.VERCEL_ENV
 
 async function loadMetadata(vehiculoId: number) {
   try {
-    const metadataDir = join(
-      process.cwd(),
-      'public',
-      'uploads',
-      'vehiculos',
-      vehiculoId.toString()
-    )
-    await mkdir(metadataDir, { recursive: true })
-    const metadataPath = join(metadataDir, METADATA_FILE)
-    const data = await readFile(metadataPath, 'utf-8')
-    return JSON.parse(data)
+    if (USE_BLOB_STORAGE) {
+      // En producción, cargar desde Vercel Blob
+      const prefix = `vehiculos/${vehiculoId}/`
+      const { blobs } = await list({ prefix })
+
+      return blobs.map((blob) => ({
+        id:
+          blob.path.split('/').pop()?.split('-')[0] ||
+          blob.uploadedAt.toString(),
+        name: blob.path.split('/').pop()?.replace(/^\d+-/, '') || 'unknown',
+        fileName: blob.path.split('/').pop() || 'unknown',
+        size: blob.size,
+        type: blob.contentType || 'application/octet-stream',
+        uploadDate: blob.uploadedAt.toISOString(),
+        path: blob.url,
+      }))
+    } else {
+      // En desarrollo, cargar desde filesystem
+      const metadataDir = join(
+        process.cwd(),
+        'public',
+        'uploads',
+        'vehiculos',
+        vehiculoId.toString()
+      )
+      await mkdir(metadataDir, { recursive: true })
+      const metadataPath = join(metadataDir, METADATA_FILE)
+      const data = await readFile(metadataPath, 'utf-8')
+      return JSON.parse(data)
+    }
   } catch (error) {
+    console.error('Error loading metadata:', error)
     return []
   }
 }
@@ -82,56 +104,81 @@ export async function POST(
     }
 
     console.log(
-      `📁 [VEHICULO UPLOAD] Archivo: ${file.name}, Vehículo: ${vehiculoId}`
+      `📁 [VEHICULO UPLOAD] Archivo: ${file.name}, Vehículo: ${vehiculoId}, Blob: ${USE_BLOB_STORAGE}`
     )
 
-    // Crear directorio si no existe
-    const uploadDir = join(
-      process.cwd(),
-      'public',
-      'uploads',
-      'vehiculos',
-      vehiculoId.toString()
-    )
-    await mkdir(uploadDir, { recursive: true })
-
-    // Generar nombre único para el archivo
     const timestamp = Date.now()
     const fileExtension = file.name.split('.').pop()
     const uniqueFileName = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
-    const filePath = join(uploadDir, uniqueFileName)
 
-    // Guardar archivo
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
-    await writeFile(filePath, buffer)
+    if (USE_BLOB_STORAGE) {
+      // Producción: subir a Vercel Blob
+      const blob = await put(
+        `vehiculos/${vehiculoId}/${uniqueFileName}`,
+        file,
+        {
+          access: 'public',
+          contentType: file.type,
+        }
+      )
 
-    console.log(`✅ [VEHICULO UPLOAD] Archivo guardado en: ${filePath}`)
+      console.log(`✅ [VEHICULO UPLOAD] Archivo subido a Blob: ${blob.url}`)
 
-    // Cargar metadatos existentes
-    const existingMetadata = await loadMetadata(vehiculoId)
+      const newFileMetadata = {
+        id: timestamp.toString(),
+        name: file.name,
+        fileName: uniqueFileName,
+        size: file.size,
+        type: file.type,
+        uploadDate: new Date().toISOString(),
+        path: blob.url,
+      }
 
-    // Agregar nuevo archivo a metadatos
-    const newFileMetadata = {
-      id: Date.now().toString(),
-      name: file.name,
-      fileName: uniqueFileName,
-      size: file.size,
-      type: file.type,
-      uploadDate: new Date().toISOString(),
-      path: `/uploads/vehiculos/${vehiculoId}/${uniqueFileName}`,
+      return NextResponse.json({
+        success: true,
+        message: 'Archivo subido exitosamente',
+        file: newFileMetadata,
+      })
+    } else {
+      // Desarrollo: guardar en filesystem
+      const uploadDir = join(
+        process.cwd(),
+        'public',
+        'uploads',
+        'vehiculos',
+        vehiculoId.toString()
+      )
+      await mkdir(uploadDir, { recursive: true })
+      const filePath = join(uploadDir, uniqueFileName)
+
+      const bytes = await file.arrayBuffer()
+      const buffer = Buffer.from(bytes)
+      await writeFile(filePath, buffer)
+
+      console.log(`✅ [VEHICULO UPLOAD] Archivo guardado en: ${filePath}`)
+
+      const existingMetadata = await loadMetadata(vehiculoId)
+      const newFileMetadata = {
+        id: timestamp.toString(),
+        name: file.name,
+        fileName: uniqueFileName,
+        size: file.size,
+        type: file.type,
+        uploadDate: new Date().toISOString(),
+        path: `/uploads/vehiculos/${vehiculoId}/${uniqueFileName}`,
+      }
+
+      existingMetadata.push(newFileMetadata)
+      await saveMetadata(vehiculoId, existingMetadata)
+
+      console.log(`✅ [VEHICULO UPLOAD] Metadatos actualizados`)
+
+      return NextResponse.json({
+        success: true,
+        message: 'Archivo subido exitosamente',
+        file: newFileMetadata,
+      })
     }
-
-    existingMetadata.push(newFileMetadata)
-    await saveMetadata(vehiculoId, existingMetadata)
-
-    console.log(`✅ [VEHICULO UPLOAD] Metadatos actualizados`)
-
-    return NextResponse.json({
-      success: true,
-      message: 'Archivo subido exitosamente',
-      file: newFileMetadata,
-    })
   } catch (error) {
     console.error('❌ [VEHICULO UPLOAD] Error:', error)
     return NextResponse.json(

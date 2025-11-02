@@ -2,6 +2,8 @@
 
 ## 📁 Ubicación de Archivos
 
+### Desarrollo Local
+
 Los archivos se almacenan en:
 
 ```
@@ -11,60 +13,62 @@ public/uploads/vehiculos/[vehiculoId]/
 └── archivos-metadata.json (metadatos)
 ```
 
+### Producción (Vercel)
+
+Los archivos se almacenan en **Vercel Blob Storage**:
+
+- URL: `https://[project].public.blob.vercel-storage.com/vehiculos/[vehiculoId]/[filename]`
+- Automáticamente servidos por Vercel
+- Persistentes entre deploys
+- **1GB gratis** incluido en Vercel
+
 ## 🔄 Flujo de Funcionamiento
 
 ### 1. **Desarrollo Local**
 
 - Los archivos se guardan físicamente en `public/uploads/vehiculos/[vehiculoId]/`
-- Los metadatos se guardan en `archivos-metadata.json` en la misma carpeta
-- **Después de subir archivos**, debes commitearlos a Git manualmente:
-  ```bash
-  git add public/uploads/vehiculos/
-  git commit -m "feat: agregar archivos para vehículo X"
-  git push
-  ```
+- Los metadatos se guardan en `archivos-metadata.json`
+- Funciona sin configuración adicional
 
 ### 2. **Producción (Vercel)**
 
-- Los archivos ya están en el repositorio Git
-- Se sirven como archivos estáticos desde `public/uploads/`
-- **NO se pueden subir archivos nuevos en producción** (filesystem es read-only)
-- Todos los archivos deben estar commitados antes del deploy
+- Los archivos se suben automáticamente a **Vercel Blob Storage**
+- Se pueden subir archivos nuevos **en cualquier momento** desde el CRM
+- Los archivos persisten automáticamente entre deploys
+- **No requiere configurar nada adicional** - Vercel detecta `@vercel/blob` automáticamente
+- Los archivos se sirven con URLs CDN optimizadas
 
 ## ✅ Ventajas de este Sistema
 
-1. **Simplicidad**: No requiere configuración adicional de almacenamiento
-2. **Gratuito**: No hay costos de almacenamiento en la nube
-3. **Acceso directo**: Archivos servidos directamente por Vercel
-4. **Versionado**: Los archivos están versionados en Git
-5. **Buscable**: Los metadatos permiten buscar y filtrar
+1. **Híbrido**: Filesystem en desarrollo, Blob Storage en producción
+2. **Subida en producción**: Puedes agregar facturas desde el CRM en producción
+3. **Persistencia**: Los archivos nunca se borran entre deploys
+4. **Automático**: No requiere configuración manual en Vercel
+5. **Gratuito**: Vercel Blob incluye 1GB gratis
+6. **CDN**: Los archivos se sirven desde la CDN global de Vercel
 
-## ⚠️ Limitaciones
+## 🔧 Uso del Sistema
 
-1. **No subida en producción**: Los archivos nuevos solo se pueden agregar localmente
-2. **Tamaño del repositorio**: Muchos archivos grandes pueden hacer crecer el repo
-3. **Workflow manual**: Requiere commitear archivos a Git después de subirlos
+### Administrador
 
-## 🔧 Workflow Recomendado
+1. Accede al perfil del inversor en el CRM
+2. Abre la tarjeta del vehículo
+3. Expande la sección "Archivos"
+4. Haz clic en "Subir Archivo"
+5. Selecciona el archivo (PDF, JPG, etc.)
+6. El archivo se sube automáticamente y permanece disponible para siempre
 
-### Cuando agregues archivos:
+### Inversor
 
-1. **Sube el archivo** desde la interfaz del CRM (solo funciona en local)
-2. **Commitéalos a Git**:
-   ```bash
-   git add public/uploads/vehiculos/[vehiculoId]/
-   git commit -m "docs: agregar facturas para vehículo [referencia]"
-   git push
-   ```
-3. **Espera el deploy** automático en Vercel (o haz deploy manual)
-
-### Para inversores en producción:
-
-- Los archivos ya están disponibles automáticamente
-- Solo pueden **descargarlos**, no subirlos
-- Los archivos están siempre disponibles, no se borran
+1. Accede a su perfil en el CRM
+2. Ve sus vehículos en el dashboard
+3. Abre un vehículo específico
+4. Expande la sección "Archivos"
+5. Descarga las facturas de costes cuando las necesite
 
 ## 📝 Estructura de Metadatos
+
+**Desarrollo:**
 
 ```json
 [
@@ -80,13 +84,45 @@ public/uploads/vehiculos/[vehiculoId]/
 ]
 ```
 
-## 🚀 Para Migrar a Almacenamiento en la Nube (Futuro)
+**Producción:**
 
-Si necesitas subir archivos en producción, considera:
+```json
+[
+  {
+    "id": "1762084644620",
+    "name": "nombre-original.pdf",
+    "fileName": "1762084644620-nombre-original.pdf",
+    "size": 626770,
+    "type": "application/pdf",
+    "uploadDate": "2025-11-02T12:04:04.620Z",
+    "path": "https://project.public.blob.vercel-storage.com/vehiculos/278/..."
+  }
+]
+```
 
-- **Supabase Storage**
-- **AWS S3**
-- **Cloudinary**
-- **Vercel Blob Storage**
+## 🔑 Permisos
 
-Esto requeriría refactorizar los endpoints de archivos para usar la API de almacenamiento en la nube en lugar del sistema de archivos local.
+- **Administrador**: Puede subir, ver, descargar y eliminar archivos
+- **Inversor**: Solo puede ver y descargar archivos
+- Los inversores no pueden subir ni eliminar archivos
+
+## ⚡ Rendimiento
+
+- **CDN**: Archivos servidos desde edge locations cercanas al usuario
+- **Optimización**: Vercel optimiza automáticamente las imágenes
+- **Escalabilidad**: Maneja miles de archivos sin problemas
+
+## 💰 Costos
+
+- **Gratis hasta 1GB**: Incluido en el plan gratuito de Vercel
+- **Después**: $0.15/GB mes para almacenamiento adicional
+- **Transferencia**: Incluida en el plan de Vercel
+
+## 🔄 Migración desde el Sistema Anterior
+
+Si ya tienes archivos en `public/uploads/vehiculos/`:
+
+1. Los archivos existentes siguen funcionando
+2. Los nuevos archivos se suben automáticamente a Blob Storage en producción
+3. No necesitas migrar nada manualmente
+4. El sistema funciona automáticamente en ambos entornos
