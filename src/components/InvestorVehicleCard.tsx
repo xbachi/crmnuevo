@@ -557,6 +557,40 @@ export function InvestorVehicleCard({
           </div>
         </div>
 
+        {/* Beneficio destacado para vehículos vendidos - Visible siempre */}
+        {esVendido && vehiculo.precioVenta && (
+          <div className="mt-4">
+            <div
+              className={`rounded-lg p-3 border-2 ${
+                valoresFiscales.esBeneficio
+                  ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-300'
+                  : 'bg-gradient-to-r from-red-50 to-rose-50 border-red-300'
+              }`}
+            >
+              <div className="flex justify-between items-center">
+                <span
+                  className={`text-base font-bold ${
+                    valoresFiscales.esBeneficio
+                      ? 'text-green-800'
+                      : 'text-red-800'
+                  }`}
+                >
+                  BENEFICIO:
+                </span>
+                <span
+                  className={`font-bold text-xl ${
+                    valoresFiscales.esBeneficio
+                      ? 'text-green-700'
+                      : 'text-red-700'
+                  }`}
+                >
+                  {formatCurrency(valoresFiscales.beneficioNeto)}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Acordeón de Desglose de Gastos */}
         <div className="space-y-4">
           {/* Mensaje informativo si faltan datos financieros */}
