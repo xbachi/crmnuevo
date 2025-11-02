@@ -149,13 +149,6 @@ export default function Home() {
     return `${day}/${month}/${year}`
   }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-ES', {
-      style: 'currency',
-      currency: 'EUR',
-    }).format(amount)
-  }
-
   const getEstadoColor = (estado: string) => {
     switch (estado.toLowerCase()) {
       case 'completado':

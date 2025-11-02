@@ -7,6 +7,7 @@ import {
   formatVehicleReference,
   formatVehicleReferenceShort,
   capitalizeText,
+  formatCurrency,
 } from '@/lib/utils'
 
 interface InvestorVehicleCardProps {
@@ -183,13 +184,6 @@ export function InvestorVehicleCard({
     return (
       estados[estado as keyof typeof estados] || 'bg-gray-100 text-gray-800'
     )
-  }
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-ES', {
-      style: 'currency',
-      currency: 'EUR',
-    }).format(amount)
   }
 
   const calcularDiasEnStock = () => {
@@ -814,16 +808,14 @@ export function InvestorVehicleCard({
                           </span>
                         </div>
                         {/* CN y Garantía - incluido en costos de compra */}
-                        {vehiculo.gastosCNGarantia && (
-                          <div className="flex justify-between bg-blue-100 rounded px-2 py-1.5 border border-blue-200">
-                            <span className="text-blue-700 font-medium">
-                              CN y Garantía:
-                            </span>
-                            <span className="font-bold text-blue-900">
-                              {formatCurrency(vehiculo.gastosCNGarantia)}
-                            </span>
-                          </div>
-                        )}
+                        <div className="flex justify-between bg-blue-100 rounded px-2 py-1.5 border border-blue-200">
+                          <span className="text-blue-700 font-medium">
+                            CN y Garantía:
+                          </span>
+                          <span className="font-bold text-blue-900">
+                            {formatCurrency(vehiculo.gastosCNGarantia || 0)}
+                          </span>
+                        </div>
                       </div>
                       {/* Total costos compra */}
                       <div className="flex justify-between bg-blue-200 rounded-md px-3 py-2.5 border-2 border-blue-400 mt-3 shadow-sm">

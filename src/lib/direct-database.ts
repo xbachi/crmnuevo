@@ -157,7 +157,7 @@ export async function getVehiculos(
         v.color, v."fechaMatriculacion", v.año, v."esCocheInversor", 
         v."inversorId", v."fechaCompra", v."precioCompra", v."gastosTransporte",
         v."gastosTasas", v."gastosMecanica", v."gastosPintura", v."gastosLimpieza",
-        v."gastosOtros", v."precioPublicacion", v."precioVenta", v."beneficioNeto",
+        v."gastosOtros", v."gastosCNGarantia", v."precioPublicacion", v."precioVenta", v."beneficioNeto",
         v."notasInversor", v."fotoInversor", v.itv, v.seguro, v."segundaLlave",
         v.carpeta, v.master, v."hojasA", v.documentacion, i.nombre as inversor_nombre,
         d.id as deposito_id, d.estado as deposito_estado
@@ -203,6 +203,7 @@ export async function getVehiculos(
       gastosPintura: row.gastosPintura,
       gastosLimpieza: row.gastosLimpieza,
       gastosOtros: row.gastosOtros,
+      gastosCNGarantia: row.gastosCNGarantia,
       precioPublicacion: row.precioPublicacion,
       precioVenta: row.precioVenta,
       beneficioNeto: row.beneficioNeto,
@@ -834,6 +835,7 @@ export async function getVehiculoById(id: number): Promise<Vehiculo | null> {
       gastosPintura: row.gastosPintura,
       gastosLimpieza: row.gastosLimpieza,
       gastosOtros: row.gastosOtros,
+      gastosCNGarantia: row.gastosCNGarantia,
       precioPublicacion: row.precioPublicacion,
       precioVenta: row.precioVenta,
       beneficioNeto: row.beneficioNeto,
@@ -1471,7 +1473,7 @@ export async function getVehiculosByInversor(inversorId: number) {
         v.color, v."fechaMatriculacion", v.año, v."esCocheInversor", 
         v."inversorId", v."fechaCompra", v."precioCompra", v."gastosTransporte",
         v."gastosTasas", v."gastosMecanica", v."gastosPintura", v."gastosLimpieza",
-        v."gastosOtros", v."precioPublicacion", v."precioVenta", v."beneficioNeto",
+        v."gastosOtros", v."gastosCNGarantia", v."precioPublicacion", v."precioVenta", v."beneficioNeto",
         v."notasInversor", v."fotoInversor", v.itv, v.seguro, v."segundaLlave",
         v.carpeta, v.master, v."hojasA", v.documentacion, i.nombre as inversor_nombre,
         d.id as deposito_id, d.estado as deposito_estado
@@ -1515,6 +1517,7 @@ export async function getVehiculosByInversor(inversorId: number) {
       gastosPintura: row.gastosPintura,
       gastosLimpieza: row.gastosLimpieza,
       gastosOtros: row.gastosOtros,
+      gastosCNGarantia: row.gastosCNGarantia,
       precioPublicacion: row.precioPublicacion,
       precioVenta: row.precioVenta,
       beneficioNeto: row.beneficioNeto,
@@ -1646,6 +1649,11 @@ export async function buscarClientesPorVehiculo(
 export async function getInversorMetrics(inversorId: number) {
   const client = await pool.connect()
   try {
+    // Importar funciones de cálculos financieros
+    const { calculateBeneficioAcumulado } = await import(
+      '@/lib/financial-calculations'
+    )
+
     // Obtener datos del inversor
     const inversorResult = await client.query(
       `
@@ -1661,52 +1669,86 @@ export async function getInversorMetrics(inversorId: number) {
       throw new Error('Inversor no encontrado')
     }
 
-    // Obtener métricas de vehículos con costo total calculado
+    // Obtener todos los vehículos del inversor con todos sus gastos
     const vehiculosResult = await client.query(
       `
       SELECT 
-        COUNT(*) as total_vehiculos,
-        COUNT(CASE WHEN UPPER(TRIM(estado)) = 'VENDIDO' THEN 1 END) as total_vendidos,
-        COUNT(CASE WHEN UPPER(TRIM(estado)) != 'VENDIDO' THEN 1 END) as total_en_stock,
-        SUM("precioVenta") as total_vendido,
-        SUM("beneficioNeto") as beneficio_total,
-        AVG("beneficioNeto") as beneficio_promedio,
-        -- Calcular costo total real de todos los vehículos
-        SUM(
-          COALESCE("precioCompra", 0) + 
-          COALESCE("gastosTransporte", 0) + 
-          COALESCE("gastosTasas", 0) + 
-          COALESCE("gastosMecanica", 0) + 
-          COALESCE("gastosPintura", 0) + 
-          COALESCE("gastosLimpieza", 0) + 
-          COALESCE("gastosOtros", 0)
-        ) as total_costo_real
+        estado,
+        "precioCompra",
+        "gastosTransporte",
+        "gastosTasas",
+        "gastosMecanica",
+        "gastosPintura",
+        "gastosLimpieza",
+        "gastosOtros",
+        "gastosCNGarantia",
+        "precioVenta",
+        "createdAt",
+        "fechaCompra"
       FROM "Vehiculo" 
       WHERE "inversorId" = $1
     `,
       [inversorId]
     )
 
-    const metrics = vehiculosResult.rows[0]
+    const vehiculos = vehiculosResult.rows
+
+    // Separar vehículos vendidos y en stock
+    const vehiculosVendidos = vehiculos.filter(
+      (v) => (v.estado?.toLowerCase() || '').trim() === 'vendido'
+    )
+    const vehiculosEnStock = vehiculos.filter(
+      (v) => (v.estado?.toLowerCase() || '').trim() !== 'vendido'
+    )
+
+    // Calcular beneficio acumulado usando la función centralizada
+    const beneficioAcumulado = calculateBeneficioAcumulado(
+      vehiculosVendidos.map((v) => ({
+        precioCompra: v.precioCompra,
+        gastosTransporte: v.gastosTransporte,
+        gastosTasas: v.gastosTasas,
+        gastosMecanica: v.gastosMecanica,
+        gastosPintura: v.gastosPintura,
+        gastosLimpieza: v.gastosLimpieza,
+        gastosOtros: v.gastosOtros,
+        gastosCNGarantia: v.gastosCNGarantia,
+        precioVenta: v.precioVenta,
+        estado: v.estado,
+      }))
+    )
+
+    // Calcular capital invertido SOLO de vehículos NO vendidos (NO incluye CN y Garantía, es gasto de venta)
+    const capitalInvertido = vehiculosEnStock.reduce((sum, v) => {
+      const costoTotal =
+        (parseFloat(v.precioCompra) || 0) +
+        (parseFloat(v.gastosTransporte) || 0) +
+        (parseFloat(v.gastosTasas) || 0) +
+        (parseFloat(v.gastosMecanica) || 0) +
+        (parseFloat(v.gastosPintura) || 0) +
+        (parseFloat(v.gastosLimpieza) || 0) +
+        (parseFloat(v.gastosOtros) || 0)
+      // NO incluir gastosCNGarantia porque es un gasto de venta, no de compra/inversión
+      return sum + costoTotal
+    }, 0)
 
     // Calcular valores
     const capitalAportado = parseFloat(inversor.capitalAportado) || 0
-    const capitalInvertidoReal = parseFloat(metrics.total_costo_real) || 0 // Capital realmente invertido en vehículos
-    const capitalDisponible = capitalAportado - capitalInvertidoReal // Puede ser negativo
-    const beneficioAcumulado = parseFloat(metrics.beneficio_total) || 0
+    // Capital disponible = Capital aportado - Capital invertido
+    // Los vehículos vendidos ya no están en capital invertido, así que su costo total está disponible
+    const capitalDisponible = capitalAportado - capitalInvertido
+
+    // ROI = (Beneficio acumulado / Capital aportado) * 100
     const roi =
-      capitalInvertidoReal > 0
-        ? (beneficioAcumulado / capitalInvertidoReal) * 100
-        : 0
+      capitalAportado > 0 ? (beneficioAcumulado / capitalAportado) * 100 : 0
 
     return {
-      beneficioAcumulado: beneficioAcumulado,
-      capitalInvertido: capitalInvertidoReal, // Capital realmente invertido en vehículos
+      beneficioAcumulado: Math.round(beneficioAcumulado * 100) / 100,
+      capitalInvertido: Math.round(capitalInvertido * 100) / 100,
       capitalAportado: capitalAportado,
-      capitalDisponible: capitalDisponible, // Puede ser negativo
-      roi: roi,
-      totalVendidos: parseInt(metrics.total_vendidos) || 0,
-      totalEnStock: parseInt(metrics.total_en_stock) || 0,
+      capitalDisponible: Math.round(capitalDisponible * 100) / 100,
+      roi: Math.round(roi * 100) / 100,
+      totalVendidos: vehiculosVendidos.length,
+      totalEnStock: vehiculosEnStock.length,
       diasPromedioEnStock: 0, // TODO: Implementar cálculo de días promedio
     }
   } catch (error) {

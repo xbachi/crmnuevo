@@ -235,18 +235,6 @@ export default function DealsPage() {
     }
   }
 
-  const formatCurrency = (amount: number) => {
-    // Verificar si el amount es válido
-    if (isNaN(amount) || amount === null || amount === undefined) {
-      return '€0,00'
-    }
-
-    return new Intl.NumberFormat('es-ES', {
-      style: 'currency',
-      currency: 'EUR',
-    }).format(amount)
-  }
-
   const formatDate = (date: Date | string) => {
     const dateObj = new Date(date)
     if (isNaN(dateObj.getTime())) return 'Fecha inválida'

@@ -21,7 +21,10 @@ export function capitalizeText(text: string | null | undefined): string {
 }
 
 // Función helper para obtener el año del vehículo
-export function getVehiculoAño(vehiculo: any): number | null {
+export function getVehiculoAño(vehiculo: {
+  año?: number | null
+  fechaMatriculacion?: string | null
+}): number | null {
   // Si ya tiene año, usarlo
   if (vehiculo?.año && vehiculo.año > 0) {
     return vehiculo.año

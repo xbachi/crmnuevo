@@ -1180,7 +1180,7 @@ export default function InvestorDashboardPage() {
                 <div
                   className={
                     viewMode === 'cards'
-                      ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
+                      ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start'
                       : 'space-y-4'
                   }
                 >
@@ -1679,6 +1679,11 @@ export default function InvestorDashboardPage() {
                         gastosOtros: formData.get('gastosOtros')
                           ? parseFloat(formData.get('gastosOtros') as string)
                           : undefined,
+                        gastosCNGarantia: formData.get('gastosCNGarantia')
+                          ? parseFloat(
+                              formData.get('gastosCNGarantia') as string
+                            )
+                          : undefined,
                         precioVenta: formData.get('precioVenta')
                           ? parseFloat(formData.get('precioVenta') as string)
                           : undefined,
@@ -1713,6 +1718,9 @@ export default function InvestorDashboardPage() {
                         : undefined,
                       gastosOtros: formData.get('gastosOtros')
                         ? parseFloat(formData.get('gastosOtros') as string)
+                        : undefined,
+                      gastosCNGarantia: formData.get('gastosCNGarantia')
+                        ? parseFloat(formData.get('gastosCNGarantia') as string)
                         : undefined,
                       precioVenta: formData.get('precioVenta')
                         ? parseFloat(formData.get('precioVenta') as string)
@@ -1819,6 +1827,19 @@ export default function InvestorDashboardPage() {
                         type="number"
                         name="gastosOtros"
                         defaultValue={editingVehiculo.gastosOtros || ''}
+                        step="0.01"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-full focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        🛡️ CN y Garantía (€)
+                      </label>
+                      <input
+                        type="number"
+                        name="gastosCNGarantia"
+                        defaultValue={editingVehiculo.gastosCNGarantia || ''}
                         step="0.01"
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-full focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       />
