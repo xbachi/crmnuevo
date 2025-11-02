@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { readFile, writeFile, unlink, mkdir, access } from 'fs/promises'
 import { join } from 'path'
-import { constants } from 'fs'
+import { constants, existsSync } from 'fs'
 import { del, list } from '@vercel/blob'
 
 const METADATA_FILE = 'vehiculos-documentos-metadata.json'
@@ -156,7 +156,6 @@ export async function DELETE(
       // Desarrollo: eliminar archivo físico
       const filePath = join(process.cwd(), 'public', fileToDelete.path)
       try {
-        const { existsSync } = await import('fs')
         if (existsSync(filePath)) {
           await unlink(filePath)
           console.log(`✅ [DELETE] Archivo físico eliminado: ${filePath}`)
