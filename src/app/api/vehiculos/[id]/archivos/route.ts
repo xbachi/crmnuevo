@@ -15,17 +15,32 @@ async function loadMetadata(vehiculoId: number) {
         const prefix = `vehiculos/${vehiculoId}/`
         const { blobs } = await list({ prefix })
 
-        return blobs.map((blob) => ({
-          id:
-            blob.path.split('/').pop()?.split('-')[0] ||
-            blob.uploadedAt.toString(),
-          name: blob.path.split('/').pop()?.replace(/^\d+-/, '') || 'unknown',
-          fileName: blob.path.split('/').pop() || 'unknown',
-          size: blob.size,
-          type: blob.contentType || 'application/octet-stream',
-          uploadDate: blob.uploadedAt.toISOString(),
-          path: blob.url,
-        }))
+        const mappedBlobs = blobs.map((blob) => {
+          const fileName = blob.path.split('/').pop() || 'unknown'
+          // Extraer el timestamp del inicio del nombre del archivo
+          const timestampMatch = fileName.match(/^(\d+)-/)
+          const id = timestampMatch
+            ? timestampMatch[1]
+            : blob.uploadedAt.toString()
+          // Extraer el nombre original removiendo el timestamp y guiones
+          const name = fileName.replace(/^\d+-/, '') || 'unknown'
+
+          return {
+            id,
+            name,
+            fileName,
+            size: blob.size,
+            type: blob.contentType || 'application/octet-stream',
+            uploadDate: blob.uploadedAt.toISOString(),
+            path: blob.url,
+          }
+        })
+
+        console.log(
+          `📁 [VEHICULO ARCHIVOS] Archivos mapeados desde Blob:`,
+          mappedBlobs.length
+        )
+        return mappedBlobs
       } catch (blobError: any) {
         console.error(
           '❌ [VEHICULO ARCHIVOS] Error cargando desde Vercel Blob:',
@@ -100,8 +115,17 @@ export async function GET(
 
     const metadata = await loadMetadata(vehiculoId)
     console.log(`📁 [VEHICULO ARCHIVOS] Archivos encontrados:`, metadata.length)
+    console.log(
+      `📁 [VEHICULO ARCHIVOS] Archivos:`,
+      JSON.stringify(metadata, null, 2)
+    )
 
-    return NextResponse.json(metadata, { status: 200 })
+    return NextResponse.json(metadata, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
   } catch (error) {
     console.error('❌ [VEHICULO ARCHIVOS] Error:', error)
     return NextResponse.json(

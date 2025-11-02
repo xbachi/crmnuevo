@@ -250,13 +250,43 @@ export function InvestorVehicleCard({
   // Funciones para gestionar archivos
   const fetchArchivos = async () => {
     try {
+      console.log(
+        `📁 [FRONTEND] Cargando archivos para vehículo ${vehiculo.id}`
+      )
       const response = await fetch(`/api/vehiculos/${vehiculo.id}/archivos`)
+      console.log(`📁 [FRONTEND] Response status:`, response.status)
+
       if (response.ok) {
         const data = await response.json()
-        setArchivos(data)
+        console.log(`📁 [FRONTEND] Archivos recibidos:`, data)
+        console.log(
+          `📁 [FRONTEND] Tipo de datos:`,
+          Array.isArray(data) ? 'Array' : typeof data
+        )
+        console.log(
+          `📁 [FRONTEND] Cantidad:`,
+          Array.isArray(data) ? data.length : 'No es array'
+        )
+
+        // Asegurar que siempre sea un array
+        if (Array.isArray(data)) {
+          setArchivos(data)
+        } else {
+          console.error('❌ [FRONTEND] La respuesta no es un array:', data)
+          setArchivos([])
+        }
+      } else {
+        const errorText = await response.text()
+        console.error(
+          '❌ [FRONTEND] Error en respuesta:',
+          response.status,
+          errorText
+        )
+        setArchivos([])
       }
     } catch (error) {
-      console.error('Error al cargar archivos:', error)
+      console.error('❌ [FRONTEND] Error al cargar archivos:', error)
+      setArchivos([])
     }
   }
 
