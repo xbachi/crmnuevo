@@ -16,12 +16,33 @@ async function loadMetadata(vehiculoId: number) {
         const { blobs } = await list({ prefix })
 
         const mappedBlobs = blobs.map((blob) => {
-          const fileName = blob.path.split('/').pop() || 'unknown'
+          // Obtener el path o url del blob - Vercel Blob puede usar 'path' o 'url'
+          const blobPath = blob.path || blob.url || ''
+
+          // Extraer el nombre del archivo del path o url
+          let fileName = 'unknown'
+          if (blobPath) {
+            // Si es una URL completa, extraer solo el pathname
+            try {
+              if (blobPath.startsWith('http')) {
+                const urlObj = new URL(blobPath)
+                fileName = urlObj.pathname.split('/').pop() || 'unknown'
+              } else {
+                fileName = blobPath.split('/').pop() || 'unknown'
+              }
+            } catch (e) {
+              // Si falla el parsing, intentar split directo
+              fileName = blobPath.split('/').pop() || 'unknown'
+            }
+          }
+
           // Extraer el timestamp del inicio del nombre del archivo
           const timestampMatch = fileName.match(/^(\d+)-/)
           const id = timestampMatch
             ? timestampMatch[1]
-            : blob.uploadedAt.toString()
+            : blob.uploadedAt
+              ? blob.uploadedAt.toString()
+              : Date.now().toString()
           // Extraer el nombre original removiendo el timestamp y guiones
           const name = fileName.replace(/^\d+-/, '') || 'unknown'
 
@@ -29,10 +50,12 @@ async function loadMetadata(vehiculoId: number) {
             id,
             name,
             fileName,
-            size: blob.size,
+            size: blob.size || 0,
             type: blob.contentType || 'application/octet-stream',
-            uploadDate: blob.uploadedAt.toISOString(),
-            path: blob.url,
+            uploadDate: blob.uploadedAt
+              ? blob.uploadedAt.toISOString()
+              : new Date().toISOString(),
+            path: blob.url || blobPath || '',
           }
         })
 
@@ -137,6 +160,19 @@ export async function DELETE(
       // Producción: eliminar de Vercel Blob
       try {
         const blobUrl = fileToDelete.path
+        console.log(
+          `🗑️ [VEHICULO DELETE] Intentando eliminar blob con URL/path: ${blobUrl}`
+        )
+        console.log(
+          `🗑️ [VEHICULO DELETE] Estructura completa del archivo:`,
+          JSON.stringify(fileToDelete, null, 2)
+        )
+
+        if (!blobUrl) {
+          throw new Error('No se encontró URL o path del blob para eliminar')
+        }
+
+        // del() de Vercel Blob puede recibir tanto URL como path
         await del(blobUrl)
         console.log(
           `✅ [VEHICULO DELETE] Archivo eliminado de Blob: ${blobUrl}`
