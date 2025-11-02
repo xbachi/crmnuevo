@@ -110,17 +110,28 @@ export async function DELETE(
     )
 
     const existingMetadata = await loadMetadata(vehiculoId)
-    const fileIndex = existingMetadata.findIndex((f: any) => f.id === fileId)
+    console.log(`📁 [VEHICULO DELETE] Buscando archivo con ID: ${fileId}`)
+    console.log(
+      `📁 [VEHICULO DELETE] Archivos disponibles:`,
+      existingMetadata.map((f: any) => ({ id: f.id, name: f.name }))
+    )
 
-    if (fileIndex === -1) {
-      console.error('❌ [VEHICULO DELETE] Archivo no encontrado')
+    const fileToDelete = existingMetadata.find(
+      (f: any) => f.id === fileId || f.id.toString() === fileId.toString()
+    )
+
+    if (!fileToDelete) {
+      console.error(
+        '❌ [VEHICULO DELETE] Archivo no encontrado. ID buscado:',
+        fileId
+      )
       return NextResponse.json(
         { error: 'Archivo no encontrado' },
         { status: 404 }
       )
     }
 
-    const fileToDelete = existingMetadata[fileIndex]
+    console.log(`📁 [VEHICULO DELETE] Archivo encontrado:`, fileToDelete)
 
     if (USE_BLOB_STORAGE) {
       // Producción: eliminar de Vercel Blob
@@ -162,9 +173,13 @@ export async function DELETE(
         )
       }
 
-      existingMetadata.splice(fileIndex, 1)
-      await saveMetadata(vehiculoId, existingMetadata)
-      console.log(`✅ [VEHICULO DELETE] Metadatos actualizados`)
+      // En desarrollo, también actualizar metadatos
+      const fileIndex = existingMetadata.findIndex((f: any) => f.id === fileId)
+      if (fileIndex !== -1) {
+        existingMetadata.splice(fileIndex, 1)
+        await saveMetadata(vehiculoId, existingMetadata)
+        console.log(`✅ [VEHICULO DELETE] Metadatos actualizados`)
+      }
     }
 
     return NextResponse.json({
