@@ -11,9 +11,8 @@ const nextConfig = {
   // Optimizaciones para build
   experimental: {
     optimizeCss: false,
+    serverComponentsExternalPackages: ['canvas', 'jspdf'],
   },
-  // Configuración para Vercel
-  serverComponentsExternalPackages: ['canvas', 'jspdf'],
   webpack: (config, { isServer }) => {
     if (!isServer) {
       // Excluir módulos de Node.js del bundle del cliente

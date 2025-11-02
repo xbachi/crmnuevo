@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile, mkdir, readFile, unlink } from 'fs/promises'
+import { writeFile, mkdir, readFile, unlink, access } from 'fs/promises'
 import { join } from 'path'
+import { constants } from 'fs'
 import { put, list, del } from '@vercel/blob'
 
 const METADATA_FILE = 'archivos-metadata.json'
@@ -10,20 +11,32 @@ async function loadMetadata(vehiculoId: number) {
   try {
     if (USE_BLOB_STORAGE) {
       // En producción, cargar desde Vercel Blob
-      const prefix = `vehiculos/${vehiculoId}/`
-      const { blobs } = await list({ prefix })
+      try {
+        const prefix = `vehiculos/${vehiculoId}/`
+        const { blobs } = await list({ prefix })
 
-      return blobs.map((blob) => ({
-        id:
-          blob.path.split('/').pop()?.split('-')[0] ||
-          blob.uploadedAt.toString(),
-        name: blob.path.split('/').pop()?.replace(/^\d+-/, '') || 'unknown',
-        fileName: blob.path.split('/').pop() || 'unknown',
-        size: blob.size,
-        type: blob.contentType || 'application/octet-stream',
-        uploadDate: blob.uploadedAt.toISOString(),
-        path: blob.url,
-      }))
+        return blobs.map((blob) => ({
+          id:
+            blob.path.split('/').pop()?.split('-')[0] ||
+            blob.uploadedAt.toString(),
+          name: blob.path.split('/').pop()?.replace(/^\d+-/, '') || 'unknown',
+          fileName: blob.path.split('/').pop() || 'unknown',
+          size: blob.size,
+          type: blob.contentType || 'application/octet-stream',
+          uploadDate: blob.uploadedAt.toISOString(),
+          path: blob.url,
+        }))
+      } catch (blobError: any) {
+        console.error(
+          '❌ [VEHICULO ARCHIVOS] Error cargando desde Vercel Blob:',
+          {
+            message: blobError?.message,
+            code: blobError?.code,
+          }
+        )
+        // Si falla Vercel Blob, devolver array vacío
+        return []
+      }
     } else {
       // En desarrollo, cargar desde filesystem
       const metadataDir = join(
@@ -35,8 +48,20 @@ async function loadMetadata(vehiculoId: number) {
       )
       await mkdir(metadataDir, { recursive: true })
       const metadataPath = join(metadataDir, METADATA_FILE)
-      const data = await readFile(metadataPath, 'utf-8')
-      return JSON.parse(data)
+
+      // Verificar si el archivo existe antes de leerlo
+      try {
+        await access(metadataPath, constants.F_OK)
+        const data = await readFile(metadataPath, 'utf-8')
+        return JSON.parse(data)
+      } catch (accessError: any) {
+        // Si el archivo no existe (ENOENT), devolver array vacío
+        if (accessError.code === 'ENOENT') {
+          return []
+        }
+        // Si es otro error, lanzarlo para que lo capture el catch externo
+        throw accessError
+      }
     }
   } catch (error) {
     console.error('Error loading metadata:', error)
@@ -92,6 +117,12 @@ export async function POST(
 ) {
   try {
     console.log(`🔍 [VEHICULO UPLOAD] Iniciando subida de archivo`)
+    console.log(`🔍 [VEHICULO UPLOAD] Detección Vercel:`, {
+      VERCEL: !!process.env.VERCEL,
+      VERCEL_ENV: process.env.VERCEL_ENV,
+      USE_BLOB_STORAGE,
+      BLOB_TOKEN_EXISTS: !!process.env.BLOB_READ_WRITE_TOKEN,
+    })
 
     const { id } = await params
     const vehiculoId = parseInt(id)
@@ -113,32 +144,68 @@ export async function POST(
 
     if (USE_BLOB_STORAGE) {
       // Producción: subir a Vercel Blob
-      const blob = await put(
-        `vehiculos/${vehiculoId}/${uniqueFileName}`,
-        file,
-        {
-          access: 'public',
-          contentType: file.type,
+      try {
+        console.log(
+          `📦 [VEHICULO UPLOAD] Intentando subir a Vercel Blob... Token disponible: ${!!process.env.BLOB_READ_WRITE_TOKEN}`
+        )
+
+        // Vercel Blob detecta automáticamente el token de las variables de entorno
+        const blob = await put(
+          `vehiculos/${vehiculoId}/${uniqueFileName}`,
+          file,
+          {
+            access: 'public',
+            contentType: file.type,
+          }
+        )
+
+        console.log(`✅ [VEHICULO UPLOAD] Archivo subido a Blob: ${blob.url}`)
+
+        const newFileMetadata = {
+          id: timestamp.toString(),
+          name: file.name,
+          fileName: uniqueFileName,
+          size: file.size,
+          type: file.type,
+          uploadDate: new Date().toISOString(),
+          path: blob.url,
         }
-      )
 
-      console.log(`✅ [VEHICULO UPLOAD] Archivo subido a Blob: ${blob.url}`)
+        return NextResponse.json({
+          success: true,
+          message: 'Archivo subido exitosamente',
+          file: newFileMetadata,
+        })
+      } catch (blobError: any) {
+        console.error('❌ [VEHICULO UPLOAD] Error con Vercel Blob:', {
+          message: blobError?.message,
+          status: blobError?.status,
+          statusText: blobError?.statusText,
+          code: blobError?.code,
+          name: blobError?.name,
+        })
 
-      const newFileMetadata = {
-        id: timestamp.toString(),
-        name: file.name,
-        fileName: uniqueFileName,
-        size: file.size,
-        type: file.type,
-        uploadDate: new Date().toISOString(),
-        path: blob.url,
+        // Si el error es de autenticación o configuración, dar un mensaje más claro
+        if (
+          blobError?.message?.includes('token') ||
+          blobError?.message?.includes('authentication') ||
+          blobError?.message?.includes('unauthorized') ||
+          !process.env.BLOB_READ_WRITE_TOKEN
+        ) {
+          return NextResponse.json(
+            {
+              success: false,
+              error:
+                'Error de configuración: Vercel Blob Storage no está configurado correctamente. Verifica que BLOB_READ_WRITE_TOKEN esté configurado en Vercel.',
+              details: blobError?.message || 'Token no encontrado',
+            },
+            { status: 500 }
+          )
+        }
+
+        // Para otros errores, re-lanzar para que lo capture el catch externo
+        throw blobError
       }
-
-      return NextResponse.json({
-        success: true,
-        message: 'Archivo subido exitosamente',
-        file: newFileMetadata,
-      })
     } else {
       // Desarrollo: guardar en filesystem
       const uploadDir = join(
@@ -179,12 +246,18 @@ export async function POST(
         file: newFileMetadata,
       })
     }
-  } catch (error) {
-    console.error('❌ [VEHICULO UPLOAD] Error:', error)
+  } catch (error: any) {
+    console.error('❌ [VEHICULO UPLOAD] Error completo:', {
+      message: error?.message,
+      stack: error?.stack,
+      name: error?.name,
+      code: error?.code,
+    })
     return NextResponse.json(
       {
         success: false,
         error: 'Error al subir archivo',
+        details: error?.message || 'Error desconocido',
       },
       { status: 500 }
     )

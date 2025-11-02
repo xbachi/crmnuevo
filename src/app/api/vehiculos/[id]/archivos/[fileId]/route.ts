@@ -1,25 +1,66 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile, mkdir, readFile, unlink } from 'fs/promises'
+import { writeFile, mkdir, readFile, unlink, access } from 'fs/promises'
 import { join } from 'path'
-import { del } from '@vercel/blob'
+import { constants } from 'fs'
+import { del, list } from '@vercel/blob'
 
 const METADATA_FILE = 'archivos-metadata.json'
 const USE_BLOB_STORAGE = process.env.VERCEL || process.env.VERCEL_ENV
 
 async function loadMetadata(vehiculoId: number) {
   try {
-    const metadataDir = join(
-      process.cwd(),
-      'public',
-      'uploads',
-      'vehiculos',
-      vehiculoId.toString()
-    )
-    await mkdir(metadataDir, { recursive: true })
-    const metadataPath = join(metadataDir, METADATA_FILE)
-    const data = await readFile(metadataPath, 'utf-8')
-    return JSON.parse(data)
+    if (USE_BLOB_STORAGE) {
+      // En producción, cargar desde Vercel Blob
+      try {
+        const prefix = `vehiculos/${vehiculoId}/`
+        const { blobs } = await list({ prefix })
+
+        return blobs.map((blob) => ({
+          id:
+            blob.path.split('/').pop()?.split('-')[0] ||
+            blob.uploadedAt.toString(),
+          name: blob.path.split('/').pop()?.replace(/^\d+-/, '') || 'unknown',
+          fileName: blob.path.split('/').pop() || 'unknown',
+          size: blob.size,
+          type: blob.contentType || 'application/octet-stream',
+          uploadDate: blob.uploadedAt.toISOString(),
+          path: blob.url,
+        }))
+      } catch (blobError: any) {
+        console.error(
+          '❌ [VEHICULO DELETE] Error cargando desde Vercel Blob:',
+          {
+            message: blobError?.message,
+            code: blobError?.code,
+          }
+        )
+        return []
+      }
+    } else {
+      // En desarrollo, cargar desde filesystem
+      const metadataDir = join(
+        process.cwd(),
+        'public',
+        'uploads',
+        'vehiculos',
+        vehiculoId.toString()
+      )
+      await mkdir(metadataDir, { recursive: true })
+      const metadataPath = join(metadataDir, METADATA_FILE)
+
+      try {
+        await access(metadataPath, constants.F_OK)
+        const data = await readFile(metadataPath, 'utf-8')
+        return JSON.parse(data)
+      } catch (accessError: any) {
+        if (accessError.code === 'ENOENT') {
+          return []
+        }
+        throw accessError
+      }
+    }
   } catch (error) {
+    console.error('Error loading metadata:', error)
     return []
   }
 }
@@ -68,9 +109,31 @@ export async function DELETE(
 
     if (USE_BLOB_STORAGE) {
       // Producción: eliminar de Vercel Blob
-      const blobUrl = fileToDelete.path
-      await del(blobUrl)
-      console.log(`✅ [VEHICULO DELETE] Archivo eliminado de Blob: ${blobUrl}`)
+      try {
+        const blobUrl = fileToDelete.path
+        await del(blobUrl)
+        console.log(
+          `✅ [VEHICULO DELETE] Archivo eliminado de Blob: ${blobUrl}`
+        )
+      } catch (blobError: any) {
+        console.error('❌ [VEHICULO DELETE] Error eliminando de Vercel Blob:', {
+          message: blobError?.message,
+          code: blobError?.code,
+        })
+
+        // Si el archivo no existe en Blob o hay un error, continuar
+        // (puede que ya haya sido eliminado o nunca existió)
+        if (
+          blobError?.message?.includes('not found') ||
+          blobError?.status === 404
+        ) {
+          console.log(
+            '⚠️ [VEHICULO DELETE] Archivo no encontrado en Blob, continuando...'
+          )
+        } else {
+          throw blobError
+        }
+      }
     } else {
       // Desarrollo: eliminar de filesystem
       try {
@@ -93,12 +156,17 @@ export async function DELETE(
       success: true,
       message: 'Archivo eliminado exitosamente',
     })
-  } catch (error) {
-    console.error('❌ [VEHICULO DELETE] Error:', error)
+  } catch (error: any) {
+    console.error('❌ [VEHICULO DELETE] Error completo:', {
+      message: error?.message,
+      stack: error?.stack,
+      code: error?.code,
+    })
     return NextResponse.json(
       {
         success: false,
         error: 'Error al eliminar archivo',
+        details: error?.message || 'Error desconocido',
       },
       { status: 500 }
     )
