@@ -50,5 +50,6 @@ next-env.d.ts
 !eslint.config.mjs
 # Permitir archivos de metadatos de documentación y archivos subidos
 !public/uploads/**/*-metadata.json
+!public/uploads/**/archivos-metadata.json
 
 /src/generated/prisma

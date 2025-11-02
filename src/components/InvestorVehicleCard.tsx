@@ -39,6 +39,22 @@ export function InvestorVehicleCard({
   const [isExpanded, setIsExpanded] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Estados para archivos
+  const [archivos, setArchivos] = useState<
+    Array<{
+      id: string
+      name: string
+      fileName: string
+      size: number
+      type: string
+      uploadDate: string
+      path: string
+    }>
+  >([])
+  const [isArchivosExpanded, setIsArchivosExpanded] = useState(false)
+  const [isUploadingFile, setIsUploadingFile] = useState(false)
+  const archivosFileInputRef = useRef<HTMLInputElement>(null)
+
   // Función helper para detectar tipo de vehículo basado en la referencia y el tipo de BD
   const detectVehicleType = (referencia: string, tipoBD?: string) => {
     // Si tenemos el tipo de la base de datos, usarlo como prioridad
@@ -193,6 +209,96 @@ export function InvestorVehicleCard({
   const tieneDatosFinancieros =
     vehiculo.precioCompra ||
     (esVendido && (vehiculo.precioVenta || vehiculo.beneficioNeto))
+
+  // Funciones para gestionar archivos
+  const fetchArchivos = async () => {
+    try {
+      const response = await fetch(`/api/vehiculos/${vehiculo.id}/archivos`)
+      if (response.ok) {
+        const data = await response.json()
+        setArchivos(data)
+      }
+    } catch (error) {
+      console.error('Error al cargar archivos:', error)
+    }
+  }
+
+  const handleArchivoUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setIsUploadingFile(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await fetch(`/api/vehiculos/${vehiculo.id}/archivos`, {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (response.ok) {
+        await fetchArchivos()
+      } else {
+        console.error('Error al subir archivo')
+      }
+    } catch (error) {
+      console.error('Error al subir archivo:', error)
+    } finally {
+      setIsUploadingFile(false)
+    }
+  }
+
+  const handleDeleteArchivo = async (fileId: string) => {
+    try {
+      const response = await fetch(
+        `/api/vehiculos/${vehiculo.id}/archivos/${fileId}`,
+        {
+          method: 'DELETE',
+        }
+      )
+
+      if (response.ok) {
+        await fetchArchivos()
+      } else {
+        console.error('Error al eliminar archivo')
+      }
+    } catch (error) {
+      console.error('Error al eliminar archivo:', error)
+    }
+  }
+
+  const handleDownloadArchivo = (archivo: {
+    id: string
+    name: string
+    path: string
+  }) => {
+    const link = document.createElement('a')
+    link.href = archivo.path
+    link.download = archivo.name
+    link.target = '_blank'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i]
+  }
+
+  // Cargar archivos cuando se expande la sección
+  const toggleArchivosSection = () => {
+    setIsArchivosExpanded(!isArchivosExpanded)
+    if (!isArchivosExpanded && archivos.length === 0) {
+      fetchArchivos()
+    }
+  }
 
   return (
     <div
@@ -681,6 +787,174 @@ export function InvestorVehicleCard({
                     onChange={handleFileUpload}
                     className="hidden"
                   />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Sección de Archivos */}
+        <div className="mt-4 space-y-4">
+          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-200">
+            <button
+              onClick={toggleArchivosSection}
+              className="w-full p-4 text-left flex items-center justify-between hover:bg-indigo-100 transition-colors rounded-lg"
+            >
+              <div className="flex items-center">
+                <svg
+                  className="w-4 h-4 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+                <span className="text-sm font-semibold text-indigo-800">
+                  Archivos
+                </span>
+              </div>
+              <svg
+                className={`w-5 h-5 text-indigo-600 transition-transform duration-200 ${
+                  isArchivosExpanded ? 'rotate-180' : ''
+                }`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </button>
+
+            {/* Contenido expandible de archivos */}
+            {isArchivosExpanded && (
+              <div className="px-4 pb-4 space-y-4">
+                {/* Botón para subir archivo */}
+                {!isReadOnly && (
+                  <label className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors cursor-pointer">
+                    <svg
+                      className="w-4 h-4 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                      />
+                    </svg>
+                    {isUploadingFile ? 'Subiendo...' : 'Subir Archivo'}
+                    <input
+                      ref={archivosFileInputRef}
+                      type="file"
+                      className="hidden"
+                      onChange={handleArchivoUpload}
+                    />
+                  </label>
+                )}
+
+                {/* Lista de archivos */}
+                <div className="space-y-2">
+                  {archivos.length === 0 ? (
+                    <div className="text-center py-6 text-gray-500">
+                      <svg
+                        className="w-12 h-12 mx-auto mb-2 text-gray-300"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      <p className="text-sm">No hay archivos subidos</p>
+                    </div>
+                  ) : (
+                    archivos.map((archivo) => (
+                      <div
+                        key={archivo.id}
+                        className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors bg-white border border-gray-200"
+                      >
+                        <div className="flex items-center space-x-3 flex-1 min-w-0">
+                          <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <svg
+                              className="w-4 h-4 text-indigo-600"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                              />
+                            </svg>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p
+                              className="font-medium text-gray-900 truncate"
+                              title={archivo.name}
+                            >
+                              {archivo.name.length > 30
+                                ? `${archivo.name.substring(0, 30)}...`
+                                : archivo.name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {formatFileSize(archivo.size)} •{' '}
+                              {new Date(archivo.uploadDate).toLocaleDateString(
+                                'es-ES'
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2 flex-shrink-0">
+                          <button
+                            onClick={() => handleDownloadArchivo(archivo)}
+                            className="px-3 py-1 bg-green-100 text-green-700 rounded-md text-sm font-medium hover:bg-green-200 transition-colors"
+                            title="Descargar"
+                          >
+                            Descargar
+                          </button>
+                          {!isReadOnly && (
+                            <button
+                              onClick={() => handleDeleteArchivo(archivo.id)}
+                              className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                              title="Eliminar"
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             )}
