@@ -370,8 +370,12 @@ export function InvestorVehicleCard({
 
   // Cargar archivos cuando se expande la sección
   const toggleArchivosSection = () => {
-    setIsArchivosExpanded(!isArchivosExpanded)
-    if (!isArchivosExpanded && archivos.length === 0) {
+    const willBeExpanded = !isArchivosExpanded
+    setIsArchivosExpanded(willBeExpanded)
+
+    // Si se está expandiendo y no hay archivos cargados, cargarlos
+    if (willBeExpanded && archivos.length === 0) {
+      console.log(`📁 [FRONTEND] Expandiendo sección, cargando archivos...`)
       fetchArchivos()
     }
   }
