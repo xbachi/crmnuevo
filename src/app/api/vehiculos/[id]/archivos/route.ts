@@ -13,7 +13,15 @@ async function loadMetadata(vehiculoId: number) {
       // En producción, cargar desde Vercel Blob
       try {
         const prefix = `vehiculos/${vehiculoId}/`
+        console.log(
+          `📁 [VEHICULO ARCHIVOS] Buscando archivos con prefijo: "${prefix}"`
+        )
         const { blobs } = await list({ prefix })
+        console.log(`📁 [VEHICULO ARCHIVOS] Blobs encontrados:`, blobs.length)
+        console.log(
+          `📁 [VEHICULO ARCHIVOS] Blobs:`,
+          blobs.map((b) => b.path)
+        )
 
         const mappedBlobs = blobs.map((blob) => {
           const fileName = blob.path.split('/').pop() || 'unknown'
