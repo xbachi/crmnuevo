@@ -564,7 +564,7 @@ export function InvestorVehicleCard({
 
         {/* Beneficio destacado para vehículos vendidos - Visible siempre */}
         {esVendido && vehiculo.precioVenta && (
-          <div className="mt-6">
+          <div className="mt-6 mb-6">
             <div
               className={`rounded-lg p-3 border-2 ${
                 valoresFiscales.esBeneficio
