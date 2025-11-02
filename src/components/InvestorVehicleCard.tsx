@@ -226,7 +226,9 @@ export function InvestorVehicleCard({
     const iva = diferencia * 0.21
     const beneficioPreImpuestos = diferencia - iva
     const impuestoSociedades = beneficioPreImpuestos * 0.2
-    const beneficioNeto = beneficioPreImpuestos - impuestoSociedades
+    const beneficioNetoTotal = beneficioPreImpuestos - impuestoSociedades
+    // Inversor se lleva el 50% del beneficio neto
+    const beneficioNeto = beneficioNetoTotal * 0.5
 
     return {
       costoTotal,
@@ -256,28 +258,37 @@ export function InvestorVehicleCard({
   const handleArchivoUpload = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    const file = event.target.files?.[0]
-    if (!file) return
+    const files = event.target.files
+    if (!files || files.length === 0) return
 
     setIsUploadingFile(true)
     try {
-      const formData = new FormData()
-      formData.append('file', file)
+      // Subir archivos uno por uno
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+        const formData = new FormData()
+        formData.append('file', file)
 
-      const response = await fetch(`/api/vehiculos/${vehiculo.id}/archivos`, {
-        method: 'POST',
-        body: formData,
-      })
+        const response = await fetch(`/api/vehiculos/${vehiculo.id}/archivos`, {
+          method: 'POST',
+          body: formData,
+        })
 
-      if (response.ok) {
-        await fetchArchivos()
-      } else {
-        console.error('Error al subir archivo')
+        if (!response.ok) {
+          console.error('Error al subir archivo:', file.name)
+        }
       }
+
+      // Recargar lista de archivos después de subir todos
+      await fetchArchivos()
     } catch (error) {
-      console.error('Error al subir archivo:', error)
+      console.error('Error al subir archivos:', error)
     } finally {
       setIsUploadingFile(false)
+      // Limpiar el input para permitir subir los mismos archivos de nuevo
+      if (archivosFileInputRef.current) {
+        archivosFileInputRef.current.value = ''
+      }
     }
   }
 
@@ -946,10 +957,11 @@ export function InvestorVehicleCard({
                         d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                       />
                     </svg>
-                    {isUploadingFile ? 'Subiendo...' : 'Subir Archivo'}
+                    {isUploadingFile ? 'Subiendo...' : 'Subir Archivos'}
                     <input
                       ref={archivosFileInputRef}
                       type="file"
+                      multiple
                       className="hidden"
                       onChange={handleArchivoUpload}
                     />
