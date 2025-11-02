@@ -677,33 +677,15 @@ export function InvestorVehicleCard({
                         : '-'}
                     </span>
                   </div>
-                  {esVendido && vehiculo.precioVenta && (
-                    <div className="flex justify-between bg-white rounded px-2 py-1">
-                      <span className="text-gray-600">Precio venta:</span>
-                      <span className="font-semibold text-gray-900">
-                        {formatCurrency(vehiculo.precioVenta)}
-                      </span>
-                    </div>
-                  )}
-                  {esVendido && vehiculo.beneficioNeto !== undefined && (
-                    <div className="flex justify-between bg-white rounded px-2 py-1">
-                      <span className="text-gray-600">Beneficio:</span>
-                      <span
-                        className={`font-semibold ${vehiculo.beneficioNeto >= 0 ? 'text-green-600' : 'text-red-600'}`}
-                      >
-                        {formatCurrency(vehiculo.beneficioNeto)}
-                      </span>
-                    </div>
-                  )}
                 </div>
 
                 {/* Costo total */}
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 border border-green-200">
-                  <div className="flex justify-between items-center bg-green-100 rounded-lg px-3 py-2 border border-green-300">
-                    <span className="text-sm font-bold text-green-800">
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-2 border border-green-200">
+                  <div className="flex justify-between items-center bg-green-100 rounded-lg px-3 py-1.5 border border-green-300">
+                    <span className="text-xs font-bold text-green-800">
                       COSTO TOTAL:
                     </span>
-                    <span className="font-bold text-green-900 text-base">
+                    <span className="font-bold text-green-900 text-sm">
                       {(() => {
                         const totalGastos =
                           (vehiculo.gastosTransporte || 0) +
@@ -719,6 +701,43 @@ export function InvestorVehicleCard({
                     </span>
                   </div>
                 </div>
+
+                {/* Información de venta si está vendido */}
+                {esVendido && vehiculo.precioVenta && (
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="flex justify-between bg-white rounded px-2 py-1">
+                      <span className="text-gray-600">Precio venta:</span>
+                      <span className="font-semibold text-gray-900">
+                        {formatCurrency(vehiculo.precioVenta)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between bg-white rounded px-2 py-1">
+                      <span className="text-gray-600">IVA + Impuesto SL:</span>
+                      <span className="font-semibold text-gray-900">
+                        {(() => {
+                          // Calcular IVA (21%) + Impuesto especial sobre vehículos nuevos
+                          const precioVenta = vehiculo.precioVenta || 0
+                          const iva = precioVenta * 0.21
+                          const impuestoSL = precioVenta * 0.04 // 4% impuesto especial
+                          const total = iva + impuestoSL
+                          return formatCurrency(total)
+                        })()}
+                      </span>
+                    </div>
+                    {vehiculo.beneficioNeto !== undefined && (
+                      <div className="col-span-2 flex justify-between bg-white rounded px-2 py-1">
+                        <span className="text-gray-600 font-semibold">
+                          Beneficio:
+                        </span>
+                        <span
+                          className={`font-bold text-base ${vehiculo.beneficioNeto >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                        >
+                          {formatCurrency(vehiculo.beneficioNeto)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Foto */}
                 <div className="mt-4">
