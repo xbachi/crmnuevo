@@ -37,6 +37,20 @@ This QA hardening session focused on applying safe, non-breaking improvements to
 - **Type guards in catch blocks**: Missing in many API routes
 - **Accessibility**: Some missing alt tags, form labels
 - **Scripts**: Missing `typecheck` script
+- **Card grid layout**: Cards stretching when accordions expand
+
+### After Refactoring
+
+- **Logger utility**: ✅ Created (`src/lib/logger.ts`)
+- **Typecheck script**: ✅ Added (`npm run typecheck`, `npm run typecheck:watch`)
+- **Lint fix script**: ✅ Added (`npm run lint:fix`)
+- **Error type guards**: ✅ Improved in `src/app/api/vehiculos/[id]/route.ts`
+- **TypeScript types**: ✅ Replaced `any` with proper interface in `src/lib/utils.ts`
+- **Grid layout**: ✅ Fixed card height independence in `src/app/inversores/[id]/page.tsx`
+- **Financial calculations**: ✅ Centralized in `src/lib/financial-calculations.ts`
+- **Tax rates config**: ✅ Extracted to `src/config/tax-rates.ts`
+- **Database indexes**: ✅ Script created (`scripts/create-database-indexes.sql`)
+- **Currency formatting**: ✅ Consolidated to use `@/lib/utils`
 
 ---
 
