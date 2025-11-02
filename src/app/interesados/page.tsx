@@ -34,7 +34,7 @@ export default function InteresadosPage() {
     useState<Interesado | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('list')
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(true)
   const [precioMaxFilter, setPrecioMaxFilter] = useState('')
   const [kilometrajeFilter, setKilometrajeFilter] = useState('')
   const [añoMinFilter, setAñoMinFilter] = useState('')
