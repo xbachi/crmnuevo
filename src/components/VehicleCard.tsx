@@ -911,22 +911,9 @@ const VehicleCard = memo(function VehicleCard({
           <div className="flex space-x-2">
             {onEdit && (
               <button
-                onClick={() =>
-                  !vehiculoVendido && !vehiculoReservado && onEdit(vehiculo)
-                }
-                disabled={vehiculoVendido || vehiculoReservado}
-                className={`p-2 rounded-lg transition-all duration-200 ${
-                  vehiculoVendido || vehiculoReservado
-                    ? 'text-gray-300 cursor-not-allowed'
-                    : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
-                }`}
-                title={
-                  vehiculoVendido
-                    ? 'Vehículo vendido - No editable'
-                    : vehiculoReservado
-                      ? 'Vehículo reservado - No editable'
-                      : 'Editar vehículo'
-                }
+                onClick={() => onEdit(vehiculo)}
+                className="p-2 rounded-lg transition-all duration-200 text-gray-400 hover:text-green-600 hover:bg-green-50"
+                title="Editar vehículo"
               >
                 <svg
                   className="w-4 h-4"
