@@ -452,10 +452,12 @@ export default function InvestorDashboardPage() {
 
     const matchesEstado = !estadoFilter || vehiculo.estado === estadoFilter
 
+    // Normalizar estado a minúsculas para comparación
+    const estadoNormalized = vehiculo.estado?.toLowerCase().trim() || ''
     const matchesStock =
       !stockFilter ||
-      (stockFilter === 'activos' && vehiculo.estado !== 'VENDIDO') ||
-      (stockFilter === 'vendidos' && vehiculo.estado === 'VENDIDO')
+      (stockFilter === 'activos' && estadoNormalized !== 'vendido') ||
+      (stockFilter === 'vendidos' && estadoNormalized === 'vendido')
 
     return matchesSearch && matchesEstado && matchesStock
   })
