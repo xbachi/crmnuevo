@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { capitalizeText } from '@/lib/utils'
+import { useSimpleToast } from '@/hooks/useSimpleToast'
 
 interface Interesado {
   id: number
@@ -21,16 +22,35 @@ interface Interesado {
   updatedAt?: string
 }
 
+interface NotaInteresado {
+  id: number
+  interesadoId: number
+  tipo: string
+  titulo: string
+  contenido: string
+  prioridad: string
+  completada: boolean
+  fecha: string
+  usuario: string
+  createdAt: string
+}
+
 export default function InteresadoDetailPage() {
   const router = useRouter()
   const params = useParams()
+  const { showToast, ToastContainer } = useSimpleToast()
   const interesadoId = params.id as string
 
   const [interesado, setInteresado] = useState<Interesado | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [nuevaNota, setNuevaNota] = useState('')
+  const [notasInteresado, setNotasInteresado] = useState<NotaInteresado[]>([])
+  const [editingNotaId, setEditingNotaId] = useState<number | null>(null)
+  const [editingContent, setEditingContent] = useState('')
 
   useEffect(() => {
     fetchInteresado()
+    fetchNotas()
   }, [interesadoId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchInteresado = async () => {
@@ -49,6 +69,125 @@ export default function InteresadoDetailPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const fetchNotas = async () => {
+    try {
+      const response = await fetch(`/api/interesados/${interesadoId}/notas`)
+      if (response.ok) {
+        const notas = await response.json()
+        setNotasInteresado(notas)
+      }
+    } catch (error) {
+      console.error('Error cargando notas:', error)
+    }
+  }
+
+  const handleAgregarNota = async () => {
+    if (!interesado || !nuevaNota.trim()) return
+
+    try {
+      const response = await fetch(`/api/interesados/${interesado.id}/notas`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contenido: nuevaNota.trim(),
+          tipo: 'general',
+          titulo: 'Nota general',
+          usuario: 'Admin',
+        }),
+      })
+
+      if (response.ok) {
+        setNuevaNota('')
+        fetchNotas()
+        showToast('Nota agregada correctamente', 'success')
+      } else {
+        const errorData = await response.json()
+        showToast(
+          `Error al agregar la nota: ${errorData.details || errorData.error}`,
+          'error'
+        )
+      }
+    } catch (error) {
+      console.error('Error agregando nota:', error)
+      showToast('Error al agregar la nota', 'error')
+    }
+  }
+
+  const handleEditarNota = async (notaId: number) => {
+    if (!interesado) return
+
+    try {
+      const response = await fetch(`/api/interesados/${interesado.id}/notas`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          notaId: notaId,
+          contenido: editingContent.trim(),
+          tipo: 'general',
+          titulo: 'Nota general',
+          usuario: 'Admin',
+        }),
+      })
+
+      if (response.ok) {
+        setEditingNotaId(null)
+        setEditingContent('')
+        fetchNotas()
+        showToast('Nota editada correctamente', 'success')
+      } else {
+        const errorData = await response.json()
+        showToast(
+          `Error al editar la nota: ${errorData.details || errorData.error}`,
+          'error'
+        )
+      }
+    } catch (error) {
+      console.error('Error editando nota:', error)
+      showToast('Error al editar la nota', 'error')
+    }
+  }
+
+  const handleEliminarNota = async (notaId: number) => {
+    if (!interesado) return
+
+    try {
+      const response = await fetch(
+        `/api/interesados/${interesado.id}/notas?notaId=${notaId}`,
+        {
+          method: 'DELETE',
+        }
+      )
+
+      if (response.ok) {
+        fetchNotas()
+        showToast('Nota eliminada correctamente', 'success')
+      } else {
+        const errorData = await response.json()
+        showToast(
+          `Error al eliminar la nota: ${errorData.details || errorData.error}`,
+          'error'
+        )
+      }
+    } catch (error) {
+      console.error('Error eliminando nota:', error)
+      showToast('Error al eliminar la nota', 'error')
+    }
+  }
+
+  const startEditing = (nota: NotaInteresado) => {
+    setEditingNotaId(nota.id)
+    setEditingContent(nota.contenido || '')
+  }
+
+  const cancelEditing = () => {
+    setEditingNotaId(null)
+    setEditingContent('')
   }
 
   if (isLoading) {
@@ -240,6 +379,131 @@ export default function InteresadoDetailPage() {
                   )}
                 </div>
               </div>
+
+              {/* Notas */}
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Notas
+                </h2>
+
+                {/* Formulario para agregar nota */}
+                <div className="mb-4">
+                  <textarea
+                    value={nuevaNota}
+                    onChange={(e) => setNuevaNota(e.target.value)}
+                    placeholder="Agregar una nueva nota..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    rows={3}
+                  />
+                  <button
+                    onClick={handleAgregarNota}
+                    disabled={!nuevaNota.trim()}
+                    className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  >
+                    Agregar Nota
+                  </button>
+                </div>
+
+                {/* Lista de notas */}
+                <div className="space-y-3">
+                  {notasInteresado.map((nota) => (
+                    <div
+                      key={nota.id}
+                      className="border border-gray-200 rounded-lg p-3"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          {editingNotaId === nota.id ? (
+                            <div className="space-y-2">
+                              <textarea
+                                value={editingContent || ''}
+                                onChange={(e) =>
+                                  setEditingContent(e.target.value)
+                                }
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                                rows={3}
+                              />
+                              <div className="flex space-x-2">
+                                <button
+                                  onClick={() => handleEditarNota(nota.id)}
+                                  className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                                >
+                                  Guardar
+                                </button>
+                                <button
+                                  onClick={cancelEditing}
+                                  className="px-3 py-1 bg-gray-600 text-white rounded-lg hover:bg-gray-700 text-sm"
+                                >
+                                  Cancelar
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div>
+                              <p className="text-gray-900 whitespace-pre-wrap">
+                                {nota.contenido}
+                              </p>
+                              <p className="text-xs text-gray-500 mt-2">
+                                {new Date(nota.fecha).toLocaleString('es-ES')}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex space-x-2 ml-2">
+                          {editingNotaId !== nota.id && (
+                            <>
+                              <button
+                                onClick={() => startEditing(nota)}
+                                className="text-blue-600 hover:text-blue-800"
+                                title="Editar nota"
+                              >
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                  />
+                                </svg>
+                              </button>
+                              <button
+                                onClick={() => handleEliminarNota(nota.id)}
+                                className="text-red-600 hover:text-red-800"
+                                title="Eliminar nota"
+                              >
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                  />
+                                </svg>
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {notasInteresado.length === 0 && (
+                  <p className="text-gray-500 text-sm text-center py-4">
+                    No hay notas aún
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Sidebar */}
@@ -277,6 +541,7 @@ export default function InteresadoDetailPage() {
           </div>
         </main>
       </div>
+      <ToastContainer />
     </ProtectedRoute>
   )
 }
