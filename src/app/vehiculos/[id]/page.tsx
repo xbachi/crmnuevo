@@ -182,6 +182,7 @@ export default function VehiculoDetailPage() {
   const [isEditingDocumentacion, setIsEditingDocumentacion] = useState(false)
   const [isEditingFinanciero, setIsEditingFinanciero] = useState(false)
   const [editingData, setEditingData] = useState({
+    tipo: '',
     marca: '',
     modelo: '',
     matricula: '',
@@ -743,6 +744,7 @@ export default function VehiculoDetailPage() {
 
     if (vehiculo) {
       const newEditingData = {
+        tipo: vehiculo.tipo || '',
         marca: vehiculo.marca || '',
         modelo: vehiculo.modelo || '',
         matricula: vehiculo.matricula || '',
@@ -870,6 +872,7 @@ export default function VehiculoDetailPage() {
 
     if (isEditingGeneral) {
       // Campos de información general
+      if (editingData.tipo !== undefined) camposAGuardar.tipo = editingData.tipo
       if (editingData.marca !== undefined)
         camposAGuardar.marca = editingData.marca
       if (editingData.modelo !== undefined)
@@ -1892,7 +1895,7 @@ export default function VehiculoDetailPage() {
                       </div>
 
                       <div className="grid grid-cols-1 2xl:grid-cols-12 gap-2 sm:gap-3 lg:gap-6">
-                        {/* Marca y Modelo */}
+                        {/* Tipo, Marca y Modelo */}
                         <div className="2xl:col-span-4 bg-blue-50 border border-blue-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
                           <div className="flex items-center space-x-1 sm:space-x-2 mb-1 lg:mb-3">
                             <div className="w-4 h-4 sm:w-5 sm:h-5 lg:w-8 lg:h-8 bg-blue-500 rounded-lg flex items-center justify-center">
@@ -1916,6 +1919,40 @@ export default function VehiculoDetailPage() {
                           </div>
                           <div className="text-sm lg:text-base">
                             <div className="flex flex-col 2xl:flex-row 2xl:items-center gap-2">
+                              <span className="text-blue-700 font-medium">
+                                Tipo:{' '}
+                                {isEditingGeneral ? (
+                                  <select
+                                    value={editingData.tipo}
+                                    onChange={(e) =>
+                                      setEditingData((prev) => ({
+                                        ...prev,
+                                        tipo: e.target.value,
+                                      }))
+                                    }
+                                    className="ml-1 text-blue-900 bg-white border border-blue-300 rounded px-2 py-1 text-sm font-medium"
+                                  >
+                                    <option value="C">COMPRA</option>
+                                    <option value="I">INVERSOR</option>
+                                    <option value="D">DEPÓSITO</option>
+                                    <option value="R">RENTING</option>
+                                  </select>
+                                ) : (
+                                  <span className="text-blue-900 font-semibold ml-1">
+                                    {vehiculo.tipo === 'C'
+                                      ? 'COMPRA'
+                                      : vehiculo.tipo === 'I'
+                                        ? 'INVERSOR'
+                                        : vehiculo.tipo === 'D'
+                                          ? 'DEPÓSITO'
+                                          : vehiculo.tipo === 'R'
+                                            ? 'RENTING'
+                                            : vehiculo.tipo}
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                            <div className="flex flex-col 2xl:flex-row 2xl:items-center gap-2 mt-2">
                               <span className="text-blue-700 font-medium">
                                 Marca:{' '}
                                 {isEditingGeneral ? (
