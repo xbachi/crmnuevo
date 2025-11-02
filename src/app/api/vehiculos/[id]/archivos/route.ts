@@ -37,38 +37,66 @@ async function loadMetadata(vehiculoId: number) {
           // Buscar sin prefijo específico para ver qué hay
           try {
             const { blobs: allBlobs } = await list({ limit: 1000 })
-            const relatedBlobs = allBlobs.filter(
-              (b) =>
-                b.path.includes(`vehiculos/${vehiculoId}/`) ||
-                b.path.includes(`/${vehiculoId}/`)
+            console.log(
+              `📁 [VEHICULO ARCHIVOS] Total de blobs encontrados en búsqueda amplia:`,
+              allBlobs.length
             )
+            console.log(
+              `📁 [VEHICULO ARCHIVOS] Estructura de primer blob:`,
+              allBlobs[0] ? Object.keys(allBlobs[0]) : 'No hay blobs'
+            )
+            const relatedBlobs = allBlobs.filter((b) => {
+              const path = b.path || b.url || ''
+              return (
+                path.includes(`vehiculos/${vehiculoId}/`) ||
+                path.includes(`/${vehiculoId}/`)
+              )
+            })
             console.log(
               `📁 [VEHICULO ARCHIVOS] Blobs relacionados encontrados en búsqueda amplia:`,
               relatedBlobs.length
             )
             console.log(
               `📁 [VEHICULO ARCHIVOS] Rutas relacionadas:`,
-              relatedBlobs.map((b) => b.path)
+              relatedBlobs.map((b) => b.path || b.url || 'unknown')
             )
 
             if (relatedBlobs.length > 0) {
               // Usar los blobs encontrados en la búsqueda amplia
               const mappedBlobs = relatedBlobs.map((blob) => {
-                const fileName = blob.path.split('/').pop() || 'unknown'
+                const blobPath = blob.path || blob.url || ''
+                let fileName = 'unknown'
+                if (blobPath) {
+                  try {
+                    if (blobPath.startsWith('http')) {
+                      const urlObj = new URL(blobPath)
+                      fileName = urlObj.pathname.split('/').pop() || 'unknown'
+                    } else {
+                      fileName = blobPath.split('/').pop() || 'unknown'
+                    }
+                  } catch (e) {
+                    fileName = blobPath.split('/').pop() || 'unknown'
+                  }
+                }
+
                 const timestampMatch = fileName.match(/^(\d+)-/)
                 const id = timestampMatch
                   ? timestampMatch[1]
-                  : blob.uploadedAt.toString()
+                  : blob.uploadedAt
+                    ? blob.uploadedAt.toString()
+                    : Date.now().toString()
                 const name = fileName.replace(/^\d+-/, '') || 'unknown'
 
                 return {
                   id,
                   name,
                   fileName,
-                  size: blob.size,
+                  size: blob.size || 0,
                   type: blob.contentType || 'application/octet-stream',
-                  uploadDate: blob.uploadedAt.toISOString(),
-                  path: blob.url,
+                  uploadDate: blob.uploadedAt
+                    ? blob.uploadedAt.toISOString()
+                    : new Date().toISOString(),
+                  path: blob.url || blobPath || '',
                 }
               })
 
@@ -87,12 +115,40 @@ async function loadMetadata(vehiculoId: number) {
         }
 
         const mappedBlobs = blobs.map((blob) => {
-          const fileName = blob.path.split('/').pop() || 'unknown'
+          // Obtener el path o url del blob - Vercel Blob puede usar 'path' o 'url'
+          const blobPath = blob.path || blob.url || ''
+          console.log(`📁 [VEHICULO ARCHIVOS] Procesando blob:`, {
+            path: blob.path,
+            url: blob.url,
+            blobPath,
+            hasPath: !!blob.path,
+            hasUrl: !!blob.url,
+          })
+
+          // Extraer el nombre del archivo del path o url
+          let fileName = 'unknown'
+          if (blobPath) {
+            // Si es una URL completa, extraer solo el pathname
+            try {
+              if (blobPath.startsWith('http')) {
+                const urlObj = new URL(blobPath)
+                fileName = urlObj.pathname.split('/').pop() || 'unknown'
+              } else {
+                fileName = blobPath.split('/').pop() || 'unknown'
+              }
+            } catch (e) {
+              // Si falla el parsing, intentar split directo
+              fileName = blobPath.split('/').pop() || 'unknown'
+            }
+          }
+
           // Extraer el timestamp del inicio del nombre del archivo
           const timestampMatch = fileName.match(/^(\d+)-/)
           const id = timestampMatch
             ? timestampMatch[1]
-            : blob.uploadedAt.toString()
+            : blob.uploadedAt
+              ? blob.uploadedAt.toString()
+              : Date.now().toString()
           // Extraer el nombre original removiendo el timestamp y guiones
           const name = fileName.replace(/^\d+-/, '') || 'unknown'
 
@@ -100,10 +156,12 @@ async function loadMetadata(vehiculoId: number) {
             id,
             name,
             fileName,
-            size: blob.size,
+            size: blob.size || 0,
             type: blob.contentType || 'application/octet-stream',
-            uploadDate: blob.uploadedAt.toISOString(),
-            path: blob.url,
+            uploadDate: blob.uploadedAt
+              ? blob.uploadedAt.toISOString()
+              : new Date().toISOString(),
+            path: blob.url || blobPath || '',
           }
         })
 
