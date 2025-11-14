@@ -1512,10 +1512,10 @@ export default function InvestorDashboardPage() {
                   <div className="p-4 pt-0">
                     <NotasSection
                       notas={notas}
-                      onNotasChange={setNotas}
+                      onNotasChange={canEdit ? setNotas : undefined}
                       entityId={inversorData.id}
-                      entityType="inversores"
-                      isReadOnly={isInvestorUser}
+                      entityType="inversor"
+                      isReadOnly={!canEdit}
                     />
                   </div>
                 </details>
