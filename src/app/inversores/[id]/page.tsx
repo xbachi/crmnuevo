@@ -1234,6 +1234,7 @@ export default function InvestorDashboardPage() {
                       onEdit={handleEditVehiculo}
                       onEditVehiculo={handleEditVehiculo}
                       onPhotoUpload={handlePhotoUpload}
+                      onVehiculoUpdate={fetchData}
                       isReadOnly={isInvestorUser}
                     />
                   ))}

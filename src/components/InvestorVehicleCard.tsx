@@ -21,6 +21,7 @@ interface InvestorVehicleCardProps {
   onEdit?: (vehiculo: Vehiculo) => void
   onEditVehiculo?: (vehiculo: Vehiculo) => void
   onPhotoUpload?: (vehiculoId: number, photoUrl: string) => void
+  onVehiculoUpdate?: () => void
   isReadOnly?: boolean
 }
 
@@ -31,6 +32,7 @@ export function InvestorVehicleCard({
   onEdit,
   onEditVehiculo,
   onPhotoUpload,
+  onVehiculoUpdate,
   isReadOnly = false,
 }: InvestorVehicleCardProps) {
   const [showPhotoModal, setShowPhotoModal] = useState(false)
@@ -279,6 +281,37 @@ export function InvestorVehicleCard({
   }
 
   const valoresFiscales = calcularValoresFiscales()
+
+  // Función para actualizar garantiaPremium directamente
+  const handleToggleGarantiaPremium = async (checked: boolean) => {
+    try {
+      const response = await fetch(`/api/vehiculos/${vehiculo.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          garantiaPremium: checked,
+        }),
+      })
+
+      if (response.ok) {
+        // Actualizar el estado local del vehículo
+        ;(vehiculo as any).garantiaPremium = checked
+        // Notificar al componente padre para refrescar los datos
+        if (onVehiculoUpdate) {
+          onVehiculoUpdate()
+        } else {
+          // Fallback: recargar la página si no hay callback
+          window.location.reload()
+        }
+      } else {
+        console.error('Error al actualizar garantía premium')
+      }
+    } catch (error) {
+      console.error('Error al actualizar garantía premium:', error)
+    }
+  }
 
   // Funciones para gestionar archivos
   const fetchArchivos = async () => {
@@ -910,12 +943,18 @@ export function InvestorVehicleCard({
                           </span>
                         </div>
                         <div className="flex items-center bg-orange-100 rounded-md px-3 py-2 border-2 border-orange-200">
-                          <span className="text-sm font-bold text-orange-800">
+                          <span className="text-sm font-bold text-orange-800 mr-2">
                             Extra GP 190€:
                           </span>
-                          <span className="text-sm font-bold text-orange-900 ml-[3px]">
-                            {valoresFiscales.garantiaPremium ? 'Sí' : 'No'}
-                          </span>
+                          <input
+                            type="checkbox"
+                            checked={valoresFiscales.garantiaPremium || false}
+                            onChange={(e) =>
+                              handleToggleGarantiaPremium(e.target.checked)
+                            }
+                            className="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500 cursor-pointer"
+                            title="Marcar si el vehículo se vendió con garantía premium (+190€ al beneficio)"
+                          />
                         </div>
                       </div>
                       <h4 className="text-sm font-bold text-orange-800 mb-2 flex items-center gap-2">
