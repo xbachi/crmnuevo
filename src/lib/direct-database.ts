@@ -1523,7 +1523,7 @@ export async function getVehiculosByInversor(inversorId: number) {
         v."inversorId", v."fechaCompra", v."precioCompra", v."gastosTransporte",
         v."gastosTasas", v."gastosMecanica", v."gastosPintura", v."gastosLimpieza",
         v."gastosOtros", v."gastosCNGarantia", v."precioPublicacion", v."precioVenta", 
-        v."beneficioNeto",
+        v."garantiaPremium", v."beneficioNeto",
         v."notasInversor", v."fotoInversor", v.itv, v.seguro, v."segundaLlave",
         v.carpeta, v.master, v."hojasA", v.documentacion, i.nombre as inversor_nombre,
         d.id as deposito_id, d.estado as deposito_estado
