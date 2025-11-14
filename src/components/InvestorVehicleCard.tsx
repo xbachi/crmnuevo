@@ -900,7 +900,7 @@ export function InvestorVehicleCard({
                     </div>
 
                     {/* Bloque Gastos de Venta (naranja) */}
-                    <div className="space-y-2 bg-orange-50 rounded-lg p-3 border-2 border-orange-300">
+                    <div className="space-y-2 bg-orange-50 rounded-lg p-2 sm:p-3 border-2 border-orange-300">
                       {/* Precio de venta y Extra GP en dos columnas */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
                         <div className="flex items-center bg-orange-100 rounded-md px-2 sm:px-3 py-2 border-2 border-orange-200 min-w-0">
