@@ -347,11 +347,38 @@ export default function InvestorDashboardPage() {
 
         if (response.ok) {
           const responseData = await response.json()
+          console.log('✅ [INVERSOR PAGE] Archivo subido:', responseData)
           showToast('Archivo subido exitosamente', 'success')
-          // Recargar archivos
+          // Si el archivo se subió correctamente, agregarlo inmediatamente a la lista
+          if (responseData.file) {
+            setDocumentos((prev) => {
+              const updated = [
+                ...prev,
+                {
+                  ...responseData.file,
+                  tamañoFormateado: formatFileSize(responseData.file.size),
+                },
+              ]
+              console.log(
+                '📝 [INVERSOR PAGE] Documentos actualizados:',
+                updated
+              )
+              return updated
+            })
+          }
+          // Recargar archivos para asegurar sincronización
           await fetchDocumentos()
         } else {
-          showToast('Error al subir archivo', 'error')
+          const errorData = await response.json().catch(() => ({}))
+          console.error(
+            '❌ [INVERSOR PAGE] Error al subir archivo:',
+            response.status,
+            errorData
+          )
+          showToast(
+            `Error al subir archivo: ${errorData.error || errorData.details || 'Error desconocido'}`,
+            'error'
+          )
         }
       } catch (error) {
         console.error('Error al subir archivo:', error)
