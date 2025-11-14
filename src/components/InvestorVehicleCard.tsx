@@ -994,12 +994,12 @@ export function InvestorVehicleCard({
                 {!esVendido && (
                   <>
                     {/* Bloque Gastos de Compra (azul) */}
-                    <div className="space-y-2 bg-blue-50 rounded-lg p-3 border-2 border-blue-300">
-                      <h4 className="text-sm font-bold text-blue-800 mb-2 flex items-center gap-2">
-                        <span className="text-base">💰</span>
+                    <div className="space-y-2 bg-blue-50 rounded-lg p-2 sm:p-3 border-2 border-blue-300">
+                      <h4 className="text-xs sm:text-sm font-bold text-blue-800 mb-2 flex items-center gap-2">
+                        <span className="text-sm sm:text-base">💰</span>
                         Gastos de Compra
                       </h4>
-                      <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                         <div className="flex items-center bg-blue-100 rounded px-2 py-1.5 border border-blue-200">
                           <span className="text-blue-700 font-medium">
                             Precio compra:
