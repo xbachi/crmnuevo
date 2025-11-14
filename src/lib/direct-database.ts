@@ -991,8 +991,8 @@ export async function updateVehiculo(
       }
       return value
     })
-    // Si solo se está actualizando garantiaPremium, verificar primero si la columna existe
-    if (fields.length === 1 && fields[0] === 'garantiaPremium') {
+    // Si se está actualizando garantiaPremium, verificar primero si la columna existe
+    if (fields.includes('garantiaPremium')) {
       const checkColumnQuery = `
         SELECT column_name 
         FROM information_schema.columns 

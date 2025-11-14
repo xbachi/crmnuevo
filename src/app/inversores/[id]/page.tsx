@@ -260,12 +260,22 @@ export default function InvestorDashboardPage() {
         setEditingVehiculo(null)
         showToast('Vehículo actualizado correctamente', 'success')
       } else {
-        console.error('Error al actualizar vehículo')
-        showToast('Error al actualizar vehículo', 'error')
+        const errorData = await response.json().catch(() => ({}))
+        console.error(
+          'Error al actualizar vehículo:',
+          response.status,
+          errorData
+        )
+        showToast(
+          `Error al actualizar vehículo: ${errorData.error || 'Error desconocido'}`,
+          'error'
+        )
       }
     } catch (error) {
       console.error('Error:', error)
-      showToast('Error al actualizar vehículo', 'error')
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido'
+      showToast(`Error al actualizar vehículo: ${errorMessage}`, 'error')
     }
   }
 
