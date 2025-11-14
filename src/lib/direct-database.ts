@@ -1046,6 +1046,7 @@ export async function updateVehiculo(
       '🔧 Query:',
       `UPDATE "Vehiculo" SET ${setClause}, "updatedAt" = NOW() WHERE id = $1 RETURNING *`
     )
+    console.log('🔧 Campos a actualizar:', fields)
     console.log('🔧 Parámetros:', [id, ...values])
     console.log(
       '🔧 Tipos de parámetros:',
@@ -1058,6 +1059,7 @@ export async function updateVehiculo(
       color: vehiculoData.color,
       fechaMatriculacion: vehiculoData.fechaMatriculacion,
       garantiaPremium: (vehiculoData as any).garantiaPremium,
+      tipoGarantiaPremium: typeof (vehiculoData as any).garantiaPremium,
     })
 
     const result = await client.query(
@@ -1072,7 +1074,16 @@ export async function updateVehiculo(
 
     console.log('✅ Resultado de actualización:', result.rows[0])
     console.log('✅ Número de filas afectadas:', result.rowCount)
-    console.log('✅ Resultado completo:', result)
+    if (fields.includes('garantiaPremium')) {
+      console.log(
+        '✅ garantiaPremium guardado en BD:',
+        result.rows[0]?.garantiaPremium
+      )
+      console.log(
+        '✅ Tipo de garantiaPremium en BD:',
+        typeof result.rows[0]?.garantiaPremium
+      )
+    }
 
     return (result.rows[0] as Vehiculo) || null
   } catch (error: any) {
