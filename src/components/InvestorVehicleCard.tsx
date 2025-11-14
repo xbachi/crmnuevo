@@ -431,7 +431,7 @@ export function InvestorVehicleCard({
     <div className="rounded-xl border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden bg-white border-gray-200">
       {/* Header con estado destacado */}
       <div
-        className={`px-5 py-4 border-b ${
+        className={`px-3 sm:px-5 py-2 sm:py-4 border-b ${
           esVendido
             ? 'bg-gradient-to-r from-gray-300 to-gray-400 border-gray-400 opacity-60 grayscale'
             : esDeposito
@@ -601,43 +601,45 @@ export function InvestorVehicleCard({
       </div>
 
       {/* Contenido principal */}
-      <div className="p-5">
+      <div className="p-3 sm:p-5">
         {/* Información básica del vehículo */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 mb-4 border border-blue-200">
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-2 sm:p-4 mb-3 sm:mb-4 border border-blue-200">
           <div className="space-y-2">
             {/* Fila 1: Matrícula y Color */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-              <div className="flex items-center py-1.5 px-2 bg-white/60 rounded-lg">
-                <span className="text-gray-600 font-medium text-xs">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <div className="flex items-center py-1 px-1.5 sm:px-2 bg-white/60 rounded-lg min-w-0">
+                <span className="text-gray-600 font-medium text-xs whitespace-nowrap flex-shrink-0">
                   Matrícula:
                 </span>
-                <span className="font-semibold text-gray-900 text-xs ml-[3px]">
+                <span className="font-semibold text-gray-900 text-xs ml-[3px] truncate">
                   {vehiculo.matricula || 'No especificada'}
                 </span>
               </div>
-              <div className="flex items-center py-1.5 px-2 bg-white/60 rounded-lg">
-                <span className="text-gray-600 font-medium text-xs">
+              <div className="flex items-center py-1 px-1.5 sm:px-2 bg-white/60 rounded-lg min-w-0">
+                <span className="text-gray-600 font-medium text-xs whitespace-nowrap flex-shrink-0">
                   Color:
                 </span>
-                <span className="font-semibold text-gray-900 text-xs ml-[3px]">
+                <span className="font-semibold text-gray-900 text-xs ml-[3px] truncate">
                   {(vehiculo as any).color || 'No especificado'}
                 </span>
               </div>
             </div>
 
             {/* Fila 2: KMs y Fecha Matriculación */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-              <div className="flex items-center py-1.5 px-2 bg-white/60 rounded-lg">
-                <span className="text-gray-600 font-medium text-xs">KMs:</span>
-                <span className="font-semibold text-gray-900 text-xs ml-[3px]">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <div className="flex items-center py-1 px-1.5 sm:px-2 bg-white/60 rounded-lg min-w-0">
+                <span className="text-gray-600 font-medium text-xs whitespace-nowrap flex-shrink-0">
+                  KMs:
+                </span>
+                <span className="font-semibold text-gray-900 text-xs ml-[3px] truncate">
                   {vehiculo.kms?.toLocaleString() || 'No especificados'}
                 </span>
               </div>
-              <div className="flex items-center py-1.5 px-2 bg-white/60 rounded-lg">
-                <span className="text-gray-600 font-medium text-xs">
+              <div className="flex items-center py-1 px-1.5 sm:px-2 bg-white/60 rounded-lg min-w-0">
+                <span className="text-gray-600 font-medium text-xs whitespace-nowrap flex-shrink-0">
                   Fecha Matriculación:
                 </span>
-                <span className="font-semibold text-gray-900 text-xs ml-[3px]">
+                <span className="font-semibold text-gray-900 text-xs ml-[3px] truncate">
                   {vehiculo.fechaMatriculacion
                     ? new Date(vehiculo.fechaMatriculacion).toLocaleDateString(
                         'es-ES'
@@ -648,8 +650,8 @@ export function InvestorVehicleCard({
             </div>
 
             {/* Fila 3: Bastidor (ocupa toda la fila) */}
-            <div className="flex items-center py-1.5 px-2 bg-white/60 rounded-lg">
-              <span className="text-gray-600 font-medium text-xs flex-shrink-0">
+            <div className="flex items-center py-1 px-1.5 sm:px-2 bg-white/60 rounded-lg min-w-0">
+              <span className="text-gray-600 font-medium text-xs flex-shrink-0 whitespace-nowrap">
                 Bastidor:
               </span>
               <span className="font-semibold text-gray-900 text-xs flex-1 min-w-0 ml-[3px]">
@@ -666,7 +668,7 @@ export function InvestorVehicleCard({
           vehiculo.precioVenta &&
           valoresFiscales.costoTotal > 0 && (
             <div
-              className={`rounded-lg p-4 border-2 mb-6 ${
+              className={`rounded-lg p-2 sm:p-4 border-2 mb-3 sm:mb-6 ${
                 valoresFiscales.esBeneficio
                   ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-300'
                   : 'bg-gradient-to-r from-red-50 to-rose-50 border-red-300'
@@ -748,7 +750,7 @@ export function InvestorVehicleCard({
                 )
                 setIsExpanded(!isExpanded)
               }}
-              className="w-full p-4 text-left flex items-center justify-between hover:bg-blue-100 transition-colors rounded-lg"
+              className="w-full p-2 sm:p-4 text-left flex items-center justify-between hover:bg-blue-100 transition-colors rounded-lg"
             >
               <div className="flex items-center">
                 <svg
@@ -811,7 +813,7 @@ export function InvestorVehicleCard({
 
             {/* Contenido expandible del acordeón */}
             {isExpanded && (
-              <div className="px-4 pb-4 space-y-4">
+              <div className="px-2 sm:px-4 pb-2 sm:pb-4 space-y-3 sm:space-y-4">
                 {/* Información de venta si está vendido - siempre mostrar aunque no tenga precio de venta */}
                 {esVendido && (
                   <>
@@ -1097,7 +1099,7 @@ export function InvestorVehicleCard({
           <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-200">
             <button
               onClick={toggleArchivosSection}
-              className="w-full p-4 text-left flex items-center justify-between hover:bg-indigo-100 transition-colors rounded-lg"
+              className="w-full p-2 sm:p-4 text-left flex items-center justify-between hover:bg-indigo-100 transition-colors rounded-lg"
             >
               <div className="flex items-center">
                 <svg
@@ -1136,7 +1138,7 @@ export function InvestorVehicleCard({
 
             {/* Contenido expandible de archivos */}
             {isArchivosExpanded && (
-              <div className="px-4 pb-4 space-y-4">
+              <div className="px-2 sm:px-4 pb-2 sm:pb-4 space-y-3 sm:space-y-4">
                 {/* Botón para subir archivo */}
                 {!isReadOnly && (
                   <label className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors cursor-pointer">
