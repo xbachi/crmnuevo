@@ -7,8 +7,8 @@ export const TAX_CONFIG = {
   /** IVA (Impuesto sobre el Valor Añadido) - 21% */
   IVA_RATE: 0.21,
 
-  /** Impuesto de Sociedades - 20% */
-  IMPUESTO_SOCIEDADES_RATE: 0.2,
+  /** Impuesto de Sociedades - 25% */
+  IMPUESTO_SOCIEDADES_RATE: 0.25,
 
   /** Porcentaje del beneficio que corresponde al inversor - 50% */
   BENEFICIO_INVERSOR_PERCENTAGE: 0.5,

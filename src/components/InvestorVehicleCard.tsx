@@ -239,11 +239,11 @@ export function InvestorVehicleCard({
     const diferencia = precioVenta - costoTotal
     const iva = Math.round(diferencia * 0.21 * 100) / 100
 
-    // Calcular Impuesto Sociedades: 20% de (precio venta - costo total - IVA)
+    // Calcular Impuesto Sociedades: 25% de (precio venta - costo total - IVA)
     // Costo total ahora incluye CN y Garantía
     const baseImpuestoSociedades = diferencia - iva
     const impuestoSociedades =
-      Math.round(baseImpuestoSociedades * 0.2 * 100) / 100
+      Math.round(baseImpuestoSociedades * 0.25 * 100) / 100
 
     // Beneficio neto = precio venta - costo total - IVA - Impuesto Sociedades
     // Costo total incluye CN y Garantía, así que no se resta por separado
