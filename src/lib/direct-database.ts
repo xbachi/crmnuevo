@@ -991,6 +991,40 @@ export async function updateVehiculo(
       }
       return value
     })
+    // Si solo se está actualizando garantiaPremium, verificar primero si la columna existe
+    if (fields.length === 1 && fields[0] === 'garantiaPremium') {
+      const checkColumnQuery = `
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'Vehiculo' 
+        AND column_name = 'garantiaPremium'
+      `
+      const columnCheck = await client.query(checkColumnQuery)
+
+      if (columnCheck.rows.length === 0) {
+        // La columna no existe, intentar crearla
+        try {
+          await client.query(`
+            ALTER TABLE "Vehiculo" 
+            ADD COLUMN "garantiaPremium" BOOLEAN DEFAULT false
+          `)
+          console.log('✅ Columna garantiaPremium creada exitosamente')
+        } catch (alterError: any) {
+          // Si falla la creación, podría ser porque otro proceso la creó o hay un error de permisos
+          if (alterError.code !== '42701') {
+            // 42701 = duplicate column
+            console.error(
+              '❌ Error al crear columna garantiaPremium:',
+              alterError
+            )
+            throw new Error(
+              `La columna "garantiaPremium" no existe y no se pudo crear. Ejecuta manualmente: ALTER TABLE "Vehiculo" ADD COLUMN "garantiaPremium" BOOLEAN DEFAULT false;`
+            )
+          }
+        }
+      }
+    }
+
     const setClause = fields
       .map((field, index) => `"${field}" = $${index + 2}`)
       .join(', ')
@@ -1023,6 +1057,7 @@ export async function updateVehiculo(
       modelo: vehiculoData.modelo,
       color: vehiculoData.color,
       fechaMatriculacion: vehiculoData.fechaMatriculacion,
+      garantiaPremium: vehiculoData.garantiaPremium,
     })
 
     const result = await client.query(
