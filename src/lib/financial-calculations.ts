@@ -103,7 +103,7 @@ export function calculateVehicleTaxes(
   // 4. Calcular base para Impuesto de Sociedades (diferencia - IVA)
   const baseImpuestoSociedades = roundTo2Decimals(diferencia - iva)
 
-  // 5. Calcular Impuesto de Sociedades (20% sobre la base)
+  // 5. Calcular Impuesto de Sociedades (25% sobre la base)
   const impuestoSociedades = roundTo2Decimals(
     baseImpuestoSociedades * getImpuestoSociedadesRate()
   )
