@@ -902,20 +902,20 @@ export function InvestorVehicleCard({
                     {/* Bloque Gastos de Venta (naranja) */}
                     <div className="space-y-2 bg-orange-50 rounded-lg p-3 border-2 border-orange-300">
                       {/* Precio de venta y Extra GP en dos columnas */}
-                      <div className="grid grid-cols-2 gap-2 mb-2">
-                        <div className="flex items-center bg-orange-100 rounded-md px-3 py-2 border-2 border-orange-200">
-                          <span className="text-sm font-bold text-orange-800">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
+                        <div className="flex items-center bg-orange-100 rounded-md px-2 sm:px-3 py-2 border-2 border-orange-200 min-w-0">
+                          <span className="text-xs sm:text-sm font-bold text-orange-800 whitespace-nowrap">
                             Precio venta:
                           </span>
-                          <span className="text-sm font-bold text-orange-900 ml-[3px]">
+                          <span className="text-xs sm:text-sm font-bold text-orange-900 ml-[3px] truncate">
                             {formatCurrency(valoresFiscales.precioVenta)}
                           </span>
                         </div>
-                        <div className="flex items-center bg-orange-100 rounded-md px-3 py-2 border-2 border-orange-200">
-                          <span className="text-sm font-bold text-orange-800">
+                        <div className="flex items-center bg-orange-100 rounded-md px-2 sm:px-3 py-2 border-2 border-orange-200 min-w-0">
+                          <span className="text-xs sm:text-sm font-bold text-orange-800 whitespace-nowrap">
                             Extra GP 190€:
                           </span>
-                          <span className="text-sm font-bold text-orange-900 ml-[3px]">
+                          <span className="text-xs sm:text-sm font-bold text-orange-900 ml-[3px]">
                             {valoresFiscales.garantiaPremium ? 'Sí' : 'No'}
                           </span>
                         </div>
@@ -924,32 +924,32 @@ export function InvestorVehicleCard({
                         <span className="text-base">💸</span>
                         Gastos de Venta
                       </h4>
-                      <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                         {/* IVA */}
-                        <div className="flex items-center bg-orange-100 rounded px-2 py-1.5 border border-orange-200">
-                          <span className="text-orange-700 font-medium">
+                        <div className="flex items-center bg-orange-100 rounded px-2 py-1.5 border border-orange-200 min-w-0">
+                          <span className="text-orange-700 font-medium whitespace-nowrap">
                             IVA:
                           </span>
-                          <span className="font-bold text-orange-900 ml-[3px]">
+                          <span className="font-bold text-orange-900 ml-[3px] truncate">
                             {formatCurrency(valoresFiscales.iva)}
                           </span>
                         </div>
                         {/* Impuesto Sociedades */}
-                        <div className="flex items-center bg-orange-100 rounded px-2 py-1.5 border border-orange-200">
-                          <span className="text-orange-700 font-medium">
-                            Impuesto Sociedades:
+                        <div className="flex items-center bg-orange-100 rounded px-2 py-1.5 border border-orange-200 min-w-0">
+                          <span className="text-orange-700 font-medium whitespace-nowrap">
+                            Imp. Sociedades:
                           </span>
-                          <span className="font-bold text-orange-900 ml-[3px]">
+                          <span className="font-bold text-orange-900 ml-[3px] truncate">
                             {formatCurrency(valoresFiscales.impuestoSociedades)}
                           </span>
                         </div>
                       </div>
                       {/* Total gastos venta (solo IVA + Impuesto Sociedades, CN y Garantía está en costo total) */}
-                      <div className="flex items-center bg-orange-200 rounded-md px-3 py-2.5 border-2 border-orange-400 mt-3 shadow-sm">
-                        <span className="text-sm font-bold text-orange-900">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center bg-orange-200 rounded-md px-2 sm:px-3 py-2 border-2 border-orange-400 mt-3 shadow-sm gap-1 sm:gap-0">
+                        <span className="text-xs sm:text-sm font-bold text-orange-900 whitespace-nowrap">
                           Total gastos venta (IVA + Imp. Soc.):
                         </span>
-                        <span className="text-sm font-bold text-orange-900 ml-[3px]">
+                        <span className="text-xs sm:text-sm font-bold text-orange-900 sm:ml-[3px]">
                           {formatCurrency(
                             (valoresFiscales.iva || 0) +
                               (valoresFiscales.impuestoSociedades || 0)
