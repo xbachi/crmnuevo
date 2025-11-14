@@ -279,10 +279,18 @@ export function InvestorVehicleCard({
       const response = await fetch(`/api/vehiculos/${vehiculo.id}/archivos`)
       if (response.ok) {
         const data = await response.json()
+        console.log('📥 [FRONTEND] Archivos cargados:', data)
         setArchivos(data)
+      } else {
+        const errorData = await response.json().catch(() => ({}))
+        console.error(
+          '❌ [FRONTEND] Error al cargar archivos:',
+          response.status,
+          errorData
+        )
       }
     } catch (error) {
-      console.error('Error al cargar archivos:', error)
+      console.error('❌ [FRONTEND] Error al cargar archivos:', error)
     }
   }
 
@@ -323,6 +331,14 @@ export function InvestorVehicleCard({
           } else {
             const result = await response.json()
             console.log(`✅ Archivo ${file.name} subido exitosamente:`, result)
+            // Si el archivo se subió correctamente, agregarlo inmediatamente a la lista
+            if (result.file) {
+              setArchivos((prev) => {
+                const updated = [...prev, result.file]
+                console.log('📝 [FRONTEND] Archivos actualizados:', updated)
+                return updated
+              })
+            }
           }
         } catch (fileError) {
           console.error(`Error al subir archivo ${file.name}:`, fileError)

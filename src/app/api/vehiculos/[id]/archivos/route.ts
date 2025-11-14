@@ -26,17 +26,24 @@ async function loadMetadata(vehiculoId: number) {
           `📥 [VEHICULO ARCHIVOS] Encontrados ${blobs.length} archivos en Blob`
         )
 
-        return blobs.map((blob) => ({
-          id:
-            blob.path.split('/').pop()?.split('-')[0] ||
-            blob.uploadedAt.toString(),
-          name: blob.path.split('/').pop()?.replace(/^\d+-/, '') || 'unknown',
-          fileName: blob.path.split('/').pop() || 'unknown',
-          size: blob.size,
-          type: blob.contentType || 'application/octet-stream',
-          uploadDate: blob.uploadedAt.toISOString(),
-          path: blob.url,
-        }))
+        return blobs.map((blob) => {
+          // Extraer el nombre del archivo desde la URL o pathname
+          const blobPath =
+            (blob as any).pathname || blob.url.split('/').pop() || ''
+          const fileName = blobPath.split('/').pop() || 'unknown'
+          const fileId = fileName.split('-')[0] || blob.uploadedAt.toString()
+          const originalName = fileName.replace(/^\d+-/, '') || 'unknown'
+
+          return {
+            id: fileId,
+            name: originalName,
+            fileName: fileName,
+            size: blob.size,
+            type: (blob as any).contentType || 'application/octet-stream',
+            uploadDate: blob.uploadedAt.toISOString(),
+            path: blob.url,
+          }
+        })
       } catch (blobError) {
         console.error(
           '❌ [VEHICULO ARCHIVOS] Error al cargar desde Blob:',
@@ -94,11 +101,14 @@ export async function GET(
     const vehiculoId = parseInt(id)
 
     console.log(
-      `📁 [VEHICULO ARCHIVOS] Obteniendo archivos para vehículo ${vehiculoId}`
+      `📁 [VEHICULO ARCHIVOS] Obteniendo archivos para vehículo ${vehiculoId}, Blob Storage: ${USE_BLOB_STORAGE}`
     )
 
     const metadata = await loadMetadata(vehiculoId)
     console.log(`📁 [VEHICULO ARCHIVOS] Archivos encontrados:`, metadata.length)
+    if (metadata.length > 0) {
+      console.log(`📁 [VEHICULO ARCHIVOS] Primer archivo:`, metadata[0])
+    }
 
     return NextResponse.json(metadata, { status: 200 })
   } catch (error) {
@@ -162,6 +172,13 @@ export async function POST(
           uploadDate: new Date().toISOString(),
           path: blob.url,
         }
+
+        // En Blob Storage, los archivos se listan automáticamente, no necesitamos guardar metadatos
+        // Pero devolvemos el archivo para que el frontend pueda actualizarse inmediatamente
+        console.log(
+          `✅ [VEHICULO UPLOAD] Metadatos del archivo:`,
+          newFileMetadata
+        )
 
         return NextResponse.json({
           success: true,

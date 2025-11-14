@@ -20,17 +20,24 @@ async function loadMetadata(vehiculoId: number) {
         const prefix = `vehiculos/${vehiculoId}/`
         const { blobs } = await list({ prefix })
 
-        return blobs.map((blob) => ({
-          id:
-            blob.path.split('/').pop()?.split('-')[0] ||
-            blob.uploadedAt.toString(),
-          name: blob.path.split('/').pop()?.replace(/^\d+-/, '') || 'unknown',
-          fileName: blob.path.split('/').pop() || 'unknown',
-          size: blob.size,
-          type: blob.contentType || 'application/octet-stream',
-          uploadDate: blob.uploadedAt.toISOString(),
-          path: blob.url,
-        }))
+        return blobs.map((blob) => {
+          // Extraer el nombre del archivo desde la URL o pathname
+          const blobPath =
+            (blob as any).pathname || blob.url.split('/').pop() || ''
+          const fileName = blobPath.split('/').pop() || 'unknown'
+          const fileId = fileName.split('-')[0] || blob.uploadedAt.toString()
+          const originalName = fileName.replace(/^\d+-/, '') || 'unknown'
+
+          return {
+            id: fileId,
+            name: originalName,
+            fileName: fileName,
+            size: blob.size,
+            type: (blob as any).contentType || 'application/octet-stream',
+            uploadDate: blob.uploadedAt.toISOString(),
+            path: blob.url,
+          }
+        })
       } catch (blobError) {
         console.error('Error loading metadata from Blob:', blobError)
         return []
