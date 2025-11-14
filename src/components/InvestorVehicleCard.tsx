@@ -306,10 +306,21 @@ export function InvestorVehicleCard({
           window.location.reload()
         }
       } else {
-        console.error('Error al actualizar garantía premium')
+        const errorData = await response.json().catch(() => ({}))
+        console.error(
+          'Error al actualizar garantía premium:',
+          response.status,
+          errorData
+        )
+        alert(
+          `Error al actualizar: ${errorData.error || 'Error desconocido'}. Asegúrate de ejecutar el script SQL para agregar la columna garantiaPremium.`
+        )
       }
     } catch (error) {
       console.error('Error al actualizar garantía premium:', error)
+      alert(
+        `Error de conexión: ${error instanceof Error ? error.message : 'Error desconocido'}`
+      )
     }
   }
 

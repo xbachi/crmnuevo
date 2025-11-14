@@ -135,10 +135,12 @@ export async function PUT(
     const errorMessage =
       error instanceof Error ? error.message : 'Error desconocido'
     console.error('Error al actualizar vehículo:', errorMessage)
-    return NextResponse.json(
-      { error: 'Error interno del servidor' },
-      { status: 500 }
-    )
+    // Si el error menciona una columna que no existe, devolver un mensaje más específico
+    const statusCode =
+      errorMessage.includes('no existe') || errorMessage.includes('column')
+        ? 400
+        : 500
+    return NextResponse.json({ error: errorMessage }, { status: statusCode })
   }
 }
 
