@@ -1040,7 +1040,7 @@ export async function updateVehiculo(
     console.log('✅ Resultado completo:', result)
 
     return (result.rows[0] as Vehiculo) || null
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Error actualizando vehículo:', error)
     console.error('❌ Tipo de error:', typeof error)
     console.error(
@@ -1053,6 +1053,20 @@ export async function updateVehiculo(
     )
     console.error('❌ Datos que causaron el error:', vehiculoData)
     console.error('❌ ID del vehículo:', id)
+    // Si el error es porque la columna no existe, proporcionar un mensaje más claro
+    if (
+      error.code === '42703' ||
+      error.message?.includes('column') ||
+      error.message?.includes('does not exist')
+    ) {
+      const missingColumn =
+        error.message?.match(/column "(\w+)"/)?.[1] || 'desconocida'
+      const friendlyError = new Error(
+        `La columna "${missingColumn}" no existe en la base de datos. Ejecuta el script SQL para agregarla.`
+      )
+      ;(friendlyError as any).code = error.code
+      throw friendlyError
+    }
     throw error
   } finally {
     client.release()
