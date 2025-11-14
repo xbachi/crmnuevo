@@ -463,8 +463,8 @@ export function InvestorVehicleCard({
                 )}
               </span>
             </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-bold text-gray-900">
+            <div className="flex-1 min-w-0">
+              <h3 className="text-base sm:text-lg font-bold text-gray-900 truncate">
                 {capitalizeText(vehiculo.marca)}{' '}
                 {capitalizeText(vehiculo.modelo)}
               </h3>
@@ -816,84 +816,84 @@ export function InvestorVehicleCard({
                 {esVendido && (
                   <>
                     {/* Bloque Gastos de Compra (azul) */}
-                    <div className="space-y-2 bg-blue-50 rounded-lg p-3 border-2 border-blue-300">
-                      <h4 className="text-sm font-bold text-blue-800 mb-2 flex items-center gap-2">
-                        <span className="text-base">💰</span>
+                    <div className="space-y-2 bg-blue-50 rounded-lg p-2 sm:p-3 border-2 border-blue-300">
+                      <h4 className="text-xs sm:text-sm font-bold text-blue-800 mb-2 flex items-center gap-2">
+                        <span className="text-sm sm:text-base">💰</span>
                         Gastos de Compra
                       </h4>
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div className="flex items-center bg-blue-100 rounded px-2 py-1.5 border border-blue-200">
-                          <span className="text-blue-700 font-medium">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                        <div className="flex items-center bg-blue-100 rounded px-2 py-1.5 border border-blue-200 min-w-0">
+                          <span className="text-blue-700 font-medium whitespace-nowrap">
                             Precio compra:
                           </span>
-                          <span className="font-bold text-blue-900 ml-[3px]">
+                          <span className="font-bold text-blue-900 ml-[3px] truncate">
                             {formatCurrency(vehiculo.precioCompra || 0)}
                           </span>
                         </div>
-                        <div className="flex items-center bg-blue-100 rounded px-2 py-1.5 border border-blue-200">
-                          <span className="text-blue-700 font-medium">
+                        <div className="flex items-center bg-blue-100 rounded px-2 py-1.5 border border-blue-200 min-w-0">
+                          <span className="text-blue-700 font-medium whitespace-nowrap">
                             Transporte:
                           </span>
-                          <span className="font-bold text-blue-900 ml-[3px]">
+                          <span className="font-bold text-blue-900 ml-[3px] truncate">
                             {formatCurrency(vehiculo.gastosTransporte || 0)}
                           </span>
                         </div>
-                        <div className="flex items-center bg-blue-100 rounded px-2 py-1.5 border border-blue-200">
-                          <span className="text-blue-700 font-medium">
+                        <div className="flex items-center bg-blue-100 rounded px-2 py-1.5 border border-blue-200 min-w-0">
+                          <span className="text-blue-700 font-medium whitespace-nowrap">
                             Tasas/Gestoría:
                           </span>
-                          <span className="font-bold text-blue-900 ml-[3px]">
+                          <span className="font-bold text-blue-900 ml-[3px] truncate">
                             {formatCurrency(vehiculo.gastosTasas || 0)}
                           </span>
                         </div>
-                        <div className="flex items-center bg-blue-100 rounded px-2 py-1.5 border border-blue-200">
-                          <span className="text-blue-700 font-medium">
+                        <div className="flex items-center bg-blue-100 rounded px-2 py-1.5 border border-blue-200 min-w-0">
+                          <span className="text-blue-700 font-medium whitespace-nowrap">
                             Mecánica:
                           </span>
-                          <span className="font-bold text-blue-900 ml-[3px]">
+                          <span className="font-bold text-blue-900 ml-[3px] truncate">
                             {formatCurrency(vehiculo.gastosMecanica || 0)}
                           </span>
                         </div>
-                        <div className="flex items-center bg-blue-100 rounded px-2 py-1.5 border border-blue-200">
-                          <span className="text-blue-700 font-medium">
+                        <div className="flex items-center bg-blue-100 rounded px-2 py-1.5 border border-blue-200 min-w-0">
+                          <span className="text-blue-700 font-medium whitespace-nowrap">
                             Pintura:
                           </span>
-                          <span className="font-bold text-blue-900 ml-[3px]">
+                          <span className="font-bold text-blue-900 ml-[3px] truncate">
                             {formatCurrency(vehiculo.gastosPintura || 0)}
                           </span>
                         </div>
-                        <div className="flex items-center bg-blue-100 rounded px-2 py-1.5 border border-blue-200">
-                          <span className="text-blue-700 font-medium">
+                        <div className="flex items-center bg-blue-100 rounded px-2 py-1.5 border border-blue-200 min-w-0">
+                          <span className="text-blue-700 font-medium whitespace-nowrap">
                             Limpieza:
                           </span>
-                          <span className="font-bold text-blue-900 ml-[3px]">
+                          <span className="font-bold text-blue-900 ml-[3px] truncate">
                             {formatCurrency(vehiculo.gastosLimpieza || 0)}
                           </span>
                         </div>
-                        <div className="flex items-center bg-blue-100 rounded px-2 py-1.5 border border-blue-200">
-                          <span className="text-blue-700 font-medium">
+                        <div className="flex items-center bg-blue-100 rounded px-2 py-1.5 border border-blue-200 min-w-0">
+                          <span className="text-blue-700 font-medium whitespace-nowrap">
                             Otros:
                           </span>
-                          <span className="font-bold text-blue-900 ml-[3px]">
+                          <span className="font-bold text-blue-900 ml-[3px] truncate">
                             {formatCurrency(vehiculo.gastosOtros || 0)}
                           </span>
                         </div>
                         {/* CN y Garantía - incluido en costos de compra */}
-                        <div className="flex items-center bg-blue-100 rounded px-2 py-1.5 border border-blue-200">
-                          <span className="text-blue-700 font-medium">
+                        <div className="flex items-center bg-blue-100 rounded px-2 py-1.5 border border-blue-200 min-w-0">
+                          <span className="text-blue-700 font-medium whitespace-nowrap">
                             CN y Garantía:
                           </span>
-                          <span className="font-bold text-blue-900 ml-[3px]">
+                          <span className="font-bold text-blue-900 ml-[3px] truncate">
                             {formatCurrency(vehiculo.gastosCNGarantia || 0)}
                           </span>
                         </div>
                       </div>
                       {/* Total costos compra */}
-                      <div className="flex items-center bg-blue-200 rounded-md px-3 py-2.5 border-2 border-blue-400 mt-3 shadow-sm">
-                        <span className="text-sm font-bold text-blue-900">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center bg-blue-200 rounded-md px-2 sm:px-3 py-2 border-2 border-blue-400 mt-3 shadow-sm gap-1 sm:gap-0">
+                        <span className="text-xs sm:text-sm font-bold text-blue-900 whitespace-nowrap">
                           Total costos compra:
                         </span>
-                        <span className="text-sm font-bold text-blue-900 ml-[3px]">
+                        <span className="text-xs sm:text-sm font-bold text-blue-900 sm:ml-[3px]">
                           {formatCurrency(valoresFiscales.costoTotal)}
                         </span>
                       </div>
