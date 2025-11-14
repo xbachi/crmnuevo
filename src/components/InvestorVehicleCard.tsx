@@ -443,10 +443,10 @@ export function InvestorVehicleCard({
                   : 'bg-gradient-to-r from-green-200 to-green-300 border-green-300'
         }`}
       >
-        <div className="flex justify-between items-start">
-          <div className="flex items-start space-x-4">
+        <div className="flex justify-between items-start gap-2">
+          <div className="flex items-start space-x-2 sm:space-x-4 min-w-0 flex-1">
             <div
-              className={`w-14 h-14 rounded-xl flex items-center justify-center shadow-sm ${
+              className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0 ${
                 esDeposito
                   ? 'bg-gradient-to-br from-orange-500 to-orange-600'
                   : esTipoR
@@ -501,11 +501,11 @@ export function InvestorVehicleCard({
             </div>
           </div>
 
-          <div className="flex space-x-1">
+          <div className="flex space-x-1 flex-shrink-0">
             {onEdit && (
               <button
                 onClick={() => onEdit(vehiculo)}
-                className={`p-1.5 rounded-lg transition-all duration-200 ${
+                className={`p-1 sm:p-1.5 rounded-lg transition-all duration-200 ${
                   esVendido
                     ? 'text-black hover:text-white hover:bg-black bg-white border border-black'
                     : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
@@ -513,7 +513,7 @@ export function InvestorVehicleCard({
                 title="Editar vehículo"
               >
                 <svg
-                  className="w-4 h-4"
+                  className="w-3.5 h-3.5 sm:w-4 sm:h-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -529,7 +529,7 @@ export function InvestorVehicleCard({
             )}
             <button
               onClick={() => onView(vehiculo.id)}
-              className={`p-1.5 rounded-lg transition-all duration-200 ${
+              className={`p-1 sm:p-1.5 rounded-lg transition-all duration-200 ${
                 esVendido
                   ? 'text-black hover:text-white hover:bg-black bg-white border border-black'
                   : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'
@@ -537,7 +537,7 @@ export function InvestorVehicleCard({
               title="Ver detalles"
             >
               <svg
-                className="w-4 h-4"
+                className="w-3.5 h-3.5 sm:w-4 sm:h-4"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -920,8 +920,8 @@ export function InvestorVehicleCard({
                           </span>
                         </div>
                       </div>
-                      <h4 className="text-sm font-bold text-orange-800 mb-2 flex items-center gap-2">
-                        <span className="text-base">💸</span>
+                      <h4 className="text-xs sm:text-sm font-bold text-orange-800 mb-2 flex items-center gap-2">
+                        <span className="text-sm sm:text-base">💸</span>
                         Gastos de Venta
                       </h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
