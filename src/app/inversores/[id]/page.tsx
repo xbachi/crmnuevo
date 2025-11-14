@@ -228,6 +228,20 @@ export default function InvestorDashboardPage() {
     setIsEditingVehiculo(true)
   }
 
+  // Función helper para parsear valores numéricos del formulario
+  // Si el campo está vacío, devuelve 0 en lugar de undefined
+  const parseNumericField = (value: FormDataEntryValue | null): number => {
+    if (
+      !value ||
+      value === '' ||
+      (typeof value === 'string' && value.trim() === '')
+    ) {
+      return 0
+    }
+    const parsed = parseFloat(value as string)
+    return isNaN(parsed) ? 0 : parsed
+  }
+
   const handleSaveVehiculo = async (vehiculoData: Partial<Vehiculo>) => {
     if (!editingVehiculo) return
 
@@ -1671,37 +1685,33 @@ export default function InvestorDashboardPage() {
                         bastidor: formData.get('bastidor')
                           ? (formData.get('bastidor') as string).trim()
                           : undefined,
-                        precioCompra: formData.get('precioCompra')
-                          ? parseFloat(formData.get('precioCompra') as string)
-                          : undefined,
-                        gastosTransporte: formData.get('gastosTransporte')
-                          ? parseFloat(
-                              formData.get('gastosTransporte') as string
-                            )
-                          : undefined,
-                        gastosTasas: formData.get('gastosTasas')
-                          ? parseFloat(formData.get('gastosTasas') as string)
-                          : undefined,
-                        gastosMecanica: formData.get('gastosMecanica')
-                          ? parseFloat(formData.get('gastosMecanica') as string)
-                          : undefined,
-                        gastosPintura: formData.get('gastosPintura')
-                          ? parseFloat(formData.get('gastosPintura') as string)
-                          : undefined,
-                        gastosLimpieza: formData.get('gastosLimpieza')
-                          ? parseFloat(formData.get('gastosLimpieza') as string)
-                          : undefined,
-                        gastosOtros: formData.get('gastosOtros')
-                          ? parseFloat(formData.get('gastosOtros') as string)
-                          : undefined,
-                        gastosCNGarantia: formData.get('gastosCNGarantia')
-                          ? parseFloat(
-                              formData.get('gastosCNGarantia') as string
-                            )
-                          : undefined,
-                        precioVenta: formData.get('precioVenta')
-                          ? parseFloat(formData.get('precioVenta') as string)
-                          : undefined,
+                        precioCompra: parseNumericField(
+                          formData.get('precioCompra')
+                        ),
+                        gastosTransporte: parseNumericField(
+                          formData.get('gastosTransporte')
+                        ),
+                        gastosTasas: parseNumericField(
+                          formData.get('gastosTasas')
+                        ),
+                        gastosMecanica: parseNumericField(
+                          formData.get('gastosMecanica')
+                        ),
+                        gastosPintura: parseNumericField(
+                          formData.get('gastosPintura')
+                        ),
+                        gastosLimpieza: parseNumericField(
+                          formData.get('gastosLimpieza')
+                        ),
+                        gastosOtros: parseNumericField(
+                          formData.get('gastosOtros')
+                        ),
+                        gastosCNGarantia: parseNumericField(
+                          formData.get('gastosCNGarantia')
+                        ),
+                        precioVenta: parseNumericField(
+                          formData.get('precioVenta')
+                        ),
                         notasInversor:
                           (formData.get('notasInversor') as string) ||
                           undefined,
@@ -1728,33 +1738,33 @@ export default function InvestorDashboardPage() {
                       bastidor: formData.get('bastidor')
                         ? (formData.get('bastidor') as string).trim()
                         : undefined,
-                      precioCompra: formData.get('precioCompra')
-                        ? parseFloat(formData.get('precioCompra') as string)
-                        : undefined,
-                      gastosTransporte: formData.get('gastosTransporte')
-                        ? parseFloat(formData.get('gastosTransporte') as string)
-                        : undefined,
-                      gastosTasas: formData.get('gastosTasas')
-                        ? parseFloat(formData.get('gastosTasas') as string)
-                        : undefined,
-                      gastosMecanica: formData.get('gastosMecanica')
-                        ? parseFloat(formData.get('gastosMecanica') as string)
-                        : undefined,
-                      gastosPintura: formData.get('gastosPintura')
-                        ? parseFloat(formData.get('gastosPintura') as string)
-                        : undefined,
-                      gastosLimpieza: formData.get('gastosLimpieza')
-                        ? parseFloat(formData.get('gastosLimpieza') as string)
-                        : undefined,
-                      gastosOtros: formData.get('gastosOtros')
-                        ? parseFloat(formData.get('gastosOtros') as string)
-                        : undefined,
-                      gastosCNGarantia: formData.get('gastosCNGarantia')
-                        ? parseFloat(formData.get('gastosCNGarantia') as string)
-                        : undefined,
-                      precioVenta: formData.get('precioVenta')
-                        ? parseFloat(formData.get('precioVenta') as string)
-                        : undefined,
+                      precioCompra: parseNumericField(
+                        formData.get('precioCompra')
+                      ),
+                      gastosTransporte: parseNumericField(
+                        formData.get('gastosTransporte')
+                      ),
+                      gastosTasas: parseNumericField(
+                        formData.get('gastosTasas')
+                      ),
+                      gastosMecanica: parseNumericField(
+                        formData.get('gastosMecanica')
+                      ),
+                      gastosPintura: parseNumericField(
+                        formData.get('gastosPintura')
+                      ),
+                      gastosLimpieza: parseNumericField(
+                        formData.get('gastosLimpieza')
+                      ),
+                      gastosOtros: parseNumericField(
+                        formData.get('gastosOtros')
+                      ),
+                      gastosCNGarantia: parseNumericField(
+                        formData.get('gastosCNGarantia')
+                      ),
+                      precioVenta: parseNumericField(
+                        formData.get('precioVenta')
+                      ),
                       notasInversor:
                         (formData.get('notasInversor') as string) || undefined,
                       fotoInversor: fotoInversor,
