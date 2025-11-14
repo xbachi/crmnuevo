@@ -40,7 +40,7 @@ const NotasSection = memo(function NotasSection({
     try {
       console.log(`📝 [NOTA] Cargando notas para ${entityType} ${entityId}`)
       const apiUrl =
-        entityType === 'inversores'
+        entityType === 'inversor' || entityType === 'inversores'
           ? `/api/inversores/${entityId}/notas`
           : `/api/${entityType}s/${entityId}/notas`
       const response = await fetch(apiUrl)
@@ -79,7 +79,7 @@ const NotasSection = memo(function NotasSection({
     try {
       console.log(`📝 [NOTA] Agregando nota para ${entityType} ${entityId}`)
       const apiUrl =
-        entityType === 'inversores'
+        entityType === 'inversor' || entityType === 'inversores'
           ? `/api/inversores/${entityId}/notas`
           : `/api/${entityType}s/${entityId}/notas`
       const response = await fetch(apiUrl, {
@@ -124,7 +124,7 @@ const NotasSection = memo(function NotasSection({
         `📝 [NOTA] Actualizando nota ${editingNotaId} para ${entityType} ${entityId}`
       )
       const apiUrl =
-        entityType === 'inversores'
+        entityType === 'inversor' || entityType === 'inversores'
           ? `/api/inversores/${entityId}/notas`
           : `/api/${entityType}s/${entityId}/notas`
       const response = await fetch(apiUrl, {
@@ -177,7 +177,7 @@ const NotasSection = memo(function NotasSection({
           `🗑️ [NOTA] Eliminando nota ${notaId} del ${entityType} ${entityId}`
         )
         const apiUrl =
-          entityType === 'inversores'
+          entityType === 'inversor' || entityType === 'inversores'
             ? `/api/inversores/${entityId}/notas?notaId=${notaId}`
             : `/api/${entityType}s/${entityId}/notas?notaId=${notaId}`
         const response = await fetch(apiUrl, {
