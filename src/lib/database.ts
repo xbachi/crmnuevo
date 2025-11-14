@@ -38,6 +38,7 @@ export interface Vehiculo {
   gastosCNGarantia?: number
   precioPublicacion?: number
   precioVenta?: number
+  garantiaPremium?: boolean
   beneficioNeto?: number
   notasInversor?: string
   fotoInversor?: string

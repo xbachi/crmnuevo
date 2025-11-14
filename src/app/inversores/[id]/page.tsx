@@ -1739,6 +1739,8 @@ export default function InvestorDashboardPage() {
                         precioVenta: parseNumericField(
                           formData.get('precioVenta')
                         ),
+                        garantiaPremium:
+                          formData.get('garantiaPremium') === 'on',
                         notasInversor:
                           (formData.get('notasInversor') as string) ||
                           undefined,
@@ -1792,6 +1794,7 @@ export default function InvestorDashboardPage() {
                       precioVenta: parseNumericField(
                         formData.get('precioVenta')
                       ),
+                      garantiaPremium: formData.get('garantiaPremium') === 'on',
                       notasInversor:
                         (formData.get('notasInversor') as string) || undefined,
                       fotoInversor: fotoInversor,
@@ -1993,17 +1996,37 @@ export default function InvestorDashboardPage() {
 
                 {/* Precio de Venta */}
                 <div className="mb-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      ✅ Precio de Venta (€)
-                    </label>
-                    <input
-                      type="number"
-                      name="precioVenta"
-                      defaultValue={editingVehiculo.precioVenta || ''}
-                      step="0.01"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        ✅ Precio de Venta (€)
+                      </label>
+                      <input
+                        type="number"
+                        name="precioVenta"
+                        defaultValue={editingVehiculo.precioVenta || ''}
+                        step="0.01"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        🛡️ Extra GP 190€ (Garantía Premium)
+                      </label>
+                      <div className="flex items-center space-x-2 mt-2">
+                        <input
+                          type="checkbox"
+                          name="garantiaPremium"
+                          defaultChecked={
+                            (editingVehiculo as any).garantiaPremium || false
+                          }
+                          className="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                        />
+                        <span className="text-sm text-gray-700">
+                          Vendido con garantía premium (+190€ al beneficio)
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Beneficio calculado automáticamente */}

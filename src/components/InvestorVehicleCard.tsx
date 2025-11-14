@@ -252,8 +252,13 @@ export function InvestorVehicleCard({
       Math.round(beneficioNetoTotal * 100) / 100
 
     // Inversor se lleva el 50% del beneficio neto
-    const beneficioNeto =
+    let beneficioNeto =
       Math.round(beneficioNetoTotalRedondeado * 0.5 * 100) / 100
+
+    // Si tiene garantía premium, agregar 190€ extra al beneficio del inversor
+    const garantiaPremium = (vehiculo as any).garantiaPremium || false
+    const extraGP = garantiaPremium ? 190 : 0
+    beneficioNeto = beneficioNeto + extraGP
 
     // Calcular porcentaje de beneficio sobre costo total
     const porcentajeBeneficio =
@@ -268,6 +273,8 @@ export function InvestorVehicleCard({
       beneficioNeto,
       porcentajeBeneficio,
       esBeneficio: beneficioNeto >= 0,
+      garantiaPremium,
+      extraGP,
     }
   }
 
@@ -892,14 +899,24 @@ export function InvestorVehicleCard({
 
                     {/* Bloque Gastos de Venta (naranja) */}
                     <div className="space-y-2 bg-orange-50 rounded-lg p-3 border-2 border-orange-300">
-                      {/* Precio de venta */}
-                      <div className="flex items-center bg-orange-100 rounded-md px-3 py-2 border-2 border-orange-200 mb-2">
-                        <span className="text-sm font-bold text-orange-800">
-                          Precio venta:
-                        </span>
-                        <span className="text-sm font-bold text-orange-900 ml-[3px]">
-                          {formatCurrency(valoresFiscales.precioVenta)}
-                        </span>
+                      {/* Precio de venta y Extra GP en dos columnas */}
+                      <div className="grid grid-cols-2 gap-2 mb-2">
+                        <div className="flex items-center bg-orange-100 rounded-md px-3 py-2 border-2 border-orange-200">
+                          <span className="text-sm font-bold text-orange-800">
+                            Precio venta:
+                          </span>
+                          <span className="text-sm font-bold text-orange-900 ml-[3px]">
+                            {formatCurrency(valoresFiscales.precioVenta)}
+                          </span>
+                        </div>
+                        <div className="flex items-center bg-orange-100 rounded-md px-3 py-2 border-2 border-orange-200">
+                          <span className="text-sm font-bold text-orange-800">
+                            Extra GP 190€:
+                          </span>
+                          <span className="text-sm font-bold text-orange-900 ml-[3px]">
+                            {valoresFiscales.garantiaPremium ? 'Sí' : 'No'}
+                          </span>
+                        </div>
                       </div>
                       <h4 className="text-sm font-bold text-orange-800 mb-2 flex items-center gap-2">
                         <span className="text-base">💸</span>
