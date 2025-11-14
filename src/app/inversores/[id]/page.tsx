@@ -1656,6 +1656,21 @@ export default function InvestorDashboardPage() {
                     reader.onload = (event) => {
                       const photoUrl = event.target?.result as string
                       const vehiculoData = {
+                        matricula: formData.get('matricula')
+                          ? (formData.get('matricula') as string).trim()
+                          : undefined,
+                        kms: formData.get('kms')
+                          ? parseInt(formData.get('kms') as string)
+                          : undefined,
+                        color: formData.get('color')
+                          ? (formData.get('color') as string).trim()
+                          : undefined,
+                        fechaMatriculacion: formData.get('fechaMatriculacion')
+                          ? (formData.get('fechaMatriculacion') as string)
+                          : undefined,
+                        bastidor: formData.get('bastidor')
+                          ? (formData.get('bastidor') as string).trim()
+                          : undefined,
                         precioCompra: formData.get('precioCompra')
                           ? parseFloat(formData.get('precioCompra') as string)
                           : undefined,
@@ -1698,6 +1713,21 @@ export default function InvestorDashboardPage() {
                   } else {
                     // Si no hay archivo, usar la foto actual o undefined si se borró
                     const vehiculoData = {
+                      matricula: formData.get('matricula')
+                        ? (formData.get('matricula') as string).trim()
+                        : undefined,
+                      kms: formData.get('kms')
+                        ? parseInt(formData.get('kms') as string)
+                        : undefined,
+                      color: formData.get('color')
+                        ? (formData.get('color') as string).trim()
+                        : undefined,
+                      fechaMatriculacion: formData.get('fechaMatriculacion')
+                        ? (formData.get('fechaMatriculacion') as string)
+                        : undefined,
+                      bastidor: formData.get('bastidor')
+                        ? (formData.get('bastidor') as string).trim()
+                        : undefined,
                       precioCompra: formData.get('precioCompra')
                         ? parseFloat(formData.get('precioCompra') as string)
                         : undefined,
@@ -1733,6 +1763,83 @@ export default function InvestorDashboardPage() {
                   }
                 }}
               >
+                {/* Información Básica del Vehículo */}
+                <div className="mb-6">
+                  <h3 className="text-base font-medium text-gray-700 mb-3">
+                    📋 Información Básica
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Matrícula
+                      </label>
+                      <input
+                        type="text"
+                        name="matricula"
+                        defaultValue={editingVehiculo.matricula || ''}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-full focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        placeholder="Ej: 1234ABC"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        KMs
+                      </label>
+                      <input
+                        type="number"
+                        name="kms"
+                        defaultValue={editingVehiculo.kms || ''}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-full focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        placeholder="0"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Color
+                      </label>
+                      <input
+                        type="text"
+                        name="color"
+                        defaultValue={(editingVehiculo as any).color || ''}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-full focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        placeholder="Ej: Blanco"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Fecha Matriculación
+                      </label>
+                      <input
+                        type="date"
+                        name="fechaMatriculacion"
+                        defaultValue={
+                          editingVehiculo.fechaMatriculacion
+                            ? new Date(editingVehiculo.fechaMatriculacion)
+                                .toISOString()
+                                .split('T')[0]
+                            : ''
+                        }
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-full focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Bastidor
+                      </label>
+                      <input
+                        type="text"
+                        name="bastidor"
+                        defaultValue={editingVehiculo.bastidor || ''}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-full focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        placeholder="Número de bastidor"
+                      />
+                    </div>
+                  </div>
+                </div>
                 {/* Precio de Compra */}
                 <div className="mb-6">
                   <label className="block text-base font-medium text-gray-700 mb-2">

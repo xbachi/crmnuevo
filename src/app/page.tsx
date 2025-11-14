@@ -4,6 +4,7 @@ import { useState, useEffect, lazy, Suspense } from 'react'
 import Link from 'next/link'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import { formatCurrency } from '@/lib/utils'
 
 // Lazy loading para componentes pesados
 const RemindersList = lazy(() => import('@/components/RemindersList'))
