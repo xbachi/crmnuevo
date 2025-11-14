@@ -1057,7 +1057,7 @@ export async function updateVehiculo(
       modelo: vehiculoData.modelo,
       color: vehiculoData.color,
       fechaMatriculacion: vehiculoData.fechaMatriculacion,
-      garantiaPremium: vehiculoData.garantiaPremium,
+      garantiaPremium: (vehiculoData as any).garantiaPremium,
     })
 
     const result = await client.query(
