@@ -652,51 +652,53 @@ export function InvestorVehicleCard({
           </div>
         </div>
 
-        {/* Bloque de Beneficio Prominente (solo si está vendido) - Visible antes del acordeón */}
-        {esVendido && vehiculo.precioVenta && (
-          <div
-            className={`rounded-lg p-4 border-2 mb-6 ${
-              valoresFiscales.esBeneficio
-                ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-300'
-                : 'bg-gradient-to-r from-red-50 to-rose-50 border-red-300'
-            }`}
-          >
-            <div className="flex justify-between items-center">
-              <div className="flex flex-col">
-                <span
-                  className={`text-base font-bold ${
-                    valoresFiscales.esBeneficio
-                      ? 'text-green-800'
-                      : 'text-red-800'
-                  }`}
-                >
-                  BENEFICIO:
-                </span>
-                {valoresFiscales.porcentajeBeneficio > 0 && (
+        {/* Bloque de Beneficio Prominente (solo si está vendido y tiene precio de venta) - Visible antes del acordeón */}
+        {esVendido &&
+          vehiculo.precioVenta &&
+          valoresFiscales.costoTotal > 0 && (
+            <div
+              className={`rounded-lg p-4 border-2 mb-6 ${
+                valoresFiscales.esBeneficio
+                  ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-300'
+                  : 'bg-gradient-to-r from-red-50 to-rose-50 border-red-300'
+              }`}
+            >
+              <div className="flex justify-between items-center">
+                <div className="flex flex-col">
                   <span
-                    className={`text-xs mt-1 ${
+                    className={`text-base font-bold ${
                       valoresFiscales.esBeneficio
-                        ? 'text-green-600'
-                        : 'text-red-600'
+                        ? 'text-green-800'
+                        : 'text-red-800'
                     }`}
                   >
-                    ({valoresFiscales.porcentajeBeneficio.toFixed(1)}% sobre
-                    costo total)
+                    BENEFICIO:
                   </span>
-                )}
+                  {valoresFiscales.porcentajeBeneficio > 0 && (
+                    <span
+                      className={`text-xs mt-1 ${
+                        valoresFiscales.esBeneficio
+                          ? 'text-green-600'
+                          : 'text-red-600'
+                      }`}
+                    >
+                      ({valoresFiscales.porcentajeBeneficio.toFixed(1)}% sobre
+                      costo total)
+                    </span>
+                  )}
+                </div>
+                <span
+                  className={`font-bold text-2xl ${
+                    valoresFiscales.esBeneficio
+                      ? 'text-green-700'
+                      : 'text-red-700'
+                  }`}
+                >
+                  {formatCurrency(valoresFiscales.beneficioNeto)}
+                </span>
               </div>
-              <span
-                className={`font-bold text-2xl ${
-                  valoresFiscales.esBeneficio
-                    ? 'text-green-700'
-                    : 'text-red-700'
-                }`}
-              >
-                {formatCurrency(valoresFiscales.beneficioNeto)}
-              </span>
             </div>
-          </div>
-        )}
+          )}
 
         {/* Acordeón de Desglose de Gastos */}
         <div className="space-y-4">
@@ -801,8 +803,8 @@ export function InvestorVehicleCard({
             {/* Contenido expandible del acordeón */}
             {isExpanded && (
               <div className="px-4 pb-4 space-y-4">
-                {/* Información de venta si está vendido */}
-                {esVendido && vehiculo.precioVenta && (
+                {/* Información de venta si está vendido - siempre mostrar aunque no tenga precio de venta */}
+                {esVendido && (
                   <>
                     {/* Bloque Gastos de Compra (azul) */}
                     <div className="space-y-2 bg-blue-50 rounded-lg p-3 border-2 border-blue-300">
