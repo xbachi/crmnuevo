@@ -13,6 +13,8 @@ import InversorReminders from '@/components/InversorReminders'
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal'
 import { useInversorAuth } from '@/contexts/InversorAuthContext'
 import InversorProtectedRoute from '@/components/InversorProtectedRoute'
+import { useAuth } from '@/contexts/AuthContext'
+import { isCrmUserAuthenticated } from '@/lib/auth-utils'
 
 interface InvestorMetrics {
   beneficioAcumulado: number
@@ -30,6 +32,16 @@ export default function InvestorDashboardPage() {
   const params = useParams()
   const { showToast, ToastContainer } = useSimpleToast()
   const { inversor, isLoading: authLoading } = useInversorAuth()
+  const { isAdmin } = useAuth()
+  const [isCrmUser, setIsCrmUser] = useState(false)
+
+  // Verificar si es usuario CRM (admin)
+  useEffect(() => {
+    setIsCrmUser(isCrmUserAuthenticated())
+  }, [])
+
+  // Determinar si el usuario puede editar (solo admin puede editar)
+  const canEdit = isAdmin || isCrmUser
 
   const [inversorData, setInversorData] = useState<Inversor | null>(null)
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>([])
@@ -79,8 +91,9 @@ export default function InvestorDashboardPage() {
 
   const inversorId = (params.id as string).split('-')[0] // Extraer solo el ID del slug
 
-  // Verificar si el usuario actual es un inversor autenticado
-  const isInvestorUser = inversor && inversor.id === parseInt(inversorId)
+  // Verificar si el usuario actual es un inversor autenticado (NO admin)
+  const isInvestorUser =
+    inversor && inversor.id === parseInt(inversorId) && !canEdit
 
   const calculateAnnualizedROI = () => {
     if (!inversorData?.fechaAporte || !metrics?.roi) return 0
@@ -612,7 +625,7 @@ export default function InvestorDashboardPage() {
                 <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
                   Información del Inversor
                 </h2>
-                {!isEditing && !isInvestorUser && (
+                {!isEditing && canEdit && (
                   <button
                     onClick={handleEdit}
                     className="px-3 sm:px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2 text-sm sm:text-base"
@@ -1258,11 +1271,11 @@ export default function InvestorDashboardPage() {
                       vehiculo={vehiculo}
                       inversor={inversor}
                       onView={handleViewVehicle}
-                      onEdit={handleEditVehiculo}
-                      onEditVehiculo={handleEditVehiculo}
-                      onPhotoUpload={handlePhotoUpload}
+                      onEdit={canEdit ? handleEditVehiculo : undefined}
+                      onEditVehiculo={canEdit ? handleEditVehiculo : undefined}
+                      onPhotoUpload={canEdit ? handlePhotoUpload : undefined}
                       onVehiculoUpdate={fetchData}
-                      isReadOnly={isInvestorUser}
+                      isReadOnly={!canEdit}
                     />
                   ))}
                 </div>
@@ -1275,10 +1288,10 @@ export default function InvestorDashboardPage() {
               {inversorData?.id ? (
                 <NotasSection
                   notas={notas}
-                  onNotasChange={setNotas}
+                  onNotasChange={canEdit ? setNotas : undefined}
                   entityId={inversorData.id}
-                  entityType="inversores"
-                  isReadOnly={isInvestorUser}
+                  entityType="inversor"
+                  isReadOnly={!canEdit}
                 />
               ) : (
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
@@ -1330,7 +1343,7 @@ export default function InvestorDashboardPage() {
                       Documentos
                     </h2>
                   </div>
-                  {!isInvestorUser && (
+                  {canEdit && (
                     <label className="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors cursor-pointer">
                       <svg
                         className="w-4 h-4 inline mr-1"
@@ -1425,7 +1438,7 @@ export default function InvestorDashboardPage() {
                           >
                             Descargar
                           </button>
-                          {!isInvestorUser && (
+                          {canEdit && (
                             <button
                               onClick={() => handleDeleteFile(doc.id)}
                               className="p-1 text-gray-400 hover:text-red-600 transition-colors"
@@ -1569,7 +1582,7 @@ export default function InvestorDashboardPage() {
                         Documentos
                       </h2>
                     </div>
-                    {!isInvestorUser && (
+                    {canEdit && (
                       <label className="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors cursor-pointer">
                         <svg
                           className="w-4 h-4 inline mr-1"
@@ -1664,7 +1677,7 @@ export default function InvestorDashboardPage() {
                             >
                               Descargar
                             </button>
-                            {!isInvestorUser && (
+                            {canEdit && (
                               <button
                                 onClick={() => handleDeleteFile(doc.id)}
                                 className="p-1 text-gray-400 hover:text-red-600 transition-colors"
