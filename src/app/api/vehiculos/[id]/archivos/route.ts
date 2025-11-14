@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { writeFile, mkdir, readFile, unlink } from 'fs/promises'
 import { join } from 'path'
 import { put, list, del } from '@vercel/blob'
+import { pool } from '@/lib/direct-database'
 
 const METADATA_FILE = 'archivos-metadata.json'
 // Detectar si estamos en Vercel (producción)
@@ -11,22 +12,58 @@ const USE_BLOB_STORAGE = !!(
   process.env.BLOB_READ_WRITE_TOKEN
 )
 
+// Función helper para obtener la matrícula del vehículo o usar el ID como fallback
+async function getVehiculoFolderName(vehiculoId: number): Promise<string> {
+  try {
+    const result = await pool.query(
+      'SELECT matricula FROM "Vehiculo" WHERE id = $1',
+      [vehiculoId]
+    )
+    if (result.rows.length > 0 && result.rows[0].matricula) {
+      const matricula = result.rows[0].matricula.trim()
+      // Limpiar la matrícula para que sea válida como nombre de carpeta
+      const cleanMatricula = matricula
+        .replace(/[^a-zA-Z0-9]/g, '_')
+        .toUpperCase()
+      return cleanMatricula || `vehiculo_${vehiculoId}`
+    }
+  } catch (error) {
+    console.error('Error obteniendo matrícula del vehículo:', error)
+  }
+  // Fallback al ID si no hay matrícula o hay error
+  return `vehiculo_${vehiculoId}`
+}
+
 async function loadMetadata(vehiculoId: number) {
   try {
     if (USE_BLOB_STORAGE) {
       // En producción, cargar desde Vercel Blob
       try {
+        const folderName = await getVehiculoFolderName(vehiculoId)
         console.log(
-          `📥 [VEHICULO ARCHIVOS] Cargando desde Vercel Blob para vehículo ${vehiculoId}`
+          `📥 [VEHICULO ARCHIVOS] Cargando desde Vercel Blob para vehículo ${vehiculoId} (carpeta: ${folderName})`
         )
-        const prefix = `vehiculos/${vehiculoId}/`
-        const { blobs } = await list({ prefix })
+        // Buscar tanto por matrícula como por ID para mantener compatibilidad
+        const prefixMatricula = `vehiculos/${folderName}/`
+        const prefixId = `vehiculos/${vehiculoId}/`
+
+        const [blobsMatricula, blobsId] = await Promise.all([
+          list({ prefix: prefixMatricula }).catch(() => ({ blobs: [] })),
+          list({ prefix: prefixId }).catch(() => ({ blobs: [] })),
+        ])
+
+        // Combinar ambos resultados y eliminar duplicados
+        const allBlobs = [...blobsMatricula.blobs, ...blobsId.blobs]
+        const uniqueBlobs = allBlobs.filter(
+          (blob, index, self) =>
+            index === self.findIndex((b) => b.url === blob.url)
+        )
 
         console.log(
-          `📥 [VEHICULO ARCHIVOS] Encontrados ${blobs.length} archivos en Blob`
+          `📥 [VEHICULO ARCHIVOS] Encontrados ${uniqueBlobs.length} archivos en Blob`
         )
 
-        return blobs.map((blob) => {
+        return uniqueBlobs.map((blob) => {
           // Extraer el nombre del archivo desde la URL o pathname
           const blobPath =
             (blob as any).pathname || blob.url.split('/').pop() || ''
@@ -57,17 +94,40 @@ async function loadMetadata(vehiculoId: number) {
       }
     } else {
       // En desarrollo, cargar desde filesystem
-      const metadataDir = join(
+      const folderName = await getVehiculoFolderName(vehiculoId)
+      // Buscar tanto por matrícula como por ID para mantener compatibilidad
+      const metadataDirMatricula = join(
+        process.cwd(),
+        'public',
+        'uploads',
+        'vehiculos',
+        folderName
+      )
+      const metadataDirId = join(
         process.cwd(),
         'public',
         'uploads',
         'vehiculos',
         vehiculoId.toString()
       )
-      await mkdir(metadataDir, { recursive: true })
-      const metadataPath = join(metadataDir, METADATA_FILE)
-      const data = await readFile(metadataPath, 'utf-8')
-      return JSON.parse(data)
+
+      // Intentar cargar desde matrícula primero, luego desde ID
+      try {
+        await mkdir(metadataDirMatricula, { recursive: true })
+        const metadataPath = join(metadataDirMatricula, METADATA_FILE)
+        const data = await readFile(metadataPath, 'utf-8')
+        return JSON.parse(data)
+      } catch {
+        // Fallback a ID si no existe por matrícula
+        await mkdir(metadataDirId, { recursive: true })
+        const metadataPath = join(metadataDirId, METADATA_FILE)
+        try {
+          const data = await readFile(metadataPath, 'utf-8')
+          return JSON.parse(data)
+        } catch {
+          return []
+        }
+      }
     }
   } catch (error) {
     console.error('Error loading metadata:', error)
@@ -75,14 +135,20 @@ async function loadMetadata(vehiculoId: number) {
   }
 }
 
-async function saveMetadata(vehiculoId: number, metadata: any[]) {
+async function saveMetadata(
+  vehiculoId: number,
+  metadata: any[],
+  folderName?: string
+) {
   try {
+    const finalFolderName =
+      folderName || (await getVehiculoFolderName(vehiculoId))
     const metadataDir = join(
       process.cwd(),
       'public',
       'uploads',
       'vehiculos',
-      vehiculoId.toString()
+      finalFolderName
     )
     await mkdir(metadataDir, { recursive: true })
     const metadataPath = join(metadataDir, METADATA_FILE)
@@ -148,12 +214,13 @@ export async function POST(
     if (USE_BLOB_STORAGE) {
       // Producción: subir a Vercel Blob
       try {
+        const folderName = await getVehiculoFolderName(vehiculoId)
         console.log(
-          `📤 [VEHICULO UPLOAD] Subiendo a Vercel Blob Storage... Token presente: ${!!process.env.BLOB_READ_WRITE_TOKEN}`
+          `📤 [VEHICULO UPLOAD] Subiendo a Vercel Blob Storage... Token presente: ${!!process.env.BLOB_READ_WRITE_TOKEN}, Carpeta: ${folderName}`
         )
 
         const blob = await put(
-          `vehiculos/${vehiculoId}/${uniqueFileName}`,
+          `vehiculos/${folderName}/${uniqueFileName}`,
           file,
           {
             access: 'public',
@@ -201,12 +268,13 @@ export async function POST(
       }
     } else {
       // Desarrollo: guardar en filesystem
+      const folderName = await getVehiculoFolderName(vehiculoId)
       const uploadDir = join(
         process.cwd(),
         'public',
         'uploads',
         'vehiculos',
-        vehiculoId.toString()
+        folderName
       )
       await mkdir(uploadDir, { recursive: true })
       const filePath = join(uploadDir, uniqueFileName)
@@ -225,11 +293,11 @@ export async function POST(
         size: file.size,
         type: file.type,
         uploadDate: new Date().toISOString(),
-        path: `/uploads/vehiculos/${vehiculoId}/${uniqueFileName}`,
+        path: `/uploads/vehiculos/${folderName}/${uniqueFileName}`,
       }
 
       existingMetadata.push(newFileMetadata)
-      await saveMetadata(vehiculoId, existingMetadata)
+      await saveMetadata(vehiculoId, existingMetadata, folderName)
 
       console.log(`✅ [VEHICULO UPLOAD] Metadatos actualizados`)
 
