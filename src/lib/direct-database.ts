@@ -1041,26 +1041,13 @@ export async function updateVehiculo(
     //   documentacion: vehiculoData.documentacion,
     // })
 
-    console.log('🔧 Ejecutando query SQL...')
-    console.log(
-      '🔧 Query:',
-      `UPDATE "Vehiculo" SET ${setClause}, "updatedAt" = NOW() WHERE id = $1 RETURNING *`
-    )
-    console.log('🔧 Campos a actualizar:', fields)
-    console.log('🔧 Parámetros:', [id, ...values])
-    console.log(
-      '🔧 Tipos de parámetros:',
-      [id, ...values].map((v) => typeof v)
-    )
-    console.log('🔧 Valores específicos:', {
-      id,
-      marca: vehiculoData.marca,
-      modelo: vehiculoData.modelo,
-      color: vehiculoData.color,
-      fechaMatriculacion: vehiculoData.fechaMatriculacion,
-      garantiaPremium: (vehiculoData as any).garantiaPremium,
-      tipoGarantiaPremium: typeof (vehiculoData as any).garantiaPremium,
-    })
+    // Log solo si se está actualizando garantiaPremium para debugging
+    if (fields.includes('garantiaPremium')) {
+      console.log(
+        '🔧 Actualizando garantiaPremium:',
+        (vehiculoData as any).garantiaPremium
+      )
+    }
 
     const result = await client.query(
       `
