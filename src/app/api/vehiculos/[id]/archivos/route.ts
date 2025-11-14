@@ -4,26 +4,50 @@ import { join } from 'path'
 import { put, list, del } from '@vercel/blob'
 
 const METADATA_FILE = 'archivos-metadata.json'
-const USE_BLOB_STORAGE = process.env.VERCEL || process.env.VERCEL_ENV
+// Detectar si estamos en Vercel (producción)
+const USE_BLOB_STORAGE = !!(
+  process.env.VERCEL ||
+  process.env.VERCEL_ENV ||
+  process.env.BLOB_READ_WRITE_TOKEN
+)
 
 async function loadMetadata(vehiculoId: number) {
   try {
     if (USE_BLOB_STORAGE) {
       // En producción, cargar desde Vercel Blob
-      const prefix = `vehiculos/${vehiculoId}/`
-      const { blobs } = await list({ prefix })
+      try {
+        console.log(
+          `📥 [VEHICULO ARCHIVOS] Cargando desde Vercel Blob para vehículo ${vehiculoId}`
+        )
+        const prefix = `vehiculos/${vehiculoId}/`
+        const { blobs } = await list({ prefix })
 
-      return blobs.map((blob) => ({
-        id:
-          blob.path.split('/').pop()?.split('-')[0] ||
-          blob.uploadedAt.toString(),
-        name: blob.path.split('/').pop()?.replace(/^\d+-/, '') || 'unknown',
-        fileName: blob.path.split('/').pop() || 'unknown',
-        size: blob.size,
-        type: blob.contentType || 'application/octet-stream',
-        uploadDate: blob.uploadedAt.toISOString(),
-        path: blob.url,
-      }))
+        console.log(
+          `📥 [VEHICULO ARCHIVOS] Encontrados ${blobs.length} archivos en Blob`
+        )
+
+        return blobs.map((blob) => ({
+          id:
+            blob.path.split('/').pop()?.split('-')[0] ||
+            blob.uploadedAt.toString(),
+          name: blob.path.split('/').pop()?.replace(/^\d+-/, '') || 'unknown',
+          fileName: blob.path.split('/').pop() || 'unknown',
+          size: blob.size,
+          type: blob.contentType || 'application/octet-stream',
+          uploadDate: blob.uploadedAt.toISOString(),
+          path: blob.url,
+        }))
+      } catch (blobError) {
+        console.error(
+          '❌ [VEHICULO ARCHIVOS] Error al cargar desde Blob:',
+          blobError
+        )
+        // Si falla Blob, intentar cargar desde filesystem como fallback
+        console.log(
+          '⚠️ [VEHICULO ARCHIVOS] Intentando fallback a filesystem...'
+        )
+        throw blobError // Re-lanzar para que se maneje en el catch externo
+      }
     } else {
       // En desarrollo, cargar desde filesystem
       const metadataDir = join(
@@ -113,32 +137,51 @@ export async function POST(
 
     if (USE_BLOB_STORAGE) {
       // Producción: subir a Vercel Blob
-      const blob = await put(
-        `vehiculos/${vehiculoId}/${uniqueFileName}`,
-        file,
-        {
-          access: 'public',
-          contentType: file.type,
+      try {
+        console.log(
+          `📤 [VEHICULO UPLOAD] Subiendo a Vercel Blob Storage... Token presente: ${!!process.env.BLOB_READ_WRITE_TOKEN}`
+        )
+
+        const blob = await put(
+          `vehiculos/${vehiculoId}/${uniqueFileName}`,
+          file,
+          {
+            access: 'public',
+            contentType: file.type,
+          }
+        )
+
+        console.log(`✅ [VEHICULO UPLOAD] Archivo subido a Blob: ${blob.url}`)
+
+        const newFileMetadata = {
+          id: timestamp.toString(),
+          name: file.name,
+          fileName: uniqueFileName,
+          size: file.size,
+          type: file.type,
+          uploadDate: new Date().toISOString(),
+          path: blob.url,
         }
-      )
 
-      console.log(`✅ [VEHICULO UPLOAD] Archivo subido a Blob: ${blob.url}`)
-
-      const newFileMetadata = {
-        id: timestamp.toString(),
-        name: file.name,
-        fileName: uniqueFileName,
-        size: file.size,
-        type: file.type,
-        uploadDate: new Date().toISOString(),
-        path: blob.url,
+        return NextResponse.json({
+          success: true,
+          message: 'Archivo subido exitosamente',
+          file: newFileMetadata,
+        })
+      } catch (blobError) {
+        console.error('❌ [VEHICULO UPLOAD] Error al subir a Blob:', blobError)
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Error al subir archivo a Vercel Blob Storage',
+            details:
+              blobError instanceof Error
+                ? blobError.message
+                : 'Error desconocido',
+          },
+          { status: 500 }
+        )
       }
-
-      return NextResponse.json({
-        success: true,
-        message: 'Archivo subido exitosamente',
-        file: newFileMetadata,
-      })
     } else {
       // Desarrollo: guardar en filesystem
       const uploadDir = join(

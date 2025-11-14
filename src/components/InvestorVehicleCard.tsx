@@ -293,6 +293,7 @@ export function InvestorVehicleCard({
     if (!files || files.length === 0) return
 
     setIsUploadingFile(true)
+    const errors: string[] = []
     try {
       // Subir archivos uno por uno
       for (let i = 0; i < files.length; i++) {
@@ -300,20 +301,49 @@ export function InvestorVehicleCard({
         const formData = new FormData()
         formData.append('file', file)
 
-        const response = await fetch(`/api/vehiculos/${vehiculo.id}/archivos`, {
-          method: 'POST',
-          body: formData,
-        })
+        try {
+          const response = await fetch(
+            `/api/vehiculos/${vehiculo.id}/archivos`,
+            {
+              method: 'POST',
+              body: formData,
+            }
+          )
 
-        if (!response.ok) {
-          console.error('Error al subir archivo:', file.name)
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}))
+            const errorMessage =
+              errorData.error || errorData.details || 'Error desconocido'
+            console.error(
+              `Error al subir archivo ${file.name}:`,
+              errorMessage,
+              response.status
+            )
+            errors.push(`${file.name}: ${errorMessage}`)
+          } else {
+            const result = await response.json()
+            console.log(`✅ Archivo ${file.name} subido exitosamente:`, result)
+          }
+        } catch (fileError) {
+          console.error(`Error al subir archivo ${file.name}:`, fileError)
+          errors.push(`${file.name}: Error de red`)
         }
       }
 
       // Recargar lista de archivos después de subir todos
       await fetchArchivos()
+
+      // Mostrar errores si los hay
+      if (errors.length > 0) {
+        alert(
+          `Error al subir algunos archivos:\n${errors.join('\n')}\n\nRevisa la consola para más detalles.`
+        )
+      }
     } catch (error) {
       console.error('Error al subir archivos:', error)
+      alert(
+        `Error al subir archivos: ${error instanceof Error ? error.message : 'Error desconocido'}`
+      )
     } finally {
       setIsUploadingFile(false)
       // Limpiar el input para permitir subir los mismos archivos de nuevo
