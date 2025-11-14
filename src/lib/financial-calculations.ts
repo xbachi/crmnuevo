@@ -159,6 +159,7 @@ export function calculateBeneficioAcumulado(
     gastosCNGarantia?: number | null
     precioVenta?: number | null
     estado?: string | null
+    garantiaPremium?: boolean | null
   }>
 ): number {
   let totalBeneficio = 0
@@ -182,8 +183,17 @@ export function calculateBeneficioAcumulado(
       precioVenta: vehiculo.precioVenta,
     })
 
-    // Sumar el beneficio neto del inversor (50%)
-    totalBeneficio += calculo.beneficioNeto
+    // Beneficio neto del inversor (50% del beneficio total)
+    let beneficioNeto = calculo.beneficioNeto
+
+    // Si tiene garantía premium, agregar 190€ extra al beneficio del inversor
+    const garantiaPremium = vehiculo.garantiaPremium || false
+    if (garantiaPremium) {
+      beneficioNeto = beneficioNeto + 190
+    }
+
+    // Sumar el beneficio neto (ya incluye el 50% y los 190€ si aplica)
+    totalBeneficio += beneficioNeto
   }
 
   return roundTo2Decimals(totalBeneficio)

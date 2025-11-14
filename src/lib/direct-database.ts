@@ -1734,6 +1734,7 @@ export async function getInversorMetrics(inversorId: number) {
         "gastosOtros",
         "gastosCNGarantia",
         "precioVenta",
+        "garantiaPremium",
         "createdAt",
         "fechaCompra"
       FROM "Vehiculo" 
@@ -1753,6 +1754,7 @@ export async function getInversorMetrics(inversorId: number) {
     )
 
     // Calcular beneficio acumulado usando la función centralizada
+    // Incluye el 50% del beneficio neto + 190€ si tiene garantía premium (igual que el recuadro BENEFICIO)
     const beneficioAcumulado = calculateBeneficioAcumulado(
       vehiculosVendidos.map((v) => ({
         precioCompra: v.precioCompra,
@@ -1765,6 +1767,7 @@ export async function getInversorMetrics(inversorId: number) {
         gastosCNGarantia: v.gastosCNGarantia,
         precioVenta: v.precioVenta,
         estado: v.estado,
+        garantiaPremium: v.garantiaPremium || false,
       }))
     )
 
