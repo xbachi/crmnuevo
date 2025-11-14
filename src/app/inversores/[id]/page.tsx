@@ -245,6 +245,17 @@ export default function InvestorDashboardPage() {
   const handleSaveVehiculo = async (vehiculoData: Partial<Vehiculo>) => {
     if (!editingVehiculo) return
 
+    // Log para debugging
+    console.log('💾 [SAVE VEHICULO] Datos a guardar:', vehiculoData)
+    console.log(
+      '💾 [SAVE VEHICULO] garantiaPremium:',
+      vehiculoData.garantiaPremium
+    )
+    console.log(
+      '💾 [SAVE VEHICULO] Tipo de garantiaPremium:',
+      typeof vehiculoData.garantiaPremium
+    )
+
     try {
       const response = await fetch(`/api/vehiculos/${editingVehiculo.id}`, {
         method: 'PUT',
@@ -255,6 +266,12 @@ export default function InvestorDashboardPage() {
       })
 
       if (response.ok) {
+        const updatedVehiculo = await response.json()
+        console.log('✅ [SAVE VEHICULO] Vehículo actualizado:', updatedVehiculo)
+        console.log(
+          '✅ [SAVE VEHICULO] garantiaPremium guardado:',
+          (updatedVehiculo as any).garantiaPremium
+        )
         await fetchData()
         setIsEditingVehiculo(false)
         setEditingVehiculo(null)
