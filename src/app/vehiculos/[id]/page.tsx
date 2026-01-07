@@ -13,7 +13,6 @@ import {
   capitalizeText,
 } from '@/lib/utils'
 import NotasSection from '@/components/NotasSection'
-import { VehicleExpensesSection } from '@/components/VehicleExpensesSection'
 import { useAuth } from '@/contexts/AuthContext'
 import ProtectedRoute from '@/components/ProtectedRoute'
 
@@ -2287,11 +2286,6 @@ export default function VehiculoDetailPage() {
                           </>
                         )}
                       </div>
-
-                      {/* Gastos (Facturas) */}
-                      {vehiculo?.id && (
-                        <VehicleExpensesSection vehiculoId={vehiculo.id} />
-                      )}
 
                       {/* Resumen Financiero con Iconos y Colores */}
                       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-3 border border-blue-200">
