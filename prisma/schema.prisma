@@ -10,6 +10,31 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum InvoiceSource {
+  ONEDRIVE
+  OUTLOOK
+  MANUAL
+}
+
+enum AccountingDocStatus {
+  RECEIVED
+  PROCESSING
+  PROCESSED
+  DUPLICATE
+  PENDING
+  NEEDS_REVIEW
+  ERROR
+}
+
+enum ExpenseCategory {
+  limpieza
+  pintura
+  taller
+  transporte
+  gestoria
+  otro
+}
+
 model Vehiculo {
   id        Int      @id @default(autoincrement())
   referencia String   @unique
@@ -59,6 +84,10 @@ model Vehiculo {
   // Relaciones con Deals
   dealActivoId      Int? // ID del deal activo si está reservado/vendido
   deals             Deal[]
+
+  // Accounting relations (invoice ingestion)
+  accountingInvoices AccountingInvoice[]
+  accountingExpenses AccountingVehicleExpense[]
   
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -190,4 +219,115 @@ model Deal {
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ============================
+// Accounting / Invoice Ingestion
+// ============================
+
+model AccountingVendor {
+  id              Int             @id @default(autoincrement())
+  name            String
+  nif             String?         @unique
+  iban            String?         @unique
+  keywords         Json?
+  defaultCategory ExpenseCategory?
+
+  invoices        AccountingInvoice[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("AccountingVendor")
+}
+
+model AccountingDocument {
+  id                 Int               @id @default(autoincrement())
+  source             InvoiceSource
+
+  // Original location (where it was ingested from)
+  oneDriveItemId     String?           @unique
+  oneDrivePath       String?
+
+  originalFilename   String
+  sha256             String            @unique
+  contentFingerprint String?           @unique
+
+  status             AccountingDocStatus @default(RECEIVED)
+  reason             String?
+
+  // Convenience links/metadata from Graph
+  graphWebUrl        String?
+
+  // Final location (after moved to expediente/duplicadas/pendientes)
+  finalOneDriveItemId String?
+  finalOneDrivePath   String?
+
+  processingAttempts Int              @default(0)
+  lastProcessedAt    DateTime?
+
+  invoice            AccountingInvoice?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("AccountingDocument")
+}
+
+model AccountingInvoice {
+  id            Int                @id @default(autoincrement())
+
+  documentId    Int                @unique
+  document      AccountingDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  vendorId      Int?
+  vendor        AccountingVendor?  @relation(fields: [vendorId], references: [id])
+
+  invoiceNumber String?
+  invoiceDate   DateTime?
+
+  base          Decimal?
+  iva           Decimal?
+  total         Decimal?
+  currency      String?            @default("EUR")
+
+  vehiculoId    Int?
+  vehiculo      Vehiculo?          @relation(fields: [vehiculoId], references: [id])
+  matricula     String?
+
+  category      ExpenseCategory?
+  confidence    Int?
+
+  expense       AccountingVehicleExpense?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([vendorId, invoiceNumber])
+  @@map("AccountingInvoice")
+}
+
+model AccountingVehicleExpense {
+  id          Int             @id @default(autoincrement())
+  vehiculoId  Int
+  vehiculo    Vehiculo        @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
+
+  invoiceId   Int?            @unique
+  invoice     AccountingInvoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+
+  category    ExpenseCategory
+  description String?
+
+  base        Decimal?
+  iva         Decimal?
+  total       Decimal?
+  currency    String?         @default("EUR")
+
+  documentUrl String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([vehiculoId, category])
+  @@map("AccountingVehicleExpense")
 }
