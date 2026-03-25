@@ -11,7 +11,7 @@
   "env": {
     "NODE_ENV": "production",
     "NEXT_TELEMETRY_DISABLED": "1",
-    "DATABASE_URL": "postgresql://postgres.noginntespqylxguotgf:Malafama.1@aws-1-eu-north-1.pooler.supabase.com:6543/postgres"
+    "DATABASE_URL": "postgresql://postgres.noginntespqylxguotgf:Malafama.11@aws-1-eu-north-1.pooler.supabase.com:6543/postgres"
   },
   "build": {
     "env": {
