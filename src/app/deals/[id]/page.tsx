@@ -21,6 +21,7 @@ import {
 } from '@/lib/utils'
 import DealVentaInfo from '@/components/DealVentaInfo'
 import FacturaTypeModal from '@/components/FacturaTypeModal'
+import DealInvoiceSection from '@/components/invoicing/DealInvoiceSection'
 import NotasSection from '@/components/NotasSection'
 
 interface Deal {
@@ -1587,22 +1588,19 @@ export default function DealDetail() {
                     </button>
                   </div>
 
-                  {/* Generar Factura */}
+                  {/* Legacy invoice flow — kept disabled in favour of the new
+                      Facturación module section below. The button is left as a
+                      visual indicator when Deal.factura is populated. */}
                   <div className="text-center">
                     <button
                       onClick={handleGenerarFactura}
-                      disabled={
-                        isGeneratingFactura ||
-                        !canGenerateFactura ||
-                        deal.factura
-                      }
+                      disabled={true}
                       className={`w-full px-4 py-3 rounded-lg font-medium transition-colors ${
                         deal.factura
                           ? 'bg-green-100 text-green-700 cursor-not-allowed'
-                          : !canGenerateFactura
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                          : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                       }`}
+                      title="El nuevo flujo está abajo en la sección Facturación."
                     >
                       {deal.factura ? (
                         <div className="flex items-center justify-center space-x-2">
@@ -1619,47 +1617,28 @@ export default function DealDetail() {
                               d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                             />
                           </svg>
-                          <span>Factura Generada</span>
-                        </div>
-                      ) : isGeneratingFactura ? (
-                        <div className="flex items-center justify-center space-x-2">
-                          <svg
-                            className="w-5 h-5 animate-spin"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                            />
-                          </svg>
-                          <span>Generando...</span>
+                          <span>Factura legacy: {deal.factura}</span>
                         </div>
                       ) : (
-                        <div className="flex items-center justify-center space-x-2">
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                            />
-                          </svg>
-                          <span>Generar Factura</span>
+                        <div className="flex items-center justify-center space-x-2 opacity-60">
+                          <span>Usar nueva sección Facturación abajo ↓</span>
                         </div>
                       )}
                     </button>
                   </div>
                 </div>
               </div>
+
+              {/* New invoicing module — fiscal sequence, audit, history */}
+              <DealInvoiceSection
+                saleId={deal.id}
+                legacyFacturaName={deal.factura ?? null}
+                legacyFacturaDate={
+                  deal.fechaFacturada
+                    ? new Date(deal.fechaFacturada).toISOString()
+                    : null
+                }
+              />
 
               {/* Información de Reserva */}
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
