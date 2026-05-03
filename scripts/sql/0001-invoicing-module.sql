@@ -143,7 +143,14 @@ ON CONFLICT (invoice_type, series) DO NOTHING;
 -- Imports historical invoice references with status='IMPORTED'.
 -- Does NOT consume a sequence, does NOT generate PDFs.
 -- Each imported row is just a placeholder so the history page shows them.
--- Conflicts on (full_invoice_number) are silently skipped.
+--
+-- Series + number assignment:
+--   - If the legacy factura field matches a [RF]-YYYY-N pattern, use that.
+--   - Otherwise, fall back to a LEGACY-{deal_id} series with number=deal_id
+--     so each legacy entry occupies a unique (series, number) slot.
+--   - full_invoice_number is unique by construction (uses deal.id when the
+--     value would otherwise collide) so we don't fight the UNIQUE constraint.
+-- Conflicts on (full_invoice_number) are silently skipped (idempotent reruns).
 
 INSERT INTO invoices (
   deal_id, vehiculo_id,
@@ -165,25 +172,27 @@ SELECT
     WHEN d.factura ILIKE '%rebu%' OR d.factura ILIKE 'R-%' THEN 'REBU'
     ELSE 'VAT'
   END,
-  -- Series inferred from filename, with sane fallback
+  -- Series: parsed from filename when possible, otherwise per-deal LEGACY
   COALESCE(
     NULLIF(SUBSTRING(d.factura FROM '([RF]-\d{4})'), ''),
-    'LEGACY'
+    'LEGACY-' || d.id::TEXT
   ),
-  -- Number portion, fallback to 0 (the unique constraint allows 0 only once
-  -- per series, and "LEGACY" series can hold one row per ON CONFLICT).
+  -- Number: parsed from filename when possible, else use deal id (unique)
   COALESCE(
     NULLIF(SUBSTRING(d.factura FROM '[RF]-\d{4}-(\d+)'), '')::INTEGER,
-    0
+    d.id
   ),
-  -- Full number — strip the "factura-rebu-" / "factura-iva-" / ".pdf" parts
-  COALESCE(
-    NULLIF(SUBSTRING(d.factura FROM '([RF]-\d{4}-\d+)'), ''),
-    d.factura
-  ),
+  -- Full number: prefer the parsed canonical form; otherwise use the raw
+  -- factura value combined with deal id to guarantee uniqueness even if
+  -- two deals shared the same legacy filename.
+  CASE
+    WHEN SUBSTRING(d.factura FROM '([RF]-\d{4}-\d+)') IS NOT NULL
+      THEN SUBSTRING(d.factura FROM '([RF]-\d{4}-\d+)')
+    ELSE 'LEGACY-' || d.id::TEXT || '-' || COALESCE(NULLIF(d.factura, ''), 'noref')
+  END,
   COALESCE(d."fechaFacturada"::DATE, CURRENT_DATE),
   d."fechaVentaFirmada"::DATE,
-  COALESCE(TRIM(CONCAT(c.nombre, ' ', c.apellidos)), 'Cliente desconocido'),
+  COALESCE(NULLIF(TRIM(CONCAT(c.nombre, ' ', c.apellidos)), ''), 'Cliente desconocido'),
   c.dni,
   c.email,
   v.marca, v.modelo, v.matricula, v.bastidor, v.kms,
@@ -201,7 +210,10 @@ LEFT JOIN "Cliente" c ON c.id = d."clienteId"
 LEFT JOIN "Vehiculo" v ON v.id = d."vehiculoId"
 WHERE d.factura IS NOT NULL
   AND TRIM(d.factura) <> ''
-ON CONFLICT (full_invoice_number) DO NOTHING;
+-- Use the unconstrained DO NOTHING form so any unique violation
+-- (full_invoice_number OR (series, number)) is silently skipped. This
+-- makes the backfill safe to re-run and tolerant of legacy duplicates.
+ON CONFLICT DO NOTHING;
 
 -- Audit-log every imported row so there's a paper trail
 INSERT INTO invoice_audit_logs (invoice_id, action, new_values_json, reason)
