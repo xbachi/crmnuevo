@@ -744,27 +744,54 @@ export async function updateDeal(
 }
 
 export async function deleteDeal(id: number): Promise<boolean> {
+  const deal = await getDealById(id)
+  if (!deal) return false
+
   const client = await pool.connect()
   try {
-    // Obtener el deal antes de eliminar para liberar el vehículo
-    const deal = await getDealById(id)
-    if (!deal) return false
+    await client.query('BEGIN')
 
-    // Eliminar el deal
+    // Cascade child rows defensively (independent of DB-level ON DELETE CASCADE)
+    await safeChildDelete(client, '"DealRecordatorios"', 'deal_id', id)
+    await safeChildDelete(client, 'dealrecordatorios', 'deal_id', id)
+    await safeChildDelete(client, 'dealnotas', 'deal_id', id)
+
     const result = await client.query('DELETE FROM "Deal" WHERE id = $1', [id])
 
-    // Liberar el vehículo (volver a disponible)
+    // Free the vehicle so it goes back to available
     await client.query(
       'UPDATE "Vehiculo" SET estado = $1, "dealActivoId" = NULL WHERE id = $2',
       ['disponible', deal.vehiculoId]
     )
 
+    await client.query('COMMIT')
     return (result.rowCount ?? 0) > 0
   } catch (error) {
-    console.error('Error eliminando deal:', error)
-    return false
+    await client.query('ROLLBACK').catch(() => {})
+    throw error
   } finally {
     client.release()
+  }
+}
+
+/**
+ * Run DELETE on an optional child table without aborting the transaction
+ * if the table or column doesn't exist. Useful because schema drift means
+ * some legacy tables (e.g. "dealrecordatorios" lowercase vs "DealRecordatorios"
+ * PascalCase) are present in some databases and not others.
+ */
+async function safeChildDelete(
+  client: { query: (sql: string, params?: unknown[]) => Promise<unknown> },
+  table: string,
+  column: string,
+  id: number
+): Promise<void> {
+  try {
+    await client.query('SAVEPOINT child_delete')
+    await client.query(`DELETE FROM ${table} WHERE "${column}" = $1`, [id])
+    await client.query('RELEASE SAVEPOINT child_delete')
+  } catch {
+    await client.query('ROLLBACK TO SAVEPOINT child_delete').catch(() => {})
   }
 }
 
@@ -951,11 +978,23 @@ export async function clearVehiculos(): Promise<boolean> {
 export async function deleteVehiculo(id: number): Promise<boolean> {
   const client = await pool.connect()
   try {
-    await client.query('DELETE FROM "Vehiculo" WHERE id = $1', [id])
-    return true
+    await client.query('BEGIN')
+
+    // Cascade child rows defensively
+    await safeChildDelete(client, '"VehiculoRecordatorios"', 'vehiculo_id', id)
+    await safeChildDelete(client, 'vehiculorecordatorios', 'vehiculo_id', id)
+    await safeChildDelete(client, 'vehiculonotas', 'vehiculo_id', id)
+    await safeChildDelete(client, '"VehiculoNotas"', 'vehiculo_id', id)
+
+    const result = await client.query('DELETE FROM "Vehiculo" WHERE id = $1', [
+      id,
+    ])
+
+    await client.query('COMMIT')
+    return (result.rowCount ?? 0) > 0
   } catch (error) {
-    console.error('Error eliminando vehículo:', error)
-    return false
+    await client.query('ROLLBACK').catch(() => {})
+    throw error
   } finally {
     client.release()
   }
@@ -1440,14 +1479,26 @@ export async function updateCliente(id: number, clienteData: any) {
   }
 }
 
-export async function deleteCliente(id: number) {
+export async function deleteCliente(id: number): Promise<boolean> {
   const client = await pool.connect()
   try {
-    await client.query('DELETE FROM "Cliente" WHERE id = $1', [id])
-    return true
+    await client.query('BEGIN')
+
+    // NotaCliente and ClienteReminder already CASCADE at the DB level, but
+    // we run defensive deletes too in case the FK constraint is missing in
+    // a copy of the schema (e.g. older Supabase project).
+    await safeChildDelete(client, '"NotaCliente"', 'clienteId', id)
+    await safeChildDelete(client, '"ClienteReminder"', 'clienteId', id)
+
+    const result = await client.query('DELETE FROM "Cliente" WHERE id = $1', [
+      id,
+    ])
+
+    await client.query('COMMIT')
+    return (result.rowCount ?? 0) > 0
   } catch (error) {
-    console.error('Error eliminando cliente:', error)
-    return false
+    await client.query('ROLLBACK').catch(() => {})
+    throw error
   } finally {
     client.release()
   }
@@ -1498,14 +1549,30 @@ export async function updateInversor(id: number, inversorData: any) {
   }
 }
 
-export async function deleteInversor(id: number) {
+export async function deleteInversor(id: number): Promise<boolean> {
   const client = await pool.connect()
   try {
-    await client.query('DELETE FROM "Inversor" WHERE id = $1', [id])
-    return true
+    await client.query('BEGIN')
+
+    // Vehicle.inversorId is ON DELETE SET NULL, so vehicles are preserved.
+    // Clean up dependents that don't have a CASCADE FK in every copy.
+    await safeChildDelete(client, '"InversorRecordatorios"', 'inversor_id', id)
+    await safeChildDelete(client, 'inversorrecordatorios', 'inversor_id', id)
+    await safeChildDelete(client, 'inversornotas', 'inversor_id', id)
+    await safeChildDelete(client, '"InversorNotas"', 'inversor_id', id)
+    // Inversor uploaded files (PDFs, images) live in their own table
+    await safeChildDelete(client, '"InversorArchivos"', 'inversor_id', id)
+    await safeChildDelete(client, 'inversorarchivos', 'inversor_id', id)
+
+    const result = await client.query('DELETE FROM "Inversor" WHERE id = $1', [
+      id,
+    ])
+
+    await client.query('COMMIT')
+    return (result.rowCount ?? 0) > 0
   } catch (error) {
-    console.error('Error eliminando inversor:', error)
-    return false
+    await client.query('ROLLBACK').catch(() => {})
+    throw error
   } finally {
     client.release()
   }

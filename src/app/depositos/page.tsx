@@ -7,6 +7,7 @@ import { formatCurrency, capitalizeText } from '@/lib/utils'
 import { generarContratoCompraventa } from '@/lib/contractGenerator'
 import Link from 'next/link'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal'
 
 interface Deposito {
   id: number | string
@@ -108,6 +109,41 @@ export default function DepositosPage() {
 
   const handleViewDeposito = (id: number) => {
     router.push(`/depositos/${id}`)
+  }
+
+  const [depositoToDelete, setDepositoToDelete] = useState<Deposito | null>(
+    null
+  )
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const handleDeleteClick = (deposito: Deposito) =>
+    setDepositoToDelete(deposito)
+  const handleDeleteCancel = () => {
+    if (!isDeleting) setDepositoToDelete(null)
+  }
+  const handleDeleteConfirm = async () => {
+    if (!depositoToDelete) return
+    setIsDeleting(true)
+    try {
+      const response = await fetch(`/api/depositos/${depositoToDelete.id}`, {
+        method: 'DELETE',
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        showToast(data?.error || 'Error al eliminar el depósito', 'error')
+        return
+      }
+      setDepositos((prev) =>
+        prev.filter((d) => d.id !== depositoToDelete.id)
+      )
+      showToast('Depósito eliminado correctamente', 'success')
+      setDepositoToDelete(null)
+    } catch (error) {
+      console.error('Error eliminando depósito:', error)
+      showToast('Error al eliminar el depósito', 'error')
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   const handleGenerarContratoCompraventa = async (deposito: Deposito) => {
@@ -813,6 +849,7 @@ export default function DepositosPage() {
                                   handleViewDeposito(deposito.id)
                                 }}
                                 className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                                title="Ver"
                               >
                                 <svg
                                   className="w-4 h-4"
@@ -831,6 +868,28 @@ export default function DepositosPage() {
                                     strokeLinejoin="round"
                                     strokeWidth={2}
                                     d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                  />
+                                </svg>
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleDeleteClick(deposito)
+                                }}
+                                className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                                title="Eliminar"
+                              >
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                                   />
                                 </svg>
                               </button>
@@ -871,6 +930,20 @@ export default function DepositosPage() {
             </div>
           )}
         </main>
+
+        <ConfirmDeleteModal
+          isOpen={depositoToDelete !== null}
+          onClose={handleDeleteCancel}
+          onConfirm={handleDeleteConfirm}
+          title="Eliminar depósito"
+          message="¿Estás seguro de eliminar este depósito? Se eliminarán también sus recordatorios."
+          fileName={
+            depositoToDelete
+              ? `${capitalizeText(depositoToDelete.cliente?.nombre || '')} ${capitalizeText(depositoToDelete.cliente?.apellidos || '')} — ${capitalizeText(depositoToDelete.vehiculo?.marca || '')} ${capitalizeText(depositoToDelete.vehiculo?.modelo || '')}`.trim()
+              : undefined
+          }
+          isLoading={isDeleting}
+        />
       </div>
     </ProtectedRoute>
   )

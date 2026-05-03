@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getInversorById, updateInversor, deleteInversor } from '@/lib/direct-database'
+import { handleDeleteError } from '@/lib/api-errors'
 
 export async function GET(
   request: NextRequest,
@@ -71,14 +72,18 @@ export async function DELETE(
     if (isNaN(id)) {
       return NextResponse.json({ error: 'ID inválido' }, { status: 400 })
     }
-    
-    await deleteInversor(id)
-    return NextResponse.json({ message: 'Inversor eliminado correctamente' })
-  } catch (error) {
-    console.error('Error al eliminar inversor:', error)
-    if (error instanceof Error && error.message === 'Inversor no encontrado') {
+
+    const existing = await getInversorById(id)
+    if (!existing) {
       return NextResponse.json({ error: 'Inversor no encontrado' }, { status: 404 })
     }
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
+
+    const deleted = await deleteInversor(id)
+    if (!deleted) {
+      return NextResponse.json({ error: 'Inversor no encontrado' }, { status: 404 })
+    }
+    return NextResponse.json({ message: 'Inversor eliminado correctamente' })
+  } catch (error) {
+    return handleDeleteError(error, 'inversor')
   }
 }

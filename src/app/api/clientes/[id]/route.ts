@@ -4,6 +4,7 @@ import {
   updateCliente,
   deleteCliente,
 } from '@/lib/direct-database'
+import { handleDeleteError } from '@/lib/api-errors'
 
 export async function GET(
   request: NextRequest,
@@ -103,10 +104,22 @@ export async function DELETE(
   }
 
   try {
-    await deleteCliente(id)
+    const existing = await getClienteById(id)
+    if (!existing) {
+      return NextResponse.json(
+        { error: 'Cliente no encontrado' },
+        { status: 404 }
+      )
+    }
+    const deleted = await deleteCliente(id)
+    if (!deleted) {
+      return NextResponse.json(
+        { error: 'Cliente no encontrado' },
+        { status: 404 }
+      )
+    }
     return NextResponse.json({ message: 'Cliente eliminado correctamente' })
-  } catch (error: any) {
-    console.error('Error al eliminar cliente:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (error) {
+    return handleDeleteError(error, 'cliente')
   }
 }

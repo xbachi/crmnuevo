@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/direct-database'
+import { handleDeleteError } from '@/lib/api-errors'
 
 export async function GET(
   request: NextRequest,
@@ -181,10 +182,6 @@ export async function DELETE(
       client.release()
     }
   } catch (error) {
-    console.error('Error al eliminar interesado:', error)
-    return NextResponse.json(
-      { error: 'Error interno del servidor' },
-      { status: 500 }
-    )
+    return handleDeleteError(error, 'interesado')
   }
 }

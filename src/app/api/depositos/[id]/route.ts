@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/direct-database'
+import { handleDeleteError } from '@/lib/api-errors'
 
 export async function GET(
   request: NextRequest,
@@ -237,26 +238,46 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const client = await pool.connect()
   try {
     const { id } = await params
-    const result = await pool.query(
-      'DELETE FROM depositos WHERE id = $1 RETURNING *',
+
+    await client.query('BEGIN')
+
+    // Cascade child rows defensively (DepositoRecordatorios may or may not
+    // CASCADE depending on which migration created the table).
+    try {
+      await client.query('SAVEPOINT child_delete')
+      await client.query(
+        'DELETE FROM "DepositoRecordatorios" WHERE deposito_id = $1',
+        [id]
+      )
+      await client.query('RELEASE SAVEPOINT child_delete')
+    } catch {
+      await client
+        .query('ROLLBACK TO SAVEPOINT child_delete')
+        .catch(() => {})
+    }
+
+    const result = await client.query(
+      'DELETE FROM depositos WHERE id = $1 RETURNING id',
       [id]
     )
 
     if (result.rows.length === 0) {
+      await client.query('ROLLBACK')
       return NextResponse.json(
         { error: 'Depósito no encontrado' },
         { status: 404 }
       )
     }
 
+    await client.query('COMMIT')
     return NextResponse.json({ message: 'Depósito eliminado exitosamente' })
   } catch (error) {
-    console.error('Error deleting deposito:', error)
-    return NextResponse.json(
-      { error: 'Error interno del servidor' },
-      { status: 500 }
-    )
+    await client.query('ROLLBACK').catch(() => {})
+    return handleDeleteError(error, 'depósito')
+  } finally {
+    client.release()
   }
 }

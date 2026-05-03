@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDealById, updateDeal, deleteDeal } from '@/lib/direct-database'
+import { handleDeleteError } from '@/lib/api-errors'
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -72,7 +73,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     console.log(`✅ Deal eliminado exitosamente`)
     return NextResponse.json({ message: 'Deal eliminado exitosamente' }, { status: 200 })
   } catch (error) {
-    console.error('❌ Error eliminando deal:', error)
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
+    return handleDeleteError(error, 'deal')
   }
 }

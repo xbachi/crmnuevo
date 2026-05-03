@@ -4,6 +4,7 @@ import {
   updateVehiculo,
   deleteVehiculo,
 } from '@/lib/direct-database'
+import { handleDeleteError } from '@/lib/api-errors'
 
 export async function GET(
   request: NextRequest,
@@ -156,7 +157,6 @@ export async function DELETE(
       return NextResponse.json({ error: 'ID inválido' }, { status: 400 })
     }
 
-    // Verificar que el vehículo existe
     const vehiculoExistente = await getVehiculoById(id)
     if (!vehiculoExistente) {
       return NextResponse.json(
@@ -165,16 +165,16 @@ export async function DELETE(
       )
     }
 
-    await deleteVehiculo(id)
+    const deleted = await deleteVehiculo(id)
+    if (!deleted) {
+      return NextResponse.json(
+        { error: 'Vehículo no encontrado' },
+        { status: 404 }
+      )
+    }
 
     return NextResponse.json({ message: 'Vehículo eliminado correctamente' })
-  } catch (error: unknown) {
-    const errorMessage =
-      error instanceof Error ? error.message : 'Error desconocido'
-    console.error('Error al eliminar vehículo:', errorMessage)
-    return NextResponse.json(
-      { error: 'Error interno del servidor' },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleDeleteError(error, 'vehículo')
   }
 }
