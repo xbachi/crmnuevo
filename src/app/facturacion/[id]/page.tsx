@@ -9,6 +9,8 @@ import {
   InvoiceTypeBadge,
 } from '@/components/invoicing/InvoiceStatusBadge'
 import RegeneratePdfModal from '@/components/invoicing/RegeneratePdfModal'
+import CorrectNumberModal from '@/components/invoicing/CorrectNumberModal'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface Invoice {
   id: number
@@ -117,6 +119,9 @@ export default function InvoiceDetailPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isRegenerateOpen, setIsRegenerateOpen] = useState(false)
+  const [isCorrectOpen, setIsCorrectOpen] = useState(false)
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
 
   const load = useCallback(async () => {
     if (!id) return
@@ -229,6 +234,15 @@ export default function InvoiceDetailPage() {
               className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700"
             >
               Regenerar PDF
+            </button>
+          )}
+          {isAdmin && (
+            <button
+              onClick={() => setIsCorrectOpen(true)}
+              className="px-4 py-2 bg-red-50 text-red-700 border border-red-200 text-sm font-medium rounded-md hover:bg-red-100"
+              title="Corregir el número de esta factura (admin)"
+            >
+              Corregir número
             </button>
           )}
         </div>
@@ -411,6 +425,22 @@ export default function InvoiceDetailPage() {
         invoiceNumber={invoice.full_invoice_number}
         onClose={() => setIsRegenerateOpen(false)}
         onConfirm={handleRegenerate}
+      />
+
+      <CorrectNumberModal
+        isOpen={isCorrectOpen}
+        invoiceId={invoice.id}
+        currentSeries={invoice.series}
+        currentNumber={invoice.number}
+        currentFull={invoice.full_invoice_number}
+        onClose={() => setIsCorrectOpen(false)}
+        onSaved={(advisory) => {
+          showToast('Número corregido correctamente.', 'success')
+          if (advisory) {
+            setTimeout(() => showToast(advisory, 'info'), 800)
+          }
+          load()
+        }}
       />
     </div>
   )

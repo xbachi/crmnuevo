@@ -166,112 +166,89 @@ export default function GeneradorFacturas() {
 
   const handleConfirmFactura = async (
     tipoFactura: 'IVA' | 'REBU',
-    numeroFactura?: string
+    _numeroFactura?: string // ignored — fiscal numbering is now centralised
   ) => {
     try {
       setIsGenerating(true)
 
-      // Si no se proporciona número personalizado, obtener el siguiente número secuencial
-      let numeroFacturaFinal = numeroFactura
-      if (!numeroFactura) {
-        try {
-          const response = await fetch('/api/facturas/next-number')
-          if (response.ok) {
-            const data = await response.json()
-            numeroFacturaFinal = data.nextNumber
-          } else {
-            // Fallback si falla la API
-            numeroFacturaFinal = `F-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`
-          }
-        } catch (error) {
-          console.error('Error obteniendo número de factura:', error)
-          // Fallback si falla la API
-          numeroFacturaFinal = `F-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`
-        }
-      }
+      // Use a UUIDv4 as Idempotency-Key so a double-click on "Generar"
+      // never produces two fiscal numbers for the same form submission.
+      const idempotencyKey =
+        typeof crypto !== 'undefined' && 'randomUUID' in crypto
+          ? (crypto as { randomUUID: () => string }).randomUUID()
+          : `gen-${Date.now()}-${Math.random().toString(16).slice(2)}`
 
-      console.log('🔍 [GENERADOR FACTURAS] Generando factura con parámetros:', {
-        tipoFactura,
-        numeroFactura: numeroFacturaFinal,
-        cliente,
-        vehiculo,
-        factura,
-      })
+      // Map the legacy IVA/REBU labels to the new module's VAT/REBU types.
+      const invoiceType = tipoFactura === 'REBU' ? 'REBU' : 'VAT'
 
-      // Crear datos del deal para la API
-      const dealData = {
-        numero: numeroFacturaFinal,
-        fechaCreacion: new Date(),
-        cliente: {
-          nombre: capitalizeText(cliente.nombre),
-          apellidos: capitalizeText(cliente.apellidos),
-          dni: cliente.dni,
-          telefono: cliente.telefono,
-          email: cliente.email,
-          direccion: cliente.direccion,
-          ciudad: cliente.ciudad,
-          provincia: cliente.provincia,
-          codPostal: cliente.codPostal,
-        },
-        vehiculo: {
-          marca: capitalizeText(vehiculo.marca),
-          modelo: capitalizeText(vehiculo.modelo),
-          matricula: vehiculo.matricula,
-          bastidor: vehiculo.bastidor,
-          kms: vehiculo.kms,
-          color: vehiculo.color,
-          fechaMatriculacion: vehiculo.fechaMatriculacion,
-          año: vehiculo.año,
-        },
-        importeTotal: factura.importeTotal,
-        importeSena: factura.importeSena,
-        formaPagoSena: factura.formaPagoSena,
-        fechaReservaDesde: new Date(),
-        fechaReservaExpira: new Date(),
-      }
-
-      // Generar la factura
-      const response = await fetch('/api/documents/generate', {
+      const response = await fetch('/api/sales/manual-issue', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Idempotency-Key': idempotencyKey,
         },
         body: JSON.stringify({
-          dealId: 0, // ID ficticio para facturas independientes
-          documentType: 'factura',
-          dealNumber: dealData.numero,
-          dealData,
-          tipoFactura,
-          numeroFactura: numeroFacturaFinal,
+          invoiceType,
+          cliente: {
+            nombre: capitalizeText(cliente.nombre),
+            apellidos: capitalizeText(cliente.apellidos),
+            dni: cliente.dni,
+            telefono: cliente.telefono || null,
+            email: cliente.email || null,
+            direccion: cliente.direccion || null,
+            ciudad: cliente.ciudad || null,
+            provincia: cliente.provincia || null,
+            codPostal: cliente.codPostal || null,
+          },
+          vehiculo: {
+            marca: capitalizeText(vehiculo.marca),
+            modelo: capitalizeText(vehiculo.modelo),
+            matricula: vehiculo.matricula,
+            bastidor: vehiculo.bastidor || null,
+            kms: vehiculo.kms || 0,
+            color: vehiculo.color || null,
+            fechaMatriculacion: vehiculo.fechaMatriculacion || null,
+            año: vehiculo.año || null,
+          },
+          factura: {
+            importeTotal: factura.importeTotal,
+            importeSena: factura.importeSena || 0,
+            formaPagoSena: factura.formaPagoSena || null,
+          },
         }),
       })
 
-      // Detectar si la respuesta es PDF directo o JSON
-      const contentType = response.headers.get('content-type')
+      const data = await response.json().catch(() => ({}))
 
-      if (contentType?.includes('application/pdf')) {
-        // Respuesta directa de PDF (Vercel/producción)
-        console.log('📄 [GENERADOR FACTURAS] Recibiendo PDF directo')
+      if (!response.ok) {
+        showToast(data?.error ?? 'Error al emitir factura.', 'error')
+        return
+      }
 
-        const pdfBlob = await response.blob()
-        const url = window.URL.createObjectURL(pdfBlob)
-        const link = document.createElement('a')
-        link.href = url
-        link.download = `factura-${numeroFacturaFinal}.pdf`
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        window.URL.revokeObjectURL(url)
+      const issued = data?.invoice
+      if (!issued) {
+        showToast('Respuesta inesperada del servidor.', 'error')
+        return
+      }
 
-        showToast(`Factura ${tipoFactura} generada exitosamente`, 'success')
-      } else if (response.ok) {
-        // Respuesta JSON (desarrollo local)
-        const result = await response.json()
-        showToast(`Factura ${tipoFactura} generada exitosamente`, 'success')
-        window.open(result.url, '_blank')
+      if (data.alreadyExisted) {
+        showToast(
+          `Factura ya existente: ${issued.full_invoice_number}.`,
+          'info'
+        )
       } else {
-        const error = await response.json()
-        showToast(error.error || 'Error generando factura', 'error')
+        showToast(
+          `Factura ${issued.full_invoice_number} emitida correctamente.`,
+          'success'
+        )
+      }
+
+      // Open the PDF in a new tab if available; otherwise route the user
+      // to the detail page so they can regenerate if needed.
+      if (issued.pdf_url) {
+        window.open(`/api/invoices/${issued.id}/download`, '_blank')
+      } else {
+        window.open(`/facturacion/${issued.id}`, '_blank')
       }
     } catch (error) {
       console.error('Error generando factura:', error)
@@ -286,12 +263,36 @@ export default function GeneradorFacturas() {
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
-          <div className="mb-8">
+          <div className="mb-6">
             <h1 className="text-3xl font-bold text-gray-900">
               Generador de Facturas
             </h1>
             <p className="mt-2 text-gray-600">
-              Genera facturas independientes sin necesidad de crear un deal
+              Emite una factura para una venta que no tiene Deal previo.
+            </p>
+          </div>
+
+          {/* Warning: this NOW consumes a fiscal number */}
+          <div className="mb-6 bg-amber-50 border border-amber-200 rounded-md p-4">
+            <h3 className="text-sm font-semibold text-amber-900 mb-1">
+              ⚠ Esta página emite facturas fiscales.
+            </h3>
+            <p className="text-xs text-amber-800">
+              Al confirmar, se crea un cliente, un vehículo y un deal en
+              background, y se asigna el siguiente número correlativo de la
+              serie correspondiente (R-2026 para REBU, F-2026 para IVA). El
+              campo "número personalizado" queda como informativo: el sistema
+              SIEMPRE usa el siguiente número de la serie para evitar saltos.
+            </p>
+            <p className="text-xs text-amber-800 mt-2">
+              Para ver, descargar o regenerar facturas emitidas, usá{' '}
+              <a
+                href="/facturacion/historial"
+                className="font-medium underline hover:text-amber-900"
+              >
+                Facturación → Historial
+              </a>
+              .
             </p>
           </div>
 
