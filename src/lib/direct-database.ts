@@ -29,29 +29,36 @@ loadEnvFile()
 
 console.log('DATABASE_URL cargada:', process.env.DATABASE_URL ? 'Sí' : 'No')
 
-// Vercel serverless + Supabase pooler:
-// Each cold function instance creates its own pg.Pool. The default `max: 10`
-// multiplied by hundreds of warm function instances easily exhausts the
-// Supabase pooler (limit 200 on the free tier — saw EMAXCONN in prod logs
-// 2026-05-04 after an infinite-loop bug spammed /api/invoice-sequences for
-// hours).
+// Vercel serverless + Supabase pooler.
 //
-// Tuning:
-//   max=1                  — keep at most one connection per function. The
-//                            real pooling happens in Supabase's PgBouncer
-//                            on port 6543. We don't want a *second* pool on
-//                            top of it.
-//   idleTimeoutMillis=10000 — release idle connections quickly so warm
-//                            instances don't squat on slots.
-//   connectionTimeoutMillis=5000 — fail fast instead of hanging when the
-//                            pooler is saturated; surfaces a 500 quickly
-//                            and frees the request slot.
+// Background: 2026-05-04 we saw EMAXCONN (limit 200) in prod after an
+// infinite-loop bug spammed /api/invoice-sequences. Default pg.Pool max=10
+// × dozens of warm Vercel instances saturated the Supabase free-tier
+// pooler. First fix was `max: 1` per instance, which fixed EMAXCONN but
+// introduced a self-deadlock:
+//
+//   pool.connect() in updateDeal()
+//     → holds client #1 of 1
+//     → awaits getDealById(id)
+//       → calls pool.query(...) which checks out client #2
+//       → BLOCKS forever (or until connectionTimeoutMillis)
+//   → 500 propagates as silent PUT failure → state never persists.
+//
+// Bumping to max=3 gives one slot for the outer transaction and at least
+// two for nested helper queries. Still extremely conservative: 3 × 50
+// peak warm instances = 150, well under the 200 pooler limit.
+//
+//   max=3                       — outer + nested + headroom.
+//   idleTimeoutMillis=10000     — drop idle sockets so warm instances
+//                                 don't squat on slots.
+//   connectionTimeoutMillis=5000 — fail fast; surfaces saturation as 500
+//                                 instead of letting requests hang.
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
     rejectUnauthorized: false,
   },
-  max: 1,
+  max: 3,
   idleTimeoutMillis: 10_000,
   connectionTimeoutMillis: 5_000,
 })

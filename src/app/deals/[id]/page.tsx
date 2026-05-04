@@ -580,7 +580,7 @@ export default function DealDetail() {
 
           // Actualizar en la base de datos
           try {
-            await fetch(`/api/deals/${deal.id}`, {
+            const putRes = await fetch(`/api/deals/${deal.id}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -589,6 +589,10 @@ export default function DealDetail() {
                 fechaVentaFirmada: new Date().toISOString(),
               }),
             })
+            if (!putRes.ok) {
+              const errBody = await putRes.json().catch(() => ({}))
+              throw new Error(errBody?.error || `PUT failed: ${putRes.status}`)
+            }
 
             showToast(
               'Contrato de venta generado y descargado exitosamente',

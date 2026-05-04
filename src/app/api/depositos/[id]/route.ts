@@ -242,6 +242,55 @@ export async function DELETE(
   try {
     const { id } = await params
 
+    // The depositos list mixes two row types:
+    //   - real rows in `depositos` (numeric id)
+    //   - synthetic rows for vehicles with tipo='D' that have NO depositos
+    //     entry — those carry id = 'vehiculo_<vehiculoId>' (see GET handler).
+    // The DELETE semantics differ accordingly.
+    if (id.startsWith('vehiculo_')) {
+      const vehiculoId = parseInt(id.slice('vehiculo_'.length), 10)
+      if (Number.isNaN(vehiculoId)) {
+        return NextResponse.json(
+          { error: 'ID de depósito virtual inválido' },
+          { status: 400 }
+        )
+      }
+
+      // For virtual deposits we just take the vehicle out of the list:
+      // tipo 'D' (Deposito Venta) -> 'C' (Compraventa normal). Vehicle row
+      // is preserved; only its classification changes.
+      const result = await client.query(
+        `UPDATE "Vehiculo"
+         SET tipo = 'C', "updatedAt" = NOW()
+         WHERE id = $1 AND tipo = 'D'
+         RETURNING id`,
+        [vehiculoId]
+      )
+      if (result.rows.length === 0) {
+        return NextResponse.json(
+          {
+            error:
+              'Vehículo no encontrado o ya no está marcado como depósito.',
+          },
+          { status: 404 }
+        )
+      }
+      return NextResponse.json({
+        message:
+          'El vehículo fue retirado de la lista de depósitos. Se mantiene en el inventario con tipo Compraventa.',
+        vehiculoId,
+      })
+    }
+
+    // Real depositos row: parse as number, cascade children, delete.
+    const numericId = parseInt(id, 10)
+    if (Number.isNaN(numericId)) {
+      return NextResponse.json(
+        { error: 'ID de depósito inválido' },
+        { status: 400 }
+      )
+    }
+
     await client.query('BEGIN')
 
     // Cascade child rows defensively (DepositoRecordatorios may or may not
@@ -250,7 +299,7 @@ export async function DELETE(
       await client.query('SAVEPOINT child_delete')
       await client.query(
         'DELETE FROM "DepositoRecordatorios" WHERE deposito_id = $1',
-        [id]
+        [numericId]
       )
       await client.query('RELEASE SAVEPOINT child_delete')
     } catch {
@@ -261,7 +310,7 @@ export async function DELETE(
 
     const result = await client.query(
       'DELETE FROM depositos WHERE id = $1 RETURNING id',
-      [id]
+      [numericId]
     )
 
     if (result.rows.length === 0) {
