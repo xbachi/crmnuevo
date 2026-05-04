@@ -29,11 +29,31 @@ loadEnvFile()
 
 console.log('DATABASE_URL cargada:', process.env.DATABASE_URL ? 'Sí' : 'No')
 
+// Vercel serverless + Supabase pooler:
+// Each cold function instance creates its own pg.Pool. The default `max: 10`
+// multiplied by hundreds of warm function instances easily exhausts the
+// Supabase pooler (limit 200 on the free tier — saw EMAXCONN in prod logs
+// 2026-05-04 after an infinite-loop bug spammed /api/invoice-sequences for
+// hours).
+//
+// Tuning:
+//   max=1                  — keep at most one connection per function. The
+//                            real pooling happens in Supabase's PgBouncer
+//                            on port 6543. We don't want a *second* pool on
+//                            top of it.
+//   idleTimeoutMillis=10000 — release idle connections quickly so warm
+//                            instances don't squat on slots.
+//   connectionTimeoutMillis=5000 — fail fast instead of hanging when the
+//                            pooler is saturated; surfaces a 500 quickly
+//                            and frees the request slot.
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
     rejectUnauthorized: false,
   },
+  max: 1,
+  idleTimeoutMillis: 10_000,
+  connectionTimeoutMillis: 5_000,
 })
 
 export { pool }
