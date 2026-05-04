@@ -42,7 +42,8 @@ export default function ErroresPage() {
       }
     }
     load()
-  }, [showToast])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const renderTable = (rows: Invoice[], title: string, hint: string) => (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden mb-6">

@@ -40,6 +40,10 @@ export default function SeriesPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [editing, setEditing] = useState<Sequence | null>(null)
 
+  // showToast is intentionally NOT in the deps: useToast returns a new
+  // function on every render, which would cause this useEffect to re-run
+  // forever. The closure here just calls showToast's stable setter, so a
+  // captured "stale" reference is fine.
   const load = useCallback(async () => {
     setIsLoading(true)
     try {
@@ -52,7 +56,8 @@ export default function SeriesPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [showToast])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     load()

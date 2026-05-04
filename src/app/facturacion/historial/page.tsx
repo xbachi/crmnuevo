@@ -100,6 +100,9 @@ export default function HistorialFacturacionPage() {
     return years
   })()
 
+  // showToast intentionally omitted from deps: useToast returns a fresh
+  // function each render, so including it here would loop the effect
+  // forever. See `series/page.tsx` for the same pattern.
   const fetchInvoices = useCallback(async () => {
     setIsLoading(true)
     try {
@@ -124,7 +127,8 @@ export default function HistorialFacturacionPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [page, search, invoiceType, year, status, showToast])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, search, invoiceType, year, status])
 
   useEffect(() => {
     fetchInvoices()
