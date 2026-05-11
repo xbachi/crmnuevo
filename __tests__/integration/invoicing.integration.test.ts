@@ -145,4 +145,92 @@ describeIntegration('invoiceService.issueInvoice', () => {
     // At least one of them is the cached return
     expect(r1.alreadyExisted || r2.alreadyExisted).toBe(true)
   })
+
+  /**
+   * Regression: the seed migration imports legacy Deal.factura rows into the
+   * same series as the seeded sequence, so `next_number` can land on a row
+   * that already exists. Without the fast-forward inside reserveAndInsert,
+   * the INSERT hits invoices_unique_series_number → 23505 → rollback →
+   * sequence never advances → next attempt collides on the same number forever.
+   *
+   * This test seeds the collision deliberately and asserts issueInvoice
+   * picks the next free number and bumps the sequence past it.
+   */
+  it('skips past existing (series, number) rows instead of looping on 23505', async () => {
+    const seqRow = await pool.query<{
+      id: number
+      series: string
+      next_number: number
+    }>(
+      `SELECT id, series, next_number FROM invoice_sequences
+       WHERE invoice_type = 'REBU' AND is_active = TRUE LIMIT 1`
+    )
+    if (!seqRow.rows[0]) {
+      console.warn('No active REBU sequence; skipping collision test')
+      return
+    }
+    const seq = seqRow.rows[0]
+    const collidingNumber = seq.next_number + 500 // safely above any concurrent test
+
+    const dealRes = await pool.query<{ id: number; vehiculoId: number | null }>(
+      `SELECT id, "vehiculoId" FROM "Deal" WHERE NOT EXISTS (
+         SELECT 1 FROM invoices WHERE invoices.deal_id = "Deal".id
+                                 AND invoices.invoice_type = 'REBU'
+                                 AND invoices.status NOT IN ('VOIDED')
+       )
+       LIMIT 1`
+    )
+    if (!dealRes.rows[0]) {
+      console.warn('No free deal for collision test; skipping')
+      return
+    }
+    const dealId = dealRes.rows[0].id
+
+    const blockerRes = await pool.query<{ id: number }>(
+      `INSERT INTO invoices (
+         deal_id, invoice_type, series, number, full_invoice_number,
+         invoice_date, buyer_name,
+         vehicle_sale_price, total_amount,
+         status, notes
+       ) VALUES (
+         NULL, 'REBU', $1, $2, $3,
+         CURRENT_DATE, 'TEST blocker',
+         0, 0,
+         'IMPORTED', 'integration test blocker — safe to delete'
+       )
+       RETURNING id`,
+      [seq.series, collidingNumber, `${seq.series}-${String(collidingNumber).padStart(3, '0')}`]
+    )
+    const blockerId = blockerRes.rows[0].id
+
+    try {
+      const res = await issueInvoice({ dealId, invoiceType: 'REBU' })
+      expect(res.alreadyExisted).toBe(false)
+      expect(res.invoice.number).toBe(collidingNumber + 1)
+
+      const after = await pool.query<{ next_number: number }>(
+        `SELECT next_number FROM invoice_sequences WHERE id = $1`,
+        [seq.id]
+      )
+      expect(after.rows[0].next_number).toBe(collidingNumber + 2)
+
+      // Clean up the issued invoice + audit logs
+      await pool.query(
+        `DELETE FROM invoice_audit_logs WHERE invoice_id = $1`,
+        [res.invoice.id]
+      )
+      await pool.query(`DELETE FROM invoices WHERE id = $1`, [res.invoice.id])
+    } finally {
+      await pool.query(
+        `DELETE FROM invoice_audit_logs WHERE invoice_id = $1`,
+        [blockerId]
+      )
+      await pool.query(`DELETE FROM invoices WHERE id = $1`, [blockerId])
+      // Restore sequence to where it was before the test
+      await pool.query(
+        `UPDATE invoice_sequences SET next_number = $1 WHERE id = $2`,
+        [seq.next_number, seq.id]
+      )
+    }
+  })
 })

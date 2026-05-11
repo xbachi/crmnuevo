@@ -458,8 +458,26 @@ async function reserveAndInsert(args: {
       )
     }
     const seq = seqRes.rows[0]
-    const number = seq.next_number as number
+    const seqNext = seq.next_number as number
     const series = seq.series as string
+
+    // The seed migration (scripts/sql/0001-invoicing-module.sql) imports legacy
+    // Deal.factura rows into the same series as the seeded sequence, so an
+    // IMPORTED row's number can exceed next_number and collide with the
+    // invoices_unique_series_number UNIQUE constraint on insert — freezing
+    // issuance forever because the failed insert rolls back the sequence bump.
+    // Skip past anything already in the series while still holding the lock.
+    const maxRes = await client.query<{ max_num: number | null }>(
+      `SELECT MAX(number)::INT AS max_num FROM invoices WHERE series = $1`,
+      [series]
+    )
+    const maxExisting = maxRes.rows[0]?.max_num ?? 0
+    const number = Math.max(seqNext, maxExisting + 1)
+    if (number !== seqNext) {
+      console.warn(
+        `[invoiceService] fast-forwarding sequence ${series} (deal ${args.sale.id}): ${seqNext} -> ${number} (max existing: ${maxExisting})`
+      )
+    }
     const fullInvoiceNumber = `${series}-${formatNumber(number, seq.number_format)}`
 
     let inserted: Invoice
@@ -539,12 +557,13 @@ async function reserveAndInsert(args: {
       throw err
     }
 
-    // Advance the sequence
+    // Advance the sequence past the number we just consumed (handles the
+    // fast-forward case above; equivalent to `next_number + 1` otherwise).
     await client.query(
       `UPDATE invoice_sequences
-       SET next_number = next_number + 1, updated_at = NOW()
-       WHERE id = $1`,
-      [seq.id]
+       SET next_number = $1, updated_at = NOW()
+       WHERE id = $2`,
+      [number + 1, seq.id]
     )
 
     await client.query(
