@@ -88,10 +88,28 @@ export interface InvoiceListFilters {
   vehiculoId?: number
 }
 
+// Whitelisted column names for ORDER BY. The repo interpolates sortBy
+// directly into the SQL string, so this set is the runtime guard against
+// callers passing arbitrary input.
+export const INVOICE_SORTABLE_COLUMNS = [
+  'invoice_date',
+  'number',
+  'total_amount',
+  'created_at',
+  'invoice_type',
+  'series',
+  'buyer_name',
+  'buyer_nif_cif',
+  'vehicle_make',
+  'vehicle_plate',
+  'status',
+] as const
+export type InvoiceSortBy = (typeof INVOICE_SORTABLE_COLUMNS)[number]
+
 export interface InvoiceListOptions extends InvoiceListFilters {
   page?: number
   pageSize?: number
-  sortBy?: 'invoice_date' | 'number' | 'total_amount' | 'created_at'
+  sortBy?: InvoiceSortBy
   sortDir?: 'asc' | 'desc'
 }
 
@@ -100,7 +118,11 @@ export async function listInvoices(
 ): Promise<{ rows: Invoice[]; total: number; page: number; pageSize: number }> {
   const page = Math.max(1, opts.page ?? 1)
   const pageSize = Math.min(200, Math.max(1, opts.pageSize ?? 50))
-  const sortBy = opts.sortBy ?? 'invoice_date'
+  const sortBy: InvoiceSortBy = (
+    INVOICE_SORTABLE_COLUMNS as readonly string[]
+  ).includes(opts.sortBy as string)
+    ? (opts.sortBy as InvoiceSortBy)
+    : 'invoice_date'
   const sortDir = opts.sortDir === 'asc' ? 'ASC' : 'DESC'
 
   const conditions: string[] = []

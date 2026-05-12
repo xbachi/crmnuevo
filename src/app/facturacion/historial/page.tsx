@@ -18,6 +18,33 @@ type InvoiceStatus =
   | 'RECTIFIED'
   | 'IMPORTED'
 
+type SortBy =
+  | 'number'
+  | 'invoice_type'
+  | 'invoice_date'
+  | 'buyer_name'
+  | 'buyer_nif_cif'
+  | 'vehicle_make'
+  | 'vehicle_plate'
+  | 'total_amount'
+  | 'status'
+type SortDir = 'asc' | 'desc'
+
+// Per-column sensible default direction when the user first clicks it.
+// Dates / amounts / numbers feel right descending (newest/biggest first);
+// text feels right ascending (A→Z).
+const SORT_DEFAULT_DIR: Record<SortBy, SortDir> = {
+  number: 'desc',
+  invoice_type: 'asc',
+  invoice_date: 'desc',
+  buyer_name: 'asc',
+  buyer_nif_cif: 'asc',
+  vehicle_make: 'asc',
+  vehicle_plate: 'asc',
+  total_amount: 'desc',
+  status: 'asc',
+}
+
 interface Invoice {
   id: number
   full_invoice_number: string
@@ -92,6 +119,21 @@ export default function HistorialFacturacionPage() {
   const [year, setYear] = useState<number | ''>('')
   const [status, setStatus] = useState<'' | InvoiceStatus>('')
 
+  const [sortBy, setSortBy] = useState<SortBy>('number')
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
+
+  const handleSort = (col: SortBy) => {
+    setPage(1)
+    setSortBy((prevCol) => {
+      if (prevCol === col) {
+        setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+        return col
+      }
+      setSortDir(SORT_DEFAULT_DIR[col])
+      return col
+    })
+  }
+
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
   const yearOptions = (() => {
     const current = new Date().getFullYear()
@@ -109,8 +151,8 @@ export default function HistorialFacturacionPage() {
       const params = new URLSearchParams()
       params.set('page', String(page))
       params.set('pageSize', String(PAGE_SIZE))
-      params.set('sortBy', 'number')
-      params.set('sortDir', 'desc')
+      params.set('sortBy', sortBy)
+      params.set('sortDir', sortDir)
       if (search.trim()) params.set('search', search.trim())
       if (invoiceType) params.set('invoiceType', invoiceType)
       if (year) params.set('year', String(year))
@@ -128,7 +170,7 @@ export default function HistorialFacturacionPage() {
       setIsLoading(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, search, invoiceType, year, status])
+  }, [page, search, invoiceType, year, status, sortBy, sortDir])
 
   useEffect(() => {
     fetchInvoices()
@@ -158,6 +200,52 @@ export default function HistorialFacturacionPage() {
       return
     }
     window.open(`/api/invoices/${invoice.id}/download`, '_blank')
+  }
+
+  const SortHeader = ({
+    col,
+    label,
+    align = 'left',
+    extraClass = '',
+  }: {
+    col: SortBy
+    label: string
+    align?: 'left' | 'right'
+    extraClass?: string
+  }) => {
+    const active = sortBy === col
+    const dir = active ? sortDir : null
+    return (
+      <th
+        scope="col"
+        className={`${extraClass} px-3 py-2 ${
+          align === 'right' ? 'text-right' : 'text-left'
+        } text-xs font-medium uppercase tracking-wider ${
+          active ? 'text-gray-900' : 'text-gray-500'
+        }`}
+      >
+        <button
+          type="button"
+          onClick={() => handleSort(col)}
+          aria-sort={
+            active ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'
+          }
+          className={`inline-flex items-center gap-1 hover:text-gray-900 focus:outline-none ${
+            align === 'right' ? 'flex-row-reverse' : ''
+          }`}
+        >
+          <span>{label}</span>
+          <span
+            className={`text-[10px] leading-none ${
+              active ? 'text-primary-600' : 'text-gray-300'
+            }`}
+            aria-hidden="true"
+          >
+            {dir === 'asc' ? '▲' : dir === 'desc' ? '▼' : '↕'}
+          </span>
+        </button>
+      </th>
+    )
   }
 
   return (
@@ -269,33 +357,27 @@ export default function HistorialFacturacionPage() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Número
-                </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Tipo
-                </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Fecha
-                </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Comprador
-                </th>
-                <th className="hidden md:table-cell px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  NIF
-                </th>
-                <th className="hidden lg:table-cell px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Vehículo
-                </th>
-                <th className="hidden md:table-cell px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Matrícula
-                </th>
-                <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total
-                </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Estado
-                </th>
+                <SortHeader col="number" label="Número" />
+                <SortHeader col="invoice_type" label="Tipo" />
+                <SortHeader col="invoice_date" label="Fecha" />
+                <SortHeader col="buyer_name" label="Comprador" />
+                <SortHeader
+                  col="buyer_nif_cif"
+                  label="NIF"
+                  extraClass="hidden md:table-cell"
+                />
+                <SortHeader
+                  col="vehicle_make"
+                  label="Vehículo"
+                  extraClass="hidden lg:table-cell"
+                />
+                <SortHeader
+                  col="vehicle_plate"
+                  label="Matrícula"
+                  extraClass="hidden md:table-cell"
+                />
+                <SortHeader col="total_amount" label="Total" align="right" />
+                <SortHeader col="status" label="Estado" />
                 <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Acciones
                 </th>

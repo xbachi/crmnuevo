@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { listInvoices } from '@/lib/invoiceRepository'
-import type { InvoiceStatus, InvoiceType } from '@/lib/invoiceRepository'
+import type {
+  InvoiceSortBy,
+  InvoiceStatus,
+  InvoiceType,
+} from '@/lib/invoiceRepository'
 
 /**
  * GET /api/invoices
@@ -37,9 +41,7 @@ export async function GET(request: NextRequest) {
       pageSize: sp.get('pageSize')
         ? parseInt(sp.get('pageSize')!, 10)
         : undefined,
-      sortBy:
-        (sp.get('sortBy') as 'invoice_date' | 'number' | 'total_amount' | 'created_at') ??
-        undefined,
+      sortBy: (sp.get('sortBy') as InvoiceSortBy) ?? undefined,
       sortDir: sp.get('sortDir') === 'asc' ? 'asc' : 'desc',
     })
 
