@@ -52,17 +52,36 @@ export async function GET(
     }
 
     // Factura: el módulo nuevo guarda el PDF en Vercel Blob, no en el FS.
-    // Redirigimos al pdf_url. Si no hay fila (deals pre-migración), caemos
-    // al lookup del filesystem como antes.
+    // Lo proxeamos con un Content-Disposition con nombre humano. Si no hay
+    // fila (deals pre-migración), caemos al lookup del filesystem como antes.
     if (documentType === 'factura') {
-      const { rows } = await pool.query<{ id: number; pdf_url: string | null }>(
-        `SELECT id, pdf_url FROM invoices
+      const { rows } = await pool.query<{
+        id: number
+        pdf_url: string | null
+        full_invoice_number: string
+      }>(
+        `SELECT id, pdf_url, full_invoice_number FROM invoices
           WHERE deal_id = $1 AND status NOT IN ('VOIDED')
           ORDER BY id DESC LIMIT 1`,
         [dealIdNum]
       )
       if (rows[0]?.pdf_url) {
-        return NextResponse.redirect(rows[0].pdf_url, 302)
+        const blobRes = await fetch(rows[0].pdf_url)
+        if (!blobRes.ok || !blobRes.body) {
+          return NextResponse.json(
+            { error: 'No se pudo recuperar el PDF de la factura.' },
+            { status: 502 }
+          )
+        }
+        const filename = `factura-${rows[0].full_invoice_number}.pdf`
+        return new NextResponse(blobRes.body, {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `attachment; filename="${filename}"`,
+            'Cache-Control': 'private, no-store',
+          },
+        })
       }
       if (rows[0] && !rows[0].pdf_url) {
         return NextResponse.json(

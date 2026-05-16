@@ -7,6 +7,7 @@ import {
   InvoiceStatusBadge,
   InvoiceTypeBadge,
 } from '@/components/invoicing/InvoiceStatusBadge'
+import { downloadPdf } from '@/lib/pdf/download'
 
 interface Invoice {
   id: number
@@ -93,6 +94,20 @@ export default function DealInvoiceSection({
   const [preview, setPreview] = useState<PreviewData | null>(null)
   const [previewType, setPreviewType] = useState<'VAT' | 'REBU' | null>(null)
   const [issuing, setIssuing] = useState(false)
+  const [downloadingId, setDownloadingId] = useState<number | null>(null)
+
+  const handleDownload = useCallback(
+    async (inv: Invoice) => {
+      await downloadPdf({
+        url: `/api/invoices/${inv.id}/download`,
+        filename: `factura-${inv.full_invoice_number}`,
+        onStart: () => setDownloadingId(inv.id),
+        onFinish: () => setDownloadingId(null),
+        onError: (msg) => showToast(msg, 'error'),
+      })
+    },
+    [showToast]
+  )
 
   const load = useCallback(async () => {
     setIsLoading(true)
@@ -227,14 +242,13 @@ export default function DealInvoiceSection({
               </div>
               <div className="flex space-x-2 ml-4">
                 {inv.pdf_url ? (
-                  <a
-                    href={`/api/invoices/${inv.id}/download`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700"
+                  <button
+                    onClick={() => handleDownload(inv)}
+                    disabled={downloadingId === inv.id}
+                    className="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    Descargar PDF
-                  </a>
+                    {downloadingId === inv.id ? 'Descargando…' : 'Descargar PDF'}
+                  </button>
                 ) : null}
                 <Link
                   href={`/facturacion/${inv.id}`}

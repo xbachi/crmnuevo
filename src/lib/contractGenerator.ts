@@ -1,6 +1,17 @@
 // Generador de contratos con jsPDF
 import jsPDF from './jspdf-server'
 import { formatCurrency, getVehiculoAño, capitalizeText } from './utils'
+import { INVOICE_CONFIG } from '@/config/invoiceConfig'
+import {
+  drawAccentBar,
+  drawVendorBlock,
+  drawInvoiceTitleBar,
+  drawClientCard,
+  drawItemsTable,
+  drawTotalsBox,
+  drawFooter,
+  type InvoiceItemRow,
+} from './pdf/theme'
 
 // Función para formatear la fecha de matriculación
 function getFechaMatriculacion(vehiculo: any): string {
@@ -1595,133 +1606,78 @@ export async function generarFactura(
     const pageWidth = doc.internal.pageSize.getWidth()
     const pageHeight = doc.internal.pageSize.getHeight()
     const margin = 15
-    let yPosition = margin - 5 // Subir logo 5px más arriba (igual que reserva)
+    const contentWidth = pageWidth - margin * 2
+    let yPosition = margin - 5
 
-    // Generar número de factura
+    const vendor = INVOICE_CONFIG.vendor
+
+    // Número de factura (preferimos el que viene del módulo de facturación;
+    // sólo caemos al fallback heurístico si no nos pasan uno).
     const numeroFactura =
       numeroFacturaPersonalizado ||
       `FAC-${new Date().getFullYear()}-${String((deal as any).id || Math.floor(Math.random() * 1000)).padStart(4, '0')}`
     const fechaFactura = new Date()
 
-    // Logo de Seven Cars (centrado)
+    // === HEADER: logo + datos del emisor + barra de acento ===
     yPosition = await addLogoToContract(doc, yPosition)
+    yPosition -= 2
 
-    // Mover yPosition después del logo
-    yPosition -= 5 // Subir 20px el texto (15px - 20px = -5px)
-
-    // Datos de la empresa (debajo del logo, centrados)
-    doc.setFontSize(8)
-    doc.setFont('helvetica', 'normal')
-    doc.text('Seven Cars Motors S.L.', pageWidth / 2, yPosition, {
-      align: 'center',
-    })
-    yPosition += 3
-    doc.text('CIF: B-75939868', pageWidth / 2, yPosition, { align: 'center' })
-    yPosition += 3
-    doc.text('Camí els Mollons, 36', pageWidth / 2, yPosition, {
-      align: 'center',
-    })
-    yPosition += 3
-    doc.text('46970 Alaquàs, Valencia', pageWidth / 2, yPosition, {
-      align: 'center',
-    })
-    yPosition += 30 // Sumar 20px de margen inferior (antes 10px, ahora 30px)
-
-    // Número de factura (debajo del logo)
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'normal')
-    writeField(doc, 'Nº Factura', numeroFactura, margin, yPosition)
-    yPosition += 5
-
-    // Fecha (debajo del número de factura)
-    writeField(
-      doc,
-      'Fecha',
-      fechaFactura.toLocaleDateString('es-ES'),
-      margin,
-      yPosition
-    )
-    yPosition += 15
-
-    // Título de la factura (más abajo)
-    doc.setFontSize(16)
-    doc.setFont('helvetica', 'bold')
-    doc.text(
-      tipoFactura === 'IVA' ? 'FACTURA' : 'FACTURA REBU',
-      pageWidth / 2,
-      yPosition,
-      { align: 'center' }
-    )
-    yPosition += 15
-
-    // Línea separadora
-    doc.setDrawColor(0, 0, 0)
-    doc.setLineWidth(0.5)
-    doc.line(margin, yPosition, pageWidth - margin, yPosition)
-    yPosition += 10
-
-    // Datos del cliente
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'bold')
-    doc.text('FACTURAR A:', margin, yPosition)
+    yPosition = drawVendorBlock(doc, vendor, pageWidth, yPosition)
+    drawAccentBar(doc, margin, yPosition, contentWidth)
     yPosition += 6
 
-    doc.setFont('helvetica', 'normal')
-    doc.text(
-      `${capitalizeText(deal.cliente?.nombre) || 'No especificado'} ${capitalizeText(deal.cliente?.apellidos) || ''}`,
+    // === Título + pill con número y fecha ===
+    yPosition = drawInvoiceTitleBar(
+      doc,
+      tipoFactura === 'IVA' ? 'FACTURA' : 'FACTURA REBU',
+      numeroFactura,
+      fechaFactura.toLocaleDateString('es-ES'),
       margin,
-      yPosition
+      yPosition,
+      contentWidth
     )
     yPosition += 4
-    writeField(
-      doc,
-      'DNI',
-      deal.cliente?.dni || 'No especificado',
-      margin,
-      yPosition
-    )
-    yPosition += 4
-    writeField(
-      doc,
-      'Teléfono',
-      deal.cliente?.telefono || 'No especificado',
-      margin,
-      yPosition
-    )
-    yPosition += 4
-    writeField(
-      doc,
-      'Email',
-      deal.cliente?.email || 'No especificado',
-      margin,
-      yPosition
-    )
-    yPosition += 10
 
-    // Tabla de conceptos
+    // === Card del cliente ===
+    const clienteNombre =
+      `${capitalizeText(deal.cliente?.nombre) || ''} ${capitalizeText(deal.cliente?.apellidos) || ''}`
+        .trim() || 'Cliente no especificado'
+    const clienteDireccion = [
+      deal.cliente?.calle,
+      (deal.cliente as any)?.ciudad,
+      (deal.cliente as any)?.provincia,
+      (deal.cliente as any)?.codPostal,
+    ]
+      .filter(Boolean)
+      .join(', ')
+
+    yPosition = drawClientCard(
+      doc,
+      {
+        name: clienteNombre,
+        dni: deal.cliente?.dni || '—',
+        address: clienteDireccion || '—',
+        phone: deal.cliente?.telefono || '',
+        email: deal.cliente?.email || '',
+      },
+      margin,
+      yPosition,
+      contentWidth
+    )
+
+    // === Cálculo de importes ===
     const totalConIva = deal.importeTotal || 0
-
-    // Cálculo correcto del IVA: el total incluye IVA, calcular subtotal e IVA
-    console.log(
-      '🔍 [CALCULO IVA] tipoFactura recibido:',
-      tipoFactura,
-      'tipoFactura === "IVA":',
-      tipoFactura === 'IVA'
-    )
-    let subtotal, iva, total
+    let subtotal: number, iva: number, total: number
     if (tipoFactura === 'IVA') {
-      // Si el total incluye IVA, calcular el subtotal dividiendo por 1.21
       subtotal = totalConIva / 1.21
       iva = totalConIva - subtotal
       total = totalConIva
     } else {
-      // REBU: sin IVA
       subtotal = totalConIva
       iva = 0
       total = totalConIva
     }
-
-    console.log('🔍 [CALCULO IVA] Valores calculados:', {
+    console.log('🔍 [CALCULO IVA] Valores:', {
       tipoFactura,
       subtotal,
       iva,
@@ -1729,142 +1685,90 @@ export async function generarFactura(
       totalConIva,
     })
 
-    // Encabezados de tabla (sin cantidad)
-    doc.setFontSize(9)
-    doc.setFont('helvetica', 'bold')
-    doc.text('CONCEPTO', margin, yPosition)
-    doc.text('PRECIO', margin + 120, yPosition)
-    doc.text('TOTAL', margin + 160, yPosition)
-    yPosition += 5
+    // === Tabla de ítems (1 fila: la venta del vehículo) ===
+    const marca = capitalizeText(deal.vehiculo?.marca) || 'Vehículo'
+    const modelo = capitalizeText(deal.vehiculo?.modelo) || ''
+    const kmsTxt = (deal.vehiculo as any)?.kms
+      ? `${((deal.vehiculo as any).kms as number).toLocaleString('es-ES')} km`
+      : null
+    const detailLines = [
+      deal.vehiculo?.matricula ? `Matrícula: ${deal.vehiculo.matricula}` : null,
+      deal.vehiculo?.bastidor ? `Bastidor: ${deal.vehiculo.bastidor}` : null,
+      `Fecha matric.: ${getFechaMatriculacion(deal.vehiculo)}`,
+      kmsTxt,
+    ].filter(Boolean) as string[]
 
-    // Línea de encabezados
-    doc.line(margin, yPosition, pageWidth - margin, yPosition)
-    yPosition += 5
+    const items: InvoiceItemRow[] = [
+      {
+        description: `Venta de vehículo: ${marca} ${modelo}`.trim(),
+        details: detailLines,
+        // En IVA el precio unitario es el subtotal (sin IVA); en REBU es el total.
+        unitPrice: tipoFactura === 'IVA' ? subtotal : total,
+        total,
+      },
+    ]
+    yPosition = drawItemsTable(doc, items, margin, yPosition, contentWidth)
+    yPosition += 2
 
-    // Concepto principal
-    doc.setFont('helvetica', 'normal')
-    const concepto = `Venta de vehículo: ${capitalizeText(deal.vehiculo?.marca) || 'No especificada'} ${capitalizeText(deal.vehiculo?.modelo) || 'No especificado'}`
-    const conceptoLineas = doc.splitTextToSize(concepto, 100)
-    doc.text(conceptoLineas, margin, yPosition)
-
-    // Detalles adicionales del vehículo
-    doc.text(
-      `Matrícula: ${deal.vehiculo?.matricula || 'No especificada'}`,
+    // === Caja de totales ===
+    yPosition = drawTotalsBox(
+      doc,
+      tipoFactura === 'IVA'
+        ? { subtotal, taxLabel: 'IVA (21%)', taxAmount: iva, total }
+        : { total },
+      pageWidth,
       margin,
-      yPosition + 8
+      yPosition
     )
-    doc.text(
-      `Fecha de Matriculación: ${getFechaMatriculacion(deal.vehiculo)}`,
-      margin,
-      yPosition + 12
-    )
-    doc.text(
-      `Kms: ${deal.vehiculo?.kms ? (deal.vehiculo.kms as number).toLocaleString('es-ES') : 'No especificados'}`,
-      margin,
-      yPosition + 16
-    )
-    doc.text(
-      `Bastidor: ${deal.vehiculo?.bastidor || 'No especificado'}`,
-      margin,
-      yPosition + 20
-    )
-
-    // Datos de la tabla (sin cantidad) - ajustar posición para no superponerse con detalles
-    // Para REBU mostrar el precio total directamente, para IVA mostrar subtotal
-    const precioMostrar = tipoFactura === 'REBU' ? total : subtotal
-    doc.text(formatCurrency(precioMostrar), margin + 120, yPosition + 20)
-    doc.text(formatCurrency(total), margin + 160, yPosition + 20)
-    yPosition += 30
-
-    // Línea de totales
-    doc.line(margin, yPosition, pageWidth - margin, yPosition)
-    yPosition += 5
-
-    // Totales
-    doc.setFont('helvetica', 'bold')
-
-    if (tipoFactura === 'REBU') {
-      // REBU: Solo mostrar el total, sin desglosar IVA
-      doc.text('TOTAL:', margin + 120, yPosition)
-      doc.text(formatCurrency(total), margin + 160, yPosition)
-      yPosition += 5
-    } else {
-      // IVA: Mostrar subtotal e IVA por separado
-      doc.text('SUBTOTAL:', margin + 120, yPosition)
-      doc.text(formatCurrency(subtotal), margin + 160, yPosition)
-      yPosition += 5
-
-      doc.text('IVA (21%):', margin + 120, yPosition)
-      doc.text(formatCurrency(iva), margin + 160, yPosition)
-      yPosition += 5
-    }
-
-    // Línea de total final (solo para IVA, REBU ya tiene su total arriba)
-    if (tipoFactura === 'IVA') {
-      doc.setLineWidth(1)
-      doc.line(margin + 120, yPosition, pageWidth - margin, yPosition)
-      yPosition += 5
-
-      doc.setFontSize(12)
-      doc.text('TOTAL:', margin + 120, yPosition)
-      doc.text(formatCurrency(total), margin + 160, yPosition)
-      yPosition += 15
-    } else {
-      // Para REBU, solo agregar espacio
-      yPosition += 15
-    }
-
-    // Información adicional
-    doc.setFontSize(8)
-    doc.setFont('helvetica', 'normal')
-    if (tipoFactura === 'REBU') {
-      doc.text('Régimen Especial Básico - Sin IVA', margin, yPosition)
-    } else {
-      doc.text('IVA incluido', margin, yPosition)
-    }
-    yPosition += 5
-    doc.text('Garantía: 12 meses', margin, yPosition)
-
-    // Disclaimers legales
-    yPosition += 10
-    doc.setFontSize(7)
-    doc.setFont('helvetica', 'normal')
-
-    // Cláusula de privacidad
-    doc.text('1) CLÁUSULA DE PRIVACIDAD', margin, yPosition)
     yPosition += 4
+
+    // === Notas comerciales / régimen fiscal ===
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(17, 24, 39)
     doc.text(
-      'Responsable tratamiento: Datos indicados en factura | Los datos personales que nos facilitas los tratamos con el fin de prestarte el servicio solicitado y facturarlo. Los datos los trataremos mientras manteng Si consideras que no hemos satisfecho tu petición, puedes presentar una reclamación a la Agencia Española de Protección de Datos en https://www.aepd.es/',
+      tipoFactura === 'REBU'
+        ? INVOICE_CONFIG.rebu.legalNote
+        : 'IVA incluido en el precio',
       margin,
-      yPosition,
-      { maxWidth: pageWidth - 2 * margin }
+      yPosition
     )
+    yPosition += 4
+    doc.setFont('helvetica', 'normal')
+    doc.text('Garantía: 12 meses', margin, yPosition)
     yPosition += 8
 
-    // Registro mercantil
+    // === Disclaimers legales ===
+    doc.setFontSize(7)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(75, 85, 99)
+    doc.text('1) CLÁUSULA DE PRIVACIDAD', margin, yPosition)
+    yPosition += 3.5
+    doc.setFont('helvetica', 'normal')
     doc.text(
-      '2) Registro Mercantil de Valencia 25/02/2025, en el FOLIO ELECTRÓNICO, inscripción 1 con hoja V-223873.',
+      'Responsable del tratamiento: Seven Cars Motors S.L. Los datos personales facilitados se tratan con el fin de prestar el servicio solicitado y facturarlo. ' +
+        'Conservaremos los datos mientras se mantenga la relación comercial y, posteriormente, durante los plazos legalmente exigibles. ' +
+        'Podés ejercer tus derechos de acceso, rectificación, supresión, oposición, limitación y portabilidad escribiendo a ' +
+        vendor.email +
+        '. Si consideras que no hemos satisfecho tu petición, podés reclamar ante la AEPD (https://www.aepd.es/).',
       margin,
       yPosition,
-      { maxWidth: pageWidth - 2 * margin }
+      { maxWidth: contentWidth }
     )
-    yPosition += 10
+    yPosition += 14
 
-    // Pie de página
-    yPosition = pageHeight - 30
-    doc.setFontSize(8)
-    doc.text('Gracias por su confianza', pageWidth / 2, yPosition, {
-      align: 'center',
+    doc.setFont('helvetica', 'bold')
+    doc.text('2) REGISTRO MERCANTIL', margin, yPosition)
+    yPosition += 3.5
+    doc.setFont('helvetica', 'normal')
+    doc.text(vendor.registroMercantil, margin, yPosition, {
+      maxWidth: contentWidth,
     })
-    yPosition += 4
-    doc.text(
-      'Seven Cars Motors S.L. - CIF: B-75939868',
-      pageWidth / 2,
-      yPosition,
-      { align: 'center' }
-    )
 
-    // Retornar el buffer del PDF
+    // === Footer corporativo (siempre al pie) ===
+    drawFooter(doc, vendor, pageWidth, pageHeight, margin)
+
+    // === Output ===
     console.log('🔍 [GENERAR FACTURA] Generando buffer del PDF...')
     const pdfBuffer = doc.output('arraybuffer')
     console.log(

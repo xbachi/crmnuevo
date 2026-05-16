@@ -689,13 +689,12 @@ export default function DealDetail() {
   const handleDescargarFactura = async () => {
     if (!deal?.factura) return
 
-    try {
-      const downloadUrl = `/api/documents/${deal.id}/factura?dealNumber=${deal.numero}`
-      window.open(downloadUrl, '_blank')
-    } catch (error) {
-      console.error('Error descargando factura:', error)
-      showToast('Error al descargar la factura', 'error')
-    }
+    const { downloadPdf } = await import('@/lib/pdf/download')
+    await downloadPdf({
+      url: `/api/documents/${deal.id}/factura?dealNumber=${deal.numero}`,
+      filename: `factura-${deal.factura}`,
+      onError: (msg) => showToast(msg, 'error'),
+    })
   }
 
   // Funciones para anular documentos

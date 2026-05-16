@@ -5,8 +5,11 @@ import { getInvoiceById } from '@/lib/invoiceRepository'
 /**
  * GET /api/invoices/{id}/download
  *
- * Redirects to the PDF stored on Vercel Blob, and audit-logs the download.
- * Returns 409 if the invoice has no PDF yet (status=PDF_PENDING/ERROR/IMPORTED).
+ * Proxies the PDF stored on Vercel Blob with a friendly Content-Disposition
+ * filename and audit-logs the download. Proxying (instead of redirecting)
+ * gives us full control over the saved filename and avoids any CORS edge
+ * cases when the frontend does a `fetch()` for blob-based downloads.
+ * Returns 409 if the invoice has no PDF yet (PDF_PENDING/ERROR/IMPORTED).
  */
 export async function GET(
   _request: NextRequest,
@@ -33,7 +36,20 @@ export async function GET(
       )
     }
 
-    // Fire-and-forget audit log (do not block the redirect)
+    const blobRes = await fetch(invoice.pdf_url)
+    if (!blobRes.ok || !blobRes.body) {
+      console.error(
+        '[invoice download] blob fetch failed',
+        invoice.pdf_url,
+        blobRes.status
+      )
+      return NextResponse.json(
+        { error: 'No se pudo recuperar el PDF de la factura.' },
+        { status: 502 }
+      )
+    }
+
+    // Fire-and-forget audit log (no bloquea la respuesta).
     pool
       .query(
         `INSERT INTO invoice_audit_logs (invoice_id, action, new_values_json)
@@ -42,7 +58,15 @@ export async function GET(
       )
       .catch((e) => console.error('[download audit]', e))
 
-    return NextResponse.redirect(invoice.pdf_url, 302)
+    const filename = `factura-${invoice.full_invoice_number}.pdf`
+    return new NextResponse(blobRes.body, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Cache-Control': 'private, no-store',
+      },
+    })
   } catch (err) {
     console.error('[invoice download]', err)
     return NextResponse.json(

@@ -13,15 +13,18 @@
 
 export const INVOICE_CONFIG = {
   vendor: {
-    legalName: 'SevenCars',
-    cif: '',
-    address: '',
-    city: '',
-    postalCode: '',
-    province: '',
+    legalName: 'Seven Cars Motors S.L.',
+    cif: 'B-75939868',
+    address: 'Camí els Mollons, 36',
+    city: 'Alaquàs',
+    postalCode: '46970',
+    province: 'Valencia',
     country: 'España',
-    phone: '',
-    email: '',
+    phone: '+34 673 421 905',
+    email: 'hola@sevencars.es',
+    iban: 'ES96 0049 5457 2621 1617 3055',
+    registroMercantil:
+      'Registro Mercantil de Valencia 25/02/2025, FOLIO ELECTRÓNICO, inscripción 1, hoja V-223873.',
   },
 
   rebu: {

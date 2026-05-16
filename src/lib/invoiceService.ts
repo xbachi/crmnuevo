@@ -676,7 +676,9 @@ async function uploadPdfToBlob(
   fullInvoiceNumber: string,
   pdfBytes: Uint8Array
 ): Promise<{ url: string; pathname: string }> {
-  const path = `${INVOICE_CONFIG.storage.blobPrefix}${fullInvoiceNumber}.pdf`
+  // Prefijo "factura-" para que al descargar desde Vercel Blob el archivo
+  // tenga un nombre humano (factura-F-2026-####.pdf) en lugar del crudo.
+  const path = `${INVOICE_CONFIG.storage.blobPrefix}factura-${fullInvoiceNumber}.pdf`
   const blob = await put(path, Buffer.from(pdfBytes), {
     access: 'public',
     contentType: 'application/pdf',
