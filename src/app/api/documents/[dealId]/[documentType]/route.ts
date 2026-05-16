@@ -6,6 +6,7 @@ import {
   getDocumentPath,
   deleteDocument,
 } from '@/lib/documentStorage'
+import { pool } from '@/lib/direct-database'
 
 export async function GET(
   request: NextRequest,
@@ -48,6 +49,31 @@ export async function GET(
         { error: 'ID de deal inválido' },
         { status: 400 }
       )
+    }
+
+    // Factura: el módulo nuevo guarda el PDF en Vercel Blob, no en el FS.
+    // Redirigimos al pdf_url. Si no hay fila (deals pre-migración), caemos
+    // al lookup del filesystem como antes.
+    if (documentType === 'factura') {
+      const { rows } = await pool.query<{ id: number; pdf_url: string | null }>(
+        `SELECT id, pdf_url FROM invoices
+          WHERE deal_id = $1 AND status NOT IN ('VOIDED')
+          ORDER BY id DESC LIMIT 1`,
+        [dealIdNum]
+      )
+      if (rows[0]?.pdf_url) {
+        return NextResponse.redirect(rows[0].pdf_url, 302)
+      }
+      if (rows[0] && !rows[0].pdf_url) {
+        return NextResponse.json(
+          {
+            error:
+              'PDF de la factura aún no disponible (pendiente de generación).',
+          },
+          { status: 409 }
+        )
+      }
+      // sin fila en invoices → fallback al filesystem legacy
     }
 
     // Verificar si el documento existe

@@ -131,6 +131,7 @@ export async function issueInvoice(opts: IssueOptions): Promise<IssueResult> {
   // 1. Existing invoice for this (deal, type)?
   const existing = await getInvoiceByDealAndType(opts.dealId, opts.invoiceType)
   if (existing) {
+    await ensureDealFlagged(existing)
     return { invoice: existing, alreadyExisted: true }
   }
 
@@ -138,6 +139,7 @@ export async function issueInvoice(opts: IssueOptions): Promise<IssueResult> {
   if (opts.idempotencyKey) {
     const byKey = await getInvoiceByIdempotencyKey(opts.idempotencyKey)
     if (byKey) {
+      await ensureDealFlagged(byKey)
       return { invoice: byKey, alreadyExisted: true }
     }
   }
@@ -582,6 +584,18 @@ async function reserveAndInsert(args: {
       ]
     )
 
+    // Sincroniza el Deal con la factura recién emitida en el mismo tx
+    // para que un fallo aquí haga rollback del INSERT + bump de secuencia.
+    // COALESCE/NULLIF protege referencias legacy preexistentes (IMPORTED).
+    await client.query(
+      `UPDATE "Deal"
+          SET estado = CASE WHEN estado <> 'facturado' THEN 'facturado' ELSE estado END,
+              factura = COALESCE(NULLIF(factura, ''), $1),
+              "fechaFacturada" = COALESCE("fechaFacturada", NOW())
+        WHERE id = $2`,
+      [inserted.full_invoice_number, args.sale.id]
+    )
+
     await client.query('COMMIT')
     return { invoice: inserted, alreadyExisted: false }
   } catch (err) {
@@ -637,6 +651,25 @@ function invoiceToDealData(invoice: Invoice, sale?: SaleSnapshot) {
     importeSena: 0,
     formaPagoSena: undefined,
   }
+}
+
+/**
+ * Self-heal helper for the idempotent return paths (existing invoice found).
+ * Brings the Deal row in sync with an already-emitted invoice. No-op when:
+ *  - invoice has no deal_id (legacy IMPORTED without link), or
+ *  - invoice is VOIDED (would mis-flag a cancelled deal), or
+ *  - Deal is already in a healthy state (CASE/COALESCE guards).
+ */
+async function ensureDealFlagged(invoice: Invoice): Promise<void> {
+  if (!invoice.deal_id || invoice.status === 'VOIDED') return
+  await pool.query(
+    `UPDATE "Deal"
+        SET estado = CASE WHEN estado <> 'facturado' THEN 'facturado' ELSE estado END,
+            factura = COALESCE(NULLIF(factura, ''), $1),
+            "fechaFacturada" = COALESCE("fechaFacturada", NOW())
+      WHERE id = $2`,
+    [invoice.full_invoice_number, invoice.deal_id]
+  )
 }
 
 async function uploadPdfToBlob(

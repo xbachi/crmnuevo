@@ -40,6 +40,9 @@ interface Props {
    *  the new invoices table, we still surface the legacy reference. */
   legacyFacturaName?: string | null
   legacyFacturaDate?: string | null
+  /** Invoked after a successful issue/preview refresh so the parent page
+   *  (e.g. the Documentación panel reading `deal.factura`) can re-fetch. */
+  onInvoiceIssued?: () => void | Promise<void>
 }
 
 function formatEUR(n: number | string | null | undefined) {
@@ -82,6 +85,7 @@ export default function DealInvoiceSection({
   saleId,
   legacyFacturaName,
   legacyFacturaDate,
+  onInvoiceIssued,
 }: Props) {
   const { showToast } = useToast()
   const [invoices, setInvoices] = useState<Invoice[]>([])
@@ -169,6 +173,9 @@ export default function DealInvoiceSection({
       setPreview(null)
       setPreviewType(null)
       await load()
+      if (onInvoiceIssued) {
+        await onInvoiceIssued()
+      }
     } catch (e) {
       console.error(e)
       showToast('Error al emitir factura.', 'error')

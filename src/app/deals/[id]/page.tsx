@@ -1642,6 +1642,7 @@ export default function DealDetail() {
                     ? new Date(deal.fechaFacturada).toISOString()
                     : null
                 }
+                onInvoiceIssued={loadDeal}
               />
 
               {/* Información de Reserva */}
