@@ -4,7 +4,9 @@ import { getDeals, createDeal } from '@/lib/direct-database'
 export async function GET() {
   try {
     const deals = await getDeals()
-    return NextResponse.json(deals)
+    return NextResponse.json(deals, {
+      headers: { 'Cache-Control': 'private, max-age=30' },
+    })
   } catch (error) {
     console.error('Error al obtener deals:', error)
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })

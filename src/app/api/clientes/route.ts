@@ -11,10 +11,13 @@ export async function GET() {
         `SELECT * FROM "Cliente" ORDER BY "createdAt" DESC`
       )
 
-      console.log(
-        `✅ [API CLIENTES] ${result.rows.length} clientes encontrados`
-      )
-      return NextResponse.json(result.rows)
+      return NextResponse.json(result.rows, {
+        // private = solo browser cachea, no CDN.
+        // max-age=30s = el browser reusa por 30s entre navegaciones, evita
+        // refetchs de la lista completa al volver atrás. POST/PUT no se
+        // cachean (no-store implícito en mutaciones).
+        headers: { 'Cache-Control': 'private, max-age=30' },
+      })
     } finally {
       client.release()
     }

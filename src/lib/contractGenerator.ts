@@ -130,9 +130,14 @@ function writeField(
 }
 
 // Función para cargar el logo PNG y convertirlo a Base64
+// Cache del logo en memoria (process-level) — se relee solo si CACHE=null.
+// Importante para performance: hay 8 callsites de addLogoToContract en este
+// archivo y antes cada generación de PDF re-leía el disco con fs.readFileSync.
+let __LOGO_CACHE__: string | null = null
+
 async function loadLogoSVG(): Promise<string> {
+  if (__LOGO_CACHE__) return __LOGO_CACHE__
   try {
-    console.log('🖼️ [LOGO] Iniciando carga del logo...')
 
     // Verificar si estamos en el servidor (Node.js) o en el cliente (browser)
     if (typeof window === 'undefined') {
@@ -162,11 +167,7 @@ async function loadLogoSVG(): Promise<string> {
             if (response.ok) {
               const buffer = await response.arrayBuffer()
               const base64 = `data:image/png;base64,${Buffer.from(buffer).toString('base64')}`
-              console.log(
-                '✅ [LOGO] Logo cargado via fetch fallback, tamaño:',
-                base64.length,
-                'caracteres'
-              )
+              __LOGO_CACHE__ = base64
               return base64
             } else {
               console.warn(
@@ -183,12 +184,7 @@ async function loadLogoSVG(): Promise<string> {
 
         const logoBuffer = fs.readFileSync(logoPath)
         const base64 = `data:image/png;base64,${logoBuffer.toString('base64')}`
-
-        console.log(
-          '🖼️ [LOGO] Logo cargado desde servidor, tamaño:',
-          base64.length,
-          'caracteres'
-        )
+        __LOGO_CACHE__ = base64
         return base64
       } catch (fsError) {
         console.error('❌ [LOGO] Error con fs en servidor:', fsError)
@@ -230,11 +226,7 @@ async function loadLogoSVG(): Promise<string> {
         reader.readAsDataURL(blob)
       })
 
-      console.log(
-        '🖼️ [LOGO] PNG convertido a base64, tamaño:',
-        base64.length,
-        'caracteres'
-      )
+      __LOGO_CACHE__ = base64
       return base64
     }
   } catch (error) {

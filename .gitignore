@@ -63,4 +63,10 @@ next-env.d.ts
 !public/uploads/**/archivos-metadata.json
 !public/uploads/**/.gitkeep
 
+# Documentos generados localmente (PDFs de contratos/facturas reales).
+# Producción usa Vercel Blob — los archivos en /public/documents son sólo
+# de dev/legacy. Evita inflar el repo y exponer PDFs con datos fiscales reales.
+public/documents/**
+!public/documents/.gitkeep
+
 /src/generated/prisma
