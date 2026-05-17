@@ -248,11 +248,25 @@ export async function getVentaB2BById(id: number): Promise<VentaB2BWithCliente |
   return rows[0] ?? null
 }
 
+export interface VentaB2BWithFactura extends VentaB2B {
+  factura_id: number | null
+  factura_numero: string | null
+  factura_pdf_url: string | null
+}
+
 export async function listVentasB2BByCliente(
   clienteId: number
-): Promise<VentaB2B[]> {
-  const { rows } = await pool.query<VentaB2B>(
-    `SELECT * FROM venta_b2b WHERE cliente_b2b_id = $1 ORDER BY fecha_venta DESC, id DESC`,
+): Promise<VentaB2BWithFactura[]> {
+  const { rows } = await pool.query<VentaB2BWithFactura>(
+    `SELECT v.*,
+            i.id AS factura_id,
+            i.full_invoice_number AS factura_numero,
+            i.pdf_url AS factura_pdf_url
+       FROM venta_b2b v
+       LEFT JOIN invoices i
+         ON i.b2b_venta_id = v.id AND i.status <> 'VOIDED'
+      WHERE v.cliente_b2b_id = $1
+      ORDER BY v.fecha_venta DESC, v.id DESC`,
     [clienteId]
   )
   return rows

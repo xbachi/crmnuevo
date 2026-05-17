@@ -31,6 +31,9 @@ interface VentaB2B {
   vehiculo_matricula: string | null
   status: string
   pdf_url: string | null
+  factura_id: number | null
+  factura_numero: string | null
+  factura_pdf_url: string | null
 }
 
 function fmtEUR(n: number | string) {
@@ -47,6 +50,66 @@ function ClienteB2BDetailPage() {
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [downloadingId, setDownloadingId] = useState<number | null>(null)
+  const [downloadingFacturaId, setDownloadingFacturaId] = useState<number | null>(null)
+  const [issuingFacturaId, setIssuingFacturaId] = useState<number | null>(null)
+
+  const reloadVentas = async () => {
+    const r = await fetch(`/api/clientes-b2b/${id}/ventas`).then((r) => r.json())
+    setVentas(Array.isArray(r) ? r : [])
+  }
+
+  const generarFacturaREBU = async (venta: VentaB2B) => {
+    if (
+      !confirm(
+        `¿Emitir factura REBU para ${venta.numero}?\n\n` +
+          'Esto consume el siguiente número fiscal del CRM y crea la factura definitiva.'
+      )
+    )
+      return
+    setIssuingFacturaId(venta.id)
+    try {
+      const res = await fetch(`/api/ventas-b2b/${venta.id}/factura`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': `b2b-${venta.id}-${Date.now()}`,
+        },
+        body: JSON.stringify({ invoiceType: 'REBU' }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        showToast(data?.error ?? 'Error emitiendo factura', 'error')
+        return
+      }
+      if (data.alreadyExisted) {
+        showToast(
+          `Esta venta ya tenía la factura ${data.invoice.full_invoice_number}`,
+          'info'
+        )
+      } else {
+        showToast(
+          `Factura ${data.invoice.full_invoice_number} emitida`,
+          'success'
+        )
+      }
+      await reloadVentas()
+    } catch (err) {
+      console.error(err)
+      showToast('Error de red', 'error')
+    } finally {
+      setIssuingFacturaId(null)
+    }
+  }
+
+  const descargarFactura = async (venta: VentaB2B) => {
+    await downloadPdf({
+      url: `/api/ventas-b2b/${venta.id}/factura`,
+      filename: `factura-${venta.factura_numero ?? venta.numero}`,
+      onStart: () => setDownloadingFacturaId(venta.id),
+      onFinish: () => setDownloadingFacturaId(null),
+      onError: (msg) => showToast(msg, 'error'),
+    })
+  }
 
   useEffect(() => {
     Promise.all([
@@ -239,50 +302,67 @@ function ClienteB2BDetailPage() {
                   <th className="text-left px-4 py-2 font-medium text-gray-700">Fecha</th>
                   <th className="text-left px-4 py-2 font-medium text-gray-700">Vehículo</th>
                   <th className="text-left px-4 py-2 font-medium text-gray-700">Precio</th>
-                  <th className="text-left px-4 py-2 font-medium text-gray-700">Estado</th>
-                  <th className="text-right px-4 py-2 font-medium text-gray-700">PDF</th>
+                  <th className="text-left px-4 py-2 font-medium text-gray-700">Contrato</th>
+                  <th className="text-left px-4 py-2 font-medium text-gray-700">Factura</th>
                 </tr>
               </thead>
               <tbody>
                 {ventas.map((v) => (
-                  <tr key={v.id} className="border-b border-gray-100">
-                    <td className="px-4 py-2 font-mono text-xs">{v.numero}</td>
-                    <td className="px-4 py-2">
+                  <tr key={v.id} className="border-b border-gray-100 align-top">
+                    <td className="px-4 py-3 font-mono text-xs">{v.numero}</td>
+                    <td className="px-4 py-3">
                       {new Date(v.fecha_venta).toLocaleDateString('es-ES')}
                     </td>
-                    <td className="px-4 py-2">
+                    <td className="px-4 py-3">
                       {v.vehiculo_marca} {v.vehiculo_modelo}{' '}
                       <span className="text-gray-500 text-xs">
                         ({v.vehiculo_matricula})
                       </span>
                     </td>
-                    <td className="px-4 py-2 font-semibold text-gray-900">
+                    <td className="px-4 py-3 font-semibold text-gray-900">
                       {fmtEUR(v.precio_venta)}
                     </td>
-                    <td className="px-4 py-2">
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                          v.status === 'FIRMADO'
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : v.status === 'BORRADOR'
-                              ? 'bg-gray-100 text-gray-700'
-                              : 'bg-amber-100 text-amber-700'
-                        }`}
-                      >
-                        {v.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2 text-right">
+                    {/* Contrato (en el estado) */}
+                    <td className="px-4 py-3">
                       {v.pdf_url ? (
                         <button
                           onClick={() => downloadContrato(v)}
                           disabled={downloadingId === v.id}
                           className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded text-xs font-medium hover:bg-emerald-200 disabled:opacity-60"
                         >
-                          {downloadingId === v.id ? 'Descargando...' : 'Descargar PDF'}
+                          {downloadingId === v.id ? 'Descargando...' : 'Descargar contrato'}
                         </button>
                       ) : (
-                        <span className="text-gray-400 text-xs">Sin PDF</span>
+                        <span className="text-gray-400 text-xs">Sin contrato</span>
+                      )}
+                    </td>
+                    {/* Factura REBU */}
+                    <td className="px-4 py-3">
+                      {v.factura_id && v.factura_pdf_url ? (
+                        <div className="flex flex-col gap-1">
+                          <span className="font-mono text-xs text-emerald-700">
+                            {v.factura_numero}
+                          </span>
+                          <button
+                            onClick={() => descargarFactura(v)}
+                            disabled={downloadingFacturaId === v.id}
+                            className="px-3 py-1 bg-emerald-600 text-white rounded text-xs font-medium hover:bg-emerald-700 disabled:opacity-60"
+                          >
+                            {downloadingFacturaId === v.id
+                              ? 'Descargando...'
+                              : 'Descargar factura'}
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => generarFacturaREBU(v)}
+                          disabled={issuingFacturaId === v.id}
+                          className="px-3 py-1 bg-amber-100 text-amber-800 border border-amber-300 rounded text-xs font-medium hover:bg-amber-200 disabled:opacity-60"
+                        >
+                          {issuingFacturaId === v.id
+                            ? 'Emitiendo...'
+                            : 'Generar factura REBU'}
+                        </button>
                       )}
                     </td>
                   </tr>
