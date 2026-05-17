@@ -13,11 +13,11 @@
 import type { jsPDF } from 'jspdf'
 
 // -----------------------------------------------------------------------------
-// Paleta (extraída de public/sevencars-logo.svg)
+// Paleta SevenCars (verde corporativo)
 // -----------------------------------------------------------------------------
 export const COLORS = {
-  brandDark: [30, 64, 175] as [number, number, number], // #1e40af
-  brandLight: [59, 130, 246] as [number, number, number], // #3b82f6
+  brandDark: [4, 120, 87] as [number, number, number], // #047857 emerald-700
+  brandLight: [16, 185, 129] as [number, number, number], // #10b981 emerald-500
   textPrimary: [17, 24, 39] as [number, number, number], // gray-900
   textSecondary: [75, 85, 99] as [number, number, number], // gray-600
   textMuted: [156, 163, 175] as [number, number, number], // gray-400
@@ -87,25 +87,27 @@ export function drawVendorBlock(
   pageWidth: number,
   y: number
 ): number {
+  // Tipografía 2pt más chica y líneas más juntas — el bloque debe sentirse
+  // como un sub-header del logo, no como un párrafo aparte.
   const cx = pageWidth / 2
-  doc.setFontSize(9)
+  doc.setFontSize(8)
   doc.setFont('helvetica', 'bold')
   textRgb(doc, COLORS.textPrimary)
   doc.text(vendor.legalName, cx, y, { align: 'center' })
 
   doc.setFont('helvetica', 'normal')
   textRgb(doc, COLORS.textSecondary)
-  doc.setFontSize(8)
+  doc.setFontSize(7)
 
   const linea1 = `CIF: ${vendor.cif}  ·  ${vendor.address}`
   const linea2 = `${vendor.postalCode} ${vendor.city}, ${vendor.province}`
   const linea3 = [vendor.phone, vendor.email].filter(Boolean).join('  ·  ')
 
-  doc.text(linea1, cx, y + 4, { align: 'center' })
-  doc.text(linea2, cx, y + 7.5, { align: 'center' })
-  if (linea3) doc.text(linea3, cx, y + 11, { align: 'center' })
+  doc.text(linea1, cx, y + 3.3, { align: 'center' })
+  doc.text(linea2, cx, y + 6.3, { align: 'center' })
+  if (linea3) doc.text(linea3, cx, y + 9.3, { align: 'center' })
 
-  return y + 16
+  return y + 12
 }
 
 /**
@@ -342,6 +344,220 @@ export function drawTotalsBox(
   return y + boxH + 4
 }
 
+// =============================================================================
+// Helpers extra para CONTRATOS (reserva, venta) — pensados para entrar todo
+// en 1 hoja A4. Tipografía más chica + líneas más juntas que la factura.
+// =============================================================================
+
+/**
+ * Título de sección (REUNIDOS, EXPONEN, etc.) con barra de color a la izquierda.
+ */
+export function drawSectionTitle(
+  doc: jsPDF,
+  label: string,
+  x: number,
+  y: number
+): number {
+  // Barrita más alta para mejor presencia visual y centrada con la línea base
+  // del título. El título se desplaza 5mm a la derecha para dejar aire.
+  const barH = 5.5
+  rgb(doc, COLORS.brandDark)
+  doc.rect(x, y - barH + 1, 1.6, barH, 'F')
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'bold')
+  textRgb(doc, COLORS.brandDark)
+  doc.text(label.toUpperCase(), x + 5, y + 1)
+  textRgb(doc, COLORS.textPrimary)
+  return y + 7
+}
+
+/**
+ * Card compacta para parte vendedora/compradora del contrato. Hace
+ * splitTextToSize internamente. Devuelve la nueva yPosition.
+ */
+export function drawPartyCard(
+  doc: jsPDF,
+  label: string,
+  paragraph: string,
+  x: number,
+  y: number,
+  width: number
+): number {
+  const lineHeight = 4
+  const padX = 4
+  const padY = 3.5
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'normal')
+  const lines = doc.splitTextToSize(paragraph, width - padX * 2)
+  const cardH = padY * 2 + 4.5 + lines.length * lineHeight
+
+  rgb(doc, COLORS.bgCard)
+  strokeRgb(doc, COLORS.border)
+  doc.setLineWidth(0.2)
+  doc.roundedRect(x, y, width, cardH, 1.5, 1.5, 'FD')
+
+  doc.setFontSize(7.5)
+  doc.setFont('helvetica', 'bold')
+  textRgb(doc, COLORS.brandDark)
+  doc.text(label.toUpperCase(), x + padX, y + padY + 1.5)
+
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'normal')
+  textRgb(doc, COLORS.textPrimary)
+  lines.forEach((line: string, i: number) => {
+    doc.text(line, x + padX, y + padY + 5.5 + i * lineHeight)
+  })
+
+  return y + cardH + 3
+}
+
+/**
+ * Tabla compacta de datos del vehículo en 2 columnas (3 filas).
+ * Diseñada para 1 hoja: ocupa ~16mm de alto.
+ */
+export function drawVehicleDataCard(
+  doc: jsPDF,
+  v: {
+    marca?: string
+    modelo?: string
+    matricula?: string
+    bastidor?: string
+    kms?: string
+    fechaMatriculacion?: string
+  },
+  x: number,
+  y: number,
+  width: number
+): number {
+  // Card con borde-acento verde a la izquierda + padding generoso adentro.
+  const cardH = 24
+  const accentW = 1.6
+  // Fondo + borde fino
+  rgb(doc, COLORS.bgCard)
+  strokeRgb(doc, COLORS.border)
+  doc.setLineWidth(0.2)
+  doc.roundedRect(x, y, width, cardH, 1.5, 1.5, 'FD')
+  // Acento de marca en el lado izquierdo
+  rgb(doc, COLORS.brandDark)
+  doc.rect(x, y, accentW, cardH, 'F')
+
+  const innerX = x + 6 + accentW
+  const colW = (width - innerX + x) / 2
+  const labelX = innerX
+  const valueX = innerX + 26
+  const labelX2 = innerX + colW
+  const valueX2 = innerX + colW + 26
+
+  const drawRow = (
+    rowY: number,
+    l1: string,
+    v1: string,
+    l2: string,
+    v2: string
+  ) => {
+    doc.setFontSize(7.5)
+    doc.setFont('helvetica', 'normal')
+    textRgb(doc, COLORS.textSecondary)
+    doc.text(l1, labelX, rowY)
+    doc.text(l2, labelX2, rowY)
+    doc.setFontSize(8.8)
+    doc.setFont('helvetica', 'bold')
+    textRgb(doc, COLORS.textPrimary)
+    doc.text(v1, valueX, rowY, { maxWidth: colW - 28 })
+    doc.text(v2, valueX2, rowY, { maxWidth: colW - 28 })
+  }
+
+  drawRow(y + 6, 'MARCA', v.marca || '—', 'MATRÍCULA', v.matricula || '—')
+  drawRow(y + 13, 'MODELO', v.modelo || '—', 'BASTIDOR', v.bastidor || '—')
+  drawRow(
+    y + 20,
+    'F. MATR.',
+    v.fechaMatriculacion || '—',
+    'KMS',
+    v.kms || '—'
+  )
+
+  textRgb(doc, COLORS.textPrimary)
+  return y + cardH + 4
+}
+
+/**
+ * Punto numerado del contrato con texto justificado. Reduce padding para
+ * que entre todo en 1 hoja.
+ */
+export function drawNumberedPoint(
+  doc: jsPDF,
+  num: number,
+  text: string,
+  x: number,
+  y: number,
+  width: number
+): number {
+  const lineHeight = 4
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'bold')
+  textRgb(doc, COLORS.brandDark)
+  const numTxt = `${num}.`
+  doc.text(numTxt, x, y)
+
+  doc.setFont('helvetica', 'normal')
+  textRgb(doc, COLORS.textPrimary)
+  const lines = doc.splitTextToSize(text, width - 6)
+  lines.forEach((line: string, i: number) => {
+    doc.text(line, x + 6, y + i * lineHeight)
+  })
+  return y + lines.length * lineHeight + 3
+}
+
+/**
+ * Bloque de firmas anclado al pie de la hoja A4 (margen inferior reservado).
+ */
+/**
+ * Bloque de firmas. Por defecto se ancla cerca del pie (`pageHeight - 36`)
+ * pero si el `currentY` (posición de flujo del contenido) ya pasó ese
+ * umbral, se renderiza justo debajo del contenido — así nunca aparece
+ * ARRIBA del texto "Y en prueba de conformidad..." cuando la página es densa.
+ */
+export function drawSignatureBlock(
+  doc: jsPDF,
+  leftLabel: string,
+  rightLabel: string,
+  pageWidth: number,
+  pageHeight: number,
+  margin: number,
+  currentY?: number
+): number {
+  const anchorY = pageHeight - 36
+  // Si el contenido ya llegó cerca del ancla, fluimos debajo con 2mm de gap
+  // (firmas bien pegadas al texto de conformidad).
+  const y =
+    currentY != null && currentY + 2 > anchorY ? currentY + 2 : anchorY
+  const colW = (pageWidth - margin * 2 - 10) / 2
+  const leftX = margin
+  const rightX = margin + colW + 10
+
+  doc.setFontSize(8.5)
+  doc.setFont('helvetica', 'bold')
+  textRgb(doc, COLORS.textSecondary)
+  doc.text(leftLabel, leftX, y)
+  doc.text(rightLabel, rightX, y)
+
+  // Líneas de firma
+  strokeRgb(doc, COLORS.textPrimary)
+  doc.setLineWidth(0.3)
+  doc.line(leftX, y + 14, leftX + colW, y + 14)
+  doc.line(rightX, y + 14, rightX + colW, y + 14)
+
+  doc.setFontSize(6.8)
+  doc.setFont('helvetica', 'normal')
+  textRgb(doc, COLORS.textMuted)
+  doc.text('Firma y, en su caso, sello', leftX, y + 17.5)
+  doc.text('Firma', rightX, y + 17.5)
+
+  textRgb(doc, COLORS.textPrimary)
+  return y + 18
+}
+
 /**
  * Footer corporativo (siempre al fondo de la página). Línea fina de marca +
  * texto centrado con razón social, CIF y página.
@@ -353,29 +569,29 @@ export function drawFooter(
   pageHeight: number,
   margin: number
 ) {
-  const y = pageHeight - 18
+  const y = pageHeight - 15
   strokeRgb(doc, COLORS.brandDark)
   doc.setLineWidth(0.4)
   doc.line(margin, y, pageWidth - margin, y)
 
-  doc.setFontSize(7)
+  doc.setFontSize(5.5)
   doc.setFont('helvetica', 'normal')
   textRgb(doc, COLORS.textSecondary)
-  doc.text('Gracias por su confianza', pageWidth / 2, y + 5, { align: 'center' })
+  doc.text('Gracias por su confianza', pageWidth / 2, y + 3.5, { align: 'center' })
 
   doc.setFont('helvetica', 'bold')
   textRgb(doc, COLORS.textPrimary)
   doc.text(
     `${vendor.legalName} · CIF ${vendor.cif}`,
     pageWidth / 2,
-    y + 9,
+    y + 6.5,
     { align: 'center' }
   )
 
   if (vendor.iban) {
     doc.setFont('helvetica', 'normal')
     textRgb(doc, COLORS.textSecondary)
-    doc.text(`Pago por transferencia · IBAN ${vendor.iban}`, pageWidth / 2, y + 13, {
+    doc.text(`Pago por transferencia · IBAN ${vendor.iban}`, pageWidth / 2, y + 9.5, {
       align: 'center',
     })
   }

@@ -10,6 +10,11 @@ import {
   drawItemsTable,
   drawTotalsBox,
   drawFooter,
+  drawSectionTitle,
+  drawPartyCard,
+  drawVehicleDataCard,
+  drawNumberedPoint,
+  drawSignatureBlock,
   type InvoiceItemRow,
 } from './pdf/theme'
 
@@ -272,7 +277,7 @@ async function addLogoToContract(doc: any, yPosition: number): Promise<number> {
         // Fallback al texto si addImage falla
         doc.setFontSize(14)
         doc.setFont('helvetica', 'bold')
-        doc.setTextColor(30, 64, 175) // Azul
+        doc.setTextColor(4, 120, 87) // Azul
         doc.text('SEVEN CARS MOTORS S.L.', 105, yPosition, { align: 'center' })
         doc.setTextColor(0, 0, 0) // Volver a negro
         return yPosition + 15
@@ -282,7 +287,7 @@ async function addLogoToContract(doc: any, yPosition: number): Promise<number> {
       // Fallback al texto si no se puede cargar el logo
       doc.setFontSize(14)
       doc.setFont('helvetica', 'bold')
-      doc.setTextColor(30, 64, 175) // Azul
+      doc.setTextColor(4, 120, 87) // Azul
       doc.text('SEVEN CARS MOTORS S.L.', 105, yPosition, { align: 'center' })
       doc.setTextColor(0, 0, 0) // Volver a negro
       return yPosition + 15
@@ -292,7 +297,7 @@ async function addLogoToContract(doc: any, yPosition: number): Promise<number> {
     // Fallback al texto si hay error
     doc.setFontSize(14)
     doc.setFont('helvetica', 'bold')
-    doc.setTextColor(30, 64, 175) // Azul
+    doc.setTextColor(4, 120, 87) // Azul
     doc.text('SEVEN CARS MOTORS S.L.', 105, yPosition, { align: 'center' })
     doc.setTextColor(0, 0, 0) // Volver a negro
     return yPosition + 15
@@ -575,290 +580,183 @@ export async function generarContratoReserva(
   deal: DealData
 ): Promise<Uint8Array> {
   try {
-    console.log(
-      '🔍 [CONTRATO RESERVA] Iniciando generación de contrato de reserva...'
-    )
-    console.log('🔍 [CONTRATO RESERVA] Entorno:', {
-      isServer: typeof window === 'undefined',
-      isVercel: !!process.env.VERCEL,
-      nodeEnv: process.env.NODE_ENV,
-    })
-    console.log('🔍 [CONTRATO RESERVA] Datos del vehículo recibidos:', {
-      marca: deal.vehiculo?.marca,
-      modelo: deal.vehiculo?.modelo,
-      matricula: deal.vehiculo?.matricula,
-      bastidor: deal.vehiculo?.bastidor,
-      kms: deal.vehiculo?.kms,
-      fechaMatriculacion: deal.vehiculo?.fechaMatriculacion,
-    })
-
-    let doc: any
-    try {
-      doc = new jsPDF()
-      console.log('✅ [CONTRATO RESERVA] jsPDF creado exitosamente')
-    } catch (jsPDFError) {
-      console.error('❌ [CONTRATO RESERVA] Error creando jsPDF:', jsPDFError)
-      throw new Error(
-        `Error inicializando jsPDF: ${(jsPDFError as Error).message}`
-      )
-    }
-
-    const pageWidth = doc.internal.pageSize.width
+    const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const pageHeight = doc.internal.pageSize.getHeight()
     const margin = 15
-    let yPosition = margin - 5 // Subir logo 5px más arriba
+    const contentWidth = pageWidth - margin * 2
+    const vendor = INVOICE_CONFIG.vendor
+    let y = margin - 9
 
-    // Configurar fuente
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(11)
+    // === Header: logo + bloque vendor + barra de acento ===
+    y = await addLogoToContract(doc, y)
+    y -= 8 // vendor más cerca del logo
+    y = drawVendorBlock(doc, vendor, pageWidth, y)
+    drawAccentBar(doc, margin, y, contentWidth)
+    y += 5
 
-    // Logo de Seven Cars (primero)
-    console.log('🖼️ [CONTRATO RESERVA] Agregando logo...')
-    yPosition = await addLogoToContract(doc, yPosition)
-    console.log('✅ [CONTRATO RESERVA] Logo agregado, yPosition:', yPosition)
-
-    // Título del contrato (después del logo)
-    doc.setFontSize(14)
+    // === Título ===
+    doc.setFontSize(13)
     doc.setFont('helvetica', 'bold')
-    doc.setTextColor(0, 0, 0) // Negro
-    doc.text('CONTRATO DE RESERVA DE VEHÍCULO', pageWidth / 2, yPosition, {
+    doc.setTextColor(4, 120, 87)
+    doc.text('CONTRATO DE RESERVA DE VEHÍCULO', pageWidth / 2, y + 5, {
       align: 'center',
     })
-    yPosition += 8
+    y += 9
 
-    // Línea decorativa
-    doc.setDrawColor(0, 0, 0)
-    doc.setLineWidth(0.5)
-    doc.line(margin, yPosition, pageWidth - margin, yPosition)
-    yPosition += 18 // Separar "En Alaquàs" 10px más de la línea divisoria
-
-    // Fecha y lugar
-    doc.setFontSize(11)
+    // === Fecha y lugar ===
+    doc.setFontSize(8.5)
     doc.setFont('helvetica', 'normal')
-    doc.setTextColor(0, 0, 0) // Negro
+    doc.setTextColor(17, 24, 39)
     const fechaContrato =
       deal.fechaReservaDesde || deal.fechaCreacion || new Date()
-    doc.text(
-      `En Alaquàs, a ${formatearFechaCompleta(fechaContrato)}`,
+    doc.text(`En Alaquàs, a ${formatearFechaCompleta(fechaContrato)}.`, margin, y)
+    y += 7
+
+    // === REUNIDOS ===
+    y = drawSectionTitle(doc, 'Reunidos', margin, y)
+    y += 2
+    y = drawPartyCard(
+      doc,
+      'De una parte — parte vendedora',
+      `D. Sebastián Pelella, mayor de edad, con NIE Z0147238C, en representación de ${vendor.legalName} (CIF ${vendor.cif}), con domicilio en ${vendor.address}, ${vendor.postalCode} ${vendor.city} (${vendor.province}). En adelante, "parte vendedora".`,
       margin,
-      yPosition
+      y,
+      contentWidth
     )
-    yPosition += 12
-
-    // Sección "Reunidos"
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(0, 0, 0) // Negro
-    doc.text('Reunidos:', margin, yPosition)
-    yPosition += 8
-
-    // Parte vendedora
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(0, 0, 0) // Negro
-    doc.text('De una parte:', margin, yPosition)
-    yPosition += 6
-
-    const textoVendedor =
-      'D. Sebastián Pelella mayor de edad, con NIE Z0147238C en representación de Seven Cars Motors, s.l.. con CIF B-75939868 y con domicilio Camí dels Mollons, 36 de Alaquàs, Valencia, en calidad de vendedores, y en adelante parte vendedora.'
-    doc.text(
-      doc.splitTextToSize(textoVendedor, pageWidth - margin * 2),
-      margin,
-      yPosition
-    )
-    yPosition += 15
-
-    // Parte compradora
-    doc.setTextColor(0, 0, 0) // Negro
-    yPosition += 4 // Espacio adicional antes de "Y de otra parte:"
-    doc.text('Y de otra parte:', margin, yPosition)
-    yPosition += 6
 
     const nombreCompleto =
-      `${capitalizeText(deal.cliente?.nombre) || ''} ${capitalizeText(deal.cliente?.apellidos) || ''}`.trim()
+      `${capitalizeText(deal.cliente?.nombre) || ''} ${capitalizeText(deal.cliente?.apellidos) || ''}`.trim() ||
+      'NOMBRE DEL CLIENTE'
     const direccionCompleta = construirDireccionCompleta(deal.cliente)
-    const textoComprador = `D/DÑA ${nombreCompleto || 'NOMBRE DE CLIENTE'} Mayor de edad, con DNI ${deal.cliente?.dni || 'DNI CLIENTE'}, con domicilio ${direccionCompleta}, con telefono ${deal.cliente?.telefono || 'TEL CLIENTE'} y email ${deal.cliente?.email || 'EMAIL CLIENTE'} en calidad de compradores, y en adelante parte compradora.`
-    doc.text(
-      doc.splitTextToSize(textoComprador, pageWidth - margin * 2),
+    y = drawPartyCard(
+      doc,
+      'Y de otra parte — parte compradora',
+      `D./Dña. ${nombreCompleto}, mayor de edad, con DNI/NIE ${deal.cliente?.dni || '—'}, domicilio: ${direccionCompleta || '—'}, teléfono ${deal.cliente?.telefono || '—'} · email ${deal.cliente?.email || '—'}. En adelante, "parte compradora".`,
       margin,
-      yPosition
+      y,
+      contentWidth
     )
-    yPosition += 18
+    y += 4
 
-    // Sección "EXPONEN"
+    // === EXPONEN ===
+    y = drawSectionTitle(doc, 'Exponen', margin, y)
+    y += 2.5
+
+    // 1. Vehículo (card 2 cols)
+    doc.setFontSize(9)
     doc.setFont('helvetica', 'bold')
-    doc.setTextColor(0, 0, 0) // Negro
-    doc.text('EXPONEN', margin, yPosition)
-    yPosition += 8
-
-    // Punto 1 - Información del vehículo
+    doc.setTextColor(4, 120, 87)
+    doc.text('1.', margin, y)
     doc.setFont('helvetica', 'normal')
-    doc.setTextColor(0, 0, 0) // Negro
+    doc.setTextColor(17, 24, 39)
     doc.text(
-      '1. La parte vendedora es propietaria del siguiente vehículo:',
+      'La parte vendedora es propietaria del siguiente vehículo:',
+      margin + 6,
+      y
+    )
+    y += 5
+    y = drawVehicleDataCard(
+      doc,
+      {
+        marca: capitalizeText(deal.vehiculo?.marca) || '—',
+        modelo: capitalizeText(deal.vehiculo?.modelo) || '—',
+        matricula: (deal.vehiculo?.matricula || '—').toUpperCase(),
+        bastidor: deal.vehiculo?.bastidor || '—',
+        kms: deal.vehiculo?.kms
+          ? `${(deal.vehiculo.kms as number).toLocaleString('es-ES')} km`
+          : '—',
+        fechaMatriculacion: getFechaMatriculacion(deal.vehiculo),
+      },
       margin,
-      yPosition
-    )
-    yPosition += 6
-
-    // Datos del vehículo en 2 columnas usando writeField para márgenes dinámicos
-    const columnaIzquierda = margin + 10
-    const columnaDerecha = pageWidth / 2 + 10
-
-    // Columna izquierda: MARCA, MODELO, FECHA MATRICULACIÓN
-    writeField(
-      doc,
-      'MARCA',
-      capitalizeText(deal.vehiculo?.marca) || 'marca vehiculo',
-      columnaIzquierda,
-      yPosition
-    )
-    writeField(
-      doc,
-      'MODELO',
-      capitalizeText(deal.vehiculo?.modelo) || 'modelo vehiculo',
-      columnaIzquierda,
-      yPosition + 6
-    )
-    writeField(
-      doc,
-      'F.MATRICULACIÓN',
-      getFechaMatriculacion(deal.vehiculo),
-      columnaIzquierda,
-      yPosition + 12
+      y,
+      contentWidth
     )
 
-    // Columna derecha: MATRÍCULA, BASTIDOR, KMS
-    writeField(
-      doc,
-      'MATRÍCULA',
-      (deal.vehiculo?.matricula || 'matricula vehiculo').toUpperCase(),
-      columnaDerecha,
-      yPosition
-    )
-    writeField(
-      doc,
-      'BASTIDOR',
-      deal.vehiculo?.bastidor || 'no especificado',
-      columnaDerecha,
-      yPosition + 6
-    )
-    writeField(
-      doc,
-      'KMS',
-      deal.vehiculo?.kms
-        ? `${deal.vehiculo.kms.toLocaleString('es-ES')} km`
-        : 'No especificados',
-      columnaDerecha,
-      yPosition + 12
-    )
-
-    yPosition += 25 // Espacio adicional antes del siguiente punto
-
-    // Punto 2 - Precio del vehículo
+    // Puntos 2-7
     const precio = deal.importeTotal || deal.vehiculo?.precioPublicacion || 0
     const precioEnLetras = numeroALetras(Math.floor(precio))
-
-    doc.setFont('helvetica', 'normal')
-    doc.text('2. El precio del vehículo indicado es: ', margin, yPosition)
-
-    // Calcular posición del precio
-    const textoInicial = '2. El precio del vehículo indicado es: '
-    const anchoInicial = doc.getTextWidth(textoInicial)
-    const posicionPrecio = margin + anchoInicial
-
-    doc.setFont('helvetica', 'bold')
-    doc.text(
-      `${formatCurrency(precio)} (${precioEnLetras} euros)`,
-      posicionPrecio,
-      yPosition
-    )
-    yPosition += 10
-
-    // Punto 3 - Monto de reserva
     const montoReserva = deal.importeSena || 0
     const montoReservaEnLetras = numeroALetras(Math.floor(montoReserva))
+    const formaPagoReserva = getFormaPagoReserva(deal.formaPagoSena || 'efectivo')
 
-    const formaPagoReserva = getFormaPagoReserva(
-      deal.formaPagoSena || 'efectivo'
-    )
+    y += 4 // respiro extra antes del punto 2 (separa de la card del vehículo)
 
-    // Punto 3 - Monto de reserva (usando splitTextToSize como los demás)
-    const textoPunto3 = `3. Que la parte vendedora recibe de la parte compradora ${formatCurrency(montoReserva)} (${montoReservaEnLetras} euros) mediante ${formaPagoReserva} siendo este documento su más eficaz carta de pago,`
-
-    // Dividir el texto en líneas que se ajusten al ancho de la página
-    const lineasPunto3 = doc.splitTextToSize(
-      textoPunto3,
-      pageWidth - margin * 2
-    )
-
-    // Escribir cada línea
-    doc.setFont('helvetica', 'normal')
-    for (let i = 0; i < lineasPunto3.length; i++) {
-      doc.text(lineasPunto3[i], margin, yPosition)
-      yPosition += 4.5
-    }
-
-    yPosition += 5
-
-    // Punto 4 - Gastos de transmisión
-    doc.setFont('helvetica', 'normal')
-    const textoPunto4 =
-      '4. Los gastos de transmisión del vehiculo serán por cuenta de la parte vendedora. Una vez realizada la correspondiente transferencia en Tráfico, el vendedor entregará materialmente al comprador la posesión del vehículo, haciéndose el comprador cargo de cuantas responsabilidades puedan contraerse por la propiedad del vehículo y su tenencia y uso a partir de dicho momento de la entrega.'
-    const lineasPunto4 = doc.splitTextToSize(
-      textoPunto4,
-      pageWidth - margin * 2
-    )
-    doc.text(lineasPunto4, margin, yPosition)
-    yPosition += lineasPunto4.length * 4.5 + 5 // Espacio reducido a 5px
-
-    // Punto 5 - Libre de cargas
-    doc.setFont('helvetica', 'normal')
-    const textoPunto5 =
-      '5. Que el vehiculo se encuentra libre de cargas y gravámenes que pudieran impedir la formalización de la transferencia, por el adquiriente, en la Jefatura de Trafico.'
-    const lineasPunto5 = doc.splitTextToSize(
-      textoPunto5,
-      pageWidth - margin * 2
-    )
-    doc.text(lineasPunto5, margin, yPosition)
-    yPosition += lineasPunto5.length * 4.5 + 5 // Espacio reducido a 5px
-
-    // Punto 6 - Plazo de pago
-    doc.setFont('helvetica', 'normal')
-    doc.text(
-      '6. Se establece un plazo de 7 días para abonar el resto del importe indicado a la parte vendedora.',
+    y = drawNumberedPoint(
+      doc,
+      2,
+      `El precio del vehículo indicado es ${formatCurrency(precio)} (${precioEnLetras} euros).`,
       margin,
-      yPosition
+      y,
+      contentWidth
     )
-    yPosition += 5 // Espacio reducido a 5px
+    y = drawNumberedPoint(
+      doc,
+      3,
+      `Que la parte vendedora recibe de la parte compradora ${formatCurrency(montoReserva)} (${montoReservaEnLetras} euros) mediante ${formaPagoReserva}, siendo este documento su más eficaz carta de pago.`,
+      margin,
+      y,
+      contentWidth
+    )
+    y = drawNumberedPoint(
+      doc,
+      4,
+      'Los gastos de transmisión del vehículo serán por cuenta de la parte vendedora. Una vez realizada la correspondiente transferencia en Tráfico, el vendedor entregará materialmente al comprador la posesión del vehículo, asumiendo este último cuantas responsabilidades puedan contraerse por la propiedad, tenencia y uso a partir de dicho momento.',
+      margin,
+      y,
+      contentWidth
+    )
+    y = drawNumberedPoint(
+      doc,
+      5,
+      'Que el vehículo se encuentra libre de cargas y gravámenes que pudieran impedir la formalización de la transferencia por el adquirente en la Jefatura de Tráfico.',
+      margin,
+      y,
+      contentWidth
+    )
+    y = drawNumberedPoint(
+      doc,
+      6,
+      'Se establece un plazo de 7 días para abonar el resto del importe indicado a la parte vendedora.',
+      margin,
+      y,
+      contentWidth
+    )
+    // Cláusula combinada: desistimiento + financiación + plazo documentación
+    y = drawNumberedPoint(
+      doc,
+      7,
+      'CLÁUSULA DE DESISTIMIENTO Y FINANCIACIÓN: (a) Si la financiación solicitada por la parte compradora no resultara aprobada, la parte vendedora procederá a la devolución íntegra de la seña entregada. (b) No obstante, si en el plazo de 7 días naturales desde la firma del presente documento la parte compradora no aportara la documentación requerida para el estudio de financiación, la seña se considerará igualmente perdida. (c) Si la parte compradora desiste de la presente reserva por causa distinta a la no aprobación de la financiación, perderá íntegramente las cantidades entregadas en concepto de seña. (d) Si la parte vendedora desistiera, vendrá obligada a reintegrar a la parte compradora el doble de las cantidades recibidas (Art. 1454 Código Civil).',
+      margin,
+      y,
+      contentWidth
+    )
+    y += 1 // conformidad bien pegada al punto 7
 
-    // Firma
-    doc.setFont('helvetica', 'normal')
-    doc.text('Y en prueba de conformidad, firman', margin, yPosition)
-    yPosition += 15
+    // === Conformidad ===
+    doc.setFontSize(8.5)
+    doc.setFont('helvetica', 'italic')
+    doc.setTextColor(75, 85, 99)
+    doc.text('Y en prueba de conformidad, ambas partes firman el presente documento.', margin, y)
 
-    // Espacio para firmas
-    doc.setFont('helvetica', 'normal')
-    doc.text('La parte vendedora', margin, yPosition)
-    doc.text('La parte compradora', pageWidth / 2 + 20, yPosition)
-    yPosition += 20
+    // === Firmas: fluyen debajo de la conformidad si el contenido las empuja
+    drawSignatureBlock(
+      doc,
+      'La parte vendedora',
+      'La parte compradora',
+      pageWidth,
+      pageHeight,
+      margin,
+      y
+    )
 
-    // Líneas para firmas
-    doc.line(margin, yPosition, margin + 70, yPosition)
-    doc.line(pageWidth / 2 + 20, yPosition, pageWidth / 2 + 90, yPosition)
+    // === Footer ===
+    drawFooter(doc, vendor, pageWidth, pageHeight, margin)
 
-    // Retornar el buffer del PDF
-    console.log('📄 [CONTRATO RESERVA] Generando buffer PDF...')
     const pdfBuffer = doc.output('arraybuffer')
-    console.log(
-      '✅ [CONTRATO RESERVA] Contrato generado exitosamente, tamaño:',
-      pdfBuffer.byteLength,
-      'bytes'
-    )
     return new Uint8Array(pdfBuffer)
   } catch (error) {
-    console.error('❌ [CONTRATO RESERVA] Error generando contrato PDF:', error)
-    console.error(
-      '❌ [CONTRATO RESERVA] Stack trace:',
-      error instanceof Error ? error.stack : 'No stack trace'
-    )
+    console.error('❌ [CONTRATO RESERVA] Error:', error)
     throw error
   }
 }
@@ -1066,259 +964,176 @@ export async function generarContratoVenta(
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
   const margin = 15
-  let yPosition = margin - 5 // Subir logo 5px más arriba (igual que reserva)
+  const contentWidth = pageWidth - margin * 2
+  const vendor = INVOICE_CONFIG.vendor
+  let y = margin - 9
 
-  // Logo de Seven Cars (primero)
-  yPosition = await addLogoToContract(doc, yPosition)
+  // === Header: logo + bloque vendor + barra de acento ===
+  y = await addLogoToContract(doc, y)
+  y -= 8 // vendor más cerca del logo
+  y = drawVendorBlock(doc, vendor, pageWidth, y)
+  drawAccentBar(doc, margin, y, contentWidth)
+  y += 5
 
-  // Título del contrato (después del logo)
-  doc.setFontSize(14) // Reducido de 16px a 14px (igual que reserva)
+  // === Título ===
+  doc.setFontSize(13)
   doc.setFont('helvetica', 'bold')
-  doc.setTextColor(0, 0, 0)
-  doc.text('CONTRATO DE VENTA DE VEHÍCULO', pageWidth / 2, yPosition, {
+  doc.setTextColor(4, 120, 87)
+  doc.text('CONTRATO DE VENTA DE VEHÍCULO', pageWidth / 2, y + 5, {
     align: 'center',
   })
-  yPosition += 7 // Reducido de 12px a 7px (línea más cerca del título)
+  y += 9
 
-  // Línea decorativa
-  doc.setDrawColor(0, 0, 0)
-  doc.setLineWidth(0.5)
-  doc.line(margin, yPosition, pageWidth - margin, yPosition)
-  yPosition += 15 // Aumentado de 10px a 15px (separar "En Alaquàs" 5px más)
-
-  // Fecha del contrato
-  const fechaContrato = new Date()
-  doc.setFontSize(11) // Mantener 11px (igual que reserva)
+  // === Fecha y lugar ===
+  doc.setFontSize(8.5)
   doc.setFont('helvetica', 'normal')
-  doc.text(
-    `En Alaquàs, a ${formatearFechaCompleta(fechaContrato)}`,
-    margin,
-    yPosition
-  )
-  yPosition += 12
+  doc.setTextColor(17, 24, 39)
+  doc.text(`En Alaquàs, a ${formatearFechaCompleta(new Date())}.`, margin, y)
+  y += 7
 
-  // Datos del cliente y vehículo
+  // === REUNIDOS ===
+  y = drawSectionTitle(doc, 'Reunidos', margin, y)
+  y += 2
+  y = drawPartyCard(
+    doc,
+    'De una parte — parte vendedora',
+    `D. Sebastián Pelella, mayor de edad, con NIE Z0147238C, en representación de ${vendor.legalName} (CIF ${vendor.cif}), con domicilio en ${vendor.address}, ${vendor.postalCode} ${vendor.city} (${vendor.province}). En adelante, "parte vendedora".`,
+    margin,
+    y,
+    contentWidth
+  )
+
   const nombreCompleto =
-    `${capitalizeText(deal.cliente?.nombre) || ''} ${capitalizeText(deal.cliente?.apellidos) || ''}`.trim()
+    `${capitalizeText(deal.cliente?.nombre) || ''} ${capitalizeText(deal.cliente?.apellidos) || ''}`.trim() ||
+    'NOMBRE DEL CLIENTE'
   const direccionCompleta = construirDireccionCompleta(deal.cliente)
+  y = drawPartyCard(
+    doc,
+    'Y de otra parte — parte compradora',
+    `D./Dña. ${nombreCompleto}, mayor de edad, con DNI/NIE ${deal.cliente?.dni || '—'}, domicilio: ${direccionCompleta || '—'}, teléfono ${deal.cliente?.telefono || '—'} · email ${deal.cliente?.email || '—'}. En adelante, "parte compradora".`,
+    margin,
+    y,
+    contentWidth
+  )
+  y += 3
+
+  // Acuerdo común (inline, corto)
+  doc.setFontSize(8.5)
+  doc.setFont('helvetica', 'italic')
+  doc.setTextColor(75, 85, 99)
+  const textoAcuerdo =
+    'Ambas partes, de común acuerdo y reconociéndose capacidad legal para ello, formalizan la presente compraventa con arreglo a las siguientes condiciones:'
+  const lineasAcuerdo = doc.splitTextToSize(textoAcuerdo, contentWidth)
+  doc.text(lineasAcuerdo, margin, y + 3)
+  y += lineasAcuerdo.length * 3.5 + 9 // +4mm extra margin-top antes de "Estipulaciones"
+
+  // === EXPONEN ===
+  y = drawSectionTitle(doc, 'Estipulaciones', margin, y)
+  y += 2.5
+
+  // 1. Vehículo (card 2 cols)
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(4, 120, 87)
+  doc.text('1.', margin, y)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(17, 24, 39)
+  const lineasV = doc.splitTextToSize(
+    'El vendedor vende al comprador el siguiente vehículo, tras haberlo comprobado y examinado a su entera conformidad, aceptando su estado, características y fecha de matriculación:',
+    contentWidth - 6
+  )
+  lineasV.forEach((l: string, i: number) => doc.text(l, margin + 6, y + i * 4))
+  y += lineasV.length * 4 + 3
+  y = drawVehicleDataCard(
+    doc,
+    {
+      marca: capitalizeText(deal.vehiculo?.marca) || '—',
+      modelo: capitalizeText(deal.vehiculo?.modelo) || '—',
+      matricula: (deal.vehiculo?.matricula || '—').toUpperCase(),
+      bastidor: deal.vehiculo?.bastidor || '—',
+      kms: deal.vehiculo?.kms
+        ? `${(deal.vehiculo.kms as number).toLocaleString('es-ES')} km`
+        : '—',
+      fechaMatriculacion: getFechaMatriculacion(deal.vehiculo),
+    },
+    margin,
+    y,
+    contentWidth
+  )
+
+  // 2. Precio y garantía
   const precio = deal.importeTotal || deal.vehiculo?.precioPublicacion || 0
   const precioEnLetras = numeroALetras(Math.floor(precio))
+  y += 4 // respiro extra antes del punto 2
 
-  // Reunidos
-  doc.setFontSize(11) // Cambiar a 11px (igual que reserva)
+  y = drawNumberedPoint(
+    doc,
+    2,
+    `Por la cantidad de ${formatCurrency(precio)} (${precioEnLetras} euros), garantizado por 12 meses desde la fecha de entrega conforme al RDL 1/2007.`,
+    margin,
+    y,
+    contentWidth
+  )
+
+  // Subsección + 3. Entrega
+  y = drawSectionTitle(doc, 'Entrega de vehículo', margin, y + 3)
+  y += 2
+  y = drawNumberedPoint(
+    doc,
+    3,
+    'El vendedor entrega al comprador en este acto las llaves del vehículo, el permiso de circulación, la ficha técnica, el manual y recibe la documentación indicada en este acto.',
+    margin,
+    y,
+    contentWidth
+  )
+
+  // 4. Reparaciones
+  y = drawNumberedPoint(
+    doc,
+    4,
+    'El vendedor no se responsabilizará si el comprador reparase el vehículo por su cuenta sin autorización previa del vendedor en cuanto a taller y procedimiento.',
+    margin,
+    y,
+    contentWidth
+  )
+
+  // 5. Segunda llave inline con checkboxes
+  doc.setFontSize(9)
   doc.setFont('helvetica', 'bold')
-  doc.text('Reunidos:', margin, yPosition)
-  yPosition += 8
-
-  // Parte vendedora
-  doc.setFontSize(11) // Cambiar a 11px (igual que reserva)
-  doc.setFont('helvetica', 'normal')
-  doc.text('De una parte:', margin, yPosition)
-  yPosition += 6
-
-  const textoVendedor =
-    'D. Sebastián Pelella mayor de edad, con NIE Z0147238C en representación de Seven Cars Motors, s.l.. con CIF B-75939868 y con domicilio Camí dels Mollons, 36 de Alaquàs, Valencia, en calidad de vendedores, y en adelante parte vendedora.'
-  const lineasVendedor = doc.splitTextToSize(
-    textoVendedor,
-    pageWidth - margin * 2
-  )
-  doc.text(lineasVendedor, margin, yPosition)
-  yPosition += lineasVendedor.length * 4.5 + 4
-
-  // Parte compradora
-  doc.text('Y de otra parte:', margin, yPosition)
-  yPosition += 6
-
-  // Datos del cliente en un párrafo continuo
-  doc.setFontSize(11) // Cambiar a 11px (igual que reserva)
-  const textoComprador = `D/DÑA ${nombreCompleto || 'NOMBRE DE CLIENTE'} mayor de edad, con DNI ${deal.cliente?.dni || 'DNI CLIENTE'}, con domicilio ${direccionCompleta}, con telefono ${deal.cliente?.telefono || 'TEL CLIENTE'} y email ${deal.cliente?.email || 'EMAIL CLIENTE'} en calidad de compradores, y en adelante parte compradora.`
-  const lineasComprador = doc.splitTextToSize(
-    textoComprador,
-    pageWidth - margin * 2
-  )
-  doc.text(lineasComprador, margin, yPosition)
-  yPosition += lineasComprador.length * 4.5 + 4
-
-  // Acuerdo común
-  doc.setFontSize(11) // Cambiar a 11px (igual que reserva)
-  const textoAcuerdo =
-    'Ambos de común acuerdo y reconociéndose capacidad legal para ello, formalizan la compraventa, con arreglo a las siguientes condiciones:'
-  const lineasAcuerdo = doc.splitTextToSize(
-    textoAcuerdo,
-    pageWidth - margin * 2
-  )
-  doc.text(lineasAcuerdo, margin, yPosition)
-  yPosition += lineasAcuerdo.length * 4.5 + 4
-
-  // Punto 1 - Información del vehículo
-  doc.setFontSize(11) // Cambiar a 11px (igual que reserva)
-  const textoPunto1 =
-    '1. El vendedor vende al comprador el siguiente vehículo después de comprobarlo y examinarlo a su entera conformidad, aceptando su estado, las características de uso y su fecha de matriculación:'
-  const lineasPunto1 = doc.splitTextToSize(textoPunto1, pageWidth - margin * 2)
-  doc.text(lineasPunto1, margin, yPosition)
-  yPosition += lineasPunto1.length * 4.5 + 6
-
-  // Datos del vehículo en 2 columnas de 3 datos cada una
-  // Columna 1
-  writeField(
-    doc,
-    'MARCA',
-    capitalizeText(deal.vehiculo?.marca) || 'marca vehiculo',
-    margin + 5,
-    yPosition
-  )
-
-  writeField(
-    doc,
-    'MODELO',
-    capitalizeText(deal.vehiculo?.modelo) || 'modelo vehiculo',
-    margin + 5,
-    yPosition + 4
-  )
-
-  writeField(
-    doc,
-    'BASTIDOR',
-    deal.vehiculo?.bastidor || 'TEST-BASTIDOR-12345',
-    margin + 5,
-    yPosition + 8
-  )
-  console.log(
-    '🔍 [CONTRATO RESERVA] Escribiendo BASTIDOR:',
-    deal.vehiculo?.bastidor || 'TEST-BASTIDOR-12345'
-  )
-
-  // Columna 2
-  writeField(
-    doc,
-    'FECHA MATRICULACIÓN',
-    getFechaMatriculacion(deal.vehiculo),
-    pageWidth / 2,
-    yPosition
-  )
-
-  writeField(
-    doc,
-    'KMS',
-    deal.vehiculo?.kms
-      ? `${(deal.vehiculo.kms as number).toLocaleString('es-ES')} km`
-      : 'TEST-99999 km',
-    pageWidth / 2,
-    yPosition + 4
-  )
-  console.log(
-    '🔍 [CONTRATO RESERVA] Escribiendo KMS:',
-    deal.vehiculo?.kms
-      ? `${(deal.vehiculo.kms as number).toLocaleString('es-ES')} km`
-      : 'TEST-99999 km'
-  )
-
-  writeField(
-    doc,
-    'MATRÍCULA',
-    deal.vehiculo?.matricula || 'no especificada',
-    pageWidth / 2,
-    yPosition + 8
-  )
-
-  yPosition += 12
-
-  // Precio y garantía con negrita para datos dinámicos
-  doc.setFontSize(11) // Cambiar a 11px (igual que reserva)
-  doc.setFont('helvetica', 'normal')
-  yPosition += 5 // Bajar 5px "Por la cantidad de"
-  doc.text('Por la cantidad de ', margin, yPosition)
-
-  // Calcular posición del precio
-  const textoInicial = 'Por la cantidad de '
-  const anchoInicial = doc.getTextWidth(textoInicial)
-  const posicionPrecio = margin + anchoInicial
-
+  doc.setTextColor(4, 120, 87)
+  doc.text('5.', margin, y)
   doc.setFont('helvetica', 'bold')
-  doc.text(`${formatCurrency(precio)}`, posicionPrecio, yPosition)
-
-  // Calcular posición del texto en paréntesis
-  const anchoPrecio = doc.getTextWidth(formatCurrency(precio))
-  const posicionParentesis = posicionPrecio + anchoPrecio
-
+  doc.setTextColor(17, 24, 39)
+  doc.text('SEGUNDA LLAVE:', margin + 6, y)
   doc.setFont('helvetica', 'normal')
-  doc.text(' (', posicionParentesis, yPosition)
+  doc.setDrawColor(75, 85, 99)
+  doc.setLineWidth(0.3)
+  doc.rect(margin + 46, y - 2.8, 3.4, 3.4)
+  doc.text('Entregada', margin + 51, y)
+  doc.rect(margin + 82, y - 2.8, 3.4, 3.4)
+  doc.text('Pendiente', margin + 87, y)
+  y += 13 // bajar conformidad ~4mm más (estaba muy pegado a segunda llave)
 
-  // Calcular posición del texto en letras
-  const anchoParentesis = doc.getTextWidth(' (')
-  const posicionLetras = posicionParentesis + anchoParentesis
+  // === Conformidad ===
+  doc.setFontSize(8.5)
+  doc.setFont('helvetica', 'italic')
+  doc.setTextColor(75, 85, 99)
+  doc.text('Y en prueba de conformidad, ambas partes firman el presente documento.', margin, y)
 
-  doc.setFont('helvetica', 'bold')
-  doc.text(`${precioEnLetras} euros`, posicionLetras, yPosition)
+  // === Firmas: fluyen debajo de la conformidad si el contenido las empuja
+  drawSignatureBlock(
+    doc,
+    'La parte vendedora',
+    'La parte compradora',
+    pageWidth,
+    pageHeight,
+    margin,
+    y
+  )
 
-  // Calcular posición del texto final
-  const anchoLetras = doc.getTextWidth(`${precioEnLetras} euros`)
-  const posicionFinal = posicionLetras + anchoLetras
+  // === Footer ===
+  drawFooter(doc, vendor, pageWidth, pageHeight, margin)
 
-  doc.setFont('helvetica', 'normal')
-  doc.text(') - Garantizado por 12 Meses', posicionFinal, yPosition)
-  yPosition += 10
-
-  // Sección ENTREGA DE VEHÍCULO
-  doc.setFontSize(11) // Cambiar a 11px (igual que reserva)
-  doc.setFont('helvetica', 'bold')
-  doc.text('ENTREGA DE VEHÍCULO', margin, yPosition)
-  yPosition += 11 // Aumentado de 6px a 11px (bajar 5px)
-
-  // Punto 2 - Entrega de vehículo
-  doc.setFontSize(11) // Cambiar a 11px (igual que reserva)
-  doc.setFont('helvetica', 'normal')
-  const textoPunto2 =
-    '2. El vendedor entrega al comprador, las llaves del vehículo, el permiso de circulación, ficha técnica, el manual y recibe la documentación indicada en este acto'
-  const lineasPunto2 = doc.splitTextToSize(textoPunto2, pageWidth - margin * 2)
-  doc.text(lineasPunto2, margin, yPosition)
-  yPosition += lineasPunto2.length * 4.5 + 8
-
-  // Punto 3 - Responsabilidad de reparaciones
-  doc.setFontSize(11) // Cambir a 11px (igual que reserva)
-  yPosition -= 3 // Subir 3px el punto 3
-  const textoPunto3 =
-    '3. El vendedor no se responsabilizara si el comprador reparase el vehículo por su cuenta, sin que el vendedor hubiera dado su autorización, determinando el taller y manera de llevar a cabo la reparación.'
-  const lineasPunto3 = doc.splitTextToSize(textoPunto3, pageWidth - margin * 2)
-  doc.text(lineasPunto3, margin, yPosition)
-  yPosition += lineasPunto3.length * 4.5 + 10
-
-  // Segunda llave con checkboxes
-  doc.setFontSize(11) // Cambiar a 11px (igual que reserva)
-  doc.text('SEGUNDA LLAVE', margin, yPosition)
-  yPosition += 6
-
-  // Checkbox Entregada
-  doc.rect(margin + 5, yPosition - 2, 4, 4)
-  doc.text('Entregada', margin + 15, yPosition + 2.5)
-
-  // Checkbox Pendiente
-  doc.rect(margin + 50, yPosition - 2, 4, 4)
-  doc.text('Pendiente', margin + 60, yPosition + 2.5)
-  yPosition += 15
-
-  // Espacio adicional antes de la firma
-  yPosition += 8
-
-  // Firma
-  doc.setFontSize(11) // Cambiar a 11px (igual que reserva)
-  yPosition -= 10 // Subir 10px "Y en prueba de conformidad, firman" (antes 15px, ahora 5px menos)
-  doc.text('Y en prueba de conformidad, firman', margin, yPosition)
-  yPosition += 12
-
-  // Firmas
-  doc.setFontSize(11) // Cambiar a 11px (igual que reserva)
-  yPosition -= 5 // Subir 5px las líneas de firma
-  yPosition += 5 // Bajar 5px "La parte vendedora" y "La parte compradora"
-  doc.text('La parte vendedora', margin, yPosition)
-  doc.text('La parte compradora', pageWidth / 2 + 10, yPosition)
-  yPosition += 15 // Achicar 5px la distancia de las líneas de firma (antes 20px, ahora 15px)
-
-  // Líneas para firmas
-  doc.line(margin, yPosition, margin + 70, yPosition)
-  doc.line(pageWidth / 2 + 10, yPosition, pageWidth / 2 + 80, yPosition)
-
-  // Retornar el buffer del PDF
   const pdfBuffer = doc.output('arraybuffer')
   return new Uint8Array(pdfBuffer)
 }
@@ -1607,7 +1422,7 @@ export async function generarFactura(
     const pageHeight = doc.internal.pageSize.getHeight()
     const margin = 15
     const contentWidth = pageWidth - margin * 2
-    let yPosition = margin - 5
+    let yPosition = margin - 9
 
     const vendor = INVOICE_CONFIG.vendor
 
