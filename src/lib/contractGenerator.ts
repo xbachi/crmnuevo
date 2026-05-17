@@ -2405,3 +2405,242 @@ export async function generarContratoDeposito(
     throw error
   }
 }
+
+// =============================================================================
+// CONTRATO DE COMPRAVENTA "EN EL ESTADO" — B2B (cliente profesional)
+// =============================================================================
+
+export interface ContratoB2BInput {
+  numero: string
+  fecha_venta: Date
+  lugar_venta: string
+  comprador: {
+    razon_social: string
+    cif_nif: string
+    direccion?: string
+  }
+  vehiculo: {
+    marca: string
+    modelo: string
+    matricula: string
+    bastidor: string
+    kms: number
+    anio: number | null
+    fechaMatriculacion: string
+  }
+  precio_venta: number
+  forma_pago: 'transferencia' | 'efectivo' | 'financiado' | 'otro'
+}
+
+const FORMA_PAGO_LABEL: Record<ContratoB2BInput['forma_pago'], string> = {
+  transferencia: 'transferencia bancaria',
+  efectivo: 'efectivo',
+  financiado: 'financiación',
+  otro: 'otro medio acordado',
+}
+
+/**
+ * Genera el PDF del contrato B2B "EN EL ESTADO" (as-is) usado entre Seven Cars
+ * y compradores profesionales del sector. Sin garantía estética ni mecánica.
+ * Una sola hoja A4. Estilo coherente con la factura y los contratos retail.
+ */
+export async function generarContratoCompraventaEstado(
+  input: ContratoB2BInput
+): Promise<Uint8Array> {
+  const doc = new jsPDF()
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
+  const margin = 15
+  const contentWidth = pageWidth - margin * 2
+  const vendor = INVOICE_CONFIG.vendor
+  let y = margin - 9
+
+  // === Header ===
+  y = await addLogoToContract(doc, y)
+  y -= 8
+  y = drawVendorBlock(doc, vendor, pageWidth, y)
+  drawAccentBar(doc, margin, y, contentWidth)
+  y += 5
+
+  // === Título ===
+  doc.setFontSize(12)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(4, 120, 87)
+  doc.text(
+    'CONTRATO DE COMPRAVENTA DE VEHÍCULO "EN EL ESTADO"',
+    pageWidth / 2,
+    y + 5,
+    { align: 'center' }
+  )
+  y += 9
+
+  // === Fecha y lugar ===
+  doc.setFontSize(8.5)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(17, 24, 39)
+  doc.text(
+    `En ${input.lugar_venta}, a ${formatearFechaCompleta(input.fecha_venta)}.`,
+    margin,
+    y
+  )
+  y += 7
+
+  // === REUNIDOS ===
+  y = drawSectionTitle(doc, 'Reunidos', margin, y)
+  y += 2
+  y = drawPartyCard(
+    doc,
+    'De una parte — EL VENDEDOR',
+    `${vendor.legalName}, con domicilio en ${vendor.address}, ${vendor.postalCode} ${vendor.city} (${vendor.province}), CIF ${vendor.cif}, representada en este acto por D. Sebastián Pelella, con documento Z0147238C, en su calidad de Administrador. En adelante, "EL VENDEDOR".`,
+    margin,
+    y,
+    contentWidth
+  )
+  y = drawPartyCard(
+    doc,
+    'Y de otra parte — EL COMPRADOR',
+    `${input.comprador.razon_social}, con DNI/NIF/CIF ${input.comprador.cif_nif}${input.comprador.direccion ? `, con domicilio en ${input.comprador.direccion}` : ''}. En adelante, "EL COMPRADOR".`,
+    margin,
+    y,
+    contentWidth
+  )
+  y += 3
+
+  // === MANIFIESTAN ===
+  y = drawSectionTitle(doc, 'Manifiestan', margin, y)
+  y += 2
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(17, 24, 39)
+  doc.text(
+    '1. Que EL VENDEDOR es titular de pleno derecho del siguiente vehículo:',
+    margin,
+    y
+  )
+  y += 4
+  y = drawVehicleDataCard(
+    doc,
+    {
+      marca: input.vehiculo.marca,
+      modelo: input.vehiculo.modelo,
+      matricula: input.vehiculo.matricula.toUpperCase(),
+      bastidor: input.vehiculo.bastidor || '—',
+      kms: input.vehiculo.kms
+        ? `${input.vehiculo.kms.toLocaleString('es-ES')} km`
+        : '—',
+      fechaMatriculacion: input.vehiculo.fechaMatriculacion || '—',
+    },
+    margin,
+    y,
+    contentWidth
+  )
+
+  y = drawNumberedPoint(
+    doc,
+    2,
+    'Que EL COMPRADOR es un profesional del sector de compraventa de vehículos y tiene plena capacidad para celebrar este contrato.',
+    margin,
+    y,
+    contentWidth
+  )
+  y = drawNumberedPoint(
+    doc,
+    3,
+    'Que ambas partes, reconociéndose mutuamente capacidad jurídica, libremente acuerdan la compraventa del vehículo "en el estado" ("as is"), sin garantía por daños estéticos o mecánicos.',
+    margin,
+    y,
+    contentWidth
+  )
+  y += 1
+
+  // === CLÁUSULAS ===
+  y = drawSectionTitle(doc, 'Cláusulas', margin, y)
+  y += 2
+
+  const precioEnLetras = numeroALetras(Math.floor(input.precio_venta))
+  const precioStr = `${input.precio_venta.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
+
+  y = drawNumberedPoint(
+    doc,
+    1,
+    'OBJETO. EL VENDEDOR vende a EL COMPRADOR, que adquiere, el vehículo descrito junto con sus accesorios y documentación original.',
+    margin,
+    y,
+    contentWidth
+  )
+  y = drawNumberedPoint(
+    doc,
+    2,
+    `PRECIO Y FORMA DE PAGO. El precio total convenido asciende a ${precioStr} (${precioEnLetras} euros), que se abonará en el acto mediante ${FORMA_PAGO_LABEL[input.forma_pago]}.`,
+    margin,
+    y,
+    contentWidth
+  )
+  y = drawNumberedPoint(
+    doc,
+    3,
+    'ENTREGA. La entrega material del vehículo y de la documentación (permiso de circulación, ficha técnica y contrato firmado) se efectuará en Seven Cars en la fecha de firma. Desde ese momento, los riesgos y gastos (seguros, ITV, mantenimiento, sanciones) corren por cuenta de EL COMPRADOR.',
+    margin,
+    y,
+    contentWidth
+  )
+  y = drawNumberedPoint(
+    doc,
+    4,
+    'ESTADO Y EXENCIÓN DE GARANTÍA. EL COMPRADOR declara haber inspeccionado el vehículo y acepta su estado estético y mecánico. EL VENDEDOR no otorga garantía, ni expresa ni implícita, sobre vicios, defectos o desperfectos, conocidos o desconocidos (Art. 1.445 CC). EL COMPRADOR renuncia a cualquier reclamación futura derivada de tales circunstancias.',
+    margin,
+    y,
+    contentWidth
+  )
+  y = drawNumberedPoint(
+    doc,
+    5,
+    'CARGAS Y RESPONSABILIDADES. EL VENDEDOR garantiza únicamente su titularidad y que el vehículo está libre de cargas, salvo indicación expresa en contrario. EL COMPRADOR asume toda responsabilidad por cualquier incumplimiento legal, notificación o sanción tras la firma.',
+    margin,
+    y,
+    contentWidth
+  )
+  y = drawNumberedPoint(
+    doc,
+    6,
+    'GASTOS E IMPUESTOS. Los gastos e impuestos de transmisión (ITP, tasas, gestoría) corren por cuenta de EL COMPRADOR. EL VENDEDOR entregará factura o justificante y colaborará en los trámites necesarios.',
+    margin,
+    y,
+    contentWidth
+  )
+  y = drawNumberedPoint(
+    doc,
+    7,
+    'JURISDICCIÓN Y LEY APLICABLE. Las partes se someten a la Ley española. Cualquier controversia se someterá a los Juzgados y Tribunales de Valencia, renunciando expresamente a cualquier otro fuero.',
+    margin,
+    y,
+    contentWidth
+  )
+  y += 1
+
+  // === Conformidad ===
+  doc.setFontSize(8.5)
+  doc.setFont('helvetica', 'italic')
+  doc.setTextColor(75, 85, 99)
+  doc.text(
+    'Y en prueba de conformidad, ambas partes firman por duplicado y a un solo efecto.',
+    margin,
+    y
+  )
+
+  // === Firmas (fluyen bajo la conformidad si el contenido las empuja) ===
+  drawSignatureBlock(
+    doc,
+    'EL VENDEDOR — Sebastián Pelella (Admin.)',
+    `EL COMPRADOR — ${input.comprador.razon_social}`,
+    pageWidth,
+    pageHeight,
+    margin,
+    y
+  )
+
+  // === Footer ===
+  drawFooter(doc, vendor, pageWidth, pageHeight, margin)
+
+  return new Uint8Array(doc.output('arraybuffer'))
+}

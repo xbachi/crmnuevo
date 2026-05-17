@@ -266,6 +266,12 @@ export default function Navigation() {
       roles: ['admin', 'asesor'],
     },
     {
+      href: '/clientes-b2b',
+      label: 'Clientes B2B',
+      icon: ClientesIcon,
+      roles: ['admin', 'asesor'],
+    },
+    {
       href: '/vehiculos',
       label: 'Vehículos',
       icon: VehiculosIcon,
