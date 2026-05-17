@@ -328,7 +328,10 @@ export default function Navigation() {
   ]
 
   const isActive = (href: string) => {
-    return pathname === href || (href !== '/' && pathname.startsWith(href))
+    if (pathname === href) return true
+    if (href === '/') return false
+    // Exigir "/" después del href para que /clientes no matchee /clientes-b2b
+    return pathname.startsWith(href + '/')
   }
 
   const hasPermission = (roles: string[]) => {
