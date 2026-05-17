@@ -304,6 +304,69 @@ async function addLogoToContract(doc: any, yPosition: number): Promise<number> {
   }
 }
 
+/**
+ * Header compacto: logo a la izquierda + datos vendor centrados al lado.
+ * Ahorra ~20mm de alto vs el header centrado del flujo retail.
+ * Pensado para contratos B2B donde necesitamos espacio para muchas
+ * cláusulas + firmas en una sola hoja A4.
+ */
+async function addCompactHeader(
+  doc: any,
+  vendor: {
+    legalName: string
+    cif: string
+    address: string
+    city: string
+    postalCode: string
+    province: string
+    phone: string
+    email: string
+  },
+  margin: number,
+  y: number
+): Promise<number> {
+  const logoW = 38
+  const logoH = 15
+  const dataX = margin + logoW + 6
+  let logoDrawn = false
+  try {
+    const dataURL = await loadLogoSVG()
+    if (dataURL) {
+      doc.addImage(dataURL, 'PNG', margin, y, logoW, logoH)
+      logoDrawn = true
+    }
+  } catch (e) {
+    console.warn('[addCompactHeader] no se pudo cargar logo:', e)
+  }
+  if (!logoDrawn) {
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(4, 120, 87)
+    doc.text('SEVEN CARS', margin, y + 8)
+  }
+
+  // Datos vendor al lado derecho del logo
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(17, 24, 39)
+  doc.text(vendor.legalName, dataX, y + 3.5)
+
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(7.5)
+  doc.setTextColor(75, 85, 99)
+  doc.text(`CIF: ${vendor.cif}  ·  ${vendor.address}`, dataX, y + 7)
+  doc.text(
+    `${vendor.postalCode} ${vendor.city}, ${vendor.province}`,
+    dataX,
+    y + 10
+  )
+  doc.text(`Tel ${vendor.phone}  ·  ${vendor.email}`, dataX, y + 13)
+  doc.setTextColor(17, 24, 39)
+
+  // Devuelve y debajo del header (la altura del logo + 2mm de aire)
+  return y + logoH + 2
+}
+
 // Función para mapear formas de pago de reserva
 function getFormaPagoReserva(formaPago: string): string {
   const formasPago: { [key: string]: string } = {
@@ -2453,12 +2516,10 @@ export async function generarContratoCompraventaEstado(
   const margin = 15
   const contentWidth = pageWidth - margin * 2
   const vendor = INVOICE_CONFIG.vendor
-  let y = margin - 9
+  let y = margin - 7 // top más arriba: gana ~7mm para el footer
 
-  // === Header ===
-  y = await addLogoToContract(doc, y)
-  y -= 8
-  y = drawVendorBlock(doc, vendor, pageWidth, y)
+  // === Header compacto: logo izquierda + vendor al medio (ahorra ~20mm vs header centrado) ===
+  y = await addCompactHeader(doc, vendor, margin, y)
   drawAccentBar(doc, margin, y, contentWidth)
   y += 5
 
@@ -2487,14 +2548,15 @@ export async function generarContratoCompraventaEstado(
 
   // === REUNIDOS ===
   y = drawSectionTitle(doc, 'Reunidos', margin, y)
-  y += 2
+  y += 1
   y = drawPartyCard(
     doc,
     'De una parte — EL VENDEDOR',
-    `${vendor.legalName}, con domicilio en ${vendor.address}, ${vendor.postalCode} ${vendor.city} (${vendor.province}), CIF ${vendor.cif}, representada en este acto por D. Sebastián Pelella, con documento Z0147238C, en su calidad de Administrador. En adelante, "EL VENDEDOR".`,
+    `${vendor.legalName}, con domicilio en ${vendor.address}, ${vendor.postalCode} ${vendor.city} (${vendor.province}), CIF ${vendor.cif}, representada por D. Sebastián Pelella (doc. Z0147238C), Administrador. En adelante, "EL VENDEDOR".`,
     margin,
     y,
-    contentWidth
+    contentWidth,
+    { compact: true }
   )
   y = drawPartyCard(
     doc,
@@ -2502,14 +2564,15 @@ export async function generarContratoCompraventaEstado(
     `${input.comprador.razon_social}, con DNI/NIF/CIF ${input.comprador.cif_nif}${input.comprador.direccion ? `, con domicilio en ${input.comprador.direccion}` : ''}. En adelante, "EL COMPRADOR".`,
     margin,
     y,
-    contentWidth
+    contentWidth,
+    { compact: true }
   )
-  y += 3
+  y += 2
 
   // === MANIFIESTAN ===
   y = drawSectionTitle(doc, 'Manifiestan', margin, y)
-  y += 2
-  doc.setFontSize(9)
+  y += 1
+  doc.setFontSize(8.5)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(17, 24, 39)
   doc.text(
@@ -2517,7 +2580,7 @@ export async function generarContratoCompraventaEstado(
     margin,
     y
   )
-  y += 4
+  y += 3
   y = drawVehicleDataCard(
     doc,
     {
@@ -2532,8 +2595,11 @@ export async function generarContratoCompraventaEstado(
     },
     margin,
     y,
-    contentWidth
+    contentWidth,
+    { compact: true }
   )
+
+  y += 4 // respiro extra: separa el punto 2 de la card del vehículo
 
   y = drawNumberedPoint(
     doc,

@@ -381,34 +381,37 @@ export function drawPartyCard(
   paragraph: string,
   x: number,
   y: number,
-  width: number
+  width: number,
+  opts: { compact?: boolean } = {}
 ): number {
-  const lineHeight = 4
-  const padX = 4
-  const padY = 3.5
-  doc.setFontSize(9)
+  const lineHeight = opts.compact ? 3.5 : 4
+  const padX = opts.compact ? 3 : 4
+  const padY = opts.compact ? 2 : 3.5
+  const bodyFontSize = opts.compact ? 8 : 9
+  const labelOffset = opts.compact ? 4 : 5.5
+  doc.setFontSize(bodyFontSize)
   doc.setFont('helvetica', 'normal')
   const lines = doc.splitTextToSize(paragraph, width - padX * 2)
-  const cardH = padY * 2 + 4.5 + lines.length * lineHeight
+  const cardH = padY * 2 + (opts.compact ? 3.5 : 4.5) + lines.length * lineHeight
 
   rgb(doc, COLORS.bgCard)
   strokeRgb(doc, COLORS.border)
   doc.setLineWidth(0.2)
   doc.roundedRect(x, y, width, cardH, 1.5, 1.5, 'FD')
 
-  doc.setFontSize(7.5)
+  doc.setFontSize(opts.compact ? 6.5 : 7.5)
   doc.setFont('helvetica', 'bold')
   textRgb(doc, COLORS.brandDark)
   doc.text(label.toUpperCase(), x + padX, y + padY + 1.5)
 
-  doc.setFontSize(9)
+  doc.setFontSize(bodyFontSize)
   doc.setFont('helvetica', 'normal')
   textRgb(doc, COLORS.textPrimary)
   lines.forEach((line: string, i: number) => {
-    doc.text(line, x + padX, y + padY + 5.5 + i * lineHeight)
+    doc.text(line, x + padX, y + padY + labelOffset + i * lineHeight)
   })
 
-  return y + cardH + 3
+  return y + cardH + (opts.compact ? 2 : 3)
 }
 
 /**
@@ -427,11 +430,17 @@ export function drawVehicleDataCard(
   },
   x: number,
   y: number,
-  width: number
+  width: number,
+  opts: { compact?: boolean } = {}
 ): number {
-  // Card con borde-acento verde a la izquierda + padding generoso adentro.
-  const cardH = 24
-  const accentW = 1.6
+  // Card con borde-acento verde a la izquierda + padding adentro.
+  const cardH = opts.compact ? 17 : 24
+  const accentW = opts.compact ? 1.2 : 1.6
+  const innerPad = opts.compact ? 4 : 6
+  const rowSpacing = opts.compact ? 5 : 7
+  const labelFont = opts.compact ? 6.8 : 7.5
+  const valueFont = opts.compact ? 8 : 8.8
+  const labelGap = opts.compact ? 22 : 26
   // Fondo + borde fino
   rgb(doc, COLORS.bgCard)
   strokeRgb(doc, COLORS.border)
@@ -441,12 +450,12 @@ export function drawVehicleDataCard(
   rgb(doc, COLORS.brandDark)
   doc.rect(x, y, accentW, cardH, 'F')
 
-  const innerX = x + 6 + accentW
+  const innerX = x + innerPad + accentW
   const colW = (width - innerX + x) / 2
   const labelX = innerX
-  const valueX = innerX + 26
+  const valueX = innerX + labelGap
   const labelX2 = innerX + colW
-  const valueX2 = innerX + colW + 26
+  const valueX2 = innerX + colW + labelGap
 
   const drawRow = (
     rowY: number,
@@ -455,22 +464,29 @@ export function drawVehicleDataCard(
     l2: string,
     v2: string
   ) => {
-    doc.setFontSize(7.5)
+    doc.setFontSize(labelFont)
     doc.setFont('helvetica', 'normal')
     textRgb(doc, COLORS.textSecondary)
     doc.text(l1, labelX, rowY)
     doc.text(l2, labelX2, rowY)
-    doc.setFontSize(8.8)
+    doc.setFontSize(valueFont)
     doc.setFont('helvetica', 'bold')
     textRgb(doc, COLORS.textPrimary)
-    doc.text(v1, valueX, rowY, { maxWidth: colW - 28 })
-    doc.text(v2, valueX2, rowY, { maxWidth: colW - 28 })
+    doc.text(v1, valueX, rowY, { maxWidth: colW - labelGap - 2 })
+    doc.text(v2, valueX2, rowY, { maxWidth: colW - labelGap - 2 })
   }
 
-  drawRow(y + 6, 'MARCA', v.marca || '—', 'MATRÍCULA', v.matricula || '—')
-  drawRow(y + 13, 'MODELO', v.modelo || '—', 'BASTIDOR', v.bastidor || '—')
+  const startOffset = opts.compact ? 4 : 6
+  drawRow(y + startOffset, 'MARCA', v.marca || '—', 'MATRÍCULA', v.matricula || '—')
   drawRow(
-    y + 20,
+    y + startOffset + rowSpacing,
+    'MODELO',
+    v.modelo || '—',
+    'BASTIDOR',
+    v.bastidor || '—'
+  )
+  drawRow(
+    y + startOffset + rowSpacing * 2,
     'F. MATR.',
     v.fechaMatriculacion || '—',
     'KMS',
@@ -478,7 +494,7 @@ export function drawVehicleDataCard(
   )
 
   textRgb(doc, COLORS.textPrimary)
-  return y + cardH + 4
+  return y + cardH + (opts.compact ? 2 : 4)
 }
 
 /**
