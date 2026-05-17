@@ -286,3 +286,28 @@ export async function updateVentaB2BPdf(
     [pdfUrl, pdfStorageKey, id]
   )
 }
+
+/** Verifica si una venta B2B tiene factura fiscal NO anulada. */
+export async function ventaB2BHasActiveInvoice(id: number): Promise<boolean> {
+  const { rows } = await pool.query<{ exists: boolean }>(
+    `SELECT EXISTS (
+       SELECT 1 FROM invoices
+        WHERE b2b_venta_id = $1 AND status <> 'VOIDED'
+     ) AS exists`,
+    [id]
+  )
+  return rows[0]?.exists ?? false
+}
+
+/**
+ * Borra una venta B2B. Devuelve la fila borrada (para que el caller pueda
+ * limpiar el PDF del contrato del Blob si lo desea). NO se debe usar si
+ * la venta tiene una factura activa — esa validación va en el endpoint.
+ */
+export async function deleteVentaB2B(id: number): Promise<VentaB2B | null> {
+  const { rows } = await pool.query<VentaB2B>(
+    `DELETE FROM venta_b2b WHERE id = $1 RETURNING *`,
+    [id]
+  )
+  return rows[0] ?? null
+}

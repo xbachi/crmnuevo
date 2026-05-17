@@ -6,6 +6,7 @@ import Link from 'next/link'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { useSimpleToast } from '@/hooks/useSimpleToast'
 import { downloadPdf } from '@/lib/pdf/download'
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal'
 
 interface ClienteB2B {
   id: number
@@ -52,6 +53,42 @@ function ClienteB2BDetailPage() {
   const [downloadingId, setDownloadingId] = useState<number | null>(null)
   const [downloadingFacturaId, setDownloadingFacturaId] = useState<number | null>(null)
   const [issuingFacturaId, setIssuingFacturaId] = useState<number | null>(null)
+  const [previewingId, setPreviewingId] = useState<number | null>(null)
+  const [ventaToDelete, setVentaToDelete] = useState<VentaB2B | null>(null)
+  const [deletingVenta, setDeletingVenta] = useState(false)
+
+  const previewFacturaREBU = async (venta: VentaB2B) => {
+    await downloadPdf({
+      url: `/api/ventas-b2b/${venta.id}/factura/preview`,
+      filename: `preview-factura-${venta.numero}`,
+      onStart: () => setPreviewingId(venta.id),
+      onFinish: () => setPreviewingId(null),
+      onError: (msg) => showToast(msg, 'error'),
+    })
+  }
+
+  const confirmDeleteVenta = async () => {
+    if (!ventaToDelete) return
+    setDeletingVenta(true)
+    try {
+      const res = await fetch(`/api/ventas-b2b/${ventaToDelete.id}`, {
+        method: 'DELETE',
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        showToast(data?.error ?? 'Error al borrar la venta', 'error')
+        return
+      }
+      showToast('Venta eliminada', 'success')
+      setVentaToDelete(null)
+      await reloadVentas()
+    } catch (err) {
+      console.error(err)
+      showToast('Error de red', 'error')
+    } finally {
+      setDeletingVenta(false)
+    }
+  }
 
   const reloadVentas = async () => {
     const r = await fetch(`/api/clientes-b2b/${id}/ventas`).then((r) => r.json())
@@ -304,6 +341,7 @@ function ClienteB2BDetailPage() {
                   <th className="text-left px-4 py-2 font-medium text-gray-700">Precio</th>
                   <th className="text-left px-4 py-2 font-medium text-gray-700">Contrato</th>
                   <th className="text-left px-4 py-2 font-medium text-gray-700">Factura</th>
+                  <th className="text-right px-4 py-2 font-medium text-gray-700">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -354,16 +392,41 @@ function ClienteB2BDetailPage() {
                           </button>
                         </div>
                       ) : (
-                        <button
-                          onClick={() => generarFacturaREBU(v)}
-                          disabled={issuingFacturaId === v.id}
-                          className="px-3 py-1 bg-amber-100 text-amber-800 border border-amber-300 rounded text-xs font-medium hover:bg-amber-200 disabled:opacity-60"
-                        >
-                          {issuingFacturaId === v.id
-                            ? 'Emitiendo...'
-                            : 'Generar factura REBU'}
-                        </button>
+                        <div className="flex flex-col gap-1">
+                          <button
+                            onClick={() => generarFacturaREBU(v)}
+                            disabled={issuingFacturaId === v.id}
+                            className="px-3 py-1 bg-amber-100 text-amber-800 border border-amber-300 rounded text-xs font-medium hover:bg-amber-200 disabled:opacity-60"
+                          >
+                            {issuingFacturaId === v.id
+                              ? 'Emitiendo...'
+                              : 'Generar factura REBU'}
+                          </button>
+                          <button
+                            onClick={() => previewFacturaREBU(v)}
+                            disabled={previewingId === v.id}
+                            title="Genera un PDF de muestra (BORRADOR-) sin consumir número fiscal"
+                            className="px-3 py-1 bg-white text-gray-700 border border-gray-300 rounded text-xs font-medium hover:bg-gray-50 disabled:opacity-60"
+                          >
+                            {previewingId === v.id ? 'Generando...' : 'Vista previa'}
+                          </button>
+                        </div>
                       )}
+                    </td>
+                    {/* Acciones (borrar venta — solo si no tiene factura) */}
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={() => setVentaToDelete(v)}
+                        disabled={!!v.factura_id}
+                        title={
+                          v.factura_id
+                            ? 'No se puede borrar: tiene factura fiscal emitida'
+                            : 'Eliminar esta venta'
+                        }
+                        className="px-2 py-1 text-red-600 hover:bg-red-50 rounded text-xs font-medium disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        Borrar
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -372,6 +435,20 @@ function ClienteB2BDetailPage() {
           )}
         </div>
       </main>
+
+      <ConfirmDeleteModal
+        isOpen={!!ventaToDelete}
+        onClose={() => !deletingVenta && setVentaToDelete(null)}
+        onConfirm={confirmDeleteVenta}
+        title="Eliminar venta B2B"
+        message={
+          ventaToDelete
+            ? `¿Eliminar la venta ${ventaToDelete.numero}? Esta acción borra la venta y el PDF del contrato. No se puede deshacer.`
+            : ''
+        }
+        fileName={ventaToDelete?.numero}
+        isLoading={deletingVenta}
+      />
     </div>
   )
 }
