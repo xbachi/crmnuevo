@@ -29,13 +29,12 @@ export const INVOICE_CONFIG = {
 
   rebu: {
     /**
-     * Legal disclaimer printed on REBU invoices. The gestor/contador
-     * may want a more formal text such as:
-     *   "Operación sujeta al Régimen Especial de Bienes Usados (Art. 135-139,
-     *    Ley 37/1992 del IVA). Sin desglose de IVA."
-     * If they confirm a new wording, just edit this string.
+     * Mención legal obligatoria que debe aparecer en TODAS las facturas
+     * emitidas bajo el Régimen Especial de Bienes Usados (REBU). Texto
+     * formal validado por el gestor.
      */
-    legalNote: 'Régimen Especial Básico - Sin IVA',
+    legalNote:
+      'Operación sujeta al Régimen Especial de Bienes Usados, Objetos de Arte, Antigüedades y Objetos de Colección (Art. 135-139 de la Ley 37/1992 del IVA). Factura sin desglose de IVA conforme al régimen aplicado.',
   },
 
   vat: {

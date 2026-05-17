@@ -1601,18 +1601,29 @@ export async function generarFactura(
     yPosition += 4
 
     // === Notas comerciales / régimen fiscal ===
-    doc.setFontSize(8)
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(17, 24, 39)
-    doc.text(
-      tipoFactura === 'REBU'
-        ? INVOICE_CONFIG.rebu.legalNote
-        : 'IVA incluido en el precio',
-      margin,
-      yPosition
-    )
-    yPosition += 4
+    if (tipoFactura === 'REBU') {
+      // Mención legal REBU envuelta (Art. 135-139 Ley 37/1992) — obligatoria
+      // y debe destacarse visualmente en TODAS las facturas REBU.
+      const rebuLines = doc.splitTextToSize(
+        INVOICE_CONFIG.rebu.legalNote,
+        contentWidth
+      )
+      doc.setFontSize(8)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(4, 120, 87)
+      rebuLines.forEach((line: string, i: number) => {
+        doc.text(line, margin, yPosition + i * 3.5)
+      })
+      yPosition += rebuLines.length * 3.5 + 2
+    } else {
+      doc.setFontSize(8)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(17, 24, 39)
+      doc.text('IVA incluido en el precio', margin, yPosition)
+      yPosition += 4
+    }
     doc.setFont('helvetica', 'normal')
+    doc.setTextColor(17, 24, 39)
     doc.text('Garantía: 12 meses', margin, yPosition)
     yPosition += 8
 
