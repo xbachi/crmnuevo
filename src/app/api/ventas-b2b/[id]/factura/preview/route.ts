@@ -56,7 +56,8 @@ export async function GET(
     const pdfBytes = await generarFactura(
       dealData as never,
       tipo as 'IVA' | 'REBU',
-      numeroPreview
+      numeroPreview,
+      { skipGarantia: true } // B2B = sin garantía
     )
 
     return new NextResponse(Buffer.from(pdfBytes), {

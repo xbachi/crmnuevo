@@ -1466,10 +1466,17 @@ export async function generarContratoVentaConGarantia(
 
 // Función para generar factura
 // Función para generar factura profesional
+export interface GenerarFacturaOptions {
+  /** Si true, omite la línea "Garantía: 12 meses". Usado en B2B
+   *  (compraventa "en el estado" entre profesionales — sin garantía). */
+  skipGarantia?: boolean
+}
+
 export async function generarFactura(
   deal: DealData,
   tipoFactura: 'IVA' | 'REBU' = 'IVA',
-  numeroFacturaPersonalizado?: string
+  numeroFacturaPersonalizado?: string,
+  options: GenerarFacturaOptions = {}
 ): Promise<Uint8Array> {
   console.log('🔍 [GENERAR FACTURA] Parámetros recibidos:', {
     tipoFactura,
@@ -1622,10 +1629,14 @@ export async function generarFactura(
       doc.text('IVA incluido en el precio', margin, yPosition)
       yPosition += 4
     }
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(17, 24, 39)
-    doc.text('Garantía: 12 meses', margin, yPosition)
-    yPosition += 8
+    if (!options.skipGarantia) {
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(17, 24, 39)
+      doc.text('Garantía: 12 meses', margin, yPosition)
+      yPosition += 8
+    } else {
+      yPosition += 4
+    }
 
     // === Disclaimers legales ===
     doc.setFontSize(7)

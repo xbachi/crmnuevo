@@ -226,7 +226,8 @@ export async function issueInvoiceForB2B(
     const pdfBytes = await generarFactura(
       dealData as never,
       opts.invoiceType === 'VAT' ? 'IVA' : 'REBU',
-      inserted.full_invoice_number
+      inserted.full_invoice_number,
+      { skipGarantia: true } // B2B = "en el estado", sin garantía
     )
 
     const path = `${INVOICE_CONFIG.storage.blobPrefix}factura-${inserted.full_invoice_number}.pdf`
