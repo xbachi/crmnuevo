@@ -56,6 +56,39 @@ function ClienteB2BDetailPage() {
   const [previewingId, setPreviewingId] = useState<number | null>(null)
   const [ventaToDelete, setVentaToDelete] = useState<VentaB2B | null>(null)
   const [deletingVenta, setDeletingVenta] = useState(false)
+  const [ventaToVoidFactura, setVentaToVoidFactura] = useState<VentaB2B | null>(null)
+  const [voidingFactura, setVoidingFactura] = useState(false)
+
+  const confirmVoidFactura = async () => {
+    if (!ventaToVoidFactura) return
+    setVoidingFactura(true)
+    try {
+      const res = await fetch(
+        `/api/ventas-b2b/${ventaToVoidFactura.id}/factura/anular`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ motivo: 'Anulada desde UI cliente B2B' }),
+        }
+      )
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        showToast(data?.error ?? 'Error anulando factura', 'error')
+        return
+      }
+      showToast(
+        `Factura ${data.full_invoice_number} anulada. Ya podés emitir una nueva.`,
+        'success'
+      )
+      setVentaToVoidFactura(null)
+      await reloadVentas()
+    } catch (err) {
+      console.error(err)
+      showToast('Error de red', 'error')
+    } finally {
+      setVoidingFactura(false)
+    }
+  }
 
   const previewFacturaREBU = async (venta: VentaB2B) => {
     await downloadPdf({
@@ -390,6 +423,13 @@ function ClienteB2BDetailPage() {
                               ? 'Descargando...'
                               : 'Descargar factura'}
                           </button>
+                          <button
+                            onClick={() => setVentaToVoidFactura(v)}
+                            title="Anular esta factura (queda VOIDED, el número fiscal no se reutiliza; la venta queda libre para emitir una nueva)"
+                            className="px-3 py-1 bg-white text-red-600 border border-red-200 rounded text-xs font-medium hover:bg-red-50"
+                          >
+                            Anular factura
+                          </button>
                         </div>
                       ) : (
                         <div className="flex flex-col gap-1">
@@ -448,6 +488,20 @@ function ClienteB2BDetailPage() {
         }
         fileName={ventaToDelete?.numero}
         isLoading={deletingVenta}
+      />
+
+      <ConfirmDeleteModal
+        isOpen={!!ventaToVoidFactura}
+        onClose={() => !voidingFactura && setVentaToVoidFactura(null)}
+        onConfirm={confirmVoidFactura}
+        title="Anular factura B2B"
+        message={
+          ventaToVoidFactura
+            ? `¿Anular la factura ${ventaToVoidFactura.factura_numero ?? ''} de la venta ${ventaToVoidFactura.numero}? El número fiscal queda como anulado (no se reutiliza por compliance). Después podrás emitir una nueva factura para esta venta.`
+            : ''
+        }
+        fileName={ventaToVoidFactura?.factura_numero ?? undefined}
+        isLoading={voidingFactura}
       />
     </div>
   )
