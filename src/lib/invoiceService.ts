@@ -678,11 +678,15 @@ async function uploadPdfToBlob(
 ): Promise<{ url: string; pathname: string }> {
   // Prefijo "factura-" para que al descargar desde Vercel Blob el archivo
   // tenga un nombre humano (factura-F-2026-####.pdf) en lugar del crudo.
+  // addRandomSuffix=true para que la URL pública del blob NO sea adivinable
+  // (mitigación de exposición — el path real se guarda en pdf_storage_key y
+  // la URL canónica de descarga es /api/invoices/[id]/download que pasa por
+  // middleware auth).
   const path = `${INVOICE_CONFIG.storage.blobPrefix}factura-${fullInvoiceNumber}.pdf`
   const blob = await put(path, Buffer.from(pdfBytes), {
     access: 'public',
     contentType: 'application/pdf',
-    addRandomSuffix: false,
+    addRandomSuffix: true,
     allowOverwrite: true,
   })
   return { url: blob.url, pathname: blob.pathname }

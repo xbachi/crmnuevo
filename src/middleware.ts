@@ -1,17 +1,46 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { SESSION_COOKIE, verifySessionTokenEdge } from '@/lib/auth-edge'
 
-export function middleware(request: NextRequest) {
+/**
+ * Whitelist de rutas API que NO requieren autenticación.
+ * - /api/auth/* → login/logout/me (sin sesión por definición)
+ * - /api/test-* → bloqueadas en prod, libres en dev
+ */
+const PUBLIC_API_PREFIXES = [
+  '/api/auth/login',
+  '/api/auth/logout',
+  '/api/auth/me',
+]
+
+export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname
 
-  if (!path.startsWith('/api/test-')) {
+  // Bloquear endpoints /api/test-* en producción.
+  if (path.startsWith('/api/test-')) {
+    if (process.env.NODE_ENV === 'production') {
+      return new NextResponse(null, { status: 404 })
+    }
     return NextResponse.next()
   }
 
-  if (process.env.NODE_ENV === 'production') {
-    return new NextResponse(null, { status: 404 })
+  // Whitelist de auth.
+  if (PUBLIC_API_PREFIXES.some((p) => path === p || path.startsWith(p + '/'))) {
+    return NextResponse.next()
   }
 
+  // Cualquier otra ruta /api/** requiere sesión válida.
+  const token = request.cookies.get(SESSION_COOKIE)?.value
+  const session = await verifySessionTokenEdge(token)
+  if (!session) {
+    return NextResponse.json(
+      { error: 'No autenticado', code: 'UNAUTHENTICATED' },
+      { status: 401 }
+    )
+  }
+
+  // Sesión válida — passthrough. (Si necesitás role-based en endpoints
+  // específicos, lo chequeás dentro del handler con readSessionFromRequest.)
   return NextResponse.next()
 }
 

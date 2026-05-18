@@ -234,7 +234,7 @@ export async function issueInvoiceForB2B(
     const blob = await put(path, Buffer.from(pdfBytes), {
       access: 'public',
       contentType: 'application/pdf',
-      addRandomSuffix: false,
+      addRandomSuffix: true, // URL unguessable; descarga real va por /api/.../factura (auth)
       allowOverwrite: true,
     })
 

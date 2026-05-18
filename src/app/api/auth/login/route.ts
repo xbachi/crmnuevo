@@ -1,0 +1,64 @@
+import { NextRequest, NextResponse } from 'next/server'
+import {
+  findUserByEmail,
+  verifyPassword,
+  createSessionToken,
+  recordLogin,
+  SESSION_COOKIE,
+} from '@/lib/auth-server'
+
+/**
+ * POST /api/auth/login
+ * Body: { email, password }
+ * Devuelve { user: { id, email, role, name } } y setea cookie HttpOnly.
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json().catch(() => ({}))
+    const email = (body.email ?? '').toString().trim()
+    const password = (body.password ?? '').toString()
+
+    if (!email || !password) {
+      return NextResponse.json(
+        { error: 'Email y contraseña obligatorios' },
+        { status: 400 }
+      )
+    }
+
+    const user = await findUserByEmail(email)
+    // Always do the verify even if user is null to mitigate timing attacks.
+    const ok = user
+      ? verifyPassword(password, user.password_hash)
+      : (verifyPassword(password, 'scrypt:00:00'), false)
+
+    if (!user || !ok) {
+      return NextResponse.json(
+        { error: 'Credenciales inválidas' },
+        { status: 401 }
+      )
+    }
+
+    recordLogin(user.id).catch((e) => console.warn('[login] recordLogin:', e))
+
+    const token = createSessionToken(user.id, user.role)
+    const res = NextResponse.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        name: user.display_name,
+      },
+    })
+    res.cookies.set(SESSION_COOKIE, token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 12, // 12h, igual al TTL del token
+    })
+    return res
+  } catch (err) {
+    console.error('[POST /api/auth/login]', err)
+    return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+  }
+}

@@ -53,11 +53,13 @@ export async function POST(
     })
 
     // Subir a Vercel Blob (prefijo "contratos-b2b/")
+    // addRandomSuffix=true: URL unguessable; descarga real pasa por
+    // /api/ventas-b2b/[id]/contrato (protegido por middleware auth).
     const path = `contratos-b2b/contrato-b2b-${venta.numero}.pdf`
     const blob = await put(path, Buffer.from(pdfBytes), {
       access: 'public',
       contentType: 'application/pdf',
-      addRandomSuffix: false,
+      addRandomSuffix: true,
       allowOverwrite: true,
     })
 
