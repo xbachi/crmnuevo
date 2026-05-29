@@ -16,9 +16,11 @@
  *     same number.
  */
 
+import type { Pool, PoolClient } from 'pg'
 import { put } from '@vercel/blob'
 import { pool } from '@/lib/direct-database'
 import { generarFactura } from '@/lib/contractGenerator'
+import { pickInvoiceNumber } from '@/lib/invoiceNumbering'
 import {
   INVOICE_CONFIG,
   buildFullInvoiceNumber,
@@ -94,13 +96,19 @@ export async function previewInvoice(
   const vehicle = buildVehicleSnapshot(sale)
   const amounts = computeAmounts(sale.importeTotal ?? 0, invoiceType)
 
+  // Mirror the issuance rule (gap-filling) so the preview shows the number
+  // that will actually be assigned — including a freed/deleted number that
+  // will be reused. No lock here: a concurrent issue may still take it.
+  const startNumber = sequence.start_number ?? sequence.next_number
+  const number = await assignNumber(pool, sequence.series, startNumber)
+
   return {
     invoiceType,
     series: sequence.series,
-    nextNumber: sequence.next_number,
+    nextNumber: number,
     fullInvoiceNumber: buildFullInvoiceNumber(
       sequence.series,
-      sequence.next_number,
+      number,
       sequence.number_format
     ),
     invoiceDate: new Date().toISOString().slice(0, 10),
@@ -427,6 +435,39 @@ function computeAmounts(total: number, type: InvoiceType): Amounts {
   }
 }
 
+/**
+ * Resolve the next invoice number for a series using gap-filling. Pulls the
+ * state pickInvoiceNumber needs (system max, absolute max, occupied numbers in
+ * the managed range) and delegates the rule. Works with either the pool or a
+ * locked client — callers that need atomicity must already hold the sequence
+ * row lock.
+ */
+async function assignNumber(
+  db: Pool | PoolClient,
+  series: string,
+  startNumber: number
+): Promise<number> {
+  const agg = await db.query<{ sys_max: string | null; abs_max: string | null }>(
+    `SELECT MAX(number) FILTER (WHERE status <> 'IMPORTED') AS sys_max,
+            MAX(number)                                     AS abs_max
+       FROM invoices WHERE series = $1`,
+    [series]
+  )
+  const sysMax = agg.rows[0]?.sys_max != null ? Number(agg.rows[0].sys_max) : null
+  const absMax = agg.rows[0]?.abs_max != null ? Number(agg.rows[0].abs_max) : 0
+
+  let occupied: number[] = []
+  if (sysMax != null && sysMax >= startNumber) {
+    const occ = await db.query<{ number: number }>(
+      `SELECT number FROM invoices WHERE series = $1 AND number BETWEEN $2 AND $3`,
+      [series, startNumber, sysMax]
+    )
+    occupied = occ.rows.map((r) => Number(r.number))
+  }
+
+  return pickInvoiceNumber({ startNumber, sysMax, absMax, occupied })
+}
+
 async function reserveAndInsert(args: {
   sale: SaleSnapshot
   invoiceType: InvoiceType
@@ -445,7 +486,7 @@ async function reserveAndInsert(args: {
 
     // Lock the sequence row for this type
     const seqRes = await client.query(
-      `SELECT id, series, next_number, number_format
+      `SELECT id, series, next_number, number_format, start_number
        FROM invoice_sequences
        WHERE invoice_type = $1 AND is_active = TRUE
        ORDER BY year DESC, id DESC
@@ -463,21 +504,18 @@ async function reserveAndInsert(args: {
     const seqNext = seq.next_number as number
     const series = seq.series as string
 
-    // The seed migration (scripts/sql/0001-invoicing-module.sql) imports legacy
-    // Deal.factura rows into the same series as the seeded sequence, so an
-    // IMPORTED row's number can exceed next_number and collide with the
-    // invoices_unique_series_number UNIQUE constraint on insert — freezing
-    // issuance forever because the failed insert rolls back the sequence bump.
-    // Skip past anything already in the series while still holding the lock.
-    const maxRes = await client.query<{ max_num: number | null }>(
-      `SELECT MAX(number)::INT AS max_num FROM invoices WHERE series = $1`,
-      [series]
-    )
-    const maxExisting = maxRes.rows[0]?.max_num ?? 0
-    const number = Math.max(seqNext, maxExisting + 1)
+    // Gap-filling number assignment (while holding the sequence lock):
+    //  - Reuse the lowest free number in [start_number, system max] so an
+    //    invoice deleted by an admin gets its number re-occupied (no gaps).
+    //  - Otherwise take the next correlative, jumping over any legacy IMPORTED
+    //    row above the system max so we never hit invoices_unique_series_number.
+    // start_number is the series floor; legacy IMPORTED rows live below it and
+    // are never disturbed. See invoiceNumbering.pickInvoiceNumber.
+    const startNumber = (seq.start_number as number | null) ?? seqNext
+    const number = await assignNumber(client, series, startNumber)
     if (number !== seqNext) {
       console.warn(
-        `[invoiceService] fast-forwarding sequence ${series} (deal ${args.sale.id}): ${seqNext} -> ${number} (max existing: ${maxExisting})`
+        `[invoiceService] sequence ${series} (deal ${args.sale.id}): assigning ${number} (next_number was ${seqNext})`
       )
     }
     const fullInvoiceNumber = `${series}-${formatNumber(number, seq.number_format)}`
@@ -559,11 +597,13 @@ async function reserveAndInsert(args: {
       throw err
     }
 
-    // Advance the sequence past the number we just consumed (handles the
-    // fast-forward case above; equivalent to `next_number + 1` otherwise).
+    // Advance the sequence high-water mark. GREATEST keeps next_number
+    // monotonic (never regresses) even when we reused a lower freed number,
+    // preserving the no-regression invariant the admin sequence editor relies
+    // on. The real source of truth for the next number is the gap-fill scan.
     await client.query(
       `UPDATE invoice_sequences
-       SET next_number = $1, updated_at = NOW()
+       SET next_number = GREATEST(next_number, $1), updated_at = NOW()
        WHERE id = $2`,
       [number + 1, seq.id]
     )

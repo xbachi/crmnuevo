@@ -73,6 +73,8 @@ export interface InvoiceSequence {
   series: string
   year: number
   next_number: number
+  /** Series floor for gap-filling number reuse; null on pre-0010 rows. */
+  start_number: number | null
   number_format: string
   is_active: boolean
   created_at: string

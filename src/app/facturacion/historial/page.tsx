@@ -3,7 +3,9 @@
 import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { useToast } from '@/components/Toast'
+import { useAuth } from '@/contexts/AuthContext'
 import Pagination from '@/components/Pagination'
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal'
 import {
   InvoiceStatusBadge,
   InvoiceTypeBadge,
@@ -107,11 +109,16 @@ function formatEUR(amount: string | number | null) {
 
 export default function HistorialFacturacionPage() {
   const { showToast } = useToast()
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
 
   const [rows, setRows] = useState<Invoice[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [isLoading, setIsLoading] = useState(true)
+
+  const [invoiceToDelete, setInvoiceToDelete] = useState<Invoice | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
@@ -200,6 +207,35 @@ export default function HistorialFacturacionPage() {
       return
     }
     window.open(`/api/invoices/${invoice.id}/download`, '_blank')
+  }
+
+  const confirmDelete = async () => {
+    if (!invoiceToDelete) return
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/invoices/${invoiceToDelete.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data?.error || 'No se pudo eliminar la factura')
+      showToast(
+        `Factura ${invoiceToDelete.full_invoice_number} eliminada. El número queda libre para la próxima factura.`,
+        'success'
+      )
+      const wasLastOnPage = rows.length === 1 && page > 1
+      setInvoiceToDelete(null)
+      if (wasLastOnPage) setPage((p) => p - 1)
+      else fetchInvoices()
+    } catch (err) {
+      showToast(
+        err instanceof Error ? err.message : 'Error al eliminar la factura',
+        'error'
+      )
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const SortHeader = ({
@@ -494,6 +530,27 @@ export default function HistorialFacturacionPage() {
                             />
                           </svg>
                         </button>
+                        {isAdmin && (
+                          <button
+                            onClick={() => setInvoiceToDelete(inv)}
+                            title="Eliminar factura (libera el número)"
+                            className="p-1.5 rounded bg-red-50 text-red-600 hover:bg-red-100"
+                          >
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
+                            </svg>
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -529,6 +586,22 @@ export default function HistorialFacturacionPage() {
         tienen el número fiscal reservado pero el PDF falló: regenerá desde el
         detalle.
       </p>
+
+      <ConfirmDeleteModal
+        isOpen={!!invoiceToDelete}
+        title="Eliminar factura"
+        message={
+          invoiceToDelete
+            ? `¿Eliminar la factura ${invoiceToDelete.full_invoice_number}? Su número quedará libre y lo reutilizará la próxima factura emitida (sin huecos). Esta acción no se puede deshacer.`
+            : ''
+        }
+        fileName={invoiceToDelete?.full_invoice_number}
+        isLoading={deleting}
+        onConfirm={confirmDelete}
+        onClose={() => {
+          if (!deleting) setInvoiceToDelete(null)
+        }}
+      />
     </div>
   )
 }
