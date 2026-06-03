@@ -21,6 +21,7 @@ import { put } from '@vercel/blob'
 import { pool } from '@/lib/direct-database'
 import { generarFactura } from '@/lib/contractGenerator'
 import { pickInvoiceNumber } from '@/lib/invoiceNumbering'
+import { notifyGestoriaInvoice } from '@/lib/gestoriaWebhook'
 import {
   INVOICE_CONFIG,
   buildFullInvoiceNumber,
@@ -192,6 +193,19 @@ export async function issueInvoice(opts: IssueOptions): Promise<IssueResult> {
        RETURNING *`,
       [upload.url, upload.pathname, reserved.invoice.id]
     )
+
+    // Best-effort: file the PDF into OneDrive/GESTORIA via n8n. Never blocks or
+    // breaks issuance (no-op unless configured; notify swallows all errors).
+    await notifyGestoriaInvoice({
+      numeroFactura: reserved.invoice.full_invoice_number,
+      fechaISO: invoiceDate,
+      matricula: vehicle.plate,
+      marca: vehicle.make,
+      modelo: vehicle.model,
+      tipo: opts.invoiceType,
+      pdfBase64: Buffer.from(pdf).toString('base64'),
+    })
+
     return { invoice: updated.rows[0], alreadyExisted: false }
   } catch (pdfError) {
     console.error(
