@@ -64,12 +64,13 @@ export async function POST(request: NextRequest) {
 
     await client.query('BEGIN')
 
-    // 1) Cliente: find by DNI or create. Match ignoring case/whitespace so a
-    // recurring client isn't duplicated (and doesn't hit the UNIQUE(dni)).
-    const dniNorm = String(c.dni).trim()
+    // 1) Cliente: find by DNI or create. Match ignoring case AND all whitespace
+    // (incl. internal spaces) so a recurring client isn't duplicated (and
+    // doesn't hit the UNIQUE(dni)).
+    const dniNorm = String(c.dni).replace(/\s+/g, '')
     let clienteId: number
     const existingCliente = await client.query<{ id: number }>(
-      `SELECT id FROM "Cliente" WHERE UPPER(TRIM(dni)) = UPPER($1) LIMIT 1`,
+      `SELECT id FROM "Cliente" WHERE UPPER(REPLACE(dni, ' ', '')) = UPPER($1) LIMIT 1`,
       [dniNorm]
     )
     if (existingCliente.rows.length > 0) {
@@ -96,16 +97,19 @@ export async function POST(request: NextRequest) {
     }
 
     // 2) Vehiculo: find by matricula (or by bastidor) or create. Match the
-    // plate ignoring case/whitespace so we reuse an existing car instead of
-    // hitting UNIQUE(matricula)/UNIQUE(bastidor) on a retry.
-    const matriculaNorm = String(v.matricula).trim().toUpperCase()
+    // plate/VIN ignoring case AND all whitespace (incl. internal spaces, e.g.
+    // "2320 KNT" vs "2320KNT") so we reuse an existing car instead of hitting
+    // UNIQUE(matricula)/UNIQUE(bastidor) on a retry.
+    const matriculaNorm = String(v.matricula).replace(/\s+/g, '').toUpperCase()
     const bastidor =
-      v.bastidor && String(v.bastidor).trim() ? String(v.bastidor).trim() : null
+      v.bastidor && String(v.bastidor).replace(/\s+/g, '')
+        ? String(v.bastidor).replace(/\s+/g, '').toUpperCase()
+        : null
     let vehiculoId: number
     const existingVehiculo = await client.query<{ id: number }>(
       `SELECT id FROM "Vehiculo"
-       WHERE UPPER(TRIM(matricula)) = $1
-          OR ($2::text IS NOT NULL AND UPPER(TRIM(bastidor)) = UPPER($2))
+       WHERE UPPER(REPLACE(matricula, ' ', '')) = $1
+          OR ($2::text IS NOT NULL AND UPPER(REPLACE(bastidor, ' ', '')) = $2)
        LIMIT 1`,
       [matriculaNorm, bastidor]
     )
