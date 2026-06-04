@@ -107,12 +107,11 @@ export async function POST(request: NextRequest) {
       // different cases don't collide.
       const suffix = Date.now().toString().slice(-5)
       const referencia = `MAN-${v.matricula}-${suffix}`
-      // `bastidor` is UNIQUE NOT NULL but the manual form doesn't require it.
-      // Fall back to a synthetic value so issuance never fails on a missing VIN.
+      // `bastidor` is optional on the manual form. The column is UNIQUE but
+      // nullable, and Postgres allows multiple NULLs, so leave it empty (NULL)
+      // when not provided rather than inventing a fake VIN.
       const bastidor =
-        v.bastidor && String(v.bastidor).trim()
-          ? v.bastidor
-          : `SIN-VIN-${v.matricula}-${suffix}`
+        v.bastidor && String(v.bastidor).trim() ? String(v.bastidor).trim() : null
       const insRes = await client.query<{ id: number }>(
         `INSERT INTO "Vehiculo" (referencia, marca, modelo, matricula, bastidor,
                                   kms, tipo, estado, orden, color,

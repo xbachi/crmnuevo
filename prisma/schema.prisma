@@ -16,7 +16,7 @@ model Vehiculo {
   marca      String
   modelo     String
   matricula  String   @unique
-  bastidor   String   @unique
+  bastidor   String?  @unique
   kms        Int
   tipo       String   // "Compra", "Coche R", "Deposito Venta", "Inversor"
   estado     String   @default("SIN_ESTADO") // Estados del proceso de venta: SIN_ESTADO, REVI_INIC, MECAUTO, REVI_PINTURA, PINTURA, LIMPIEZA, FOTOS, PUBLICADO, VENDIDO, RESERVADO
