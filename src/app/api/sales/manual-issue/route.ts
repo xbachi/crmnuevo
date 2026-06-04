@@ -105,7 +105,14 @@ export async function POST(request: NextRequest) {
       // Build a synthetic referencia (the column is unique). Use the plate
       // plus a short random suffix so retries with the same plate but
       // different cases don't collide.
-      const referencia = `MAN-${v.matricula}-${Date.now().toString().slice(-5)}`
+      const suffix = Date.now().toString().slice(-5)
+      const referencia = `MAN-${v.matricula}-${suffix}`
+      // `bastidor` is UNIQUE NOT NULL but the manual form doesn't require it.
+      // Fall back to a synthetic value so issuance never fails on a missing VIN.
+      const bastidor =
+        v.bastidor && String(v.bastidor).trim()
+          ? v.bastidor
+          : `SIN-VIN-${v.matricula}-${suffix}`
       const insRes = await client.query<{ id: number }>(
         `INSERT INTO "Vehiculo" (referencia, marca, modelo, matricula, bastidor,
                                   kms, tipo, estado, orden, color,
@@ -117,7 +124,7 @@ export async function POST(request: NextRequest) {
           v.marca,
           v.modelo,
           v.matricula,
-          v.bastidor ?? null,
+          bastidor,
           v.kms ?? 0,
           v.color ?? null,
           v.fechaMatriculacion || null,
@@ -172,11 +179,25 @@ export async function POST(request: NextRequest) {
         err.code === 'SALE_NOT_FOUND' ? 404 : err.code === 'NO_SEQUENCE' ? 409 : 400
       return NextResponse.json({ error: err.message, code: err.code }, { status })
     }
-    const e = err as { code?: string; constraint?: string; detail?: string }
+    const e = err as {
+      code?: string
+      constraint?: string
+      detail?: string
+      column?: string
+    }
     if (e?.code === '23505') {
       return NextResponse.json(
         { error: 'Conflicto de datos al crear cliente / vehículo / deal.', detail: e.detail },
         { status: 409 }
+      )
+    }
+    if (e?.code === '23502') {
+      return NextResponse.json(
+        {
+          error: `Falta un campo obligatorio${e.column ? `: ${e.column}` : ''}.`,
+          detail: e.detail,
+        },
+        { status: 400 }
       )
     }
     console.error('[manual-issue]', err)
