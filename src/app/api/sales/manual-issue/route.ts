@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
         `INSERT INTO "Vehiculo" (referencia, marca, modelo, matricula, bastidor,
                                   kms, tipo, estado, orden, color,
                                   "fechaMatriculacion", año)
-         VALUES ($1, $2, $3, $4, $5, $6, 'M', 'vendido', 0, $7, $8, $9)
+         VALUES ($1, $2, $3, $4, $5, $6, 'M', 'VENDIDO', 0, $7, $8, $9)
          RETURNING id`,
         [
           referencia,
@@ -142,25 +142,48 @@ export async function POST(request: NextRequest) {
       vehiculoId = insRes.rows[0].id
     }
 
-    // 3) Deal: always create a fresh one for manual issuance
-    const dealNumero = `MAN-${Date.now()}`
-    const dealRes = await client.query<{ id: number }>(
-      `INSERT INTO "Deal" (numero, "clienteId", "vehiculoId", estado,
-                            "importeTotal", "importeSena", "formaPagoSena",
-                            observaciones)
-       VALUES ($1, $2, $3, 'facturado', $4, $5, $6, $7)
-       RETURNING id`,
-      [
-        dealNumero,
-        clienteId,
-        vehiculoId,
-        importeTotal,
-        Number(f.importeSena) || 0,
-        f.formaPagoSena ?? null,
-        'Deal creado automáticamente desde /generador-facturas para emisión fiscal correlativa.',
-      ]
+    // 3) Deal: reuse the car's active deal for THIS client (so a car already in
+    //    the CRM gets invoiced on its own deal instead of a duplicate). A
+    //    reservation for a DIFFERENT client is left untouched → fresh deal.
+    let dealId: number
+    const activeDeal = await client.query<{ id: number }>(
+      `SELECT id FROM "Deal"
+        WHERE "vehiculoId" = $1 AND "clienteId" = $2
+          AND estado NOT IN ('facturado', 'cancelado')
+          AND (factura IS NULL OR factura = '')
+        ORDER BY id DESC LIMIT 1`,
+      [vehiculoId, clienteId]
     )
-    const dealId = dealRes.rows[0].id
+    if (activeDeal.rows.length > 0) {
+      dealId = activeDeal.rows[0].id
+      // Refresh the deal amounts with what the operator typed, so the invoice
+      // reflects the form data (issueInvoice reads the deal, not the form).
+      await client.query(
+        `UPDATE "Deal"
+            SET "importeTotal" = $1, "importeSena" = $2, "formaPagoSena" = $3
+          WHERE id = $4`,
+        [importeTotal, Number(f.importeSena) || 0, f.formaPagoSena ?? null, dealId]
+      )
+    } else {
+      const dealNumero = `MAN-${Date.now()}`
+      const dealRes = await client.query<{ id: number }>(
+        `INSERT INTO "Deal" (numero, "clienteId", "vehiculoId", estado,
+                              "importeTotal", "importeSena", "formaPagoSena",
+                              observaciones)
+         VALUES ($1, $2, $3, 'facturado', $4, $5, $6, $7)
+         RETURNING id`,
+        [
+          dealNumero,
+          clienteId,
+          vehiculoId,
+          importeTotal,
+          Number(f.importeSena) || 0,
+          f.formaPagoSena ?? null,
+          'Deal creado automáticamente desde /generador-facturas para emisión fiscal correlativa.',
+        ]
+      )
+      dealId = dealRes.rows[0].id
+    }
 
     await client.query('COMMIT')
 
@@ -175,6 +198,20 @@ export async function POST(request: NextRequest) {
       invoiceType,
       idempotencyKey,
     })
+
+    // Mark the car as sold and point its active deal at the issued one.
+    // Best-effort: the invoice is already issued, so a failure here must not
+    // turn a successful issuance into an error.
+    try {
+      await client.query(
+        `UPDATE "Vehiculo"
+            SET estado = 'VENDIDO', "dealActivoId" = $1, "updatedAt" = NOW()
+          WHERE id = $2`,
+        [dealId, vehiculoId]
+      )
+    } catch (e) {
+      console.error('[manual-issue] no se pudo marcar el vehículo como vendido:', e)
+    }
 
     return NextResponse.json(
       { ...result, dealId, clienteId, vehiculoId },
