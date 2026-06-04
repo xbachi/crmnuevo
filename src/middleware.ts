@@ -11,6 +11,9 @@ const PUBLIC_API_PREFIXES = [
   '/api/auth/login',
   '/api/auth/logout',
   '/api/auth/me',
+  // El receptor de n8n reporta acá con X-Webhook-Secret (sin sesión). El GET
+  // valida la sesión dentro del handler.
+  '/api/automation-log',
 ]
 
 export async function middleware(request: NextRequest) {

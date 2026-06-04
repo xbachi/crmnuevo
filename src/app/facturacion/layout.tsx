@@ -8,6 +8,7 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 const TABS = [
   { href: '/facturacion/historial', label: 'Historial' },
   { href: '/facturacion/series', label: 'Series y numeración' },
+  { href: '/facturacion/registro', label: 'Registro automatiz.' },
   { href: '/facturacion/errores', label: 'Errores / pendientes' },
   { href: '/facturacion/configuracion', label: 'Configuración' },
 ]
