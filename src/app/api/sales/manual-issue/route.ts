@@ -64,11 +64,13 @@ export async function POST(request: NextRequest) {
 
     await client.query('BEGIN')
 
-    // 1) Cliente: find by DNI or create
+    // 1) Cliente: find by DNI or create. Match ignoring case/whitespace so a
+    // recurring client isn't duplicated (and doesn't hit the UNIQUE(dni)).
+    const dniNorm = String(c.dni).trim()
     let clienteId: number
     const existingCliente = await client.query<{ id: number }>(
-      `SELECT id FROM "Cliente" WHERE dni = $1 LIMIT 1`,
-      [c.dni]
+      `SELECT id FROM "Cliente" WHERE UPPER(TRIM(dni)) = UPPER($1) LIMIT 1`,
+      [dniNorm]
     )
     if (existingCliente.rows.length > 0) {
       clienteId = existingCliente.rows[0].id
@@ -83,7 +85,7 @@ export async function POST(request: NextRequest) {
           c.apellidos,
           c.email ?? null,
           c.telefono ?? null,
-          c.dni,
+          dniNorm,
           c.direccion ?? null,
           c.ciudad ?? null,
           c.codPostal ?? null,
@@ -93,11 +95,19 @@ export async function POST(request: NextRequest) {
       clienteId = insRes.rows[0].id
     }
 
-    // 2) Vehiculo: find by matricula or create
+    // 2) Vehiculo: find by matricula (or by bastidor) or create. Match the
+    // plate ignoring case/whitespace so we reuse an existing car instead of
+    // hitting UNIQUE(matricula)/UNIQUE(bastidor) on a retry.
+    const matriculaNorm = String(v.matricula).trim().toUpperCase()
+    const bastidor =
+      v.bastidor && String(v.bastidor).trim() ? String(v.bastidor).trim() : null
     let vehiculoId: number
     const existingVehiculo = await client.query<{ id: number }>(
-      `SELECT id FROM "Vehiculo" WHERE matricula = $1 LIMIT 1`,
-      [v.matricula]
+      `SELECT id FROM "Vehiculo"
+       WHERE UPPER(TRIM(matricula)) = $1
+          OR ($2::text IS NOT NULL AND UPPER(TRIM(bastidor)) = UPPER($2))
+       LIMIT 1`,
+      [matriculaNorm, bastidor]
     )
     if (existingVehiculo.rows.length > 0) {
       vehiculoId = existingVehiculo.rows[0].id
@@ -106,12 +116,7 @@ export async function POST(request: NextRequest) {
       // plus a short random suffix so retries with the same plate but
       // different cases don't collide.
       const suffix = Date.now().toString().slice(-5)
-      const referencia = `MAN-${v.matricula}-${suffix}`
-      // `bastidor` is optional on the manual form. The column is UNIQUE but
-      // nullable, and Postgres allows multiple NULLs, so leave it empty (NULL)
-      // when not provided rather than inventing a fake VIN.
-      const bastidor =
-        v.bastidor && String(v.bastidor).trim() ? String(v.bastidor).trim() : null
+      const referencia = `MAN-${matriculaNorm}-${suffix}`
       const insRes = await client.query<{ id: number }>(
         `INSERT INTO "Vehiculo" (referencia, marca, modelo, matricula, bastidor,
                                   kms, tipo, estado, orden, color,
@@ -122,7 +127,7 @@ export async function POST(request: NextRequest) {
           referencia,
           v.marca,
           v.modelo,
-          v.matricula,
+          matriculaNorm,
           bastidor,
           v.kms ?? 0,
           v.color ?? null,
@@ -185,8 +190,24 @@ export async function POST(request: NextRequest) {
       column?: string
     }
     if (e?.code === '23505') {
+      const con = e.constraint ?? ''
+      const campo = con.includes('dni')
+        ? 'el DNI del cliente'
+        : con.includes('bastidor')
+          ? 'el bastidor (VIN)'
+          : con.includes('matricula')
+            ? 'la matrícula'
+            : con.includes('referencia')
+              ? 'la referencia interna'
+              : con.includes('numero')
+                ? 'el número de operación'
+                : 'un dato único'
       return NextResponse.json(
-        { error: 'Conflicto de datos al crear cliente / vehículo / deal.', detail: e.detail },
+        {
+          error: `Ya existe un registro con ${campo}. Revisalo o usá el coche/cliente existente.`,
+          detail: e.detail,
+          constraint: e.constraint,
+        },
         { status: 409 }
       )
     }
