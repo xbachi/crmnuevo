@@ -115,6 +115,8 @@ export interface Vehiculo {
   gastosOtros?: number | null
   precioPublicacion?: number | null
   precioVenta?: number | null
+  gastosCNGarantia?: number | null
+  garantiaPremium?: boolean
   beneficioNeto?: number | null
   notasInversor?: string | null
   fotoInversor?: string | null
@@ -317,6 +319,10 @@ export interface Deal {
     email?: string
     telefono?: string
     dni?: string
+    calle?: string
+    ciudad?: string
+    provincia?: string
+    codPostal?: string
   }
   vehiculo?: {
     id: number

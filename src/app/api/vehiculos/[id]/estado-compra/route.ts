@@ -62,7 +62,10 @@ export async function GET(
   } catch (error) {
     console.error('❌ [API GET] Error al obtener estado de compra:', error)
     return NextResponse.json(
-      { error: 'Error interno del servidor', details: error.message },
+      {
+        error: 'Error interno del servidor',
+        details: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     )
   }

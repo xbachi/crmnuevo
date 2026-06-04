@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { generarContratoVenta } from '@/lib/contractGenerator'
+import { generarContratoVenta, type DealData } from '@/lib/contractGenerator'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { cliente, vehiculo, deposito, tipo } = body
+    const { cliente, vehiculo } = body
 
     // console.log('📄 Generando contrato de venta:', {
     //   cliente,
@@ -14,12 +14,7 @@ export async function POST(request: NextRequest) {
     // })
 
     // Generar el PDF del contrato de venta
-    await generarContratoVenta({
-      cliente,
-      vehiculo,
-      deposito,
-      tipo: 'VENTA',
-    })
+    await generarContratoVenta({ cliente, vehiculo } as DealData)
 
     return NextResponse.json({
       success: true,

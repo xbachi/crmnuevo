@@ -113,7 +113,9 @@ export default function TestContratosPage() {
       console.log(`✅ ${tipo} generado, tamaño:`, pdfBuffer.length, 'bytes')
 
       // Convertir Uint8Array a Blob
-      const pdfBlob = new Blob([pdfBuffer.buffer], { type: 'application/pdf' })
+      const pdfBlob = new Blob([new Uint8Array(pdfBuffer)], {
+        type: 'application/pdf',
+      })
 
       // Crear URL del blob y descargar
       const url = window.URL.createObjectURL(pdfBlob)

@@ -14,10 +14,13 @@ export async function GET(request: NextRequest) {
         | '7_dias') || 'año'
 
     // Obtener estadísticas de vehículos y depósitos
-    const [vehiculoStats, depositoStats] = await Promise.all([
+    const [vehiculoStats, depositoStats] = (await Promise.all([
       getVehiculoStats(),
       getDepositoStats(),
-    ])
+    ])) as [
+      { vendidos: number; totalActivos: number; enProceso: number },
+      { totalDepositos: number; enProceso: number },
+    ]
 
     // Calcular métricas basadas en el período seleccionado
     // Por ahora, devolvemos los datos actuales ya que las funciones de base de datos

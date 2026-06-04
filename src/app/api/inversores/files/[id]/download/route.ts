@@ -35,7 +35,7 @@ export async function GET(
       try {
         const fileBuffer = await readFile(filePath)
 
-        return new NextResponse(fileBuffer, {
+        return new NextResponse(new Uint8Array(fileBuffer), {
           headers: {
             'Content-Type': file.tipo,
             'Content-Disposition': `attachment; filename="${file.nombre}"`,

@@ -85,7 +85,6 @@ export async function POST(request: NextRequest) {
           matricula: vehiculo.matricula,
           bastidor: vehiculo.bastidor,
           kilometraje: vehiculo.kms,
-          fechaMatriculacion: vehiculo.fechaMatriculacion,
         },
         cliente: {
           nombre: capitalizeText(cliente.nombre),
@@ -105,7 +104,7 @@ export async function POST(request: NextRequest) {
       console.log(`✅ [COCHE R CONTRATO] Contrato generado exitosamente`)
 
       // Siempre devolver el PDF directamente como lo hacen los otros contratos
-      return new NextResponse(pdfBuffer, {
+      return new NextResponse(new Uint8Array(pdfBuffer), {
         status: 200,
         headers: {
           'Content-Type': 'application/pdf',

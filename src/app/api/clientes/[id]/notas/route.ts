@@ -241,13 +241,14 @@ export async function DELETE(
     return NextResponse.json({ success: true, deletedNota: result.rows[0] })
   } catch (error) {
     console.error('❌ Error eliminando nota del cliente:', error)
-    console.error('❌ Error stack:', error.stack)
-    console.error('❌ Error code:', error.code)
+    const err = error as { stack?: unknown; code?: unknown; message?: unknown }
+    console.error('❌ Error stack:', err.stack)
+    console.error('❌ Error code:', err.code)
     return NextResponse.json(
       {
         error: 'Error interno del servidor',
-        details: error.message,
-        code: error.code,
+        details: error instanceof Error ? error.message : String(error),
+        code: err.code,
       },
       { status: 500 }
     )

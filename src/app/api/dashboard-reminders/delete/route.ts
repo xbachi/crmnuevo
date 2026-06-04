@@ -111,7 +111,9 @@ export async function DELETE(request: NextRequest) {
       )
       client.release()
       return NextResponse.json(
-        { error: `Error en la consulta: ${queryError.message}` },
+        {
+          error: `Error en la consulta: ${queryError instanceof Error ? queryError.message : String(queryError)}`,
+        },
         { status: 500 }
       )
     } finally {
@@ -120,7 +122,9 @@ export async function DELETE(request: NextRequest) {
   } catch (error) {
     console.error('❌ [DASHBOARD REMINDERS DELETE] Error general:', error)
     return NextResponse.json(
-      { error: `Error interno del servidor: ${error.message}` },
+      {
+        error: `Error interno del servidor: ${error instanceof Error ? error.message : String(error)}`,
+      },
       { status: 500 }
     )
   }

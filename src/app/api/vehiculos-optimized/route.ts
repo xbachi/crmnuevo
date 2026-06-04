@@ -5,6 +5,7 @@ import {
   updateVehiculo,
   deleteVehiculo,
   getVehiculoById,
+  type Vehiculo,
 } from '@/lib/direct-database'
 import { writeVehiculoToSheets } from '@/lib/googleSheets'
 import { generateFolderName, getFolderPathsByTipo } from '@/config/folders'
@@ -146,7 +147,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Crear el vehículo en la base de datos
-    const vehiculo = await saveVehiculo(vehiculoData)
+    const vehiculo = await saveVehiculo(
+      vehiculoData as Omit<Vehiculo, 'id' | 'createdAt' | 'updatedAt'>
+    )
 
     // Crear carpetas del vehículo
     try {
@@ -157,11 +160,10 @@ export async function POST(request: NextRequest) {
         matricula,
         tipo
       )
-      const folderPaths = getFolderPathsByTipo(tipo)
+      const folderPaths = getFolderPathsByTipo(tipo, folderName)
 
       for (const folderPath of folderPaths) {
-        const fullPath = `./${folderPath}/${folderName}`
-        await fs.mkdir(fullPath, { recursive: true })
+        await fs.mkdir(folderPath, { recursive: true })
       }
     } catch (folderError) {
       console.error('Error creando carpetas:', folderError)

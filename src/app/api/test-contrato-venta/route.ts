@@ -47,10 +47,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Generar el contrato de venta
-    const pdfBuffer = await generarContratoVenta(dealData)
+    const pdfBuffer = await generarContratoVenta(dealData as never)
 
     // Crear respuesta con el PDF
-    const response = new NextResponse(pdfBuffer)
+    const response = new NextResponse(Buffer.from(pdfBuffer))
     response.headers.set('Content-Type', 'application/pdf')
     response.headers.set(
       'Content-Disposition',

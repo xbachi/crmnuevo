@@ -453,7 +453,9 @@ export default function DepositoDetail() {
       const pdfBuffer = await generarContratoDeposito(contratoData)
 
       // Crear URL temporal para el PDF
-      const blob = new Blob([pdfBuffer], { type: 'application/pdf' })
+      const blob = new Blob([new Uint8Array(pdfBuffer)], {
+        type: 'application/pdf',
+      })
       const pdfUrl = URL.createObjectURL(blob)
 
       // Abrir el PDF en una nueva ventana
@@ -594,7 +596,9 @@ export default function DepositoDetail() {
       const pdfBuffer = await generarContratoCompraventa(contratoData)
 
       // Crear y descargar el PDF
-      const pdfBlob = new Blob([pdfBuffer], { type: 'application/pdf' })
+      const pdfBlob = new Blob([new Uint8Array(pdfBuffer)], {
+        type: 'application/pdf',
+      })
       const url = window.URL.createObjectURL(pdfBlob)
       const link = document.createElement('a')
       link.href = url
@@ -660,7 +664,9 @@ export default function DepositoDetail() {
       const pdfBuffer = await generarContratoCompraventa(contratoData)
 
       // Crear y descargar el PDF
-      const pdfBlob = new Blob([pdfBuffer], { type: 'application/pdf' })
+      const pdfBlob = new Blob([new Uint8Array(pdfBuffer)], {
+        type: 'application/pdf',
+      })
       const url = window.URL.createObjectURL(pdfBlob)
       const link = document.createElement('a')
       link.href = url
@@ -907,7 +913,7 @@ export default function DepositoDetail() {
                   <button
                     onClick={handleGenerarContratoDeposito}
                     disabled={
-                      isGeneratingContrato || deposito.contrato_deposito
+                      isGeneratingContrato || Boolean(deposito.contrato_deposito)
                     }
                     className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-colors ${
                       deposito.contrato_deposito
@@ -961,7 +967,8 @@ export default function DepositoDetail() {
                   <button
                     onClick={handleGenerarContrato}
                     disabled={
-                      deposito.estado !== 'VENDIDO' || deposito.contrato_compra
+                      deposito.estado !== 'VENDIDO' ||
+                      Boolean(deposito.contrato_compra)
                     }
                     className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-colors ${
                       deposito.contrato_compra
@@ -1190,9 +1197,7 @@ export default function DepositoDetail() {
                       />
                     ) : (
                       <p className="text-gray-900 text-sm font-medium">
-                        {formatCurrency(
-                          parseFloat(deposito.multa_retiro_anticipado) || 0
-                        )}
+                        {formatCurrency(deposito.multa_retiro_anticipado || 0)}
                       </p>
                     )}
                   </div>
@@ -1659,7 +1664,7 @@ export default function DepositoDetail() {
                         >
                           <span
                             className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                              deposito.estado === 'VENDIDO'
+                              (deposito.estado as string) === 'VENDIDO'
                                 ? 'translate-x-6'
                                 : 'translate-x-1'
                             }`}

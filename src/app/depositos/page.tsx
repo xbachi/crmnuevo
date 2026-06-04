@@ -107,7 +107,7 @@ export default function DepositosPage() {
     router.push('/depositos/nuevo')
   }
 
-  const handleViewDeposito = (id: number) => {
+  const handleViewDeposito = (id: number | string) => {
     router.push(`/depositos/${id}`)
   }
 
@@ -150,7 +150,7 @@ export default function DepositosPage() {
     try {
       // Preparar los datos para el contrato
       const contratoData = {
-        id: deposito.id,
+        id: Number(deposito.id),
         cliente: {
           nombre: capitalizeText(deposito.cliente.nombre),
           apellidos: capitalizeText(deposito.cliente.apellidos),

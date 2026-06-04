@@ -1,5 +1,6 @@
 'use client'
 
+import type { ComponentProps } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import DraggableVehicleCard from './DraggableVehicleCard'
@@ -21,7 +22,7 @@ interface Vehiculo {
   año?: number
   itv?: string
   seguro?: string
-  segundaLlave?: boolean
+  segundaLlave?: string | boolean
   documentacion?: string
 }
 
@@ -75,7 +76,17 @@ export default function KanbanColumn({
               </div>
             ) : (
               vehiculos.map((vehiculo) => (
-                <DraggableVehicleCard key={vehiculo.id} vehiculo={vehiculo} />
+                // segundaLlave differs between the two same-named Vehiculo
+                // types (string vs boolean) across module boundaries; the
+                // value is passed through unchanged, only the type is bridged.
+                <DraggableVehicleCard
+                  key={vehiculo.id}
+                  vehiculo={
+                    vehiculo as ComponentProps<
+                      typeof DraggableVehicleCard
+                    >['vehiculo']
+                  }
+                />
               ))
             )}
           </div>

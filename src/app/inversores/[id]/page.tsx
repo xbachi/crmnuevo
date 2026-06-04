@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Inversor, Vehiculo } from '@/lib/direct-database'
+import { Inversor, Vehiculo } from '@/lib/database'
 import { InvestorMetrics } from '@/components/InvestorMetrics'
 import { InvestorVehicleCard } from '@/components/InvestorVehicleCard'
 import { useSimpleToast } from '@/hooks/useSimpleToast'
@@ -25,6 +25,13 @@ interface InvestorMetrics {
   totalVendidos: number
   totalEnStock: number
   diasPromedioEnStock: number
+}
+
+interface Nota {
+  id: number
+  contenido: string
+  usuario_nombre: string
+  fecha_creacion: string
 }
 
 export default function InvestorDashboardPage() {
@@ -65,7 +72,7 @@ export default function InvestorDashboardPage() {
   })
   const [editingVehiculo, setEditingVehiculo] = useState<Vehiculo | null>(null)
   const [isEditingVehiculo, setIsEditingVehiculo] = useState(false)
-  const [notas, setNotas] = useState<any[]>([])
+  const [notas, setNotas] = useState<Nota[]>([])
 
   // Estados para documentos
   const [documentos, setDocumentos] = useState<
@@ -92,8 +99,9 @@ export default function InvestorDashboardPage() {
   const inversorId = (params.id as string).split('-')[0] // Extraer solo el ID del slug
 
   // Verificar si el usuario actual es un inversor autenticado (NO admin)
-  const isInvestorUser =
+  const isInvestorUser = Boolean(
     inversor && inversor.id === parseInt(inversorId) && !canEdit
+  )
 
   const calculateAnnualizedROI = () => {
     if (!inversorData?.fechaAporte || !metrics?.roi) return 0
@@ -1288,7 +1296,7 @@ export default function InvestorDashboardPage() {
               {inversorData?.id ? (
                 <NotasSection
                   notas={notas}
-                  onNotasChange={canEdit ? setNotas : undefined}
+                  onNotasChange={setNotas}
                   entityId={inversorData.id}
                   entityType="inversor"
                   isReadOnly={!canEdit}
@@ -1512,7 +1520,7 @@ export default function InvestorDashboardPage() {
                   <div className="p-4 pt-0">
                     <NotasSection
                       notas={notas}
-                      onNotasChange={canEdit ? setNotas : undefined}
+                      onNotasChange={setNotas}
                       entityId={inversorData.id}
                       entityType="inversor"
                       isReadOnly={!canEdit}

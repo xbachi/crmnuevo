@@ -688,7 +688,10 @@ export default function CochesRPage() {
                   key={`${vehiculo.id}-${vehiculo.updatedAt}-${index}`}
                   vehiculo={vehiculo}
                   onEdit={handleEdit}
-                  onDelete={handleDelete}
+                  onDelete={(id: number) => {
+                    const v = filteredVehiculos.find((veh) => veh.id === id)
+                    if (v) handleDelete(v)
+                  }}
                   onView={() => {
                     router.push(`/vehiculos/${generateVehicleSlug(vehiculo)}`)
                   }}

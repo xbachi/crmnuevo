@@ -49,9 +49,11 @@ export function InvestorCard({ inversor, onEdit, onDelete, onView }: InvestorCar
         {inversor.telefono && (
           <p><span className="font-medium">Teléfono:</span> {inversor.telefono}</p>
         )}
-        <p><span className="font-medium">Fecha de alta:</span> {formatDate(inversor.fechaAlta)}</p>
-        {inversor.capitalAportadoHistorico > 0 && (
-          <p><span className="font-medium">Capital aportado:</span> €{inversor.capitalAportadoHistorico.toLocaleString()}</p>
+        {inversor.fechaAlta && (
+          <p><span className="font-medium">Fecha de alta:</span> {formatDate(inversor.fechaAlta)}</p>
+        )}
+        {(inversor.capitalAportadoHistorico ?? 0) > 0 && (
+          <p><span className="font-medium">Capital aportado:</span> €{inversor.capitalAportadoHistorico!.toLocaleString()}</p>
         )}
         {inversor.capitalComprometido && (
           <p><span className="font-medium">Capital comprometido:</span> €{inversor.capitalComprometido.toLocaleString()}</p>

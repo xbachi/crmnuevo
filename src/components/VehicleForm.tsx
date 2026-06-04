@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Inversor } from '@/lib/direct-database'
+import { Inversor } from '@/lib/database'
 
 interface VehicleFormData {
   referencia: string

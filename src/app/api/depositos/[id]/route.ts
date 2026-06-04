@@ -221,13 +221,18 @@ export async function PUT(
     return NextResponse.json(result.rows[0])
   } catch (error) {
     console.error('❌ Error updating deposito:', error)
-    console.error('❌ Error stack:', error.stack)
-    console.error('❌ Error code:', error.code)
+    const message = error instanceof Error ? error.message : String(error)
+    const code =
+      error && typeof error === 'object' && 'code' in error
+        ? (error as { code?: unknown }).code
+        : undefined
+    console.error('❌ Error stack:', error instanceof Error ? error.stack : undefined)
+    console.error('❌ Error code:', code)
     return NextResponse.json(
       {
         error: 'Error interno del servidor',
-        details: error.message,
-        code: error.code,
+        details: message,
+        code,
       },
       { status: 500 }
     )

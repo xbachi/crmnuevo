@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     console.log('✅ [CONTRATO PERSONALIZADO] Contrato generado exitosamente')
 
     // Crear respuesta con el PDF
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(new Uint8Array(pdfBuffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',

@@ -113,7 +113,7 @@ export async function GET() {
     console.error('❌ [QA DELETE RECORDATORIO] Error en test:', error)
     return NextResponse.json({ 
       error: 'Error en test de eliminación',
-      details: error.message,
+      details: error instanceof Error ? error.message : 'Error desconocido',
       step: 'test_error'
     }, { status: 500 })
   }

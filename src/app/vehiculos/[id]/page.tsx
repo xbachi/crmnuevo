@@ -169,11 +169,13 @@ export default function VehiculoDetailPage() {
   const [documentos, setDocumentos] = useState<
     Array<{
       id: string
-      nombre: string
-      tamaño: string
-      fechaSubida: string
-      tipo: string
-      ruta?: string
+      name: string
+      fileName?: string
+      size: number
+      type: string
+      uploadDate: string
+      path: string
+      tamañoFormateado?: string
     }>
   >([])
 
@@ -192,13 +194,13 @@ export default function VehiculoDetailPage() {
     fechaMatriculacion: '',
     fechaCompra: '',
     año: 0,
-    itv: '',
-    seguro: '',
-    segundaLlave: '',
-    carpeta: '',
-    master: '',
-    hojasA: '',
-    documentacion: '',
+    itv: '' as string | null,
+    seguro: '' as string | null,
+    segundaLlave: '' as string | null,
+    carpeta: '' as string | null,
+    master: '' as string | null,
+    hojasA: '' as string | null,
+    documentacion: '' as string | null,
     precioCompra: 0,
     gastosTransporte: 0,
     gastosTasas: 0,
@@ -580,7 +582,7 @@ export default function VehiculoDetailPage() {
       link.click()
       document.body.removeChild(link)
 
-      showToast(`Descargando ${documento.nombre}`, 'success')
+      showToast(`Descargando ${documento.name}`, 'success')
     }
   }
 
@@ -715,14 +717,14 @@ export default function VehiculoDetailPage() {
         } else {
           showToast(
             'Contrato anulado pero error al actualizar estado del vehículo',
-            'warning'
+            'info'
           )
         }
       } catch (updateError) {
         console.error('Error actualizando estado del vehículo:', updateError)
         showToast(
           'Contrato anulado pero error al actualizar estado del vehículo',
-          'warning'
+          'info'
         )
       }
     } catch (error) {
@@ -748,6 +750,7 @@ export default function VehiculoDetailPage() {
 
     if (vehiculo) {
       const newEditingData = {
+        ...editingData,
         tipo: vehiculo.tipo || '',
         marca: vehiculo.marca || '',
         modelo: vehiculo.modelo || '',
@@ -965,7 +968,7 @@ export default function VehiculoDetailPage() {
 
     if (Object.keys(camposAGuardar).length === 0) {
       console.warn('⚠️ [SAVE] No hay campos para guardar')
-      showToast('No hay cambios para guardar', 'warning')
+      showToast('No hay cambios para guardar', 'info')
       return
     }
 
@@ -1401,7 +1404,7 @@ export default function VehiculoDetailPage() {
           // Recargar documentos para mostrar el nuevo contrato
           await fetchDocumentos()
         } else {
-          showToast('Contrato generado pero no se pudo guardar', 'warning')
+          showToast('Contrato generado pero no se pudo guardar', 'info')
         }
 
         // Cambiar estado del vehículo a "vendido"
@@ -3589,7 +3592,7 @@ export default function VehiculoDetailPage() {
                   ) : (
                     documentos.map((doc) => {
                       // Validar que el documento tiene las propiedades necesarias
-                      if (!doc || !doc.id || !doc.nombre) {
+                      if (!doc || !doc.id || !doc.name) {
                         console.warn(
                           'Documento con propiedades faltantes:',
                           doc
@@ -3620,16 +3623,21 @@ export default function VehiculoDetailPage() {
                             </div>
                             <div>
                               <p className="text-sm font-medium text-gray-900">
-                                {doc.nombre}
+                                {doc.name}
                               </p>
                               <p className="text-xs text-gray-500">
-                                {doc.tamañoFormateado} • {doc.fechaSubida}
+                                {doc.tamañoFormateado} •{' '}
+                                {doc.uploadDate
+                                  ? new Date(doc.uploadDate).toLocaleDateString(
+                                      'es-ES'
+                                    )
+                                  : ''}
                               </p>
                             </div>
                           </div>
                           {/* Botón Anular para contratos de Coches R, Eliminar para otros documentos */}
-                          {doc.nombre &&
-                          doc.nombre
+                          {doc.name &&
+                          doc.name
                             .toLowerCase()
                             .includes('contrato-coche-r') ? (
                             <button
@@ -3849,13 +3857,13 @@ export default function VehiculoDetailPage() {
                               {recordatorio.descripcion}
                             </p>
                             <p className="text-xs text-gray-500">
-                              {formatDate(recordatorio.fechaRecordatorio)}
+                              {formatDate(recordatorio.fecha_recordatorio)}
                             </p>
                           </div>
                           <div className="flex items-center space-x-1 ml-2">
                             <button
                               onClick={() =>
-                                toggleRecordatorioCompletado(recordatorio.id)
+                                handleCompletarRecordatorio(recordatorio)
                               }
                               className={`p-1 rounded transition-colors ${
                                 recordatorio.completado
@@ -3879,7 +3887,7 @@ export default function VehiculoDetailPage() {
                             </button>
                             <button
                               onClick={() =>
-                                startEditingRecordatorio(recordatorio)
+                                handleEditarRecordatorio(recordatorio)
                               }
                               className="p-1 text-blue-600 hover:bg-blue-100 rounded transition-colors"
                             >
@@ -3899,7 +3907,7 @@ export default function VehiculoDetailPage() {
                             </button>
                             <button
                               onClick={() =>
-                                handleDeleteRecordatorio(recordatorio.id)
+                                handleEliminarRecordatorio(recordatorio.id)
                               }
                               className="p-1 text-red-600 hover:bg-red-100 rounded transition-colors"
                             >

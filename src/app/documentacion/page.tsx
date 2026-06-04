@@ -312,7 +312,9 @@ export default function DocumentacionPage() {
 
                   {/* Input oculto para cada tipo de documento */}
                   <input
-                    ref={(el) => (fileInputRefs.current[docType.type] = el)}
+                    ref={(el) => {
+                      fileInputRefs.current[docType.type] = el
+                    }}
                     type="file"
                     accept=".pdf"
                     onChange={(e) => handleFileChange(e, docType.type)}

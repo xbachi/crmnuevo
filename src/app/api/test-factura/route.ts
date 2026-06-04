@@ -47,10 +47,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Generar la factura
-    const pdfBuffer = await generarFactura(dealData)
+    const pdfBuffer = await generarFactura(dealData as never)
 
     // Crear respuesta con el PDF
-    const response = new NextResponse(pdfBuffer)
+    const response = new NextResponse(Buffer.from(pdfBuffer))
     response.headers.set('Content-Type', 'application/pdf')
     response.headers.set(
       'Content-Disposition',

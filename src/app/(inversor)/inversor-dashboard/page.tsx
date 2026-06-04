@@ -6,6 +6,7 @@ import InversorProtectedRoute from '@/components/InversorProtectedRoute'
 import { InvestorMetrics } from '@/components/InvestorMetrics'
 import { InvestorVehicleCard } from '@/components/InvestorVehicleCard'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
+import { Vehiculo } from '@/lib/database'
 
 interface InvestorMetrics {
   beneficioAcumulado: number
@@ -21,14 +22,8 @@ interface InvestorMetrics {
 export default function InversorDashboardPage() {
   const { inversor } = useInversorAuth()
   const [metrics, setMetrics] = useState<InvestorMetrics | null>(null)
-  const [vehiculos, setVehiculos] = useState<unknown[]>([])
+  const [vehiculos, setVehiculos] = useState<Vehiculo[]>([])
   const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    if (inversor) {
-      fetchInversorData()
-    }
-  }, [inversor, fetchInversorData])
 
   const fetchInversorData = useCallback(async () => {
     if (!inversor) return
@@ -63,6 +58,12 @@ export default function InversorDashboardPage() {
       setIsLoading(false)
     }
   }, [inversor])
+
+  useEffect(() => {
+    if (inversor) {
+      fetchInversorData()
+    }
+  }, [inversor, fetchInversorData])
 
   if (isLoading) {
     return (

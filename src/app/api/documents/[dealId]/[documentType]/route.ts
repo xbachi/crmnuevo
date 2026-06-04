@@ -119,7 +119,7 @@ export async function GET(
     const fileName = `${documentType}-${dealNumber}.pdf`
 
     // Retornar el archivo
-    return new NextResponse(fileBuffer, {
+    return new NextResponse(new Uint8Array(fileBuffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',

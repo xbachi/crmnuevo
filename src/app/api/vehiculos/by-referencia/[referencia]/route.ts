@@ -78,10 +78,11 @@ export async function GET(
       '❌ [ENDPOINT] Error al buscar vehículo por referencia:',
       error
     )
+    const err = error as { code?: unknown; detail?: unknown }
     console.error('❌ [ENDPOINT] Detalles del error:', {
-      message: error.message,
-      code: error.code,
-      detail: error.detail,
+      message: error instanceof Error ? error.message : String(error),
+      code: err.code,
+      detail: err.detail,
     })
     return NextResponse.json(
       { error: 'Error interno del servidor' },

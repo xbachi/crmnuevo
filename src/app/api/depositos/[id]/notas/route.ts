@@ -28,13 +28,19 @@ export async function GET(
     
     return NextResponse.json(result.rows)
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    const stack = error instanceof Error ? error.stack : undefined
+    const code =
+      typeof error === 'object' && error !== null && 'code' in error
+        ? (error as { code?: unknown }).code
+        : undefined
     console.error('❌ Error obteniendo notas del depósito:', error)
-    console.error('❌ Error stack:', error.stack)
-    console.error('❌ Error code:', error.code)
-    return NextResponse.json({ 
-      error: 'Error interno del servidor', 
-      details: error.message,
-      code: error.code 
+    console.error('❌ Error stack:', stack)
+    console.error('❌ Error code:', code)
+    return NextResponse.json({
+      error: 'Error interno del servidor',
+      details: message,
+      code
     }, { status: 500 })
   }
 }
@@ -84,13 +90,19 @@ export async function POST(
     console.log(`✅ Nota creada exitosamente:`, result.rows[0])
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    const stack = error instanceof Error ? error.stack : undefined
+    const code =
+      typeof error === 'object' && error !== null && 'code' in error
+        ? (error as { code?: unknown }).code
+        : undefined
     console.error('❌ Error creando nota del depósito:', error)
-    console.error('❌ Error stack:', error.stack)
-    console.error('❌ Error code:', error.code)
-    return NextResponse.json({ 
+    console.error('❌ Error stack:', stack)
+    console.error('❌ Error code:', code)
+    return NextResponse.json({
       error: 'Error interno del servidor',
-      details: error.message,
-      code: error.code
+      details: message,
+      code
     }, { status: 500 })
   }
 }
@@ -138,13 +150,19 @@ export async function PUT(
     console.log(`✅ Nota editada exitosamente:`, result.rows[0])
     return NextResponse.json(result.rows[0])
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    const stack = error instanceof Error ? error.stack : undefined
+    const code =
+      typeof error === 'object' && error !== null && 'code' in error
+        ? (error as { code?: unknown }).code
+        : undefined
     console.error('❌ Error editando nota del depósito:', error)
-    console.error('❌ Error stack:', error.stack)
-    console.error('❌ Error code:', error.code)
-    return NextResponse.json({ 
+    console.error('❌ Error stack:', stack)
+    console.error('❌ Error code:', code)
+    return NextResponse.json({
       error: 'Error interno del servidor',
-      details: error.message,
-      code: error.code
+      details: message,
+      code
     }, { status: 500 })
   }
 }
@@ -182,13 +200,19 @@ export async function DELETE(
     console.log(`✅ Nota eliminada exitosamente:`, result.rows[0])
     return NextResponse.json({ success: true, deletedNota: result.rows[0] })
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    const stack = error instanceof Error ? error.stack : undefined
+    const code =
+      typeof error === 'object' && error !== null && 'code' in error
+        ? (error as { code?: unknown }).code
+        : undefined
     console.error('❌ Error eliminando nota del depósito:', error)
-    console.error('❌ Error stack:', error.stack)
-    console.error('❌ Error code:', error.code)
-    return NextResponse.json({ 
+    console.error('❌ Error stack:', stack)
+    console.error('❌ Error code:', code)
+    return NextResponse.json({
       error: 'Error interno del servidor',
-      details: error.message,
-      code: error.code
+      details: message,
+      code
     }, { status: 500 })
   }
 }

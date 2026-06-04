@@ -30,6 +30,15 @@ interface Vehiculo {
   kms: number
   precioPublicacion?: number
   estado: string
+  tipo?: string
+  color?: string
+  año?: number | null
+  fechaMatriculacion?: string | null
+}
+
+interface DealRef {
+  vehiculoId: number
+  estado: string
 }
 
 export default function NuevoDealPage() {
@@ -148,7 +157,7 @@ export default function NuevoDealPage() {
       const dealsData = await dealsResponse.json()
 
       // Filtrar vehículos que estén disponibles
-      const vehiculosDisponibles = todosVehiculos.filter((vehiculo) => {
+      const vehiculosDisponibles = todosVehiculos.filter((vehiculo: Vehiculo) => {
         // Filtrar por estado del vehículo directamente
         const estadoDisponible =
           vehiculo.estado === 'inicial' ||
@@ -158,7 +167,7 @@ export default function NuevoDealPage() {
 
         // También verificar que no tenga un deal activo
         const tieneDealActivo = dealsData.some(
-          (deal) =>
+          (deal: DealRef) =>
             deal.vehiculoId === vehiculo.id &&
             (deal.estado === 'reservado' ||
               deal.estado === 'vendido' ||
@@ -753,7 +762,7 @@ export default function NuevoDealPage() {
                                   Ref:{' '}
                                   {formatVehicleReference(
                                     vehiculo.referencia,
-                                    vehiculo.tipo
+                                    vehiculo.tipo || ''
                                   )}{' '}
                                   • Mat: {vehiculo.matricula}
                                 </div>

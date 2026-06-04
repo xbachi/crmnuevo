@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
     if (process.env.VERCEL) {
       console.log('🌐 [API GENERATE] Devolviendo PDF directamente (Vercel)')
 
-      return new NextResponse(pdfBuffer, {
+      return new NextResponse(new Uint8Array(pdfBuffer), {
         status: 200,
         headers: {
           'Content-Type': 'application/pdf',

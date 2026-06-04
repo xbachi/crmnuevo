@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Inversor } from '@/lib/direct-database'
+import { Inversor } from '@/lib/database'
 import { useSimpleToast } from '@/hooks/useSimpleToast'
 import { generateInversorSlug } from '@/lib/utils'
 import ProtectedRoute from '@/components/ProtectedRoute'

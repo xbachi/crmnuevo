@@ -180,7 +180,7 @@ export default function InteractiveMetricsChart({
           color: '#6B7280',
           font: {
             size: 12,
-            weight: '500',
+            weight: 500,
           },
         },
       },
@@ -219,11 +219,11 @@ export default function InteractiveMetricsChart({
         labels: {
           padding: 20,
           usePointStyle: true,
-          pointStyle: 'circle',
+          pointStyle: 'circle' as const,
           color: '#374151',
           font: {
             size: 12,
-            weight: '500',
+            weight: 500,
           },
         },
       },

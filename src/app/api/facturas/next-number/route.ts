@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     } catch (dirError) {
       console.log(
         'Directorio de documentos no existe o no se puede leer:',
-        dirError.message
+        dirError instanceof Error ? dirError.message : String(dirError)
       )
     }
 

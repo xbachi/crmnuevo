@@ -139,7 +139,7 @@ export async function GET() {
     console.error('❌ [QA DASHBOARD DEPOSITOS] Error en test:', error)
     return NextResponse.json({ 
       error: 'Error en test de dashboard depósitos',
-      details: error.message,
+      details: error instanceof Error ? error.message : 'Error desconocido',
       step: 'test_error'
     }, { status: 500 })
   }

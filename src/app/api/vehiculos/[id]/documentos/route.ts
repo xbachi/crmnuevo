@@ -5,8 +5,8 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id: vehiculoId } = await params
   try {
-    const { id: vehiculoId } = await params
     console.log(`🔍 [DOCUMENTOS API] Iniciando obtención de documentos`)
     console.log(`📝 [DOCUMENTOS API] Vehículo ID: ${vehiculoId}`)
     console.log(`📝 [DOCUMENTOS API] URL completa: ${request.url}`)

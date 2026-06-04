@@ -233,11 +233,13 @@ const KanbanBoard = memo(function KanbanBoard({
         })
 
         if (response.ok) {
-          const updatedVehiculos = await response.json()
+          const updatedVehiculos: Vehiculo[] = await response.json()
 
           // Actualizar solo el vehículo que cambió
           onUpdateVehiculos((prevVehiculos) => {
-            const updatedMap = new Map(updatedVehiculos.map((v) => [v.id, v]))
+            const updatedMap = new Map<number, Vehiculo>(
+              updatedVehiculos.map((v) => [v.id, v])
+            )
             return prevVehiculos.map((v) => updatedMap.get(v.id) || v)
           })
           showToast(
@@ -284,11 +286,11 @@ const KanbanBoard = memo(function KanbanBoard({
             })
 
             if (response.ok) {
-              const updatedVehiculos = await response.json()
+              const updatedVehiculos: Vehiculo[] = await response.json()
               // Actualizar solo los vehículos que cambiaron
               onUpdateVehiculos((prevVehiculos) => {
-                const updatedMap = new Map(
-                  updatedVehiculos.map((v: any) => [v.id, v])
+                const updatedMap = new Map<number, Vehiculo>(
+                  updatedVehiculos.map((v) => [v.id, v])
                 )
                 return prevVehiculos.map((v) => updatedMap.get(v.id) || v)
               })
@@ -323,11 +325,11 @@ const KanbanBoard = memo(function KanbanBoard({
           })
 
           if (response.ok) {
-            const updatedVehiculos = await response.json()
+            const updatedVehiculos: Vehiculo[] = await response.json()
             // Actualizar solo el vehículo que cambió
             onUpdateVehiculos((prevVehiculos) => {
-              const updatedMap = new Map(
-                updatedVehiculos.map((v: any) => [v.id, v])
+              const updatedMap = new Map<number, Vehiculo>(
+                updatedVehiculos.map((v) => [v.id, v])
               )
               return prevVehiculos.map((v) => updatedMap.get(v.id) || v)
             })

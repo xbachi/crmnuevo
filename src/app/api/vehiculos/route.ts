@@ -7,6 +7,7 @@ import {
   updateVehiculo,
   deleteVehiculo,
   getInversores,
+  type Vehiculo,
 } from '@/lib/direct-database'
 import { promises as fs } from 'fs'
 import { generateFolderName, getFolderPathsByTipo } from '@/config/folders'
@@ -119,7 +120,7 @@ export async function POST(request: NextRequest) {
       beneficioNeto: beneficioNeto || undefined,
       notasInversor: notasInversor || undefined,
       fotoInversor: fotoInversor || undefined,
-    })
+    } as Omit<Vehiculo, 'id' | 'createdAt' | 'updatedAt'>)
     // console.log('✅ Vehículo guardado:', vehiculo)
 
     // Crear nombre de carpeta en camelCase

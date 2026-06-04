@@ -979,7 +979,11 @@ export default function ClientesPage() {
           />
 
           <DataExporter
-            clientes={clientes}
+            clientes={
+              clientes as unknown as React.ComponentProps<
+                typeof DataExporter
+              >['clientes']
+            }
             isOpen={showExporter}
             onClose={() => setShowExporter(false)}
           />

@@ -35,10 +35,14 @@ export async function GET(request: NextRequest) {
     let client = null
     try {
       client = await pool.connect()
+      const conn = client as unknown as {
+        processID?: number
+        secretKey?: number
+      }
       connectionInfo = {
         connected: true,
-        processId: client.processID,
-        secretKey: client.secretKey,
+        processId: conn.processID,
+        secretKey: conn.secretKey,
       }
       console.log('✅ [TEST DB] Conexión exitosa:', connectionInfo)
     } catch (connectionError) {

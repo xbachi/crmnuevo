@@ -44,6 +44,7 @@ interface Deal {
   vehiculo?: {
     id: number
     referencia: string
+    tipo?: string
     marca: string
     modelo: string
     matricula: string
@@ -455,7 +456,7 @@ export default function DealDetail() {
             console.error('Error actualizando estado:', error)
             showToast(
               'Contrato generado pero error actualizando estado',
-              'warning'
+              'error'
             )
           }
         } else {
@@ -605,7 +606,7 @@ export default function DealDetail() {
             console.error('Error actualizando estado:', error)
             showToast(
               'Contrato generado pero error actualizando estado',
-              'warning'
+              'error'
             )
           }
         } else {
@@ -952,7 +953,7 @@ export default function DealDetail() {
           console.error('Error actualizando estado:', error)
           showToast(
             'Factura generada pero error actualizando estado',
-            'warning'
+            'error'
           )
         }
 
@@ -967,7 +968,7 @@ export default function DealDetail() {
                 body: JSON.stringify({
                   clienteId: deal.clienteId,
                   titulo: 'Solicitar cambio de nombre',
-                  descripcion: `Solicitar documentación para cambio de nombre del vehículo ${formatVehicleReference(deal.vehiculo.referencia, deal.vehiculo.tipo)} al cliente ${capitalizeText(deal.cliente.nombre)} ${capitalizeText(deal.cliente.apellidos)}`,
+                  descripcion: `Solicitar documentación para cambio de nombre del vehículo ${formatVehicleReference(deal.vehiculo.referencia, deal.vehiculo.tipo ?? '')} al cliente ${capitalizeText(deal.cliente.nombre)} ${capitalizeText(deal.cliente.apellidos)}`,
                   tipo: 'otro',
                   prioridad: 'alta',
                   fechaRecordatorio: new Date(
@@ -1085,7 +1086,7 @@ export default function DealDetail() {
 
                   // Si no quedan items, ocultar o actualizar el recordatorio
                   if (newCount === 0) {
-                    dashboardReminder.style.display = 'none'
+                    ;(dashboardReminder as HTMLElement).style.display = 'none'
                   }
                 }
               }
@@ -1457,7 +1458,9 @@ export default function DealDetail() {
                   <div className="text-center">
                     <button
                       onClick={handleGenerarContratoReserva}
-                      disabled={isGeneratingReserva || deal.contratoReserva}
+                      disabled={Boolean(
+                        isGeneratingReserva || deal.contratoReserva
+                      )}
                       className={`w-full px-4 py-3 rounded-lg font-medium transition-colors ${
                         deal.contratoReserva
                           ? 'bg-green-100 text-green-700 cursor-not-allowed'
@@ -1523,11 +1526,11 @@ export default function DealDetail() {
                   <div className="text-center">
                     <button
                       onClick={handleGenerarContratoVenta}
-                      disabled={
+                      disabled={Boolean(
                         isGeneratingVenta ||
-                        !canGenerateContratoVenta ||
-                        deal.contratoVenta
-                      }
+                          !canGenerateContratoVenta ||
+                          deal.contratoVenta
+                      )}
                       className={`w-full px-4 py-3 rounded-lg font-medium transition-colors ${
                         deal.contratoVenta
                           ? 'bg-green-100 text-green-700 cursor-not-allowed'
@@ -1653,7 +1656,11 @@ export default function DealDetail() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Cliente */}
                   <Link
-                    href={`/clientes/${generateClienteSlug(deal.cliente)}`}
+                    href={
+                      deal.cliente
+                        ? `/clientes/${generateClienteSlug(deal.cliente)}`
+                        : '#'
+                    }
                     className="group"
                   >
                     <div className="bg-blue-50 rounded-lg p-3 border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer">

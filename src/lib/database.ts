@@ -10,6 +10,8 @@ export interface Vehiculo {
   bastidor: string
   kms: number
   tipo: string
+  tipo_vehiculo?: string
+  color?: string | null
   estado: string
   orden: number
   createdAt: string

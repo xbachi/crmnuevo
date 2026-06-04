@@ -38,8 +38,8 @@ export function InvestorForm({
       email: formData.email.trim() || undefined,
       telefono: formData.telefono.trim() || undefined,
       fechaAlta: formData.fechaAlta,
-      capitalAportado: Number(formData.capitalAportado) || 0,
-      fechaAporte: formData.fechaAporte,
+      capitalAportado: 0,
+      fechaAporte: '',
       capitalComprometido: formData.capitalComprometido
         ? Number(formData.capitalComprometido)
         : undefined,
@@ -48,8 +48,8 @@ export function InvestorForm({
         ? Number(formData.capitalDisponible)
         : undefined,
       notasInternas: formData.notasInternas.trim() || undefined,
-      usuario: formData.usuario?.trim() || undefined,
-      contraseña: formData.contraseña?.trim() || undefined,
+      usuario: undefined,
+      contraseña: undefined,
     }
 
     onSave(data)

@@ -18,6 +18,28 @@ interface NotaCliente {
   usuario: string
   createdAt: string
 }
+
+interface InteresesEditData {
+  vehiculosInteres: string[]
+  precioMaximo: number
+  kilometrajeMaximo: number
+  añoMinimo: number
+  combustiblePreferido:
+    | 'diesel'
+    | 'gasolina'
+    | 'hibrido'
+    | 'electrico'
+    | 'cualquiera'
+  cambioPreferido: 'manual' | 'automatico' | 'cualquiera'
+  coloresDeseados: string[]
+  necesidadesEspeciales: string[]
+  formaPagoPreferida:
+    | 'financiacion'
+    | 'contado'
+    | 'entrega_usado'
+    | 'cualquiera'
+  notasAdicionales?: string
+}
 import { useSimpleToast } from '@/hooks/useSimpleToast'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import ClientReminders from '@/components/ClientReminders'
@@ -40,6 +62,7 @@ export default function ClienteDetailPage() {
   const [editingTitulo, setEditingTitulo] = useState('')
   const [isEditingPersonal, setIsEditingPersonal] = useState(false)
   const [isEditingIntereses, setIsEditingIntereses] = useState(false)
+  const [showNotaForm, setShowNotaForm] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [currentVehiculoInput, setCurrentVehiculoInput] = useState('')
 
@@ -64,12 +87,12 @@ export default function ClienteDetailPage() {
       precioMaximo: 0,
       kilometrajeMaximo: 0,
       añoMinimo: 0,
-      combustiblePreferido: 'cualquiera' as const,
-      cambioPreferido: 'cualquiera' as const,
+      combustiblePreferido: 'cualquiera',
+      cambioPreferido: 'cualquiera',
       coloresDeseados: [] as string[],
       necesidadesEspeciales: [] as string[],
-      formaPagoPreferida: 'cualquiera' as const,
-    },
+      formaPagoPreferida: 'cualquiera',
+    } as InteresesEditData,
   })
 
   const clienteId = params.id as string
@@ -77,7 +100,7 @@ export default function ClienteDetailPage() {
   // Función auxiliar para mapear datos de la API al formato del frontend
   const mapApiDataToFrontend = (data: any) => {
     // Mapear datos de la base de datos al formato de intereses
-    let interesesData = {
+    let interesesData: InteresesEditData = {
       vehiculosInteres: [],
       precioMaximo: 0,
       kilometrajeMaximo: 0,
@@ -170,7 +193,7 @@ export default function ClienteDetailPage() {
       console.log('Cliente data received:', data)
 
       // Mapear datos de la base de datos al formato de intereses
-      let interesesData = {
+      let interesesData: InteresesEditData = {
         vehiculosInteres: [],
         precioMaximo: 0,
         kilometrajeMaximo: 0,
@@ -265,7 +288,10 @@ export default function ClienteDetailPage() {
       })
     } catch (error) {
       console.error('Error fetching cliente:', error)
-      showToast(`Error al cargar cliente: ${error.message}`, 'error')
+      showToast(
+        `Error al cargar cliente: ${error instanceof Error ? error.message : String(error)}`,
+        'error'
+      )
       // No redirigir automáticamente, dejar que el usuario vea el error
     } finally {
       setIsLoading(false)
@@ -514,15 +540,6 @@ export default function ClienteDetailPage() {
       setEditData((prev) => ({
         ...prev,
         intereses: {
-          vehiculosInteres: [],
-          precioMaximo: 0,
-          kilometrajeMaximo: 0,
-          añoMinimo: 0,
-          combustiblePreferido: 'cualquiera',
-          cambioPreferido: 'cualquiera',
-          coloresDeseados: [],
-          necesidadesEspeciales: [],
-          formaPagoPreferida: 'cualquiera',
           ...prev.intereses,
           [field]: value,
         },
@@ -562,9 +579,10 @@ export default function ClienteDetailPage() {
       }
 
       // Limpiar campos undefined
-      Object.keys(dataToSave).forEach((key) => {
-        if (dataToSave[key] === undefined) {
-          delete dataToSave[key]
+      const dataToSaveRecord = dataToSave as Record<string, unknown>
+      Object.keys(dataToSaveRecord).forEach((key) => {
+        if (dataToSaveRecord[key] === undefined) {
+          delete dataToSaveRecord[key]
         }
       })
 
@@ -612,7 +630,7 @@ export default function ClienteDetailPage() {
     } catch (error) {
       console.error('Error saving personal info:', error)
       showToast(
-        `Error al guardar información personal: ${error.message}`,
+        `Error al guardar información personal: ${error instanceof Error ? error.message : String(error)}`,
         'error'
       )
     } finally {
@@ -738,7 +756,10 @@ export default function ClienteDetailPage() {
       }
     } catch (error) {
       console.error('Error saving intereses:', error)
-      showToast(`Error al guardar intereses: ${error.message}`, 'error')
+      showToast(
+        `Error al guardar intereses: ${error instanceof Error ? error.message : String(error)}`,
+        'error'
+      )
     } finally {
       setIsSaving(false)
     }
@@ -778,9 +799,10 @@ export default function ClienteDetailPage() {
       }
 
       // Remover campos undefined
-      Object.keys(dataToSave).forEach((key) => {
-        if (dataToSave[key] === undefined) {
-          delete dataToSave[key]
+      const dataToSaveRecord = dataToSave as Record<string, unknown>
+      Object.keys(dataToSaveRecord).forEach((key) => {
+        if (dataToSaveRecord[key] === undefined) {
+          delete dataToSaveRecord[key]
         }
       })
 
@@ -798,7 +820,8 @@ export default function ClienteDetailPage() {
 
       if (response.ok) {
         await fetchCliente()
-        setIsEditing(false)
+        setIsEditingPersonal(false)
+        setIsEditingIntereses(false)
         showToast('Cliente actualizado correctamente', 'success')
       } else {
         const error = await response.json()
@@ -1742,7 +1765,7 @@ export default function ClienteDetailPage() {
                               }
                             })()
                           : []
-                      ).map((etiqueta, index) => (
+                      ).map((etiqueta: string, index: number) => (
                         <span
                           key={index}
                           className="px-2 py-1 bg-gray-100 text-gray-800 text-sm rounded-full"

@@ -374,7 +374,7 @@ function getFormaPagoReserva(formaPago: string): string {
   return formasPago[formaPago?.toLowerCase()] || 'efectivo'
 }
 
-interface DealData {
+export interface DealData {
   numero: string
   fechaCreacion: Date
   cliente?: {
@@ -396,6 +396,7 @@ interface DealData {
     precioPublicacion?: number
     fechaMatriculacion?: string
     año?: number
+    kms?: number
   }
   importeTotal?: number
   importeSena?: number

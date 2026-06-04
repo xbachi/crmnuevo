@@ -36,9 +36,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result.rows)
   } catch (error) {
     console.error('❌ [COCHES R API] Error al obtener Coches R:', error)
-    console.error('❌ [COCHES R API] Error stack:', error.stack)
+    console.error(
+      '❌ [COCHES R API] Error stack:',
+      error instanceof Error ? error.stack : undefined
+    )
     return NextResponse.json(
-      { error: 'Error interno del servidor', details: error.message },
+      {
+        error: 'Error interno del servidor',
+        details: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     )
   }

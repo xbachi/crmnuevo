@@ -14,7 +14,7 @@ interface NotasSectionProps {
   notas: Nota[]
   onNotasChange: (notas: Nota[]) => void
   entityId: number
-  entityType?: 'vehiculo' | 'deal' | 'cliente' | 'inversor'
+  entityType?: 'vehiculo' | 'deal' | 'cliente' | 'inversor' | 'inversores'
   isReadOnly?: boolean
 }
 
