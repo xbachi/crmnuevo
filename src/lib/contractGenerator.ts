@@ -1160,14 +1160,14 @@ export async function generarContratoVenta(
   doc.text('5.', margin, y)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(17, 24, 39)
-  doc.text('SEGUNDA LLAVE:', margin + 6, y)
+  doc.text('LLAVES:', margin + 6, y)
   doc.setFont('helvetica', 'normal')
   doc.setDrawColor(75, 85, 99)
   doc.setLineWidth(0.3)
   doc.rect(margin + 46, y - 2.8, 3.4, 3.4)
-  doc.text('Entregada', margin + 51, y)
+  doc.text('1 juego', margin + 51, y)
   doc.rect(margin + 82, y - 2.8, 3.4, 3.4)
-  doc.text('Pendiente', margin + 87, y)
+  doc.text('2 juegos', margin + 87, y)
   y += 13 // bajar conformidad ~4mm más (estaba muy pegado a segunda llave)
 
   // === Conformidad ===
@@ -1419,16 +1419,16 @@ export async function generarContratoVentaConGarantia(
 
   // Segunda llave con checkboxes
   doc.setFontSize(11) // Cambiar a 11px (igual que reserva)
-  doc.text('SEGUNDA LLAVE', margin, yPosition)
+  doc.text('LLAVES', margin, yPosition)
   yPosition += 6
 
-  // Checkbox Entregada
+  // Checkbox 1 juego
   doc.rect(margin + 5, yPosition - 2, 4, 4)
-  doc.text('Entregada', margin + 15, yPosition + 2.5)
+  doc.text('1 juego', margin + 15, yPosition + 2.5)
 
-  // Checkbox Pendiente
+  // Checkbox 2 juegos
   doc.rect(margin + 50, yPosition - 2, 4, 4)
-  doc.text('Pendiente', margin + 60, yPosition + 2.5)
+  doc.text('2 juegos', margin + 60, yPosition + 2.5)
   yPosition += 15
 
   // Espacio adicional antes de la firma
