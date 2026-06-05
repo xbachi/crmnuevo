@@ -13,6 +13,7 @@ interface AutomationLog {
   venta_guardada: boolean | null
   compra_adjunta: boolean | null
   email_gestora: boolean | null
+  contrato_enviado: boolean | null
   ok: boolean | null
   notas: string | null
   created_at: string
@@ -83,8 +84,9 @@ export default function RegistroAutomatizacionesPage() {
           Registro de automatizaciones
         </h2>
         <p className="text-sm text-gray-500 mt-1">
-          Estado de cada venta automatizada: archivado de la factura y mail a la
-          gestoría.
+          Estado de cada venta automatizada: archivado de la factura, búsqueda de
+          la factura de compra y mail a la gestoría con la factura y el contrato
+          de venta.
         </p>
       </div>
 
@@ -127,6 +129,9 @@ export default function RegistroAutomatizacionesPage() {
                 <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Mail
                 </th>
+                <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Contrato
+                </th>
                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Notas
                 </th>
@@ -136,7 +141,7 @@ export default function RegistroAutomatizacionesPage() {
               {isLoading && rows.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={10}
                     className="px-3 py-8 text-center text-sm text-gray-500"
                   >
                     Cargando registros…
@@ -145,7 +150,7 @@ export default function RegistroAutomatizacionesPage() {
               ) : rows.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={10}
                     className="px-3 py-8 text-center text-sm text-gray-500"
                   >
                     Todavía no hay registros.
@@ -189,6 +194,9 @@ export default function RegistroAutomatizacionesPage() {
                       </td>
                       <td className="px-3 py-2 whitespace-nowrap text-center text-sm">
                         <BoolCell value={log.email_gestora} />
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap text-center text-sm">
+                        <BoolCell value={log.contrato_enviado} />
                       </td>
                       <td className="px-3 py-2 text-sm text-gray-700 max-w-[280px]">
                         {hasNote ? (

@@ -26,8 +26,8 @@ export async function POST(request: NextRequest) {
   await pool.query(
     `INSERT INTO automation_logs
        (tipo, numero_factura, coche, matricula, invoice_type,
-        venta_guardada, compra_adjunta, email_gestora, ok, notas, detalle_json)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+        venta_guardada, compra_adjunta, email_gestora, contrato_enviado, ok, notas, detalle_json)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
     [
       (b.tipo as string) ?? 'factura_venta',
       (b.numeroFactura as string) ?? null,
@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
       bool(b.ventaGuardada),
       bool(b.compraAdjunta),
       bool(b.emailGestora),
+      bool(b.contratoEnviado),
       bool(b.ok),
       (b.notas as string) ?? null,
       JSON.stringify(b.detalle ?? {}),
@@ -56,7 +57,7 @@ export async function GET(request: NextRequest) {
   )
   const res = await pool.query(
     `SELECT id, tipo, numero_factura, coche, matricula, invoice_type,
-            venta_guardada, compra_adjunta, email_gestora, ok, notas, created_at
+            venta_guardada, compra_adjunta, email_gestora, contrato_enviado, ok, notas, created_at
        FROM automation_logs
       ORDER BY created_at DESC
       LIMIT $1`,
