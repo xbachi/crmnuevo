@@ -22,7 +22,7 @@ export async function notifyGestoriaInvoice(payload: GestoriaInvoicePayload): Pr
 
   const secret = process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 12_000)
+  const timeout = setTimeout(() => controller.abort(), 6_000)
   try {
     const res = await fetch(url, {
       method: 'POST',

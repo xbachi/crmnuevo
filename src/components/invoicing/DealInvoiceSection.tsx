@@ -357,7 +357,8 @@ export default function DealInvoiceSection({
               <div className="flex space-x-2">
                 <button
                   onClick={() => handlePreview('VAT')}
-                  className="flex-1 px-3 py-1.5 bg-gray-100 text-gray-800 text-xs font-medium rounded hover:bg-gray-200"
+                  disabled={issuing}
+                  className="flex-1 px-3 py-1.5 bg-gray-100 text-gray-800 text-xs font-medium rounded hover:bg-gray-200 disabled:opacity-50"
                 >
                   Vista previa
                 </button>
@@ -366,7 +367,7 @@ export default function DealInvoiceSection({
                   disabled={issuing}
                   className="flex-1 px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded hover:bg-red-700 disabled:opacity-50"
                 >
-                  Emitir IVA
+                  {issuing ? 'Emitiendo…' : 'Emitir IVA'}
                 </button>
               </div>
             </div>
@@ -380,7 +381,8 @@ export default function DealInvoiceSection({
               <div className="flex space-x-2">
                 <button
                   onClick={() => handlePreview('REBU')}
-                  className="flex-1 px-3 py-1.5 bg-gray-100 text-gray-800 text-xs font-medium rounded hover:bg-gray-200"
+                  disabled={issuing}
+                  className="flex-1 px-3 py-1.5 bg-gray-100 text-gray-800 text-xs font-medium rounded hover:bg-gray-200 disabled:opacity-50"
                 >
                   Vista previa
                 </button>
@@ -389,7 +391,7 @@ export default function DealInvoiceSection({
                   disabled={issuing}
                   className="flex-1 px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded hover:bg-red-700 disabled:opacity-50"
                 >
-                  Emitir REBU
+                  {issuing ? 'Emitiendo…' : 'Emitir REBU'}
                 </button>
               </div>
             </div>
