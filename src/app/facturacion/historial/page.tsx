@@ -126,7 +126,7 @@ export default function HistorialFacturacionPage() {
   const [year, setYear] = useState<number | ''>('')
   const [status, setStatus] = useState<'' | InvoiceStatus>('')
 
-  const [sortBy, setSortBy] = useState<SortBy>('number')
+  const [sortBy, setSortBy] = useState<SortBy>('invoice_date')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
 
   const handleSort = (col: SortBy) => {
@@ -219,6 +219,17 @@ export default function HistorialFacturacionPage() {
         body: JSON.stringify({}),
       })
       const data = await res.json().catch(() => ({}))
+      // 404 = la factura ya no existe (lista desactualizada o doble
+      // eliminación): no es un error real; quitamos la fila fantasma.
+      if (res.status === 404) {
+        showToast(
+          'Esa factura ya no existe en el sistema. Actualizamos la lista.',
+          'info'
+        )
+        setInvoiceToDelete(null)
+        fetchInvoices()
+        return
+      }
       if (!res.ok) throw new Error(data?.error || 'No se pudo eliminar la factura')
       showToast(
         `Factura ${invoiceToDelete.full_invoice_number} eliminada. El número queda libre para la próxima factura.`,
