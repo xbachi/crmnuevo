@@ -191,15 +191,18 @@ export default function ClientesPage() {
 
   const filteredClientes = clientes
     .filter((cliente) => {
+      const term = searchTerm.toLowerCase()
       const matchesSearch =
         !searchTerm ||
-        cliente.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        cliente.apellidos.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        cliente.telefono.includes(searchTerm) ||
-        cliente.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        cliente.dni?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        cliente.nombre?.toLowerCase().includes(term) ||
+        cliente.apellidos?.toLowerCase().includes(term) ||
+        cliente.telefono?.includes(searchTerm) ||
+        cliente.email?.toLowerCase().includes(term) ||
+        cliente.dni?.toLowerCase().includes(term) ||
         cliente.intereses?.vehiculosInteres?.some((vehiculo) =>
-          vehiculo.toLowerCase().includes(searchTerm.toLowerCase())
+          String(vehiculo ?? '')
+            .toLowerCase()
+            .includes(term)
         )
 
       const matchesEstado =
