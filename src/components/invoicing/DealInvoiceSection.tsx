@@ -95,6 +95,7 @@ export default function DealInvoiceSection({
   const [previewType, setPreviewType] = useState<'VAT' | 'REBU' | null>(null)
   const [issuing, setIssuing] = useState(false)
   const [downloadingId, setDownloadingId] = useState<number | null>(null)
+  const [justIssued, setJustIssued] = useState<string | null>(null)
 
   const handleDownload = useCallback(
     async (inv: Invoice) => {
@@ -185,6 +186,16 @@ export default function DealInvoiceSection({
           'success'
         )
       }
+      // Feedback inmediato: mostrar la factura al instante (sin esperar el
+      // refetch ni el archivado en OneDrive) para que no quede la duda de si se
+      // creó. El load() posterior reconcilia con el estado real del servidor.
+      if (data.invoice) {
+        setInvoices((prev) => [
+          data.invoice,
+          ...prev.filter((i) => i.id !== data.invoice.id),
+        ])
+        setJustIssued(data.invoice.full_invoice_number)
+      }
       setPreview(null)
       setPreviewType(null)
       await load()
@@ -216,6 +227,34 @@ export default function DealInvoiceSection({
     return (
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
         <ToastContainer />
+        {justIssued && (
+          <div className="px-4 py-3 bg-green-50 border-b border-green-200 flex items-start justify-between">
+            <div className="flex items-center space-x-2 text-green-800">
+              <svg
+                className="w-5 h-5 flex-shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <span className="text-sm font-medium">
+                ✓ Factura {justIssued} generada correctamente.
+              </span>
+            </div>
+            <button
+              onClick={() => setJustIssued(null)}
+              className="text-green-600 hover:text-green-800 text-xs font-medium"
+            >
+              Cerrar
+            </button>
+          </div>
+        )}
         <div className="px-4 py-2 bg-gray-50 border-b border-gray-200">
           <h3 className="text-sm font-semibold text-gray-900">Facturación</h3>
         </div>
@@ -273,6 +312,27 @@ export default function DealInvoiceSection({
   return (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
       <ToastContainer />
+      {issuing && (
+        <div className="px-4 py-3 bg-blue-50 border-b border-blue-200 flex items-center space-x-2 text-blue-800">
+          <svg
+            className="w-5 h-5 animate-spin flex-shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+            />
+          </svg>
+          <span className="text-sm font-medium">
+            Generando la factura y el PDF… puede tardar unos segundos, no cierres
+            la página.
+          </span>
+        </div>
+      )}
       <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-gray-900">Facturación</h3>
         <Link
