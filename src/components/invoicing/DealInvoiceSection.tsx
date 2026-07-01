@@ -88,7 +88,7 @@ export default function DealInvoiceSection({
   legacyFacturaDate,
   onInvoiceIssued,
 }: Props) {
-  const { showToast } = useToast()
+  const { showToast, ToastContainer } = useToast()
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [preview, setPreview] = useState<PreviewData | null>(null)
@@ -215,6 +215,7 @@ export default function DealInvoiceSection({
     // Show the existing invoice(s) summary; suppress the "issue" buttons.
     return (
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <ToastContainer />
         <div className="px-4 py-2 bg-gray-50 border-b border-gray-200">
           <h3 className="text-sm font-semibold text-gray-900">Facturación</h3>
         </div>
@@ -271,6 +272,7 @@ export default function DealInvoiceSection({
   // it as a soft warning.
   return (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      <ToastContainer />
       <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-gray-900">Facturación</h3>
         <Link
