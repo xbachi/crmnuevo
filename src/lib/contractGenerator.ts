@@ -1,5 +1,6 @@
 // Generador de contratos con jsPDF
 import jsPDF from './jspdf-server'
+import { LOGO_CONTRATO_BASE64 } from './logoBase64'
 import { formatCurrency, getVehiculoAño, capitalizeText } from './utils'
 import { INVOICE_CONFIG } from '@/config/invoiceConfig'
 import {
@@ -137,6 +138,13 @@ let __LOGO_CACHE__: string | null = null
 
 async function loadLogoSVG(): Promise<string> {
   if (__LOGO_CACHE__) return __LOGO_CACHE__
+  // Logo embebido (base64): evita fs/fetch en cada generación de PDF. En Vercel
+  // el self-fetch a /logocontrato.png se colgaba ~1-2 min en cold start porque
+  // public/ no está en la función serverless. Embeberlo elimina esa latencia.
+  if (LOGO_CONTRATO_BASE64) {
+    __LOGO_CACHE__ = LOGO_CONTRATO_BASE64
+    return __LOGO_CACHE__
+  }
   try {
 
     // Verificar si estamos en el servidor (Node.js) o en el cliente (browser)
