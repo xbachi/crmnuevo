@@ -14,7 +14,7 @@ import { pool } from '@/lib/direct-database'
 
 const SESSION_SECRET =
   process.env.SESSION_SECRET || 'dev-only-INSECURE-set-SESSION_SECRET-in-prod'
-const SESSION_TTL_SECONDS = 60 * 60 * 12 // 12 horas
+const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30 // 30 días
 export const SESSION_COOKIE = 'sc_session'
 
 // ----------------------------------------------------------------------------
