@@ -19,7 +19,6 @@
 
 import { google, type sheets_v4 } from 'googleapis'
 import { pool } from '@/lib/direct-database'
-import { SHEETS_CONFIG } from '@/lib/sheetsConfig'
 import { getGoogleSheetsAuth } from '@/lib/googleSheets'
 
 const MESES = [
@@ -29,6 +28,11 @@ const MESES = [
 
 const CN_INFORME = 120
 const NUM_COLS = 13 // A..M
+
+// Planilla "Costo-Beneficio", pestaña "2026" (mismo patrón hardcode que sheetsConfig.ts).
+// Sobreescribible por env si algún día cambia.
+const COSTOBENEFICIO_SPREADSHEET_ID_DEFAULT = '1o0GRJKvzjiDl7dQSdRzxy6jWIT1Ll7fAIKx4yGjYhwM'
+const COSTOBENEFICIO_SHEET_NAME_DEFAULT = '2026'
 
 export interface CostoBeneficioOptions {
   dealId: number
@@ -138,14 +142,14 @@ async function openCostoBeneficioTab(): Promise<SheetContext | { error: string }
   const api = google.sheets({ version: 'v4', auth })
   const spreadsheetId =
     process.env.COSTOBENEFICIO_SPREADSHEET_ID ||
-    SHEETS_CONFIG.SPREADSHEET_IDS.COMPRAS
+    COSTOBENEFICIO_SPREADSHEET_ID_DEFAULT
 
   const meta = await api.spreadsheets.get({
     spreadsheetId,
     fields: 'sheets(properties(sheetId,title))',
   })
   const tabs = meta.data.sheets ?? []
-  const wanted = process.env.COSTOBENEFICIO_SHEET_NAME
+  const wanted = process.env.COSTOBENEFICIO_SHEET_NAME || COSTOBENEFICIO_SHEET_NAME_DEFAULT
   const tab = wanted
     ? tabs.find((s) => s.properties?.title === wanted)
     : tabs.find((s) => /costo\s*.?\s*benefic|benefic/i.test(s.properties?.title ?? ''))
