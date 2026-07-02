@@ -22,6 +22,7 @@ import { pool } from '@/lib/direct-database'
 import { generarFactura } from '@/lib/contractGenerator'
 import { pickInvoiceNumber } from '@/lib/invoiceNumbering'
 import { notifyGestoriaInvoice } from '@/lib/gestoriaWebhook'
+import { notifyCostoBeneficio } from '@/lib/costoBeneficio'
 import {
   INVOICE_CONFIG,
   buildFullInvoiceNumber,
@@ -204,6 +205,16 @@ export async function issueInvoice(opts: IssueOptions): Promise<IssueResult> {
       modelo: vehicle.model,
       tipo: opts.invoiceType,
       pdfBase64: Buffer.from(pdf).toString('base64'),
+    })
+
+    // Best-effort: bloque coste/beneficio en Google Sheets. Igual que el
+    // webhook de gestoría: nunca lanza ni bloquea la emisión.
+    await notifyCostoBeneficio({
+      dealId: opts.dealId,
+      numeroFactura: reserved.invoice.full_invoice_number,
+      invoiceType: opts.invoiceType,
+      invoiceDate,
+      salePrice: amounts.total_amount,
     })
 
     return { invoice: updated.rows[0], alreadyExisted: false }
