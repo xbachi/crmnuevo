@@ -14,6 +14,8 @@ const PUBLIC_API_PREFIXES = [
   // El receptor de n8n reporta acá con X-Webhook-Secret (sin sesión). El GET
   // valida la sesión dentro del handler.
   '/api/automation-log',
+  // n8n carga importes de facturas de proveedor (X-Webhook-Secret).
+  '/api/vehiculos/gasto',
 ]
 
 export async function middleware(request: NextRequest) {
