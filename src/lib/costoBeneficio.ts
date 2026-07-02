@@ -29,8 +29,9 @@ const MESES = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO'
 const MES_FORMULA = (r: number) =>
   `=IF(A${r}="";"";CHOOSE(MONTH(A${r});"ENERO";"FEBRERO";"MARZO";"ABRIL";"MAYO";"JUNIO";"JULIO";"AGOSTO";"SEPTIEMBRE";"OCTUBRE";"NOVIEMBRE";"DICIEMBRE"))`
 const COSTE_FORMULA = (r: number) => `=SUM(G${r}:M${r})`
-const IVA_FORMULA = (r: number) =>
-  `=IF(F${r}="iva 21";ROUND(O${r}-O${r}/1,21;2);IF(F${r}="rebu";ROUND((O${r}-N${r})-(O${r}-N${r})/1,21;2);0))`
+// IVA sobre el margen (misma convención que la planilla "2026": (precio - coste) * 21%),
+// uniforme para iva 21 y rebu.
+const IVA_FORMULA = (r: number) => `=IF(O${r}="";"";(O${r}-N${r})*0,21)`
 const MARGEN_FORMULA = (r: number) => `=IF(O${r}="";"";O${r}-N${r}-P${r})`
 const PCT_FORMULA = (r: number) => `=IF(N${r}=0;"";Q${r}/N${r})`
 const SUBTOTAL = (col: string, mes: string) => `=SUMIFS(${col}$2:${col}$400;$B$2:$B$400;"${mes}")`
