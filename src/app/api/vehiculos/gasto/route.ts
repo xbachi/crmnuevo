@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/direct-database'
 import { parseImporte } from '@/lib/gastoImporte'
+import { TIPO_A_CAMPO, normPlate, campoParaTipo, tiposCanonicos } from '@/lib/gastoMapping'
 
 /**
  * POST /api/vehiculos/gasto
@@ -23,22 +24,6 @@ import { parseImporte } from '@/lib/gastoImporte'
  * }
  */
 
-// tipo (proveedor/concepto) → columna del modelo Vehiculo
-const TIPO_A_CAMPO: Record<string, string> = {
-  mecauto: 'gastosMecanica', // taller
-  fergo: 'gastosPintura', // chapa
-  world: 'gastosLimpieza', // limpieza (world-detailing)
-  'world-detailing': 'gastosLimpieza',
-  worlddetailing: 'gastosLimpieza',
-  limpieza: 'gastosLimpieza',
-  compra: 'precioCompra',
-  transporte: 'gastosTransporte',
-  porte: 'gastosTransporte',
-  itv: 'gastosOtros',
-}
-
-const normPlate = (s: string) => s.replace(/[\s.\-]/g, '').toUpperCase()
-
 export async function POST(request: NextRequest) {
   const secret = process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
   const got = request.headers.get('x-webhook-secret') ?? ''
@@ -48,7 +33,7 @@ export async function POST(request: NextRequest) {
 
   const b = (await request.json().catch(() => ({}))) as Record<string, unknown>
   const tipoRaw = String(b.tipo ?? '').toLowerCase().trim()
-  const campo = TIPO_A_CAMPO[tipoRaw]
+  const campo = campoParaTipo(tipoRaw)
   if (!campo) {
     return NextResponse.json(
       { error: `tipo inválido: "${tipoRaw}". Válidos: ${Object.keys(TIPO_A_CAMPO).join(', ')}` },
@@ -98,9 +83,7 @@ export async function POST(request: NextRequest) {
   )
 
   // 3) recomputar el campo del Vehiculo = SUMA de facturas de ese tipo
-  const canonTipos = Object.entries(TIPO_A_CAMPO)
-    .filter(([, c]) => c === campo)
-    .map(([t]) => t)
+  const canonTipos = tiposCanonicos(campo)
   const sumRes = await pool.query(
     `SELECT COALESCE(SUM(importe),0) AS total FROM gasto_facturas
       WHERE vehiculo_id = $1 AND tipo = ANY($2)`,

@@ -18,28 +18,26 @@
 import { google, type sheets_v4 } from 'googleapis'
 import { pool } from '@/lib/direct-database'
 import { getGoogleSheetsAuth } from '@/lib/googleSheets'
+import {
+  CN_INFORME,
+  MESES,
+  MES_FORMULA,
+  COSTE_FORMULA,
+  IVA_FORMULA,
+  MARGEN_FORMULA,
+  PCT_FORMULA,
+  SUBTOTAL,
+  toEsDate,
+  monthIndexFromIso,
+  regimenFromType,
+  computeCompra,
+  findDuplicate,
+  planInsertion,
+} from '@/lib/costoBeneficioSheet'
 
-const CN_INFORME = 120
 const COSTOBENEFICIO_SPREADSHEET_ID_DEFAULT = '1o0GRJKvzjiDl7dQSdRzxy6jWIT1Ll7fAIKx4yGjYhwM'
 const COSTOBENEFICIO_SHEET_NAME_DEFAULT = 'CB 2026'
 const NUM_COLS = 19 // A..S
-const MESES = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'] as const
-
-// Locale es_ES: separador de argumentos ';' y decimal ',' (validado en vivo).
-const MES_FORMULA = (r: number) =>
-  `=IF(A${r}="";"";CHOOSE(MONTH(A${r});"ENERO";"FEBRERO";"MARZO";"ABRIL";"MAYO";"JUNIO";"JULIO";"AGOSTO";"SEPTIEMBRE";"OCTUBRE";"NOVIEMBRE";"DICIEMBRE"))`
-const COSTE_FORMULA = (r: number) => `=SUM(G${r}:M${r})`
-// IVA sobre el margen (misma convención que la planilla "2026": (precio - coste) * 21%),
-// uniforme para iva 21 y rebu.
-const IVA_FORMULA = (r: number) => `=IF(O${r}="";"";(O${r}-N${r})*0,21)`
-const MARGEN_FORMULA = (r: number) => `=IF(O${r}="";"";O${r}-N${r}-P${r})`
-const PCT_FORMULA = (r: number) => `=IF(N${r}=0;"";Q${r}/N${r})`
-const SUBTOTAL = (col: string, mes: string) => `=SUMIFS(${col}$2:${col}$400;$B$2:$B$400;"${mes}")`
-
-function toEsDate(iso: string): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso)
-  return m ? `${m[3]}/${m[2]}/${m[1]}` : iso
-}
 
 export interface CostoBeneficioOptions {
   dealId: number
@@ -69,8 +67,6 @@ interface VehicleCostData {
 }
 
 function log(msg: string) { console.log(`[costoBeneficio] ${msg}`) }
-const normPlate = (s: string) => s.replace(/[\s.\-]/g, '').toUpperCase()
-const normRef = (s: string) => s.replace(/[#\s.\-]/g, '').toUpperCase()
 
 async function loadVehicleCosts(dealId: number): Promise<VehicleCostData | null> {
   const res = await pool.query(
@@ -117,10 +113,6 @@ async function openTab(): Promise<Ctx | { error: string }> {
   return { api, spreadsheetId, sheetId: tab.properties.sheetId, sheetTitle: tab.properties.title, rows: (vr.data.values ?? []) as string[][] }
 }
 
-const isBand = (row: string[] | undefined) =>
-  !!row && (MESES as readonly string[]).includes(String(row[0] ?? '').trim().toUpperCase())
-const isSubtotal = (row: string[] | undefined) => !!row && /^TOTAL\b/i.test(String(row?.[3] ?? '').trim())
-
 export async function syncCostoBeneficio(opts: CostoBeneficioOptions): Promise<CostoBeneficioResult> {
   const warnings: string[] = []
   try {
@@ -132,54 +124,35 @@ export async function syncCostoBeneficio(opts: CostoBeneficioOptions): Promise<C
     if (!v) return { ok: false, action: 'error', detail: `Deal ${opts.dealId} sin vehículo`, warnings }
     if (!v.referencia) warnings.push('sin referencia')
     if (!v.matricula) warnings.push('sin matrícula')
-    const compra = v.precioCompra != null || v.gastosTransporte != null ? (v.precioCompra ?? 0) + (v.gastosTransporte ?? 0) : null
+    const compra = computeCompra(v.precioCompra, v.gastosTransporte)
     if (v.precioCompra == null) warnings.push('precioCompra vacío en CRM')
     if (v.gastosMecanica == null) warnings.push('taller (gastosMecanica) vacío')
     if (v.gastosPintura == null) warnings.push('chapa (gastosPintura) vacío')
     if (v.gastosLimpieza == null) warnings.push('limpieza (gastosLimpieza) vacío')
 
-    const mesIdx = parseInt(opts.invoiceDate.slice(5, 7), 10) - 1
-    if (!(mesIdx >= 0 && mesIdx <= 11)) return { ok: false, action: 'error', detail: `fecha inválida: ${opts.invoiceDate}`, warnings }
+    const mesIdx = monthIndexFromIso(opts.invoiceDate)
+    if (mesIdx < 0) return { ok: false, action: 'error', detail: `fecha inválida: ${opts.invoiceDate}`, warnings }
     const mes = MESES[mesIdx]
-    const regimen = opts.invoiceType === 'REBU' ? 'rebu' : 'iva 21'
+    const regimen = regimenFromType(opts.invoiceType)
 
     const ctx = await openTab()
     if ('error' in ctx) { log(ctx.error); return { ok: false, action: 'error', detail: ctx.error, warnings } }
     const { api, spreadsheetId, sheetId, sheetTitle, rows } = ctx
 
     // dedup (col C ref / col E matrícula) en toda la hoja
-    const plate = v.matricula ? normPlate(v.matricula) : null
-    const ref = v.referencia ? normRef(v.referencia) : null
-    for (let i = 0; i < rows.length; i++) {
-      const e = String(rows[i]?.[4] ?? '').trim(), c = String(rows[i]?.[2] ?? '').trim()
-      if (plate && e && normPlate(e) === plate) return { ok: true, action: 'duplicate', detail: `ya existe (matrícula E${i + 1})`, warnings }
-      if (ref && c && normRef(c) === ref && !isSubtotal(rows[i])) return { ok: true, action: 'duplicate', detail: `ya existe (referencia C${i + 1})`, warnings }
+    const dup = findDuplicate(rows, v.matricula, v.referencia)
+    if (dup) {
+      const col = dup.kind === 'plate' ? 'matrícula E' : 'referencia C'
+      return { ok: true, action: 'duplicate', detail: `ya existe (${col}${dup.row})`, warnings }
     }
 
-    // ubicar banda del mes (1-based) y su subtotal
-    let bandRow = -1
-    for (let i = 0; i < rows.length; i++) if (isBand(rows[i]) && String(rows[i][0]).trim().toUpperCase() === mes) { bandRow = i + 1; break }
-
-    let targetRow: number // fila (1-based) donde quedará la fila del coche
-    let createBand = false
+    // ubicar banda del mes y fila destino (1-based)
+    const { bandRow, targetRow, createBand } = planInsertion(rows, mes)
     const requests: sheets_v4.Schema$Request[] = []
 
-    if (bandRow > 0) {
-      // insertar tras el último coche del mes (antes del subtotal)
-      let lastCar = bandRow
-      for (let i = bandRow; i < rows.length; i++) {
-        if (isSubtotal(rows[i]) || (isBand(rows[i]) && i + 1 !== bandRow)) break
-        if (String(rows[i]?.[2] ?? '').trim()) lastCar = i + 1 // col C con ref
-      }
-      targetRow = lastCar + 1
+    if (!createBand) {
       requests.push({ insertDimension: { range: { sheetId, dimension: 'ROWS', startIndex: targetRow - 1, endIndex: targetRow }, inheritFromBefore: true } })
     } else {
-      // crear banda nueva al final
-      createBand = true
-      let lastContent = rows.length
-      while (lastContent > 0 && !(rows[lastContent - 1] ?? []).some((c) => String(c ?? '').trim())) lastContent--
-      bandRow = lastContent + 2 // deja una fila en blanco
-      targetRow = bandRow + 1
       const subRow = bandRow + 2
       // insertar 3 filas (banda, coche, subtotal)
       requests.push({ insertDimension: { range: { sheetId, dimension: 'ROWS', startIndex: bandRow - 1, endIndex: bandRow - 1 + 3 }, inheritFromBefore: false } })

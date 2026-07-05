@@ -36,6 +36,7 @@ import {
   type Invoice,
   type InvoiceType,
 } from '@/lib/invoiceRepository'
+import { computeAmounts, type Amounts } from '@/lib/invoiceAmounts'
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -338,17 +339,6 @@ interface SaleSnapshot {
   }
 }
 
-interface Amounts {
-  vehicle_sale_price: number
-  taxable_base: number | null
-  vat_rate: number | null
-  vat_amount: number | null
-  total_amount: number
-  rebu_margin: number | null
-  rebu_taxable_base: number | null
-  rebu_vat_amount: number | null
-}
-
 async function loadSale(dealId: number): Promise<SaleSnapshot> {
   const res = await pool.query(
     `SELECT
@@ -423,40 +413,6 @@ function buildVehicleSnapshot(sale: SaleSnapshot) {
     vin: sale.vehiculo.bastidor ?? null,
     kms: sale.vehiculo.kms ?? null,
     year: sale.vehiculo.año ?? null,
-  }
-}
-
-function computeAmounts(total: number, type: InvoiceType): Amounts {
-  // Existing PDF generator's accounting rules (contractGenerator.ts:1704-1722):
-  //  - VAT: total includes 21% VAT, taxable base = total / 1.21.
-  //  - REBU: total has no VAT breakdown.
-  // We persist the snapshot the gestor will read off the invoice history.
-  if (type === 'VAT') {
-    const rate = INVOICE_CONFIG.vat.standardRate
-    const taxableBase = Number((total / (1 + rate / 100)).toFixed(2))
-    const vatAmount = Number((total - taxableBase).toFixed(2))
-    return {
-      vehicle_sale_price: total,
-      taxable_base: taxableBase,
-      vat_rate: rate,
-      vat_amount: vatAmount,
-      total_amount: total,
-      rebu_margin: null,
-      rebu_taxable_base: null,
-      rebu_vat_amount: null,
-    }
-  }
-  // REBU: keep totals; margin/taxable_base/vat are accounting fields the
-  // gestor may want later but the invoice itself does not show them.
-  return {
-    vehicle_sale_price: total,
-    taxable_base: null,
-    vat_rate: null,
-    vat_amount: null,
-    total_amount: total,
-    rebu_margin: null,
-    rebu_taxable_base: null,
-    rebu_vat_amount: null,
   }
 }
 
