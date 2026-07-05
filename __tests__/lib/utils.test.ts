@@ -35,12 +35,12 @@ describe('formatDate', () => {
   test('formats date strings correctly', () => {
     const date = '2025-01-17'
     const result = formatDate(date)
-    expect(result).toMatch(/\d{1,2} de \w+ de \d{4}/)
+    expect(result).toBe('17/01/2025')
   })
 
   test('handles invalid dates gracefully', () => {
     const result = formatDate('invalid-date')
-    expect(result).toContain('Invalid Date')
+    expect(result).toBe('Fecha inválida')
   })
 })
 
@@ -65,25 +65,25 @@ describe('formatVehicleReference', () => {
   })
 
   test('formats investor vehicle references', () => {
-    expect(formatVehicleReference('9', 'I')).toBe('I-9')
-    expect(formatVehicleReference('9', 'Inversor')).toBe('I-9')
-    expect(formatVehicleReference('I9', 'I')).toBe('I-9')
-    expect(formatVehicleReference('I-9', 'I')).toBe('I-9')
+    expect(formatVehicleReference('9', 'I')).toBe('#I-9')
+    expect(formatVehicleReference('9', 'Inversor')).toBe('#I-9')
+    expect(formatVehicleReference('I9', 'I')).toBe('#I-9')
+    expect(formatVehicleReference('I-9', 'I')).toBe('#I-9')
   })
 
   test('formats deposit vehicle references', () => {
-    expect(formatVehicleReference('5', 'D')).toBe('D-5')
-    expect(formatVehicleReference('5', 'Deposito')).toBe('D-5')
-    expect(formatVehicleReference('5', 'Deposito Venta')).toBe('D-5')
-    expect(formatVehicleReference('D5', 'D')).toBe('D-5')
-    expect(formatVehicleReference('D-5', 'D')).toBe('D-5')
+    expect(formatVehicleReference('5', 'D')).toBe('#D-5')
+    expect(formatVehicleReference('5', 'Deposito')).toBe('#D-5')
+    expect(formatVehicleReference('5', 'Deposito Venta')).toBe('#D-5')
+    expect(formatVehicleReference('D5', 'D')).toBe('#D-5')
+    expect(formatVehicleReference('D-5', 'D')).toBe('#D-5')
   })
 
   test('formats rental vehicle references', () => {
-    expect(formatVehicleReference('3', 'R')).toBe('R-3')
-    expect(formatVehicleReference('3', 'Coche R')).toBe('R-3')
-    expect(formatVehicleReference('R3', 'R')).toBe('R-3')
-    expect(formatVehicleReference('R-3', 'R')).toBe('R-3')
+    expect(formatVehicleReference('3', 'R')).toBe('#R-3')
+    expect(formatVehicleReference('3', 'Coche R')).toBe('#R-3')
+    expect(formatVehicleReference('R3', 'R')).toBe('#R-3')
+    expect(formatVehicleReference('R-3', 'R')).toBe('#R-3')
   })
 
   test('handles unknown types', () => {
@@ -95,12 +95,12 @@ describe('formatVehicleReference', () => {
 
   test('prevents duplicate prefixes correctly', () => {
     // Evitar duplicar prefijos
-    expect(formatVehicleReference('I9', 'I')).toBe('I-9')
-    expect(formatVehicleReference('i9', 'I')).toBe('I-9')
-    expect(formatVehicleReference('I-9', 'I')).toBe('I-9')
+    expect(formatVehicleReference('I9', 'I')).toBe('#I-9')
+    expect(formatVehicleReference('i9', 'I')).toBe('#I-9')
+    expect(formatVehicleReference('I-9', 'I')).toBe('#I-9')
     expect(formatVehicleReference('#1010', 'C')).toBe('#1010')
-    expect(formatVehicleReference('D-5', 'D')).toBe('D-5')
-    expect(formatVehicleReference('R3', 'R')).toBe('R-3')
+    expect(formatVehicleReference('D-5', 'D')).toBe('#D-5')
+    expect(formatVehicleReference('R3', 'R')).toBe('#R-3')
   })
 
   test('handles empty references', () => {
@@ -117,43 +117,43 @@ describe('formatVehicleReferenceShort', () => {
     expect(formatVehicleReferenceShort('12345', 'C')).toBe('#45')
     expect(formatVehicleReferenceShort('9', 'C')).toBe('#9')
 
-    // Inversores: I- + último dígito
-    expect(formatVehicleReferenceShort('9', 'I')).toBe('I-9')
-    expect(formatVehicleReferenceShort('123', 'I')).toBe('I-3')
+    // Inversores: se mantiene la referencia completa
+    expect(formatVehicleReferenceShort('9', 'I')).toBe('#I-9')
+    expect(formatVehicleReferenceShort('123', 'I')).toBe('#I-123')
 
-    // Depósitos: D- + último dígito
-    expect(formatVehicleReferenceShort('456', 'D')).toBe('D-6')
+    // Depósitos: se mantiene la referencia completa
+    expect(formatVehicleReferenceShort('456', 'D')).toBe('#D-456')
 
-    // Renting: R- + último dígito
-    expect(formatVehicleReferenceShort('789', 'R')).toBe('R-9')
+    // Renting: se mantiene la referencia completa
+    expect(formatVehicleReferenceShort('789', 'R')).toBe('#R-789')
   })
 })
 
 describe('generateVehicleSlug', () => {
-  test('generates correct slug format with clean reference', () => {
-    const vehiculo = { referencia: '1037', marca: 'Ford', modelo: 'Puma' }
+  test('generates correct slug format with id, marca and modelo', () => {
+    const vehiculo = { id: 1037, marca: 'Ford', modelo: 'Puma' }
     expect(generateVehicleSlug(vehiculo)).toBe('1037-ford-puma')
   })
 
-  test('handles references with prefixes', () => {
-    const vehiculo1 = { referencia: '#1234', marca: 'BMW', modelo: 'X5' }
+  test('uses the numeric id regardless of reference-like formatting elsewhere', () => {
+    const vehiculo1 = { id: 1234, marca: 'BMW', modelo: 'X5' }
     expect(generateVehicleSlug(vehiculo1)).toBe('1234-bmw-x5')
 
-    const vehiculo2 = { referencia: 'I-567', marca: 'Audi', modelo: 'A4' }
+    const vehiculo2 = { id: 567, marca: 'Audi', modelo: 'A4' }
     expect(generateVehicleSlug(vehiculo2)).toBe('567-audi-a4')
 
-    const vehiculo3 = { referencia: 'D-890', marca: 'Tesla', modelo: 'Model 3' }
+    const vehiculo3 = { id: 890, marca: 'Tesla', modelo: 'Model 3' }
     expect(generateVehicleSlug(vehiculo3)).toBe('890-tesla-model3')
   })
 
   test('handles special characters and spaces', () => {
-    const vehiculo = { referencia: 'R-123', marca: 'BMW X', modelo: 'Serie 3' }
+    const vehiculo = { id: 123, marca: 'BMW X', modelo: 'Serie 3' }
     expect(generateVehicleSlug(vehiculo)).toBe('123-bmwx-serie3')
   })
 
   test('handles accents and symbols', () => {
     const vehiculo = {
-      referencia: '#456',
+      id: 456,
       marca: 'Citroën',
       modelo: 'C4 Picasso',
     }
@@ -161,7 +161,7 @@ describe('generateVehicleSlug', () => {
   })
 
   test('handles numbers and mixed case', () => {
-    const vehiculo = { referencia: '789', marca: 'Audi', modelo: 'A4 2.0' }
+    const vehiculo = { id: 789, marca: 'Audi', modelo: 'A4 2.0' }
     expect(generateVehicleSlug(vehiculo)).toBe('789-audi-a420')
   })
 })
