@@ -194,14 +194,46 @@ export async function syncCostoBeneficio(opts: CostoBeneficioOptions): Promise<C
   }
 }
 
-/** Hook post-emisión: nunca lanza ni bloquea la emisión. Timeout 20 s. */
+/** Hook post-emisión: nunca lanza ni bloquea la emisión. Timeout 20 s. SIEMPRE loguea en costobeneficio_logs. */
 export async function notifyCostoBeneficio(opts: CostoBeneficioOptions): Promise<void> {
+  const startTime = Date.now()
+  let result: CostoBeneficioResult = { ok: false, action: 'error', detail: 'no result', warnings: [] }
+
   try {
-    await Promise.race([
+    result = await Promise.race([
       syncCostoBeneficio(opts),
       new Promise<CostoBeneficioResult>((resolve) => setTimeout(() => resolve({ ok: false, action: 'error', detail: 'timeout 20s', warnings: [] }), 20_000)),
     ])
   } catch (err) {
-    console.error('[costoBeneficio] hook failed:', (err as Error)?.message ?? err)
+    const msg = (err as Error)?.message ?? String(err)
+    console.error('[costoBeneficio] hook failed:', msg)
+    result = { ok: false, action: 'error', detail: msg, warnings: [] }
+  } finally {
+    // SIEMPRE loguear el resultado (éxito/error) en la tabla de audit
+    const executionTime = Date.now() - startTime
+    try {
+      await pool.query(
+        `INSERT INTO costobeneficio_logs
+          (deal_id, invoice_number, invoice_date, invoice_type, sale_price,
+           success, action, detail, warnings, error_message, execution_time_ms)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        [
+          opts.dealId,
+          opts.numeroFactura,
+          opts.invoiceDate,
+          opts.invoiceType,
+          opts.salePrice,
+          result.ok,
+          result.action,
+          result.detail,
+          result.warnings.length > 0 ? result.warnings : null,
+          result.ok ? null : result.detail,
+          executionTime,
+        ]
+      )
+    } catch (logErr) {
+      // Si falla el logging, solo logueamos a console (no bloqueamos)
+      console.error('[costoBeneficio] failed to log:', (logErr as Error)?.message ?? logErr)
+    }
   }
 }
