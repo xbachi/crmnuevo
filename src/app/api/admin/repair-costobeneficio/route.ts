@@ -16,7 +16,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/direct-database'
 import { google } from 'googleapis'
 import { getGoogleSheetsAuth } from '@/lib/googleSheets'
-import { normPlate, normRef } from '@/lib/costoBeneficioSheet'
+import { isInSheet } from '@/lib/facturasMonitor'
 
 interface Invoice {
   id: number
@@ -56,20 +56,6 @@ async function getEmittedInvoices(year: number): Promise<Invoice[]> {
     [`${year}-01-01`, `${year + 1}-01-01`]
   )
   return res.rows
-}
-
-function isInSheet(inv: Invoice, rows: string[][]): boolean {
-  const plate = inv.matricula ? normPlate(inv.matricula) : null
-  const ref = inv.referencia ? normRef(inv.referencia) : null
-
-  for (const row of rows) {
-    const sheetPlate = row[4] ? normPlate(row[4]) : null
-    const sheetRef = row[2] ? normRef(row[2]) : null
-
-    if (plate && sheetPlate && plate === sheetPlate) return true
-    if (ref && sheetRef && ref === sheetRef) return true
-  }
-  return false
 }
 
 // Función syncCostoBeneficio inline para evitar timeout del wrapper

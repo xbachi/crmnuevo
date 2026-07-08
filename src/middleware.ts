@@ -18,6 +18,7 @@ const PUBLIC_API_PREFIXES = [
   '/api/vehiculos/gasto',
   // Endpoints admin de monitoreo y reparación (X-Admin-Secret).
   '/api/admin/check-costobeneficio',
+  '/api/admin/check-facturas',
   '/api/admin/repair-costobeneficio',
 ]
 
