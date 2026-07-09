@@ -57,6 +57,72 @@ export function computeCompra(
   return (precioCompra ?? 0) + (gastosTransporte ?? 0)
 }
 
+// ---------------------------------------------------------------------------
+// Reconciliación CB ↔ CRM (costos): qué celdas de una fila hay que actualizar.
+// ---------------------------------------------------------------------------
+
+export interface CbCosts {
+  precioCompra: number | null
+  gastosTransporte: number | null
+  gastosMecanica: number | null
+  gastosPintura: number | null
+  gastosLimpieza: number | null
+  gastosOtros: number | null
+}
+export interface CbCellUpdate {
+  col: string
+  value: number | '' // '' = limpiar la celda
+}
+
+/** Parsea una celda con formato es_ES ("11.435", "90,75") a número, o null. */
+export function parseEsCell(s: string | undefined): number | null {
+  const t = String(s ?? '').trim()
+  if (!t) return null
+  const n = parseFloat(t.replace(/\./g, '').replace(/,/g, '.'))
+  return Number.isNaN(n) ? null : n
+}
+
+/**
+ * Dado el estado actual de una fila de coche (A..S) y los costos del CRM,
+ * devuelve las celdas a actualizar para reflejar el CRM.
+ *
+ * Columnas de costo: G=compra (precioCompra+porte), J=taller, K=chapa,
+ * L=limpieza, M=itv/otros. H (porte) DEBE estar siempre en blanco (el porte va
+ * dentro de G) — en 'overwrite' se limpia si quedó con valor (corrige el bug
+ * histórico de doble conteo del porte).
+ *
+ * mode 'fill': sólo rellena celdas VACÍAS (no pisa nada; no toca H).
+ * mode 'overwrite': adem��s corrige valores distintos al CRM y limpia H.
+ */
+export function reconcileCostCells(
+  row: string[],
+  costs: CbCosts,
+  mode: 'fill' | 'overwrite'
+): CbCellUpdate[] {
+  const raw = (i: number) => String(row[i] ?? '').trim()
+  const near = (a: number | null, b: number | null) =>
+    a != null && b != null && Math.abs(a - b) < 0.01
+
+  const targets: { col: string; idx: number; val: number | null }[] = [
+    { col: 'G', idx: 6, val: computeCompra(costs.precioCompra, costs.gastosTransporte) },
+    { col: 'J', idx: 9, val: costs.gastosMecanica },
+    { col: 'K', idx: 10, val: costs.gastosPintura },
+    { col: 'L', idx: 11, val: costs.gastosLimpieza },
+    { col: 'M', idx: 12, val: costs.gastosOtros },
+  ]
+  const updates: CbCellUpdate[] = []
+  for (const t of targets) {
+    if (t.val == null || t.val === 0) continue
+    if (mode === 'fill') {
+      if (raw(t.idx) === '') updates.push({ col: t.col, value: t.val })
+    } else if (!near(parseEsCell(row[t.idx]), t.val)) {
+      updates.push({ col: t.col, value: t.val })
+    }
+  }
+  if (mode === 'overwrite' && raw(7) !== '') updates.push({ col: 'H', value: '' })
+  return updates
+}
+
 export const isBand = (row: string[] | undefined) =>
   !!row && (MESES as readonly string[]).includes(String(row[0] ?? '').trim().toUpperCase())
 export const isSubtotal = (row: string[] | undefined) =>

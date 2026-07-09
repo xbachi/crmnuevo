@@ -23,7 +23,7 @@ import { google, type sheets_v4 } from 'googleapis'
 import { getGoogleSheetsAuth } from '@/lib/googleSheets'
 import { pool } from '@/lib/direct-database'
 import { getEmittedInvoices } from '@/lib/facturasQuery'
-import { computeCompra, isBand, isSubtotal, normPlate, normRef, MESES } from '@/lib/costoBeneficioSheet'
+import { isBand, isSubtotal, normPlate, normRef, MESES, reconcileCostCells } from '@/lib/costoBeneficioSheet'
 
 const SHEET_ID = process.env.COSTOBENEFICIO_SPREADSHEET_ID || '1o0GRJKvzjiDl7dQSdRzxy6jWIT1Ll7fAIKx4yGjYhwM'
 const DEFAULT_TAB = 'CB 2026'
@@ -74,16 +74,6 @@ async function openTab(tab: string): Promise<Ctx> {
 }
 
 const cell = (r: string[], i: number) => String(r[i] ?? '').trim()
-// columnas de input a rellenar (fill-only). NO incluimos H (porte): la columna G
-// (compra = computeCompra = precioCompra + porte) YA incluye el porte, y
-// COSTE=SUM(G:M) lo sumaría dos veces si además llenáramos H.
-const COST_COLS: { idx: number; col: string; label: string; get: (c: Costs) => number | null }[] = [
-  { idx: 6, col: 'G', label: 'compra', get: (c) => computeCompra(c.precioCompra, c.gastosTransporte) },
-  { idx: 9, col: 'J', label: 'taller', get: (c) => c.gastosMecanica },
-  { idx: 10, col: 'K', label: 'chapa', get: (c) => c.gastosPintura },
-  { idx: 11, col: 'L', label: 'limpieza', get: (c) => c.gastosLimpieza },
-  { idx: 12, col: 'M', label: 'itv/otros', get: (c) => c.gastosOtros },
-]
 
 /** Bloque de una banda de mes: filas 1-based [start, end] (banda + coches + subtotal). */
 function findBandBlock(rows: string[][], mes: string): { start: number; end: number } | null {
@@ -112,6 +102,10 @@ export async function POST(request: NextRequest) {
   const tab = searchParams.get('tab') || DEFAULT_TAB
   const dryRun = searchParams.get('dryRun') === 'true'
   const reorderApril = searchParams.get('reorderApril') === 'true'
+  // 'fill' (default): sólo rellena celdas vacías, no pisa nada.
+  // 'overwrite': corrige valores distintos al CRM y limpia H (arregla el doble
+  // conteo histórico del porte). Es el modo de reconciliación autoritativa.
+  const mode: 'fill' | 'overwrite' = searchParams.get('mode') === 'overwrite' ? 'overwrite' : 'fill'
 
   try {
     const invoices = await getEmittedInvoices(year)
@@ -139,12 +133,9 @@ export async function POST(request: NextRequest) {
         (inv.referencia && refRow.get(normRef(inv.referencia))) || 0
       if (!rowNum) continue
       const sheetRow = rows[rowNum - 1] ?? []
-      for (const cc of COST_COLS) {
-        const val = cc.get(c)
-        if (val == null || val === 0) continue
-        if (cell(sheetRow, cc.idx) !== '') continue // fill-only: no pisar
-        updates.push({ range: `${title}!${cc.col}${rowNum}`, values: [[val]] })
-        filled.push(`${inv.referencia || inv.matricula} ${cc.label}=${val} (${cc.col}${rowNum})`)
+      for (const u of reconcileCostCells(sheetRow, c, mode)) {
+        updates.push({ range: `${title}!${u.col}${rowNum}`, values: [[u.value]] })
+        filled.push(`${inv.referencia || inv.matricula} ${u.col}${rowNum}=${u.value === '' ? '(limpiar)' : u.value}`)
       }
     }
 
@@ -189,7 +180,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      year, tab: title, dryRun,
+      year, tab: title, dryRun, mode,
       totalInvoices: invoices.length,
       cellsFilled: updates.length,
       filled,

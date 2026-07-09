@@ -93,7 +93,22 @@ export async function POST(request: NextRequest) {
   // campo viene de una whitelist (TIPO_A_CAMPO) → seguro interpolarlo
   await pool.query(`UPDATE "Vehiculo" SET "${campo}" = $1 WHERE id = $2`, [total, vehiculo.id])
 
+  // Reflejar el costo en CB 2026 si el coche ya tiene fila (venta emitida).
+  // Best-effort + timeout: no bloquea ni falla la respuesta a n8n.
+  let cbResync: string | null = null
+  try {
+    const { resyncVehiculoRowToCB } = await import('@/lib/costoBeneficio')
+    const r = await Promise.race([
+      resyncVehiculoRowToCB(vehiculo.id, 'CB 2026'),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000)),
+    ])
+    cbResync = r ? `${r.action}: ${r.detail}` : 'timeout'
+  } catch (err) {
+    cbResync = `error: ${(err as Error)?.message ?? err}`
+  }
+
   return NextResponse.json({
+    cbResync,
     ok: true,
     vehiculoId: vehiculo.id,
     matricula: vehiculo.matricula,

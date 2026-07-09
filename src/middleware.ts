@@ -21,6 +21,8 @@ const PUBLIC_API_PREFIXES = [
   '/api/admin/check-facturas',
   '/api/admin/repair-costobeneficio',
   '/api/admin/resync-costobeneficio',
+  // Cron de Vercel (self-auth por CRON_SECRET / X-Admin-Secret).
+  '/api/cron/costobeneficio',
 ]
 
 export async function middleware(request: NextRequest) {

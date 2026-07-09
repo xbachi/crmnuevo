@@ -33,6 +33,10 @@ import {
   computeCompra,
   findDuplicate,
   planInsertion,
+  normPlate,
+  normRef,
+  reconcileCostCells,
+  type CbCosts,
 } from '@/lib/costoBeneficioSheet'
 
 const COSTOBENEFICIO_SPREADSHEET_ID_DEFAULT = '1o0GRJKvzjiDl7dQSdRzxy6jWIT1Ll7fAIKx4yGjYhwM'
@@ -243,5 +247,61 @@ export async function notifyCostoBeneficio(opts: CostoBeneficioOptions): Promise
       // Si falla el logging, solo logueamos a console (no bloqueamos)
       console.error('[costoBeneficio] failed to log:', (logErr as Error)?.message ?? logErr)
     }
+  }
+}
+
+/**
+ * Refleja en la fila de CB del coche los costos ACTUALES del CRM (overwrite:
+ * corrige valores distintos y limpia H). Best-effort: nunca lanza. Pensado para
+ * dispararse tras cargar un costo (POST /vehiculos/gasto) para que un costo
+ * tardío llegue solo a la hoja, sin esperar una emisión. No-op si el coche aún
+ * no tiene fila en CB (todavía no se emitió su factura de venta).
+ */
+export async function resyncVehiculoRowToCB(vehiculoId: number, sheetName?: string): Promise<CostoBeneficioResult> {
+  const warnings: string[] = []
+  try {
+    if (process.env.COSTOBENEFICIO_DISABLED === '1') return { ok: true, action: 'skipped', detail: 'COSTOBENEFICIO_DISABLED=1', warnings }
+    if (!process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || !process.env.GOOGLE_PRIVATE_KEY) return { ok: true, action: 'skipped', detail: 'faltan credenciales Google', warnings }
+
+    const res = await pool.query(
+      `SELECT referencia, matricula, "precioCompra", "gastosTransporte",
+              "gastosMecanica", "gastosPintura", "gastosLimpieza", "gastosOtros"
+         FROM "Vehiculo" WHERE id = $1`,
+      [vehiculoId]
+    )
+    const r = res.rows[0]
+    if (!r) return { ok: false, action: 'error', detail: `Vehiculo ${vehiculoId} no existe`, warnings }
+    const num = (x: unknown) => (x != null ? Number(x) : null)
+    const costs: CbCosts = {
+      precioCompra: num(r.precioCompra), gastosTransporte: num(r.gastosTransporte),
+      gastosMecanica: num(r.gastosMecanica), gastosPintura: num(r.gastosPintura),
+      gastosLimpieza: num(r.gastosLimpieza), gastosOtros: num(r.gastosOtros),
+    }
+
+    const ctx = await openTab(sheetName)
+    if ('error' in ctx) return { ok: false, action: 'error', detail: ctx.error, warnings }
+    const { api, spreadsheetId, sheetTitle, rows } = ctx
+
+    const plate = r.matricula ? normPlate(String(r.matricula)) : null
+    const ref = r.referencia ? normRef(String(r.referencia)) : null
+    let rowNum = 0
+    for (let i = 0; i < rows.length; i++) {
+      const rp = rows[i]?.[4] ? normPlate(String(rows[i][4])) : null
+      const rr = rows[i]?.[2] ? normRef(String(rows[i][2])) : null
+      if ((plate && rp && plate === rp) || (ref && rr && ref === rr)) { rowNum = i + 1; break }
+    }
+    if (!rowNum) return { ok: true, action: 'skipped', detail: 'coche sin fila en CB (aún)', warnings }
+
+    const updates = reconcileCostCells(rows[rowNum - 1] as string[], costs, 'overwrite')
+    if (updates.length === 0) return { ok: true, action: 'skipped', detail: 'CB ya coincide', warnings }
+
+    const data = updates.map((u) => ({ range: `${sheetTitle}!${u.col}${rowNum}`, values: [[u.value]] }))
+    await api.spreadsheets.values.batchUpdate({ spreadsheetId, requestBody: { valueInputOption: 'USER_ENTERED', data } })
+    log(`resync fila ${rowNum} (${r.matricula}): ${updates.map((u) => `${u.col}=${u.value}`).join(', ')}`)
+    return { ok: true, action: 'inserted', detail: `fila ${rowNum}: ${updates.map((u) => u.col).join(',')}`, warnings }
+  } catch (err) {
+    const msg = (err as Error)?.message ?? String(err)
+    log(`resyncVehiculoRowToCB ERROR: ${msg}`)
+    return { ok: false, action: 'error', detail: msg, warnings }
   }
 }
