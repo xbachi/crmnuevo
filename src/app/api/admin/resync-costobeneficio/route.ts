@@ -106,10 +106,11 @@ export async function POST(request: NextRequest) {
   // 'overwrite': corrige valores distintos al CRM y limpia H (arregla el doble
   // conteo histórico del porte). Es el modo de reconciliación autoritativa.
   const mode: 'fill' | 'overwrite' = searchParams.get('mode') === 'overwrite' ? 'overwrite' : 'fill'
+  // ?clearCompra=MAT1,MAT2 → limpia SOLO la columna G (compra) de esas matrículas
+  // (para revertir un valor cargado por error). No toca J/K/L/M.
+  const clearCompra = (searchParams.get('clearCompra') || '').split(',').map((s) => normPlate(s)).filter(Boolean)
 
   try {
-    const invoices = await getEmittedInvoices(year)
-    const costs = await loadCostsByDeal([...new Set(invoices.map((i) => i.deal_id))])
     const ctx = await openTab(tab)
     const { api, sheetId, title, rows } = ctx
 
@@ -122,6 +123,23 @@ export async function POST(request: NextRequest) {
       if (p) plateRow.set(normPlate(p), i + 1)
       if (rf) refRow.set(normRef(rf), i + 1)
     })
+
+    // Modo clear puntual de compra (G): limpia y sale.
+    if (clearCompra.length > 0) {
+      const cleared: string[] = []
+      const data: sheets_v4.Schema$ValueRange[] = []
+      for (const m of clearCompra) {
+        const rn = plateRow.get(m)
+        if (rn) { data.push({ range: `${title}!G${rn}`, values: [['']] }); cleared.push(`${m} (G${rn})`) }
+      }
+      if (!dryRun && data.length) {
+        await api.spreadsheets.values.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { valueInputOption: 'USER_ENTERED', data } })
+      }
+      return NextResponse.json({ ok: true, action: 'clearCompra', dryRun, cleared })
+    }
+
+    const invoices = await getEmittedInvoices(year)
+    const costs = await loadCostsByDeal([...new Set(invoices.map((i) => i.deal_id))])
 
     const updates: sheets_v4.Schema$ValueRange[] = []
     const filled: string[] = []
