@@ -16,6 +16,8 @@ const PUBLIC_API_PREFIXES = [
   '/api/automation-log',
   // n8n carga importes de facturas de proveedor (X-Webhook-Secret).
   '/api/vehiculos/gasto',
+  // n8n registra facturas en el registro unificado (X-Webhook-Secret).
+  '/api/gestoria/factura',
   // Endpoints admin de monitoreo y reparación (X-Admin-Secret).
   '/api/admin/check-costobeneficio',
   '/api/admin/check-facturas',
