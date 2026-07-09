@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()), 10)
   const CB_TAB = searchParams.get('tab') || DEFAULT_CB_TAB
+  const debugRows = searchParams.get('debug') === 'rows' // dump crudo de la hoja (auditoría)
 
   try {
     // --- 1. CB 2026: facturas faltantes ---
@@ -92,6 +93,8 @@ export async function GET(request: NextRequest) {
         sArchivar: control.sArchivar,
         descargar: control.descargar,
       },
+      // Debug opcional (?debug=rows): filas crudas A:E de CB para reconciliar por banda.
+      ...(debugRows ? { cbRowsRaw: cbRows } : {}),
     })
   } catch (err) {
     return NextResponse.json({ ok: false, error: (err as Error).message }, { status: 500 })
