@@ -18,6 +18,8 @@ const PUBLIC_API_PREFIXES = [
   '/api/vehiculos/gasto',
   // n8n registra facturas en el registro unificado (X-Webhook-Secret).
   '/api/gestoria/factura',
+  // Revisión del registro para entrega a gestoría (X-Admin-Secret).
+  '/api/gestoria/audit',
   // Endpoints admin de monitoreo y reparación (X-Admin-Secret).
   '/api/admin/check-costobeneficio',
   '/api/admin/check-facturas',
