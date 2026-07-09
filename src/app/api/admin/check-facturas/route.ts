@@ -93,8 +93,8 @@ export async function GET(request: NextRequest) {
         sArchivar: control.sArchivar,
         descargar: control.descargar,
       },
-      // Debug opcional (?debug=rows): filas crudas A:E de CB para reconciliar por banda.
-      ...(debugRows ? { cbRowsRaw: cbRows } : {}),
+      // Debug opcional (?debug=rows): filas crudas A:S de CB (incluye columnas de costo).
+      ...(debugRows ? { cbRowsRaw: await getTabRows(CB_TAB, 'A:S') } : {}),
     })
   } catch (err) {
     return NextResponse.json({ ok: false, error: (err as Error).message }, { status: 500 })
