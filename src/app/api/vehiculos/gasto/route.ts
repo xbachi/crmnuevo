@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/direct-database'
 import { parseImporte } from '@/lib/gastoImporte'
 import { TIPO_A_CAMPO, normPlate, campoParaTipo, tiposCanonicos } from '@/lib/gastoMapping'
+import { validarImporte } from '@/lib/gastoRangos'
 
 /**
  * POST /api/vehiculos/gasto
@@ -43,6 +44,16 @@ export async function POST(request: NextRequest) {
   const importe = parseImporte(b.importe)
   if (importe == null) {
     return NextResponse.json({ error: `importe inválido: ${JSON.stringify(b.importe)}` }, { status: 400 })
+  }
+  // Guarda anti-basura: rechaza importes fuera del rango del campo (evita cargar
+  // valores absurdos por errores de extracción). `force=1` permite saltearla.
+  const rango = validarImporte(campo, importe)
+  const force = String(b.force ?? '') === '1' || new URL(request.url).searchParams.get('force') === '1'
+  if (!rango.ok && !force) {
+    return NextResponse.json(
+      { error: 'importe fuera de rango', detalle: rango.reason, hint: 'verificá el valor; si es correcto reenviá con force=1' },
+      { status: 422 }
+    )
   }
   const numeroFactura = b.numeroFactura ? String(b.numeroFactura).trim() : null
   if (!numeroFactura) {
@@ -115,5 +126,6 @@ export async function POST(request: NextRequest) {
     campo,
     nuevoValor: total,
     facturaAplicada: numeroFactura,
+    ...(rango.warn ? { aviso: rango.warn } : {}),
   })
 }
