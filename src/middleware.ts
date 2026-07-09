@@ -20,6 +20,7 @@ const PUBLIC_API_PREFIXES = [
   '/api/admin/check-costobeneficio',
   '/api/admin/check-facturas',
   '/api/admin/repair-costobeneficio',
+  '/api/admin/resync-costobeneficio',
 ]
 
 export async function middleware(request: NextRequest) {
