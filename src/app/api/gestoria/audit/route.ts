@@ -49,19 +49,24 @@ export async function GET(request: NextRequest) {
       `SELECT id, proveedor, categoria, nombre_archivo FROM facturas_registro
         WHERE ${where} AND categoria LIKE 'coche-%' AND (matricula IS NULL OR matricula = '') ORDER BY proveedor`, params)
 
-    const incompletas = sinFecha.rows.length + sinNumero.rows.length + cocheSinMat.rows.length
+    // Bloqueantes para entrega: sin mes (mal ubicable) o coche sin matrícula.
+    // El nº de factura NO bloquea: la dedup es por hash de contenido (infalible);
+    // el número es secundario/informativo.
+    const bloqueantes = sinFecha.rows.length + cocheSinMat.rows.length
 
     return NextResponse.json({
-      ok: incompletas === 0,
+      ok: bloqueantes === 0,
       year, trimestre: q,
       total: total.rows[0].n,
       porMes: porMes.rows.map((r) => ({ mes: r.mes, nombre: r.mes ? MES_NOM[r.mes - 1] : null, n: r.n, total: r.total })),
       porProveedor: porProv.rows,
-      incompletas: {
-        count: incompletas,
+      bloqueantes: {
+        count: bloqueantes,
         sinFecha: sinFecha.rows,
-        sinNumero: sinNumero.rows,
         cocheSinMatricula: cocheSinMat.rows,
+      },
+      informativo: {
+        sinNumero: sinNumero.rows.length, // deduplicadas por hash igual
       },
     })
   } catch (err) {
