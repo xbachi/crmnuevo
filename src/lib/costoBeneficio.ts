@@ -46,6 +46,7 @@ export interface CostoBeneficioOptions {
   invoiceDate: string // YYYY-MM-DD
   salePrice: number
   dryRun?: boolean
+  sheetName?: string // fuerza la pestaña destino (repair); si no, usa env/default
 }
 export interface CostoBeneficioResult {
   ok: boolean
@@ -98,11 +99,11 @@ function buildCarRow(v: VehicleCostData, opts: CostoBeneficioOptions, r: number,
 }
 
 interface Ctx { api: sheets_v4.Sheets; spreadsheetId: string; sheetId: number; sheetTitle: string; rows: string[][] }
-async function openTab(): Promise<Ctx | { error: string }> {
+async function openTab(sheetName?: string): Promise<Ctx | { error: string }> {
   const auth = await getGoogleSheetsAuth()
   const api = google.sheets({ version: 'v4', auth })
   const spreadsheetId = process.env.COSTOBENEFICIO_SPREADSHEET_ID || COSTOBENEFICIO_SPREADSHEET_ID_DEFAULT
-  const wanted = process.env.COSTOBENEFICIO_SHEET_NAME || COSTOBENEFICIO_SHEET_NAME_DEFAULT
+  const wanted = sheetName || process.env.COSTOBENEFICIO_SHEET_NAME || COSTOBENEFICIO_SHEET_NAME_DEFAULT
   const meta = await api.spreadsheets.get({ spreadsheetId, fields: 'sheets(properties(sheetId,title))' })
   const tab = (meta.data.sheets ?? []).find((s) => s.properties?.title === wanted)
   if (!tab?.properties?.title || tab.properties.sheetId == null) {
@@ -135,7 +136,7 @@ export async function syncCostoBeneficio(opts: CostoBeneficioOptions): Promise<C
     const mes = MESES[mesIdx]
     const regimen = regimenFromType(opts.invoiceType)
 
-    const ctx = await openTab()
+    const ctx = await openTab(opts.sheetName)
     if ('error' in ctx) { log(ctx.error); return { ok: false, action: 'error', detail: ctx.error, warnings } }
     const { api, spreadsheetId, sheetId, sheetTitle, rows } = ctx
 

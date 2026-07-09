@@ -12,6 +12,31 @@
 import { normPlate, normRef } from '@/lib/costoBeneficioSheet'
 
 // ---------------------------------------------------------------------------
+// Facturas emitidas — constantes/rangos (puros, sin pg)
+// ---------------------------------------------------------------------------
+
+// Estados que representan una factura emitida real (deben figurar en CB 2026).
+// El status real es 'ISSUED' (emitida por la app) o 'IMPORTED' (migrada/LEGACY);
+// NO existe 'ACTIVE'.
+export const EMITTED_STATUSES = ['ISSUED', 'IMPORTED'] as const
+
+/**
+ * Rango [from, to) para un año o un mes concreto (1..12). `to` es exclusivo.
+ * Diciembre cierra en el 1-ene del año siguiente (borde clásico off-by-one).
+ */
+export function monthRange(year: number, month?: number): { from: string; to: string } {
+  if (month && month >= 1 && month <= 12) {
+    const from = `${year}-${String(month).padStart(2, '0')}-01`
+    const to =
+      month === 12
+        ? `${year + 1}-01-01`
+        : `${year}-${String(month + 1).padStart(2, '0')}-01`
+    return { from, to }
+  }
+  return { from: `${year}-01-01`, to: `${year + 1}-01-01` }
+}
+
+// ---------------------------------------------------------------------------
 // CB 2026 — detección de facturas faltantes
 // ---------------------------------------------------------------------------
 

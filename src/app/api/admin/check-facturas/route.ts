@@ -11,22 +11,13 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { pool } from '@/lib/direct-database'
 import { google } from 'googleapis'
 import { getGoogleSheetsAuth } from '@/lib/googleSheets'
 import { isInSheet, parseControlFacturasRows } from '@/lib/facturasMonitor'
-
-interface Invoice {
-  full_invoice_number: string
-  invoice_date: string
-  invoice_type: string
-  deal_number: string
-  referencia: string | null
-  matricula: string | null
-}
+import { getEmittedInvoices, type EmittedInvoice } from '@/lib/facturasQuery'
 
 const SHEET_ID = process.env.COSTOBENEFICIO_SPREADSHEET_ID || '1o0GRJKvzjiDl7dQSdRzxy6jWIT1Ll7fAIKx4yGjYhwM'
-const CB_TAB = process.env.COSTOBENEFICIO_SHEET_NAME || 'CB 2026'
+const DEFAULT_CB_TAB = 'CB 2026'
 
 async function getTabRows(tab: string, range: string): Promise<string[][]> {
   const auth = await getGoogleSheetsAuth()
@@ -38,21 +29,6 @@ async function getTabRows(tab: string, range: string): Promise<string[][]> {
   return res.data.values || []
 }
 
-async function getEmittedInvoices(year: number): Promise<Invoice[]> {
-  const res = await pool.query<Invoice>(
-    `SELECT i.full_invoice_number, i.invoice_date, i.invoice_type,
-            d.numero as deal_number, v.referencia, v.matricula
-     FROM invoices i
-     JOIN "Deal" d ON d.id = i.deal_id
-     JOIN "Vehiculo" v ON v.id = d."vehiculoId"
-     WHERE i.invoice_date >= $1 AND i.invoice_date < $2
-       AND i.status = 'ACTIVE'
-     ORDER BY i.invoice_date`,
-    [`${year}-01-01`, `${year + 1}-01-01`]
-  )
-  return res.rows
-}
-
 export async function GET(request: NextRequest) {
   const secret = process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
   const got = request.headers.get('x-admin-secret') ?? ''
@@ -62,12 +38,13 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url)
   const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()), 10)
+  const CB_TAB = searchParams.get('tab') || DEFAULT_CB_TAB
 
   try {
     // --- 1. CB 2026: facturas faltantes ---
     const invoices = await getEmittedInvoices(year)
     const cbRows = await getTabRows(CB_TAB, 'A:E')
-    const missing: Invoice[] = []
+    const missing: EmittedInvoice[] = []
     const cbByMonth: Record<string, number> = {}
     for (const inv of invoices) {
       if (!isInSheet(inv, cbRows)) {

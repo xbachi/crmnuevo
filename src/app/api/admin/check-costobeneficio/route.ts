@@ -6,6 +6,7 @@
  *
  * Query params:
  *   - year: año a verificar (default: año actual)
+ *   - tab: pestaña destino (default 'CB 2026')
  *
  * Responde con JSON:
  *   { ok: boolean, missing: Invoice[], summary: { total, inSheet, missing } }
@@ -14,53 +15,25 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { pool } from '@/lib/direct-database'
 import { google } from 'googleapis'
 import { getGoogleSheetsAuth } from '@/lib/googleSheets'
 import { isInSheet } from '@/lib/facturasMonitor'
-
-interface Invoice {
-  id: number
-  full_invoice_number: string
-  invoice_date: string
-  invoice_type: string
-  total_amount: number
-  deal_id: number
-  deal_number: string
-  referencia: string | null
-  matricula: string | null
-}
+import { getEmittedInvoices, type EmittedInvoice } from '@/lib/facturasQuery'
 
 const SHEET_ID = process.env.COSTOBENEFICIO_SPREADSHEET_ID || '1o0GRJKvzjiDl7dQSdRzxy6jWIT1Ll7fAIKx4yGjYhwM'
-const SHEET_NAME = process.env.COSTOBENEFICIO_SHEET_NAME || 'CB 2026'
+const DEFAULT_TAB = 'CB 2026'
 
-async function getSheetRows(): Promise<string[][]> {
+async function getSheetRows(tab: string): Promise<string[][]> {
   const auth = await getGoogleSheetsAuth()
   const sheets = google.sheets({ version: 'v4', auth })
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID,
-    range: `${SHEET_NAME}!A:E`,
+    range: `${tab}!A:E`,
   })
   return res.data.values || []
 }
 
-async function getEmittedInvoices(year: number): Promise<Invoice[]> {
-  const res = await pool.query<Invoice>(
-    `SELECT i.id, i.full_invoice_number, i.invoice_date, i.invoice_type, i.total_amount, i.deal_id,
-            d.numero as deal_number, v.referencia, v.matricula
-     FROM invoices i
-     JOIN "Deal" d ON d.id = i.deal_id
-     JOIN "Vehiculo" v ON v.id = d."vehiculoId"
-     WHERE i.invoice_date >= $1 AND i.invoice_date < $2
-       AND i.status = 'ACTIVE'
-     ORDER BY i.invoice_date`,
-    [`${year}-01-01`, `${year + 1}-01-01`]
-  )
-  return res.rows
-}
-
 export async function GET(request: NextRequest) {
-  // Auth
   const secret = process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
   const got = request.headers.get('x-admin-secret') ?? ''
   if (!secret || got !== secret) {
@@ -69,14 +42,14 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url)
   const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()), 10)
+  const tab = searchParams.get('tab') || DEFAULT_TAB
 
   try {
     const invoices = await getEmittedInvoices(year)
-    const sheetRows = await getSheetRows()
+    const sheetRows = await getSheetRows(tab)
 
-    const missing: Invoice[] = []
+    const missing: EmittedInvoice[] = []
     const byMonth: Record<string, number> = {}
-
     for (const inv of invoices) {
       if (!isInSheet(inv, sheetRows)) {
         missing.push(inv)
@@ -85,17 +58,16 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const summary = {
-      year,
-      total: invoices.length,
-      inSheet: invoices.length - missing.length,
-      missing: missing.length,
-      byMonth,
-    }
-
     return NextResponse.json({
       ok: missing.length === 0,
-      summary,
+      summary: {
+        year,
+        tab,
+        total: invoices.length,
+        inSheet: invoices.length - missing.length,
+        missing: missing.length,
+        byMonth,
+      },
       missing: missing.map((inv) => ({
         date: inv.invoice_date,
         number: inv.full_invoice_number,
@@ -105,12 +77,6 @@ export async function GET(request: NextRequest) {
       })),
     })
   } catch (err) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: (err as Error).message,
-      },
-      { status: 500 }
-    )
+    return NextResponse.json({ ok: false, error: (err as Error).message }, { status: 500 })
   }
 }
