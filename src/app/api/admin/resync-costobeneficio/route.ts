@@ -72,10 +72,11 @@ async function openTab(tab: string): Promise<Ctx> {
 }
 
 const cell = (r: string[], i: number) => String(r[i] ?? '').trim()
-// columnas de input: idx → letra
+// columnas de input a rellenar (fill-only). NO incluimos H (porte): la columna G
+// (compra = computeCompra = precioCompra + porte) YA incluye el porte, y
+// COSTE=SUM(G:M) lo sumaría dos veces si además llenáramos H.
 const COST_COLS: { idx: number; col: string; label: string; get: (c: Costs) => number | null }[] = [
   { idx: 6, col: 'G', label: 'compra', get: (c) => computeCompra(c.precioCompra, c.gastosTransporte) },
-  { idx: 7, col: 'H', label: 'porte', get: (c) => c.gastosTransporte },
   { idx: 9, col: 'J', label: 'taller', get: (c) => c.gastosMecanica },
   { idx: 10, col: 'K', label: 'chapa', get: (c) => c.gastosPintura },
   { idx: 11, col: 'L', label: 'limpieza', get: (c) => c.gastosLimpieza },
@@ -144,7 +145,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // reubicar ABRIL entre MARZO y MAYO
+    // 1º ESCRIBIR VALORES (las direcciones se calcularon sobre las posiciones
+    // actuales; hay que escribir ANTES de mover filas o quedarían desfasadas).
+    if (!dryRun && updates.length > 0) {
+      await api.spreadsheets.values.batchUpdate({
+        spreadsheetId: SHEET_ID,
+        requestBody: { valueInputOption: 'USER_ENTERED', data: updates },
+      })
+    }
+
+    // 2º reubicar ABRIL entre MARZO y MAYO (mueve la banda con sus datos ya escritos)
     let reorder: Record<string, unknown> | null = null
     if (reorderApril) {
       const abril = findBandBlock(rows, 'ABRIL')
@@ -172,13 +182,6 @@ export async function POST(request: NextRequest) {
           })
         }
       }
-    }
-
-    if (!dryRun && updates.length > 0) {
-      await api.spreadsheets.values.batchUpdate({
-        spreadsheetId: SHEET_ID,
-        requestBody: { valueInputOption: 'USER_ENTERED', data: updates },
-      })
     }
 
     return NextResponse.json({
