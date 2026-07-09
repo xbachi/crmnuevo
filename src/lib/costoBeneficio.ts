@@ -65,6 +65,7 @@ interface VehicleCostData {
   gastosMecanica: number | null
   gastosPintura: number | null
   gastosLimpieza: number | null
+  gastosOtros: number | null // ITV/garantía → columna M de CB
 }
 
 function log(msg: string) { console.log(`[costoBeneficio] ${msg}`) }
@@ -73,7 +74,7 @@ async function loadVehicleCosts(dealId: number): Promise<VehicleCostData | null>
   const res = await pool.query(
     `SELECT v.referencia, v.marca, v.modelo, v.matricula,
             v."precioCompra", v."gastosTransporte", v."gastosMecanica",
-            v."gastosPintura", v."gastosLimpieza"
+            v."gastosPintura", v."gastosLimpieza", v."gastosOtros"
        FROM "Deal" d JOIN "Vehiculo" v ON v.id = d."vehiculoId" WHERE d.id = $1`,
     [dealId]
   )
@@ -84,16 +85,22 @@ async function loadVehicleCosts(dealId: number): Promise<VehicleCostData | null>
     referencia: r.referencia ?? null, marca: r.marca ?? null, modelo: r.modelo ?? null, matricula: r.matricula ?? null,
     precioCompra: num(r.precioCompra), gastosTransporte: num(r.gastosTransporte),
     gastosMecanica: num(r.gastosMecanica), gastosPintura: num(r.gastosPintura), gastosLimpieza: num(r.gastosLimpieza),
+    gastosOtros: num(r.gastosOtros),
   }
 }
 
-/** Valores de la fila del coche (A..S), fórmulas con locale es_ES. */
-function buildCarRow(v: VehicleCostData, opts: CostoBeneficioOptions, r: number, regimen: string, compra: number | null): (string | number)[] {
+/**
+ * Valores de la fila del coche (A..S), fórmulas con locale es_ES.
+ * COSTE (N) = SUM(G:M). El porte va SOLO dentro de G (compra = precioCompra +
+ * porte); H se deja en blanco a propósito para no contar el porte dos veces
+ * (bug histórico corregido). M = gastosOtros (ITV/garantía) para que llegue a CB.
+ */
+export function buildCarRow(v: VehicleCostData, opts: CostoBeneficioOptions, r: number, regimen: string, compra: number | null): (string | number)[] {
   const b = ''
   return [
     toEsDate(opts.invoiceDate), MES_FORMULA(r), v.referencia ?? b, [v.marca, v.modelo].filter(Boolean).join(' ') || b,
-    v.matricula ?? b, regimen, compra ?? b, v.gastosTransporte ?? b, CN_INFORME,
-    v.gastosMecanica ?? b, v.gastosPintura ?? b, v.gastosLimpieza ?? b, b,
+    v.matricula ?? b, regimen, compra ?? b, b, CN_INFORME,
+    v.gastosMecanica ?? b, v.gastosPintura ?? b, v.gastosLimpieza ?? b, v.gastosOtros ?? b,
     COSTE_FORMULA(r), opts.salePrice, IVA_FORMULA(r), MARGEN_FORMULA(r), PCT_FORMULA(r), b,
   ]
 }

@@ -34,6 +34,7 @@ interface Costs {
   gastosMecanica: number | null
   gastosPintura: number | null
   gastosLimpieza: number | null
+  gastosOtros: number | null
 }
 
 /** Costos actuales del CRM por deal_id. */
@@ -42,7 +43,7 @@ async function loadCostsByDeal(dealIds: number[]): Promise<Map<number, Costs>> {
   if (dealIds.length === 0) return map
   const res = await pool.query(
     `SELECT d.id AS deal_id, v."precioCompra", v."gastosTransporte",
-            v."gastosMecanica", v."gastosPintura", v."gastosLimpieza"
+            v."gastosMecanica", v."gastosPintura", v."gastosLimpieza", v."gastosOtros"
        FROM "Deal" d JOIN "Vehiculo" v ON v.id = d."vehiculoId"
       WHERE d.id = ANY($1)`,
     [dealIds]
@@ -55,6 +56,7 @@ async function loadCostsByDeal(dealIds: number[]): Promise<Map<number, Costs>> {
       gastosMecanica: num(r.gastosMecanica),
       gastosPintura: num(r.gastosPintura),
       gastosLimpieza: num(r.gastosLimpieza),
+      gastosOtros: num(r.gastosOtros),
     })
   }
   return map
@@ -80,6 +82,7 @@ const COST_COLS: { idx: number; col: string; label: string; get: (c: Costs) => n
   { idx: 9, col: 'J', label: 'taller', get: (c) => c.gastosMecanica },
   { idx: 10, col: 'K', label: 'chapa', get: (c) => c.gastosPintura },
   { idx: 11, col: 'L', label: 'limpieza', get: (c) => c.gastosLimpieza },
+  { idx: 12, col: 'M', label: 'itv/otros', get: (c) => c.gastosOtros },
 ]
 
 /** Bloque de una banda de mes: filas 1-based [start, end] (banda + coches + subtotal). */
