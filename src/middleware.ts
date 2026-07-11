@@ -28,6 +28,8 @@ const PUBLIC_API_PREFIXES = [
   '/api/admin/anomalias-costos',
   // Verificación de la cadena de integridad de facturación (X-Admin-Secret).
   '/api/admin/verifactu',
+  // Stock aging / recon tracking (X-Admin-Secret).
+  '/api/admin/stock-aging',
   // Reconciliación pre-cierre de trimestre y reintento de outbox (X-Admin-Secret).
   '/api/admin/pre-cierre',
   '/api/admin/webhook-outbox/retry',

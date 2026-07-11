@@ -3,8 +3,15 @@ import {
   getVehiculoById,
   updateVehiculo,
   deleteVehiculo,
+  type Vehiculo,
 } from '@/lib/direct-database'
 import { handleDeleteError } from '@/lib/api-errors'
+import {
+  filtrarCamposEditables,
+  normalizarEstado,
+  transicionValida,
+} from '@/lib/vehiculoEstado'
+import { normPlate } from '@/lib/gastoMapping'
 
 export async function GET(
   request: NextRequest,
@@ -73,8 +80,48 @@ export async function PUT(
       )
     }
 
-    // Si el tipo cambia a 'I' (Inversor), establecer esCocheInversor y inversorId
-    const updateData = { ...body }
+    // Whitelist: solo campos que la UI edita; lo demás se ignora (id, force,
+    // campos internos como dealActivoId/orden, o cualquier cosa inesperada).
+    const { data: updateData, ignorados } = filtrarCamposEditables(body)
+    if (ignorados.length > 0) {
+      console.warn('⚠️ Campos no editables ignorados en PUT vehículo:', ignorados)
+    }
+
+    // Máquina de estados: si cambia el estado, validar la transición.
+    // force=true en el body la saltea (con warn de auditoría).
+    let matriculaNorm: string | undefined
+    if ('estado' in updateData) {
+      const estadoNorm = normalizarEstado(updateData.estado as string)
+      const force = body.force === true
+      if (
+        !transicionValida(vehiculoExistente.estado, updateData.estado as string)
+      ) {
+        if (!force) {
+          return NextResponse.json(
+            {
+              error: `Transición de estado inválida: '${vehiculoExistente.estado ?? ''}' → '${String(updateData.estado)}'`,
+              hint: 'si el cambio es intencional, reenviá con force: true',
+            },
+            { status: 422 }
+          )
+        }
+        console.warn(
+          `⚠️ [AUDIT] Transición de estado forzada en vehículo ${id}: '${vehiculoExistente.estado ?? ''}' → '${String(updateData.estado)}'`
+        )
+      }
+      // Guardar el estado en casing canónico (si es reconocible)
+      if (estadoNorm) updateData.estado = estadoNorm
+    }
+
+    // Matrícula: normalizar espacios al guardar y exponer matriculaNorm
+    if (typeof updateData.matricula === 'string') {
+      const matriculaLimpia = updateData.matricula
+        .trim()
+        .replace(/\s+/g, ' ')
+        .toUpperCase()
+      updateData.matricula = matriculaLimpia
+      matriculaNorm = normPlate(matriculaLimpia)
+    }
 
     // Si el tipo es 'I' (Inversor), gestionar inversorId y esCocheInversor
     if (body.tipo === 'I' || body.tipo === 'Inversor') {
@@ -91,7 +138,7 @@ export async function PUT(
         updateData.esCocheInversor =
           updateData.inversorId !== null &&
           updateData.inversorId !== undefined &&
-          updateData.inversorId > 0
+          (updateData.inversorId as number) > 0
       } else {
         // Si no viene inversorId en el body, mantener el existente o establecer null si no existe
         updateData.inversorId = vehiculoExistente.inversorId || null
@@ -122,7 +169,10 @@ export async function PUT(
     console.log('🔍 updateData.esCocheInversor:', updateData.esCocheInversor)
 
     // Actualizar el vehículo con los nuevos datos
-    const vehiculoActualizado = await updateVehiculo(id, updateData)
+    const vehiculoActualizado = await updateVehiculo(
+      id,
+      updateData as Partial<Vehiculo>
+    )
 
     console.log(
       '✅ Vehículo actualizado - inversorId guardado:',
@@ -131,7 +181,11 @@ export async function PUT(
     // console.log('✅ Vehículo actualizado.color:', vehiculoActualizado?.color)
     // console.log('✅ Vehículo actualizado.fechaMatriculacion:', vehiculoActualizado?.fechaMatriculacion)
 
-    return NextResponse.json(vehiculoActualizado)
+    return NextResponse.json(
+      matriculaNorm !== undefined
+        ? { ...vehiculoActualizado, matriculaNorm }
+        : vehiculoActualizado
+    )
   } catch (error: unknown) {
     const errorMessage =
       error instanceof Error ? error.message : 'Error desconocido'
