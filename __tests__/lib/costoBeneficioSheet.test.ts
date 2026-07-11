@@ -93,33 +93,59 @@ describe('isBand / isSubtotal', () => {
   })
 })
 
-describe('findDuplicate — el corazón del "nunca duplicar"', () => {
-  it('detecta duplicado por matrícula (col E) con formatos distintos', () => {
-    const rows = [['15/01', 'ENERO', '1010', 'Ford', '1234ABC']]
-    expect(findDuplicate(rows, '1234-abc', null)).toEqual({ kind: 'plate', row: 1 })
+describe('findDuplicate — dedup por Nº de factura (col S), no por coche', () => {
+  // Fila A..S (19 cols); sólo importan C(2)=ref, E(4)=matrícula, S(18)=nº factura.
+  const mkRow = (inv: string, plate = '', ref = ''): string[] => {
+    const r = Array(19).fill('')
+    r[2] = ref
+    r[4] = plate
+    r[18] = inv
+    return r
+  }
+
+  it('dos facturas del MISMO coche (misma matrícula) NO son duplicados entre sí', () => {
+    const rows = [mkRow('F-2026-001', '1234ABC', '1010')]
+    // Buscar otra factura del mismo coche no matchea: el dedup es por nº, no por coche.
+    expect(findDuplicate(rows, 'F-2026-002')).toBeNull()
   })
-  it('detecta duplicado por referencia (col C) normalizada', () => {
-    const rows = [['15/01', 'ENERO', 'SM1018', 'Ford', '9999ZZZ']]
-    expect(findDuplicate(rows, null, '#sm-1018')).toEqual({ kind: 'ref', row: 1 })
+
+  it('el mismo Nº de factura repetido SÍ es duplicado', () => {
+    const rows = [mkRow('F-2026-001', '1234ABC', '1010')]
+    expect(findDuplicate(rows, 'F-2026-001')).toEqual({ kind: 'invoice', row: 1 })
   })
-  it('ignora la col C de las filas de subtotal', () => {
-    const rows = [['', '', '1018', 'TOTAL ENERO']]
-    expect(findDuplicate(rows, null, '1018')).toBeNull()
+
+  it('normaliza espacios y mayúsculas pero conserva la barra "/"', () => {
+    const rows = [mkRow('r 12/2026')]
+    expect(findDuplicate(rows, 'R12/2026')).toEqual({ kind: 'invoice', row: 1 })
   })
-  it('la matrícula tiene prioridad sobre la referencia en la misma fila', () => {
-    const rows = [['', '', 'MATCHREF', '', 'MATCHPLATE']]
-    expect(findDuplicate(rows, 'matchplate', 'matchref')).toEqual({ kind: 'plate', row: 1 })
+
+  it('ignora filas de subtotal aunque tuvieran algo en col S', () => {
+    const sub = Array(19).fill('')
+    sub[3] = 'TOTAL ENERO'
+    sub[18] = 'F-1'
+    expect(findDuplicate([sub], 'F-1')).toBeNull()
   })
+
+  it('ignora filas de banda de mes', () => {
+    const band = Array(19).fill('')
+    band[0] = 'ENERO'
+    band[18] = 'F-1'
+    expect(findDuplicate([band], 'F-1')).toBeNull()
+  })
+
   it('devuelve la primera fila que matchea', () => {
-    const rows = [
-      ['', '', 'OTRA', '', '0000AAA'],
-      ['', '', 'REF2', '', '1234ABC'],
-    ]
-    expect(findDuplicate(rows, '1234ABC', null)).toEqual({ kind: 'plate', row: 2 })
+    const rows = [mkRow('OTRA'), mkRow('F-9')]
+    expect(findDuplicate(rows, 'F-9')).toEqual({ kind: 'invoice', row: 2 })
   })
+
+  it('null si invoiceNumber es null o vacío', () => {
+    const rows = [mkRow('F-1')]
+    expect(findDuplicate(rows, null)).toBeNull()
+    expect(findDuplicate(rows, '')).toBeNull()
+  })
+
   it('null si no hay coincidencia', () => {
-    const rows = [['', '', 'REF', '', '0000AAA']]
-    expect(findDuplicate(rows, '1234ABC', 'OTRA')).toBeNull()
+    expect(findDuplicate([mkRow('F-1')], 'F-2')).toBeNull()
   })
 })
 

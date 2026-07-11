@@ -19,6 +19,7 @@ import { google } from 'googleapis'
 import { getGoogleSheetsAuth } from '@/lib/googleSheets'
 import { isInSheet } from '@/lib/facturasMonitor'
 import { getEmittedInvoices, type EmittedInvoice } from '@/lib/facturasQuery'
+import { AdminParamError, assertKnownParams, parseStrictBool } from '@/lib/adminParams'
 
 const SHEET_ID = process.env.COSTOBENEFICIO_SPREADSHEET_ID || '1o0GRJKvzjiDl7dQSdRzxy6jWIT1Ll7fAIKx4yGjYhwM'
 // Pestaña canónica de costo/beneficio. NO leemos COSTOBENEFICIO_SHEET_NAME acá:
@@ -64,11 +65,22 @@ export async function POST(request: NextRequest) {
   }
 
   const { searchParams } = new URL(request.url)
-  const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()), 10)
-  const monthRaw = searchParams.get('month')
-  const month = monthRaw ? parseInt(monthRaw, 10) : undefined
-  const tab = searchParams.get('tab') || DEFAULT_TAB
-  const dryRun = searchParams.get('dryRun') === 'true'
+  // Validación estricta de params (400 en vez de comportamiento silencioso).
+  let params: { year: number; month: number | undefined; tab: string; dryRun: boolean }
+  try {
+    assertKnownParams(searchParams, ['year', 'month', 'tab', 'dryRun'])
+    const monthRaw = searchParams.get('month')
+    params = {
+      year: parseInt(searchParams.get('year') || String(new Date().getFullYear()), 10),
+      month: monthRaw ? parseInt(monthRaw, 10) : undefined,
+      tab: searchParams.get('tab') || DEFAULT_TAB,
+      dryRun: parseStrictBool(searchParams, 'dryRun', false),
+    }
+  } catch (e) {
+    if (e instanceof AdminParamError) return NextResponse.json({ error: e.message }, { status: 400 })
+    throw e
+  }
+  const { year, month, tab, dryRun } = params
 
   const details: string[] = []
   details.push(`Año: ${year}${month ? ` · Mes: ${month}` : ''}${dryRun ? ' (DRY-RUN)' : ''}`)

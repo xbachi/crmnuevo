@@ -24,6 +24,7 @@ import { getGoogleSheetsAuth } from '@/lib/googleSheets'
 import { pool } from '@/lib/direct-database'
 import { getEmittedInvoices } from '@/lib/facturasQuery'
 import { isBand, isSubtotal, normPlate, normRef, MESES, reconcileCostCells } from '@/lib/costoBeneficioSheet'
+import { AdminParamError, assertKnownParams, parseStrictBool } from '@/lib/adminParams'
 
 const SHEET_ID = process.env.COSTOBENEFICIO_SPREADSHEET_ID || '1o0GRJKvzjiDl7dQSdRzxy6jWIT1Ll7fAIKx4yGjYhwM'
 const DEFAULT_TAB = 'CB 2026'
@@ -98,17 +99,38 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
   const { searchParams } = new URL(request.url)
-  const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()), 10)
-  const tab = searchParams.get('tab') || DEFAULT_TAB
-  const dryRun = searchParams.get('dryRun') === 'true'
-  const reorderApril = searchParams.get('reorderApril') === 'true'
-  // 'fill' (default): sólo rellena celdas vacías, no pisa nada.
-  // 'overwrite': corrige valores distintos al CRM y limpia H (arregla el doble
-  // conteo histórico del porte). Es el modo de reconciliación autoritativa.
-  const mode: 'fill' | 'overwrite' = searchParams.get('mode') === 'overwrite' ? 'overwrite' : 'fill'
-  // ?clearCompra=MAT1,MAT2 → limpia SOLO la columna G (compra) de esas matrículas
-  // (para revertir un valor cargado por error). No toca J/K/L/M.
-  const clearCompra = (searchParams.get('clearCompra') || '').split(',').map((s) => normPlate(s)).filter(Boolean)
+  // Validación estricta de params: un booleano mal escrito (?dryRun=1) debe
+  // fallar con 400, no colarse como false y disparar una escritura real.
+  let params: {
+    year: number; tab: string; dryRun: boolean; reorderApril: boolean
+    mode: 'fill' | 'overwrite'; clearCompra: string[]
+  }
+  try {
+    assertKnownParams(searchParams, ['year', 'tab', 'dryRun', 'reorderApril', 'mode', 'clearCompra', 'confirm'])
+    const dryRun = parseStrictBool(searchParams, 'dryRun', false)
+    // 'fill' (default): sólo rellena celdas vacías, no pisa nada.
+    // 'overwrite': corrige valores distintos al CRM y limpia H (arregla el doble
+    // conteo histórico del porte). Es el modo de reconciliación autoritativa.
+    const mode: 'fill' | 'overwrite' = searchParams.get('mode') === 'overwrite' ? 'overwrite' : 'fill'
+    // overwrite fuera de dryRun pisa datos: exige confirm=true explícito.
+    if (mode === 'overwrite' && dryRun !== true && parseStrictBool(searchParams, 'confirm', false) !== true) {
+      throw new AdminParamError('confirm=true requerido para mode=overwrite fuera de dryRun')
+    }
+    params = {
+      year: parseInt(searchParams.get('year') || String(new Date().getFullYear()), 10),
+      tab: searchParams.get('tab') || DEFAULT_TAB,
+      dryRun,
+      reorderApril: parseStrictBool(searchParams, 'reorderApril', false),
+      mode,
+      // ?clearCompra=MAT1,MAT2 → limpia SOLO la columna G (compra) de esas
+      // matrículas (para revertir un valor cargado por error). No toca J/K/L/M.
+      clearCompra: (searchParams.get('clearCompra') || '').split(',').map((s) => normPlate(s)).filter(Boolean),
+    }
+  } catch (e) {
+    if (e instanceof AdminParamError) return NextResponse.json({ error: e.message }, { status: 400 })
+    throw e
+  }
+  const { year, tab, dryRun, reorderApril, mode, clearCompra } = params
 
   try {
     const ctx = await openTab(tab)
@@ -154,6 +176,20 @@ export async function POST(request: NextRequest) {
       if (!rowNum) continue
       const sheetRow = rows[rowNum - 1] ?? []
       for (const u of reconcileCostCells(sheetRow, c, mode)) {
+        // Audit best-effort de cada celda pisada (previo→nuevo), en dry y real.
+        // Sólo en overwrite (fill no pisa; su relleno de vacías no se audita acá).
+        if (mode === 'overwrite') {
+          try {
+            await pool.query(
+              `INSERT INTO costobeneficio_logs
+                 (source, cell_ref, previous_value, new_value, dry_run, deal_id, invoice_number, action, success, detail)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+              ['admin-resync', `${u.col}${rowNum}`, u.prev, String(u.value), dryRun, inv.deal_id, inv.full_invoice_number, 'overwrite-cell', true, 'resync']
+            )
+          } catch (logErr) {
+            console.error('[resync-costobeneficio] failed to log cell:', (logErr as Error)?.message ?? logErr)
+          }
+        }
         updates.push({ range: `${title}!${u.col}${rowNum}`, values: [[u.value]] })
         filled.push(`${inv.referencia || inv.matricula} ${u.col}${rowNum}=${u.value === '' ? '(limpiar)' : u.value}`)
       }

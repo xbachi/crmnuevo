@@ -32,6 +32,8 @@ describe('reconcileCostCells — fill (sólo celdas vacías)', () => {
     expect(cols).not.toContain('H') // fill nunca toca H
     expect(u.find((x) => x.col === 'G')!.value).toBe(11435)
     expect(u.find((x) => x.col === 'M')!.value).toBe(180)
+    // prev de una celda vacía rellenada es '' (contenido crudo previo)
+    expect(u.find((x) => x.col === 'G')!.prev).toBe('')
   })
 })
 
@@ -65,5 +67,16 @@ describe('reconcileCostCells — overwrite (corrige y limpia H)', () => {
     const row = mkRow({ 10: '500' }) // K (pintura) manual; CRM pintura=null
     const u = reconcileCostCells(row, COSTS, 'overwrite')
     expect(u.map((x) => x.col)).not.toContain('K')
+  })
+
+  it('cada update trae prev con el valor crudo previo de la celda (audit previo→nuevo)', () => {
+    const row = mkRow({ 6: '11.435', 7: '403', 9: '999' }) // H con valor, J mal
+    const u = reconcileCostCells(row, COSTS, 'overwrite')
+    const j = u.find((x) => x.col === 'J')!
+    expect(j.prev).toBe('999') // valor viejo de J antes de corregir
+    expect(j.value).toBe(250)
+    const h = u.find((x) => x.col === 'H')!
+    expect(h.prev).toBe('403') // valor viejo de H antes de limpiar
+    expect(h.value).toBe('')
   })
 })

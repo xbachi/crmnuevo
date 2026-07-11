@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
     const { resyncVehiculoRowToCB } = await import('@/lib/costoBeneficio')
     let timer: ReturnType<typeof setTimeout> | undefined
     const r = await Promise.race([
-      resyncVehiculoRowToCB(vehiculo.id, 'CB 2026'),
+      resyncVehiculoRowToCB(vehiculo.id, 'CB 2026', 'auto-expense'),
       new Promise<null>((resolve) => {
         timer = setTimeout(() => resolve(null), 8000)
       }),
