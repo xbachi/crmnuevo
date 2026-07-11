@@ -33,6 +33,7 @@ import {
   getInvoiceById,
   getInvoiceByDealAndType,
   getInvoiceByIdempotencyKey,
+  findActiveSaleInvoiceForVehicle,
   type Invoice,
   type InvoiceType,
 } from '@/lib/invoiceRepository'
@@ -50,6 +51,8 @@ export interface IssueOptions {
   notes?: string | null
   userId?: string | null
   userRole?: string | null
+  /** Explicitly bypass the anti-duplicate-vehicle guard (legitimate resale). */
+  allowDuplicate?: boolean
 }
 
 export interface PreviewResult {
@@ -70,6 +73,9 @@ export interface IssueResult {
   /** True when the request was idempotent — an existing invoice was returned
    *  instead of creating a new one. */
   alreadyExisted: boolean
+  /** True when a duplicate-vehicle invoice was found but the caller passed
+   *  allowDuplicate:true to proceed anyway (legitimate resale). */
+  duplicateOverride?: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -162,6 +168,35 @@ export async function issueInvoice(opts: IssueOptions): Promise<IssueResult> {
   const amounts = computeAmounts(sale.importeTotal ?? 0, opts.invoiceType)
   const invoiceDate = (opts.invoiceDate ?? new Date()).toISOString().slice(0, 10)
 
+  // 3b. Anti-duplicate-vehicle guard: the same car must not get two active
+  // sale invoices from two different deals/ventas (root cause of the
+  // R-2026-023/024 and R-2026-025/026 incidents). Skippable with
+  // allowDuplicate:true for a genuine resale of the same vehicle.
+  let duplicateOverride = false
+  if (sale.vehiculo.id != null) {
+    const conflict = await findActiveSaleInvoiceForVehicle(sale.vehiculo.id, {
+      excludeDealId: opts.dealId,
+    })
+    if (conflict) {
+      if (!opts.allowDuplicate) {
+        throw new InvoiceServiceError(
+          'VEHICLE_ALREADY_INVOICED',
+          `El vehículo ya tiene una factura de venta activa (${conflict.full_invoice_number}, origen ${conflict.origin}).`,
+          {
+            existingInvoiceId: conflict.id,
+            fullInvoiceNumber: conflict.full_invoice_number,
+            origin: conflict.origin,
+            status: conflict.status,
+          }
+        )
+      }
+      duplicateOverride = true
+      console.warn(
+        `[invoiceService] duplicate-vehicle override for deal ${opts.dealId}: vehiculo ${sale.vehiculo.id} already invoiced as ${conflict.full_invoice_number} (${conflict.origin}); proceeding because allowDuplicate=true`
+      )
+    }
+  }
+
   const reserved = await reserveAndInsert({
     sale,
     invoiceType: opts.invoiceType,
@@ -176,7 +211,7 @@ export async function issueInvoice(opts: IssueOptions): Promise<IssueResult> {
   })
 
   if (reserved.alreadyExisted) {
-    return { invoice: reserved.invoice, alreadyExisted: true }
+    return { invoice: reserved.invoice, alreadyExisted: true, duplicateOverride }
   }
 
   // 4. Generate + upload PDF (best effort; row stays PDF_PENDING on failure)
@@ -218,7 +253,7 @@ export async function issueInvoice(opts: IssueOptions): Promise<IssueResult> {
       salePrice: amounts.total_amount,
     })
 
-    return { invoice: updated.rows[0], alreadyExisted: false }
+    return { invoice: updated.rows[0], alreadyExisted: false, duplicateOverride }
   } catch (pdfError) {
     console.error(
       `[invoiceService] PDF generation/upload failed for invoice ${reserved.invoice.full_invoice_number}:`,
@@ -237,7 +272,7 @@ export async function issueInvoice(opts: IssueOptions): Promise<IssueResult> {
         opts.userId ?? null,
       ]
     )
-    return { invoice: reserved.invoice, alreadyExisted: false }
+    return { invoice: reserved.invoice, alreadyExisted: false, duplicateOverride }
   }
 }
 
@@ -446,7 +481,15 @@ async function assignNumber(
     occupied = occ.rows.map((r) => Number(r.number))
   }
 
-  return pickInvoiceNumber({ startNumber, sysMax, absMax, occupied })
+  // Numbers that were ever deleted for this series (invoice_deletion_logs)
+  // must never be reissued — see pickInvoiceNumber's `burned` param.
+  const burnedRes = await db.query<{ number: number }>(
+    `SELECT DISTINCT number FROM invoice_deletion_logs WHERE series = $1`,
+    [series]
+  )
+  const burned = burnedRes.rows.map((r) => Number(r.number))
+
+  return pickInvoiceNumber({ startNumber, sysMax, absMax, occupied, burned })
 }
 
 async function reserveAndInsert(args: {
@@ -718,7 +761,11 @@ async function uploadPdfToBlob(
 // ---------------------------------------------------------------------------
 
 export class InvoiceServiceError extends Error {
-  constructor(public code: string, message: string) {
+  constructor(
+    public code: string,
+    message: string,
+    public details?: Record<string, unknown>
+  ) {
     super(message)
     this.name = 'InvoiceServiceError'
   }

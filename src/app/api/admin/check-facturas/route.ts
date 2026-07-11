@@ -55,6 +55,11 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // --- 1b. Facturas sin Deal/Vehículo asociado (huérfanas, típicamente B2B).
+    // Antes del LEFT JOIN en getEmittedInvoices estas quedaban invisibles a
+    // TODOS los checks (causa raíz de C-06: R-2026-026 sin auditar).
+    const sinDeal = invoices.filter((inv) => inv.deal_id == null)
+
     // --- 2. Control Facturas: pendientes ---
     let control = { sArchivar: [] as { mes: string; proveedor: string }[], descargar: [] as { mes: string; proveedor: string }[] }
     let controlError: string | null = null
@@ -65,9 +70,10 @@ export async function GET(request: NextRequest) {
       controlError = (err as Error).message // la pestaña puede no existir aún
     }
 
-    // ok = sin facturas faltantes en CB Y sin PDFs sin archivar (s/archivar).
+    // ok = sin facturas faltantes en CB, sin PDFs sin archivar (s/archivar) Y
+    // sin facturas huérfanas (sin deal) — esas necesitan revisión manual.
     // 'descargar' es informativo (siempre requiere acción manual en el portal).
-    const ok = missing.length === 0 && control.sArchivar.length === 0
+    const ok = missing.length === 0 && control.sArchivar.length === 0 && sinDeal.length === 0
 
     return NextResponse.json({
       ok,
@@ -84,6 +90,17 @@ export async function GET(request: NextRequest) {
           ref: inv.referencia,
           plate: inv.matricula,
           dealNumber: inv.deal_number,
+        })),
+      },
+      sinDeal: {
+        ok: sinDeal.length === 0,
+        count: sinDeal.length,
+        detail: sinDeal.map((inv) => ({
+          date: inv.invoice_date,
+          number: inv.full_invoice_number,
+          type: inv.invoice_type,
+          amount: inv.total_amount,
+          plate: inv.matricula,
         })),
       },
       controlFacturas: {

@@ -19,23 +19,32 @@ export interface EmittedInvoice {
   invoice_date: string // YYYY-MM-DD (casteado en SQL)
   invoice_type: string
   total_amount: number
-  deal_id: number
-  deal_number: string
+  /** null cuando la factura no tiene Deal asociado (p.ej. B2B, o huérfana). */
+  deal_id: number | null
+  deal_number: string | null
   referencia: string | null
   matricula: string | null
 }
 
-/** Facturas emitidas de un año (o de un mes concreto 1..12 si se pasa `month`). */
+/**
+ * Facturas emitidas de un año (o de un mes concreto 1..12 si se pasa `month`).
+ *
+ * LEFT JOIN (no INNER): una factura sin deal_id (B2B, o retail huérfana) debe
+ * seguir apareciendo acá — con INNER JOIN quedaban invisibles a todos los
+ * checks de monitoreo (p.ej. R-2026-026, venta B2B sin Deal). COALESCE cae a
+ * la matrícula guardada en la propia factura cuando el join no matchea.
+ */
 export async function getEmittedInvoices(year: number, month?: number): Promise<EmittedInvoice[]> {
   const { from, to } = monthRange(year, month)
 
   const res = await pool.query<EmittedInvoice>(
     `SELECT i.id, i.full_invoice_number, i.invoice_date::text AS invoice_date,
             i.invoice_type, i.total_amount, i.deal_id,
-            d.numero AS deal_number, v.referencia, v.matricula
+            d.numero AS deal_number, v.referencia,
+            COALESCE(v.matricula, i.vehicle_plate) AS matricula
        FROM invoices i
-       JOIN "Deal" d ON d.id = i.deal_id
-       JOIN "Vehiculo" v ON v.id = d."vehiculoId"
+       LEFT JOIN "Deal" d ON d.id = i.deal_id
+       LEFT JOIN "Vehiculo" v ON v.id = d."vehiculoId"
       WHERE i.invoice_date >= $1 AND i.invoice_date < $2
         AND i.status = ANY($3)
       ORDER BY i.invoice_date`,

@@ -37,14 +37,20 @@ export async function GET(
 /**
  * DELETE /api/invoices/{id}
  *
- * Admin-only hard delete. Frees the fiscal number so the next issuance reuses
- * it (no gaps) — for internal corrections BEFORE filing with Hacienda. It:
+ * Admin-only hard delete for invoices that were NEVER actually filed
+ * (PDF_PENDING/ERROR — the fiscal number was reserved but the document never
+ * went out). ISSUED invoices are NOT deletable — they must be voided via
+ * POST /api/invoices/{id}/anular, which keeps the row and the fiscal number
+ * (deleting + reusing a number that was already filed is what caused the
+ * F-2026-4236 / R-2026-027 duplicate-number incident).
+ *
+ * It:
  *   - records a snapshot in invoice_deletion_logs (survives the row delete;
- *     invoice_audit_logs cascade away with the invoice),
+ *     invoice_audit_logs cascade away with the invoice) — this is also what
+ *     permanently "burns" the number so pickInvoiceNumber never reissues it,
  *   - reverts the linked retail Deal back to 'vendido' (clears factura /
  *     fechaFacturada) so it can be re-invoiced,
- *   - deletes the invoices row (frees the unique-per-sale / per-b2b index and
- *     opens the (series, number) slot for gap-filling reuse),
+ *   - deletes the invoices row (frees the unique-per-sale / per-b2b index),
  *   - best-effort deletes the PDF from Vercel Blob.
  *
  * Body opcional: { reason?: string }.
@@ -86,6 +92,19 @@ export async function DELETE(
       return NextResponse.json({ error: 'Factura no encontrada' }, { status: 404 })
     }
     const inv = invRes.rows[0]
+
+    if (inv.status === 'ISSUED') {
+      await client.query('ROLLBACK')
+      return NextResponse.json(
+        {
+          error:
+            'Esta factura ya fue emitida (ISSUED); no se puede borrar. Usá /anular para anularla conservando el número fiscal.',
+          code: 'ISSUED_NOT_DELETABLE',
+        },
+        { status: 409 }
+      )
+    }
+
     pdfStorageKey = inv.pdf_storage_key
     freedNumber = inv.full_invoice_number
 

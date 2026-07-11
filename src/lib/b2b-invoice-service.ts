@@ -15,7 +15,7 @@ import { put } from '@vercel/blob'
 import { pool } from '@/lib/direct-database'
 import { generarFactura } from '@/lib/contractGenerator'
 import { INVOICE_CONFIG, formatNumber } from '@/config/invoiceConfig'
-import type { Invoice, InvoiceType } from '@/lib/invoiceRepository'
+import { findActiveSaleInvoiceForVehicle, type Invoice, type InvoiceType } from '@/lib/invoiceRepository'
 import { InvoiceServiceError } from '@/lib/invoiceService'
 import { getVentaB2BById } from '@/lib/b2b-database'
 
@@ -23,11 +23,14 @@ export interface IssueB2BOptions {
   ventaB2BId: number
   invoiceType: InvoiceType // 'REBU' (default) | 'VAT'
   idempotencyKey?: string | null
+  /** Explicitly bypass the anti-duplicate-vehicle guard (legitimate resale). */
+  allowDuplicate?: boolean
 }
 
 export interface IssueB2BResult {
   invoice: Invoice
   alreadyExisted: boolean
+  duplicateOverride?: boolean
 }
 
 /**
@@ -60,6 +63,34 @@ export async function issueInvoiceForB2B(
       'SALE_NOT_FOUND',
       `Venta B2B ${opts.ventaB2BId} no encontrada.`
     )
+  }
+
+  // 2b) Anti-duplicate-vehicle guard, cruzado con retail (mismo bug que dio
+  // origen a R-2026-025/026: un Opel Zafira/VW Eos facturado dos veces desde
+  // dos ventas distintas). Saltable con allowDuplicate:true.
+  let duplicateOverride = false
+  if (venta.vehiculo_id != null) {
+    const conflict = await findActiveSaleInvoiceForVehicle(venta.vehiculo_id, {
+      excludeB2BVentaId: opts.ventaB2BId,
+    })
+    if (conflict) {
+      if (!opts.allowDuplicate) {
+        throw new InvoiceServiceError(
+          'VEHICLE_ALREADY_INVOICED',
+          `El vehículo ya tiene una factura de venta activa (${conflict.full_invoice_number}, origen ${conflict.origin}).`,
+          {
+            existingInvoiceId: conflict.id,
+            fullInvoiceNumber: conflict.full_invoice_number,
+            origin: conflict.origin,
+            status: conflict.status,
+          }
+        )
+      }
+      duplicateOverride = true
+      console.warn(
+        `[b2b-invoice-service] duplicate-vehicle override for venta B2B ${opts.ventaB2BId}: vehiculo ${venta.vehiculo_id} already invoiced as ${conflict.full_invoice_number} (${conflict.origin}); proceeding because allowDuplicate=true`
+      )
+    }
   }
 
   const precio = Number(venta.precio_venta)
@@ -246,7 +277,7 @@ export async function issueInvoiceForB2B(
         RETURNING *`,
       [blob.url, blob.pathname, inserted.id]
     )
-    return { invoice: updated.rows[0], alreadyExisted: false }
+    return { invoice: updated.rows[0], alreadyExisted: false, duplicateOverride }
   } catch (pdfErr) {
     console.error('[issueInvoiceForB2B] PDF/Blob failed:', pdfErr)
     await pool.query(
@@ -258,6 +289,6 @@ export async function issueInvoiceForB2B(
         'Fallo en generación o subida de PDF; número fiscal ya reservado.',
       ]
     )
-    return { invoice: inserted, alreadyExisted: false }
+    return { invoice: inserted, alreadyExisted: false, duplicateOverride }
   }
 }

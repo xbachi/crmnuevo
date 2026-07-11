@@ -197,6 +197,7 @@ export async function POST(request: NextRequest) {
       dealId,
       invoiceType,
       idempotencyKey,
+      allowDuplicate: body?.allowDuplicate === true,
     })
 
     // Mark the car as sold and point its active deal at the issued one.
@@ -220,6 +221,12 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {})
     if (err instanceof InvoiceServiceError) {
+      if (err.code === 'VEHICLE_ALREADY_INVOICED') {
+        return NextResponse.json(
+          { error: err.message, code: err.code, existing: err.details },
+          { status: 409 }
+        )
+      }
       const status =
         err.code === 'SALE_NOT_FOUND' ? 404 : err.code === 'NO_SEQUENCE' ? 409 : 400
       return NextResponse.json({ error: err.message, code: err.code }, { status })
