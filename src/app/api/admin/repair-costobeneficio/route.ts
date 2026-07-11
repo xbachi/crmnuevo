@@ -63,8 +63,7 @@ async function syncInvoiceToSheet(
 }
 
 export async function POST(request: NextRequest) {
-  const secret =
-    process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
+  const secret = process.env.ADMIN_SECRET ?? ''
   const got = request.headers.get('x-admin-secret') ?? ''
   if (!secret || got !== secret) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })

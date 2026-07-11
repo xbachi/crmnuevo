@@ -16,7 +16,9 @@ import { getGoogleSheetsAuth } from '@/lib/googleSheets'
 import { isInSheet, parseControlFacturasRows } from '@/lib/facturasMonitor'
 import { getEmittedInvoices, type EmittedInvoice } from '@/lib/facturasQuery'
 
-const SHEET_ID = process.env.COSTOBENEFICIO_SPREADSHEET_ID || '1o0GRJKvzjiDl7dQSdRzxy6jWIT1Ll7fAIKx4yGjYhwM'
+const SHEET_ID =
+  process.env.COSTOBENEFICIO_SPREADSHEET_ID ||
+  '1o0GRJKvzjiDl7dQSdRzxy6jWIT1Ll7fAIKx4yGjYhwM'
 const DEFAULT_CB_TAB = 'CB 2026'
 
 async function getTabRows(tab: string, range: string): Promise<string[][]> {
@@ -30,14 +32,17 @@ async function getTabRows(tab: string, range: string): Promise<string[][]> {
 }
 
 export async function GET(request: NextRequest) {
-  const secret = process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
+  const secret = process.env.ADMIN_SECRET ?? ''
   const got = request.headers.get('x-admin-secret') ?? ''
   if (!secret || got !== secret) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
   const { searchParams } = new URL(request.url)
-  const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()), 10)
+  const year = parseInt(
+    searchParams.get('year') || String(new Date().getFullYear()),
+    10
+  )
   const CB_TAB = searchParams.get('tab') || DEFAULT_CB_TAB
   const debugRows = searchParams.get('debug') === 'rows' // dump crudo de la hoja (auditoría)
 
@@ -56,7 +61,10 @@ export async function GET(request: NextRequest) {
     }
 
     // --- 2. Control Facturas: pendientes ---
-    let control = { sArchivar: [] as { mes: string; proveedor: string }[], descargar: [] as { mes: string; proveedor: string }[] }
+    let control = {
+      sArchivar: [] as { mes: string; proveedor: string }[],
+      descargar: [] as { mes: string; proveedor: string }[],
+    }
     let controlError: string | null = null
     try {
       const ctrlRows = await getTabRows(`Control Facturas ${year}`, 'A:E')
@@ -89,7 +97,10 @@ export async function GET(request: NextRequest) {
       controlFacturas: {
         ok: control.sArchivar.length === 0,
         error: controlError,
-        counts: { sArchivar: control.sArchivar.length, descargar: control.descargar.length },
+        counts: {
+          sArchivar: control.sArchivar.length,
+          descargar: control.descargar.length,
+        },
         sArchivar: control.sArchivar,
         descargar: control.descargar,
       },
@@ -97,6 +108,9 @@ export async function GET(request: NextRequest) {
       ...(debugRows ? { cbRowsRaw: await getTabRows(CB_TAB, 'A:S') } : {}),
     })
   } catch (err) {
-    return NextResponse.json({ ok: false, error: (err as Error).message }, { status: 500 })
+    return NextResponse.json(
+      { ok: false, error: (err as Error).message },
+      { status: 500 }
+    )
   }
 }

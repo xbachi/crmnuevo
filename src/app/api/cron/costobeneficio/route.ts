@@ -15,8 +15,35 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export const maxDuration = 60
 
+function validYear(raw: string | null): number | null {
+  const year = Number(raw ?? new Date().getFullYear())
+  return Number.isInteger(year) && year >= 2000 && year <= 2100 ? year : null
+}
+
+function internalBaseUrl(): string | null {
+  const vercelHost = process.env.VERCEL_URL?.trim()
+  if (!vercelHost || !/^[a-z0-9.-]+$/i.test(vercelHost)) return null
+  return `https://${vercelHost}`
+}
+
+async function fetchJson(url: string, init: RequestInit): Promise<unknown> {
+  const response = await fetch(url, {
+    ...init,
+    signal: AbortSignal.timeout(25_000),
+  })
+  const body = await response.json().catch(() => null)
+  if (!response.ok) {
+    const detail =
+      body && typeof body === 'object' && 'error' in body
+        ? String(body.error)
+        : `HTTP ${response.status}`
+    throw new Error(`${new URL(url).pathname}: ${detail}`)
+  }
+  return body
+}
+
 export async function GET(request: NextRequest) {
-  const adminSecret = process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
+  const adminSecret = process.env.ADMIN_SECRET ?? ''
   const cronSecret = process.env.CRON_SECRET ?? ''
   const auth = request.headers.get('authorization') ?? ''
   const admin = request.headers.get('x-admin-secret') ?? ''
@@ -26,26 +53,54 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
-  const year = parseInt(new URL(request.url).searchParams.get('year') || String(new Date().getFullYear()), 10)
-  const proto = request.headers.get('x-forwarded-proto') ?? 'https'
-  const host = request.headers.get('host') ?? ''
-  const base = `${proto}://${host}`
+  if (!adminSecret) {
+    return NextResponse.json(
+      { error: 'ADMIN_SECRET no está configurado para las llamadas internas' },
+      { status: 503 }
+    )
+  }
+  const base = internalBaseUrl()
+  if (!base) {
+    return NextResponse.json(
+      { error: 'VERCEL_URL no está configurado o no es válido' },
+      { status: 503 }
+    )
+  }
+  const year = validYear(new URL(request.url).searchParams.get('year'))
+  if (year == null) {
+    return NextResponse.json({ error: 'year inválido' }, { status: 400 })
+  }
   const h = { 'x-admin-secret': adminSecret }
 
   const out: Record<string, unknown> = { year }
   try {
     // 1. resync fill (rellena celdas vacías desde el CRM)
-    const rs = await fetch(`${base}/api/admin/resync-costobeneficio?year=${year}`, { method: 'POST', headers: h })
-    out.resync = await rs.json().catch(() => ({ status: rs.status }))
+    out.resync = await fetchJson(
+      `${base}/api/admin/resync-costobeneficio?year=${year}`,
+      { method: 'POST', headers: h }
+    )
     // 2. check (reporta faltantes CB + Control Facturas)
-    const ck = await fetch(`${base}/api/admin/check-facturas?year=${year}`, { headers: h })
-    const check = await ck.json().catch(() => ({ status: ck.status }))
-    out.ok = (check as { ok?: boolean }).ok ?? null
+    const check = await fetchJson(
+      `${base}/api/admin/check-facturas?year=${year}`,
+      { headers: h }
+    )
+    if (
+      !check ||
+      typeof check !== 'object' ||
+      typeof (check as { ok?: unknown }).ok !== 'boolean'
+    ) {
+      throw new Error('/api/admin/check-facturas: respuesta inválida')
+    }
+    out.ok = (check as { ok: boolean }).ok
     out.check = check
-    if (out.ok === false) console.warn('[cron/costobeneficio] inconsistencias:', JSON.stringify(check))
+    if (out.ok === false)
+      console.warn(
+        '[cron/costobeneficio] inconsistencias:',
+        JSON.stringify(check)
+      )
   } catch (err) {
     out.error = (err as Error).message
     return NextResponse.json(out, { status: 500 })
   }
-  return NextResponse.json(out)
+  return NextResponse.json(out, { status: out.ok === false ? 409 : 200 })
 }

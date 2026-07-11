@@ -20,7 +20,9 @@ import { getGoogleSheetsAuth } from '@/lib/googleSheets'
 import { isInSheet } from '@/lib/facturasMonitor'
 import { getEmittedInvoices, type EmittedInvoice } from '@/lib/facturasQuery'
 
-const SHEET_ID = process.env.COSTOBENEFICIO_SPREADSHEET_ID || '1o0GRJKvzjiDl7dQSdRzxy6jWIT1Ll7fAIKx4yGjYhwM'
+const SHEET_ID =
+  process.env.COSTOBENEFICIO_SPREADSHEET_ID ||
+  '1o0GRJKvzjiDl7dQSdRzxy6jWIT1Ll7fAIKx4yGjYhwM'
 const DEFAULT_TAB = 'CB 2026'
 
 async function getSheetRows(tab: string): Promise<string[][]> {
@@ -34,14 +36,17 @@ async function getSheetRows(tab: string): Promise<string[][]> {
 }
 
 export async function GET(request: NextRequest) {
-  const secret = process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
+  const secret = process.env.ADMIN_SECRET ?? ''
   const got = request.headers.get('x-admin-secret') ?? ''
   if (!secret || got !== secret) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
   const { searchParams } = new URL(request.url)
-  const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()), 10)
+  const year = parseInt(
+    searchParams.get('year') || String(new Date().getFullYear()),
+    10
+  )
   const tab = searchParams.get('tab') || DEFAULT_TAB
 
   try {
@@ -77,6 +82,9 @@ export async function GET(request: NextRequest) {
       })),
     })
   } catch (err) {
-    return NextResponse.json({ ok: false, error: (err as Error).message }, { status: 500 })
+    return NextResponse.json(
+      { ok: false, error: (err as Error).message },
+      { status: 500 }
+    )
   }
 }
