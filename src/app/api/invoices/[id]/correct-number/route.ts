@@ -16,10 +16,7 @@ import { requireAdminSession } from '@/lib/apiAuth'
  *
  * Side effects:
  *   - Records old + new values + reason in invoice_audit_logs.
- *   - Does NOT touch invoice_sequences automatically. If the corrected
- *     number is higher than the current sequence next_number for that
- *     series, the response includes a hint suggesting the admin advance
- *     the sequence manually from /facturacion/series.
+ *   - Advances invoice_sequences automatically when correcting upwards.
  *
  * Body: {
  *   new_series: string,
@@ -88,15 +85,36 @@ export async function PATCH(
     }
     const before = invRes.rows[0]
 
-    // Determine number_format from the matching sequence; fallback to %03d
+    // Lock the target sequence so correction and issuance cannot claim the
+    // same number concurrently.
     const seqRes = await client.query(
-      `SELECT number_format FROM invoice_sequences
-       WHERE invoice_type = $1 AND series = $2`,
+      `SELECT id, number_format, next_number FROM invoice_sequences
+       WHERE invoice_type = $1 AND series = $2
+       FOR UPDATE`,
       [before.invoice_type, newSeries]
     )
-    const numberFormat = seqRes.rows[0]?.number_format ?? '%03d'
+    if (seqRes.rows.length === 0) {
+      await client.query('ROLLBACK')
+      return NextResponse.json(
+        {
+          error: `La serie ${newSeries} no existe para facturas ${before.invoice_type}.`,
+          code: 'SEQUENCE_NOT_FOUND',
+        },
+        { status: 400 }
+      )
+    }
+    const numberFormat = seqRes.rows[0].number_format
 
     const newFull = `${newSeries}-${formatNumber(newNumber, numberFormat)}`
+
+    if (
+      before.series === newSeries &&
+      before.number === newNumber &&
+      before.full_invoice_number === newFull
+    ) {
+      await client.query('ROLLBACK')
+      return NextResponse.json({ invoice: before })
+    }
 
     // Check for collision against another invoice (excluding self)
     const dupRes = await client.query(
@@ -111,6 +129,34 @@ export async function PATCH(
         {
           error: `El número ${newFull} ya existe en otra factura (id #${dupRes.rows[0].id}).`,
           code: 'DUPLICATE',
+        },
+        { status: 409 }
+      )
+    }
+
+    const historicalRes = await client.query(
+      `SELECT full_invoice_number
+         FROM invoice_deletion_logs
+        WHERE (series = $1 AND number = $2) OR full_invoice_number = $3
+       UNION ALL
+       SELECT old_values_json->>'full_invoice_number' AS full_invoice_number
+         FROM invoice_audit_logs
+        WHERE action = 'NUMBER_CORRECTED'
+          AND (
+            (old_values_json->>'series' = $1
+             AND old_values_json->>'number' ~ '^[0-9]+$'
+             AND (old_values_json->>'number')::integer = $2)
+            OR old_values_json->>'full_invoice_number' = $3
+          )
+       LIMIT 1`,
+      [newSeries, newNumber, newFull]
+    )
+    if (historicalRes.rows.length > 0) {
+      await client.query('ROLLBACK')
+      return NextResponse.json(
+        {
+          error: `El número ${newFull} ya fue utilizado históricamente y no se puede reutilizar.`,
+          code: 'FISCAL_NUMBER_ALREADY_USED',
         },
         { status: 409 }
       )
@@ -146,21 +192,15 @@ export async function PATCH(
       ]
     )
 
-    await client.query('COMMIT')
-
-    // Suggest advancing the sequence if the corrected number is higher
-    let advisory: string | null = null
-    const advRes = await client.query(
-      `SELECT next_number FROM invoice_sequences
-       WHERE invoice_type = $1 AND series = $2 AND is_active = TRUE`,
-      [before.invoice_type, newSeries]
+    await client.query(
+      `UPDATE invoice_sequences
+          SET next_number = GREATEST(next_number, $1), updated_at = NOW()
+        WHERE id = $2`,
+      [newNumber + 1, seqRes.rows[0].id]
     )
-    const nextNumber = advRes.rows[0]?.next_number
-    if (typeof nextNumber === 'number' && newNumber >= nextNumber) {
-      advisory = `El nuevo número (${newNumber}) es ≥ que el next_number actual de la serie (${nextNumber}). Considerá avanzar la secuencia desde /facturacion/series para que la próxima emisión use ${newNumber + 1}.`
-    }
 
-    return NextResponse.json({ invoice: updated.rows[0], advisory })
+    await client.query('COMMIT')
+    return NextResponse.json({ invoice: updated.rows[0] })
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {})
     console.error('[correct-number]', err)
