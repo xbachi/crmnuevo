@@ -36,6 +36,18 @@ export function monthRange(year: number, month?: number): { from: string; to: st
   return { from: `${year}-01-01`, to: `${year + 1}-01-01` }
 }
 
+/**
+ * Rango [from, to) para un trimestre fiscal (1..4). `to` es exclusivo.
+ * Q4 cierra en el 1-ene del año siguiente (mismo borde que monthRange).
+ */
+export function quarterRange(year: number, quarter: number): { from: string; to: string } {
+  const startMonth = (quarter - 1) * 3 + 1
+  const from = `${year}-${String(startMonth).padStart(2, '0')}-01`
+  const endMonth = startMonth + 3
+  const to = endMonth > 12 ? `${year + 1}-01-01` : `${year}-${String(endMonth).padStart(2, '0')}-01`
+  return { from, to }
+}
+
 // ---------------------------------------------------------------------------
 // CB 2026 — detección de facturas faltantes
 // ---------------------------------------------------------------------------

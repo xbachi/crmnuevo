@@ -4,7 +4,14 @@
  * invoice). Fire-and-forget: never throws and is a no-op unless
  * N8N_INVOICE_WEBHOOK_URL is configured, so it can never block or break invoice
  * issuance.
+ *
+ * C-23: every send attempt is recorded in `webhook_outbox` (pendiente →
+ * enviado/agotado) so a failed or never-delivered webhook leaves a trace,
+ * instead of only a console.error nobody sees. See src/lib/webhookOutbox.ts
+ * and POST /api/admin/webhook-outbox/retry.
  */
+
+import { insertOutboxPending, markOutboxEnviado, markOutboxFallo } from '@/lib/webhookOutbox'
 
 export interface GestoriaInvoicePayload {
   numeroFactura: string
@@ -16,9 +23,19 @@ export interface GestoriaInvoicePayload {
   pdfBase64: string
 }
 
-export async function notifyGestoriaInvoice(payload: GestoriaInvoicePayload): Promise<void> {
+export interface WebhookSendResult {
+  ok: boolean
+  status?: number
+  error?: string
+}
+
+/** Raw POST to the n8n webhook. No outbox bookkeeping — shared by
+ *  notifyGestoriaInvoice() and the admin retry endpoint. */
+export async function postGestoriaWebhook(
+  payload: GestoriaInvoicePayload
+): Promise<WebhookSendResult> {
   const url = process.env.N8N_INVOICE_WEBHOOK_URL
-  if (!url) return // feature disabled until configured
+  if (!url) return { ok: false, error: 'N8N_INVOICE_WEBHOOK_URL no configurada' }
 
   const secret = process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
   const controller = new AbortController()
@@ -34,16 +51,31 @@ export async function notifyGestoriaInvoice(payload: GestoriaInvoicePayload): Pr
       signal: controller.signal,
     })
     if (!res.ok) {
-      console.error(
-        `[gestoriaWebhook] webhook returned ${res.status} for invoice ${payload.numeroFactura}`
-      )
+      return { ok: false, status: res.status, error: `webhook returned ${res.status}` }
     }
+    return { ok: true, status: res.status }
   } catch (err) {
-    console.error(
-      `[gestoriaWebhook] notification failed for invoice ${payload.numeroFactura}:`,
-      (err as Error)?.message ?? err
-    )
+    return { ok: false, error: (err as Error)?.message ?? String(err) }
   } finally {
     clearTimeout(timeout)
   }
+}
+
+export async function notifyGestoriaInvoice(payload: GestoriaInvoicePayload): Promise<void> {
+  const url = process.env.N8N_INVOICE_WEBHOOK_URL
+  if (!url) return // feature disabled until configured
+
+  const outboxId = await insertOutboxPending('factura_venta', payload, payload.numeroFactura)
+  const result = await postGestoriaWebhook(payload)
+
+  if (result.ok) {
+    if (outboxId) await markOutboxEnviado(outboxId)
+    return
+  }
+
+  console.error(
+    `[gestoriaWebhook] notification failed for invoice ${payload.numeroFactura}:`,
+    result.error
+  )
+  if (outboxId) await markOutboxFallo(outboxId, result.error ?? 'unknown error')
 }

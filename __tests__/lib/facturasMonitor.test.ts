@@ -1,4 +1,14 @@
-import { isInSheet, parseControlFacturasRows } from '@/lib/facturasMonitor'
+import { isInSheet, parseControlFacturasRows, quarterRange } from '@/lib/facturasMonitor'
+
+describe('quarterRange — rango [from, to) por trimestre fiscal', () => {
+  it('Q1: enero a marzo', () => {
+    expect(quarterRange(2026, 1)).toEqual({ from: '2026-01-01', to: '2026-04-01' })
+  })
+
+  it('Q4: cierra en el 1-ene del año siguiente', () => {
+    expect(quarterRange(2026, 4)).toEqual({ from: '2026-10-01', to: '2027-01-01' })
+  })
+})
 
 describe('isInSheet — dedup por matrícula (col E) / referencia (col C)', () => {
   const rows = [
