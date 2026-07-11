@@ -3,6 +3,7 @@ import { pool } from '@/lib/direct-database'
 import { parseImporte } from '@/lib/gastoImporte'
 import { TIPO_A_CAMPO, normPlate, campoParaTipo, tiposCanonicos } from '@/lib/gastoMapping'
 import { validarImporte } from '@/lib/gastoRangos'
+import { extraerNumeroCanonico } from '@/lib/facturaNumero'
 
 /**
  * POST /api/vehiculos/gasto
@@ -21,7 +22,9 @@ import { validarImporte } from '@/lib/gastoRangos'
  *   tipo: 'mecauto'|'fergo'|'world'|'compra'|'transporte'|'itv',
  *   importe: number|string,                     // total con IVA
  *   numeroFactura: string,
- *   proveedor?: string
+ *   proveedor?: string,
+ *   esAbono?: boolean,        // requerido para importes negativos (abonos)
+ *   allowDuplicado?: boolean  // saltea el 409 de duplicado por nº canónico
  * }
  */
 
@@ -45,9 +48,18 @@ export async function POST(request: NextRequest) {
   if (importe == null) {
     return NextResponse.json({ error: `importe inválido: ${JSON.stringify(b.importe)}` }, { status: 400 })
   }
+  // Abonos: un importe negativo solo se acepta con esAbono: true explícito.
+  const esAbono = b.esAbono === true || String(b.esAbono ?? '') === '1' || String(b.esAbono ?? '').toLowerCase() === 'true'
+  if (importe < 0 && !esAbono) {
+    return NextResponse.json(
+      { error: 'importe negativo sin esAbono', hint: 'si es un abono/nota de crédito reenviá con esAbono: true' },
+      { status: 422 }
+    )
+  }
   // Guarda anti-basura: rechaza importes fuera del rango del campo (evita cargar
   // valores absurdos por errores de extracción). `force=1` permite saltearla.
-  const rango = validarImporte(campo, importe)
+  // Para abonos se valida el valor absoluto (el rango está definido en positivo).
+  const rango = validarImporte(campo, Math.abs(importe))
   const force = String(b.force ?? '') === '1' || new URL(request.url).searchParams.get('force') === '1'
   if (!rango.ok && !force) {
     return NextResponse.json(
@@ -83,18 +95,59 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // 2) libro de facturas (idempotente por tipo+numeroFactura)
+  // 2) dedup REAL por nº canónico de factura (auditoría C-03): numero_factura
+  // es el filename del PDF, así que la misma factura con dos nombres pasaba el
+  // UNIQUE. Si ya hay un gasto con el mismo nº real para este coche → 409, sin
+  // insertar y sin resync. `allowDuplicado: true` (flag explícito, distinto de
+  // force) lo saltea. Se compara contra los tipos que comparten campo (world ≡
+  // world-detailing ≡ limpieza). Filas con el MISMO filename no cuentan: esas
+  // son reintentos idempotentes que resuelve el ON CONFLICT.
+  const canonTipos = tiposCanonicos(campo)
+  const numeroCanonico = extraerNumeroCanonico(numeroFactura, proveedor)
+  const allowDuplicado =
+    b.allowDuplicado === true || String(b.allowDuplicado ?? '') === '1' || String(b.allowDuplicado ?? '').toLowerCase() === 'true'
+  if (numeroCanonico && !allowDuplicado) {
+    const dupRes = await pool.query(
+      `SELECT id, numero_factura, importe, matricula, tipo, created_at
+         FROM gasto_facturas
+        WHERE tipo = ANY($1) AND numero_canonico = $2 AND vehiculo_id = $3
+          AND numero_factura <> $4
+        LIMIT 1`,
+      [canonTipos, numeroCanonico, vehiculo.id, numeroFactura]
+    )
+    const dup = dupRes.rows[0]
+    if (dup) {
+      return NextResponse.json(
+        {
+          duplicado: true,
+          numeroCanonico,
+          existente: {
+            id: dup.id,
+            numeroFactura: dup.numero_factura,
+            importe: Number(dup.importe),
+            matricula: dup.matricula,
+            tipo: dup.tipo,
+            createdAt: dup.created_at,
+          },
+          hint: 'misma factura ya cargada con otro nombre de archivo; si es un cargo real distinto reenviá con allowDuplicado: true',
+        },
+        { status: 409 }
+      )
+    }
+  }
+
+  // 3) libro de facturas (idempotente por tipo+numeroFactura)
   await pool.query(
-    `INSERT INTO gasto_facturas (vehiculo_id, matricula, tipo, numero_factura, importe, proveedor)
-       VALUES ($1,$2,$3,$4,$5,$6)
+    `INSERT INTO gasto_facturas (vehiculo_id, matricula, tipo, numero_factura, numero_canonico, importe, proveedor)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)
      ON CONFLICT (tipo, numero_factura)
        DO UPDATE SET importe = EXCLUDED.importe, vehiculo_id = EXCLUDED.vehiculo_id,
-                     matricula = EXCLUDED.matricula, proveedor = EXCLUDED.proveedor, updated_at = NOW()`,
-    [vehiculo.id, vehiculo.matricula, tipoRaw, numeroFactura, importe, proveedor]
+                     matricula = EXCLUDED.matricula, proveedor = EXCLUDED.proveedor,
+                     numero_canonico = EXCLUDED.numero_canonico, updated_at = NOW()`,
+    [vehiculo.id, vehiculo.matricula, tipoRaw, numeroFactura, numeroCanonico, importe, proveedor]
   )
 
-  // 3) recomputar el campo del Vehiculo = SUMA de facturas de ese tipo
-  const canonTipos = tiposCanonicos(campo)
+  // 4) recomputar el campo del Vehiculo = SUMA de facturas de ese tipo
   const sumRes = await pool.query(
     `SELECT COALESCE(SUM(importe),0) AS total FROM gasto_facturas
       WHERE vehiculo_id = $1 AND tipo = ANY($2)`,
@@ -109,10 +162,14 @@ export async function POST(request: NextRequest) {
   let cbResync: string | null = null
   try {
     const { resyncVehiculoRowToCB } = await import('@/lib/costoBeneficio')
+    let timer: ReturnType<typeof setTimeout> | undefined
     const r = await Promise.race([
       resyncVehiculoRowToCB(vehiculo.id, 'CB 2026'),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000)),
+      new Promise<null>((resolve) => {
+        timer = setTimeout(() => resolve(null), 8000)
+      }),
     ])
+    clearTimeout(timer)
     cbResync = r ? `${r.action}: ${r.detail}` : 'timeout'
   } catch (err) {
     cbResync = `error: ${(err as Error)?.message ?? err}`
