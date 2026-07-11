@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/direct-database'
+import { requireAdminSession } from '@/lib/apiAuth'
 
 /**
  * POST /api/ventas-b2b/{id}/factura/anular
@@ -14,6 +15,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = requireAdminSession(request)
+  if (auth.response) return auth.response
+
   try {
     const { id: raw } = await params
     const ventaB2BId = parseInt(raw, 10)
@@ -22,7 +26,8 @@ export async function POST(
     }
 
     const body = await request.json().catch(() => ({}))
-    const motivo = (body?.motivo ?? '').toString().trim() || 'Anulada desde UI B2B'
+    const motivo =
+      (body?.motivo ?? '').toString().trim() || 'Anulada desde UI B2B'
 
     const client = await pool.connect()
     try {
@@ -55,12 +60,15 @@ export async function POST(
         [inv.id]
       )
       await client.query(
-        `INSERT INTO invoice_audit_logs (invoice_id, action, new_values_json, reason)
-         VALUES ($1, 'STATUS_CHANGED', $2, $3)`,
+        `INSERT INTO invoice_audit_logs
+           (invoice_id, action, new_values_json, reason, user_id, user_role)
+         VALUES ($1, 'STATUS_CHANGED', $2, $3, $4, $5)`,
         [
           inv.id,
           JSON.stringify({ status: 'VOIDED', prev_status: inv.status }),
           motivo,
+          String(auth.session.uid),
+          auth.session.role,
         ]
       )
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { regeneratePdf, InvoiceServiceError } from '@/lib/invoiceService'
+import { requireAdminSession } from '@/lib/apiAuth'
 
 /**
  * POST /api/invoices/{id}/regenerate-pdf
@@ -10,11 +11,13 @@ import { regeneratePdf, InvoiceServiceError } from '@/lib/invoiceService'
  *
  * Body: { reason: string }   (required, min 3 chars)
  */
-// TODO: replace placeholder auth with real server-side auth (Task 2)
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = requireAdminSession(request)
+  if (auth.response) return auth.response
+
   try {
     const { id: idRaw } = await params
     const id = parseInt(idRaw, 10)
@@ -24,7 +27,12 @@ export async function POST(
     const body = await request.json().catch(() => ({}))
     const reason = typeof body?.reason === 'string' ? body.reason.trim() : ''
 
-    const updated = await regeneratePdf(id, reason)
+    const updated = await regeneratePdf(
+      id,
+      reason,
+      String(auth.session.uid),
+      auth.session.role
+    )
     return NextResponse.json({ invoice: updated })
   } catch (err) {
     if (err instanceof InvoiceServiceError) {

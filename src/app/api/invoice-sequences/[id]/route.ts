@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/direct-database'
+import { requireAdminSession } from '@/lib/apiAuth'
 
 /**
  * PATCH /api/invoice-sequences/{id}
@@ -13,15 +14,16 @@ import { pool } from '@/lib/direct-database'
  *   next_number?: number,
  *   number_format?: string,
  *   is_active?: boolean,
- *   reason: string,
- *   userId?: string  // placeholder until Task 2
+ *   reason: string
  * }
  */
-// TODO: replace placeholder auth with real server-side auth (Task 2)
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = requireAdminSession(request)
+  if (auth.response) return auth.response
+
   const client = await pool.connect()
   try {
     const { id: idRaw } = await params
@@ -34,7 +36,10 @@ export async function PATCH(
     const reason = typeof body?.reason === 'string' ? body.reason.trim() : ''
     if (reason.length < 3) {
       return NextResponse.json(
-        { error: 'Motivo obligatorio (mínimo 3 caracteres).', code: 'REASON_REQUIRED' },
+        {
+          error: 'Motivo obligatorio (mínimo 3 caracteres).',
+          code: 'REASON_REQUIRED',
+        },
         { status: 400 }
       )
     }
@@ -47,7 +52,10 @@ export async function PATCH(
     )
     if (seqRes.rows.length === 0) {
       await client.query('ROLLBACK')
-      return NextResponse.json({ error: 'Serie no encontrada' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'Serie no encontrada' },
+        { status: 404 }
+      )
     }
     const before = seqRes.rows[0]
 
@@ -55,7 +63,10 @@ export async function PATCH(
     const values: unknown[] = []
     const newValues: Record<string, unknown> = {}
 
-    if (typeof body.next_number === 'number' && Number.isInteger(body.next_number)) {
+    if (
+      typeof body.next_number === 'number' &&
+      Number.isInteger(body.next_number)
+    ) {
       if (body.next_number < 1) {
         await client.query('ROLLBACK')
         return NextResponse.json(
@@ -147,8 +158,8 @@ export async function PATCH(
           }),
           JSON.stringify({ sequence_id: before.id, ...newValues }),
           `Cambio de serie ${before.invoice_type}/${before.series}: ${reason}`,
-          typeof body?.userId === 'string' ? body.userId : null,
-          typeof body?.userRole === 'string' ? body.userRole : null,
+          String(auth.session.uid),
+          auth.session.role,
         ]
       )
     } else {

@@ -47,7 +47,7 @@ export function verifyPassword(plain: string, stored: string): boolean {
 // Signed session tokens (HMAC-SHA256, JWT-like)
 // ----------------------------------------------------------------------------
 
-interface SessionPayload {
+export interface SessionPayload {
   uid: number
   role: 'admin' | 'asesor'
   exp: number // unix seconds
@@ -71,7 +71,10 @@ function sign(payloadB64: string): string {
   )
 }
 
-export function createSessionToken(uid: number, role: 'admin' | 'asesor'): string {
+export function createSessionToken(
+  uid: number,
+  role: 'admin' | 'asesor'
+): string {
   const payload: SessionPayload = {
     uid,
     role,
@@ -82,16 +85,21 @@ export function createSessionToken(uid: number, role: 'admin' | 'asesor'): strin
   return `${p}.${sig}`
 }
 
-export function verifySessionToken(token: string | undefined | null): SessionPayload | null {
+export function verifySessionToken(
+  token: string | undefined | null
+): SessionPayload | null {
   if (!token || !token.includes('.')) return null
   const [p, sig] = token.split('.', 2)
   if (!p || !sig) return null
   const expected = sign(p)
   // Constant-time compare
   if (sig.length !== expected.length) return null
-  if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null
+  if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected)))
+    return null
   try {
-    const payload = JSON.parse(b64urlDecode(p).toString('utf8')) as SessionPayload
+    const payload = JSON.parse(
+      b64urlDecode(p).toString('utf8')
+    ) as SessionPayload
     if (!payload.uid || !payload.role || !payload.exp) return null
     if (payload.exp < Math.floor(Date.now() / 1000)) return null
     return payload
@@ -139,9 +147,9 @@ export async function recordLogin(id: number): Promise<void> {
  * Helper para leer la sesión desde un Request (server-side).
  * Devuelve null si la cookie no existe o el token es inválido/expirado.
  */
-export function readSessionFromRequest(
-  req: { cookies: { get: (name: string) => { value: string } | undefined } }
-): SessionPayload | null {
+export function readSessionFromRequest(req: {
+  cookies: { get: (name: string) => { value: string } | undefined }
+}): SessionPayload | null {
   const cookie = req.cookies.get(SESSION_COOKIE)
   return verifySessionToken(cookie?.value)
 }
