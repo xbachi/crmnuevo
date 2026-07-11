@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/direct-database'
 import { formatNumber } from '@/config/invoiceConfig'
+import { requireAdminSession } from '@/lib/apiAuth'
 
 /**
  * PATCH /api/invoices/{id}/correct-number
@@ -23,16 +24,16 @@ import { formatNumber } from '@/config/invoiceConfig'
  * Body: {
  *   new_series: string,
  *   new_number: number,
- *   reason: string,
- *   userId?: string,
- *   userRole?: string
+ *   reason: string
  * }
  */
-// TODO: replace placeholder auth with real server-side auth (Task 2)
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = requireAdminSession(request)
+  if (auth.response) return auth.response
+
   const client = await pool.connect()
   try {
     const { id: idRaw } = await params
@@ -42,7 +43,8 @@ export async function PATCH(
     }
 
     const body = await request.json().catch(() => ({}))
-    const newSeries = typeof body?.new_series === 'string' ? body.new_series.trim() : ''
+    const newSeries =
+      typeof body?.new_series === 'string' ? body.new_series.trim() : ''
     const newNumber =
       typeof body?.new_number === 'number' && Number.isInteger(body.new_number)
         ? body.new_number
@@ -50,7 +52,10 @@ export async function PATCH(
     const reason = typeof body?.reason === 'string' ? body.reason.trim() : ''
 
     if (!newSeries) {
-      return NextResponse.json({ error: 'new_series obligatorio' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'new_series obligatorio' },
+        { status: 400 }
+      )
     }
     if (!newNumber || newNumber < 1) {
       return NextResponse.json(
@@ -60,7 +65,10 @@ export async function PATCH(
     }
     if (reason.length < 3) {
       return NextResponse.json(
-        { error: 'Motivo obligatorio (mínimo 3 caracteres).', code: 'REASON_REQUIRED' },
+        {
+          error: 'Motivo obligatorio (mínimo 3 caracteres).',
+          code: 'REASON_REQUIRED',
+        },
         { status: 400 }
       )
     }
@@ -73,7 +81,10 @@ export async function PATCH(
     )
     if (invRes.rows.length === 0) {
       await client.query('ROLLBACK')
-      return NextResponse.json({ error: 'Factura no encontrada' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'Factura no encontrada' },
+        { status: 404 }
+      )
     }
     const before = invRes.rows[0]
 
@@ -130,8 +141,8 @@ export async function PATCH(
           full_invoice_number: newFull,
         }),
         reason,
-        typeof body?.userId === 'string' ? body.userId : null,
-        typeof body?.userRole === 'string' ? body.userRole : null,
+        String(auth.session.uid),
+        auth.session.role,
       ]
     )
 

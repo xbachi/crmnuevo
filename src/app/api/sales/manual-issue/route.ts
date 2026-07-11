@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/direct-database'
 import { issueInvoice, InvoiceServiceError } from '@/lib/invoiceService'
 import type { InvoiceType } from '@/lib/invoiceRepository'
+import { requireApiSession } from '@/lib/apiAuth'
 
 /**
  * POST /api/sales/manual-issue
@@ -25,8 +26,10 @@ import type { InvoiceType } from '@/lib/invoiceRepository'
  *
  * Idempotency-Key header is honoured (recommended).
  */
-// TODO: replace placeholder auth with real server-side auth (Task 2)
 export async function POST(request: NextRequest) {
+  const auth = requireApiSession(request)
+  if (auth.response) return auth.response
+
   const client = await pool.connect()
   try {
     const body = await request.json().catch(() => ({}))
@@ -162,7 +165,12 @@ export async function POST(request: NextRequest) {
         `UPDATE "Deal"
             SET "importeTotal" = $1, "importeSena" = $2, "formaPagoSena" = $3
           WHERE id = $4`,
-        [importeTotal, Number(f.importeSena) || 0, f.formaPagoSena ?? null, dealId]
+        [
+          importeTotal,
+          Number(f.importeSena) || 0,
+          f.formaPagoSena ?? null,
+          dealId,
+        ]
       )
     } else {
       const dealNumero = `MAN-${Date.now()}`
@@ -198,6 +206,8 @@ export async function POST(request: NextRequest) {
       invoiceType,
       idempotencyKey,
       allowDuplicate: body?.allowDuplicate === true,
+      userId: String(auth.session.uid),
+      userRole: auth.session.role,
     })
 
     // Mark the car as sold and point its active deal at the issued one.
@@ -211,7 +221,10 @@ export async function POST(request: NextRequest) {
         [dealId, vehiculoId]
       )
     } catch (e) {
-      console.error('[manual-issue] no se pudo marcar el vehículo como vendido:', e)
+      console.error(
+        '[manual-issue] no se pudo marcar el vehículo como vendido:',
+        e
+      )
     }
 
     return NextResponse.json(
@@ -228,8 +241,15 @@ export async function POST(request: NextRequest) {
         )
       }
       const status =
-        err.code === 'SALE_NOT_FOUND' ? 404 : err.code === 'NO_SEQUENCE' ? 409 : 400
-      return NextResponse.json({ error: err.message, code: err.code }, { status })
+        err.code === 'SALE_NOT_FOUND'
+          ? 404
+          : err.code === 'NO_SEQUENCE'
+            ? 409
+            : 400
+      return NextResponse.json(
+        { error: err.message, code: err.code },
+        { status }
+      )
     }
     const e = err as {
       code?: string

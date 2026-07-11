@@ -3,6 +3,7 @@ import { issueInvoiceForB2B } from '@/lib/b2b-invoice-service'
 import { InvoiceServiceError } from '@/lib/invoiceService'
 import type { InvoiceType } from '@/lib/invoiceRepository'
 import { pool } from '@/lib/direct-database'
+import { requireApiSession } from '@/lib/apiAuth'
 
 /**
  * POST /api/ventas-b2b/{id}/factura
@@ -16,6 +17,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = requireApiSession(request)
+  if (auth.response) return auth.response
+
   try {
     const { id: raw } = await params
     const ventaB2BId = parseInt(raw, 10)
@@ -53,8 +57,15 @@ export async function POST(
         )
       }
       const status =
-        err.code === 'SALE_NOT_FOUND' ? 404 : err.code === 'NO_SEQUENCE' ? 409 : 400
-      return NextResponse.json({ error: err.message, code: err.code }, { status })
+        err.code === 'SALE_NOT_FOUND'
+          ? 404
+          : err.code === 'NO_SEQUENCE'
+            ? 409
+            : 400
+      return NextResponse.json(
+        { error: err.message, code: err.code },
+        { status }
+      )
     }
     console.error('[POST /api/ventas-b2b/[id]/factura]', err)
     return NextResponse.json(
@@ -87,7 +98,10 @@ export async function GET(
     )
     if (rows.length === 0) {
       return NextResponse.json(
-        { error: 'No hay factura emitida para esta venta B2B', code: 'NOT_FOUND' },
+        {
+          error: 'No hay factura emitida para esta venta B2B',
+          code: 'NOT_FOUND',
+        },
         { status: 404 }
       )
     }

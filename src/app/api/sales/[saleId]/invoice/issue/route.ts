@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { issueInvoice, InvoiceServiceError } from '@/lib/invoiceService'
 import type { InvoiceType } from '@/lib/invoiceRepository'
+import { requireApiSession } from '@/lib/apiAuth'
 
 /**
  * POST /api/sales/{saleId}/invoice/issue
@@ -19,16 +20,21 @@ import type { InvoiceType } from '@/lib/invoiceRepository'
  * Response 200/201:
  *   { invoice, alreadyExisted: boolean }
  */
-// TODO: replace placeholder auth with real server-side auth (Task 2)
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ saleId: string }> }
 ) {
+  const auth = requireApiSession(request)
+  if (auth.response) return auth.response
+
   try {
     const { saleId: saleIdRaw } = await params
     const saleId = parseInt(saleIdRaw, 10)
     if (Number.isNaN(saleId)) {
-      return NextResponse.json({ error: 'ID de venta inválido' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'ID de venta inválido' },
+        { status: 400 }
+      )
     }
 
     const body = await request.json().catch(() => ({}))
@@ -51,6 +57,8 @@ export async function POST(
       idempotencyKey,
       notes: typeof body?.notes === 'string' ? body.notes : null,
       allowDuplicate: body?.allowDuplicate === true,
+      userId: String(auth.session.uid),
+      userRole: auth.session.role,
     })
 
     return NextResponse.json(result, {
@@ -65,8 +73,15 @@ export async function POST(
         )
       }
       const status =
-        err.code === 'SALE_NOT_FOUND' ? 404 : err.code === 'NO_SEQUENCE' ? 409 : 400
-      return NextResponse.json({ error: err.message, code: err.code }, { status })
+        err.code === 'SALE_NOT_FOUND'
+          ? 404
+          : err.code === 'NO_SEQUENCE'
+            ? 409
+            : 400
+      return NextResponse.json(
+        { error: err.message, code: err.code },
+        { status }
+      )
     }
     const e = err as { code?: string; constraint?: string; detail?: string }
     if (e?.code === '23505') {
