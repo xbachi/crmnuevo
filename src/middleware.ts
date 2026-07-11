@@ -31,6 +31,13 @@ const PUBLIC_API_PREFIXES = [
   '/api/admin/webhook-outbox/retry',
   // Cron de Vercel (self-auth por CRON_SECRET / X-Admin-Secret).
   '/api/cron/costobeneficio',
+  // Bandeja de revisión: POST lo llama n8n (X-Webhook-Secret) y /sync es
+  // admin (X-Admin-Secret). GET y /[id]/resolver validan sesión en el handler
+  // (mismo patrón que /api/automation-log).
+  '/api/revision',
+  // Webhook de firma digital (Signaturit). Valida SIGNATURIT_WEBHOOK_SECRET
+  // dentro del handler si está seteado.
+  '/api/firma/webhook',
 ]
 
 export async function middleware(request: NextRequest) {
