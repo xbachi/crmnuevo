@@ -37,6 +37,9 @@ const PUBLIC_API_PREFIXES = [
   '/api/admin/pre-cierre',
   // Cierre mensual: listar/cerrar/reabrir períodos contables (X-Admin-Secret).
   '/api/admin/periodos',
+  // Recalcular expedientes contra evidencia (X-Admin-Secret). Solo este
+  // sub-path: /api/expedientes y /api/expedientes/[id] siguen con sesión.
+  '/api/expedientes/recalcular',
   '/api/admin/webhook-outbox/retry',
   // Cron de Vercel (self-auth por CRON_SECRET / X-Admin-Secret).
   '/api/cron/costobeneficio',

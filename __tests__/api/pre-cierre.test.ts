@@ -4,7 +4,7 @@
  * GET /api/admin/pre-cierre — pre-close checklist. Exercises one red case
  * and the all-green case, mocking pg query results in call order (matches
  * the sequence issued by the route: sinLog, sinExpediente, outbox, sinFecha,
- * sinImporte, colCheck, [gastos]).
+ * sinImporte, colCheck, [gastos], expedientesTable, [porEstado, incompletos]).
  */
 
 jest.mock('@/lib/direct-database', () => ({
@@ -66,6 +66,8 @@ describe('GET /api/admin/pre-cierre', () => {
       .mockResolvedValueOnce({ rows: [{ id: 2, proveedor: 'Nagini', numero_factura: 'N-1', nombre_archivo: 'y.pdf' }] })
       // colCheck — numero_canonico no existe
       .mockResolvedValueOnce({ rows: [] })
+      // expedientes — tabla no existe (create-expedientes.sql sin aplicar)
+      .mockResolvedValueOnce({ rows: [{ reg: null }] })
 
     const res = await GET(makeRequest('?quarter=1&year=2026'))
     const body = await res.json()
@@ -88,6 +90,8 @@ describe('GET /api/admin/pre-cierre', () => {
     expect(body.registroSinImporte).toMatchObject({ ok: false, count: 1 })
     // numero_canonico column absent → informativo, never blocking, marked not verifiable
     expect(body.gastoSinNumeroCanonico).toMatchObject({ ok: true, informativo: true, verificable: false })
+    // expedientes table absent → not verifiable, never blocking
+    expect(body.expedientes).toMatchObject({ ok: true, verificable: false })
   })
 
   it('reports all green when nothing is missing, and surfaces numero_canonico counts when the column exists', async () => {
@@ -99,6 +103,9 @@ describe('GET /api/admin/pre-cierre', () => {
       .mockResolvedValueOnce({ rows: [] }) // registroSinImporte
       .mockResolvedValueOnce({ rows: [{ '?column?': 1 }] }) // colCheck — numero_canonico existe
       .mockResolvedValueOnce({ rows: [] }) // gasto_facturas sin numero_canonico — ninguno
+      .mockResolvedValueOnce({ rows: [{ reg: 'expedientes' }] }) // tabla expedientes existe
+      .mockResolvedValueOnce({ rows: [{ estado: 'completo', n: 3 }] }) // porEstado
+      .mockResolvedValueOnce({ rows: [] }) // incompletos — ninguno
 
     const res = await GET(makeRequest('?quarter=2&year=2026'))
     const body = await res.json()
@@ -111,6 +118,61 @@ describe('GET /api/admin/pre-cierre', () => {
     expect(body.registroSinFecha).toMatchObject({ ok: true, count: 0 })
     expect(body.registroSinImporte).toMatchObject({ ok: true, count: 0 })
     expect(body.gastoSinNumeroCanonico).toMatchObject({ ok: true, informativo: true, verificable: true, count: 0 })
+    expect(body.expedientes).toMatchObject({
+      ok: true,
+      verificable: true,
+      count: 0,
+      porEstado: { completo: 3 },
+    })
+  })
+
+  it('flags incomplete expedientes as a bloqueante when the table exists', async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rows: [] }) // facturasSinAutomationLog
+      .mockResolvedValueOnce({ rows: [] }) // facturasSinExpediente
+      .mockResolvedValueOnce({ rows: [] }) // outboxPendientes
+      .mockResolvedValueOnce({ rows: [] }) // registroSinFecha
+      .mockResolvedValueOnce({ rows: [] }) // registroSinImporte
+      .mockResolvedValueOnce({ rows: [] }) // colCheck — numero_canonico no existe
+      .mockResolvedValueOnce({ rows: [{ reg: 'expedientes' }] }) // tabla existe
+      .mockResolvedValueOnce({
+        rows: [
+          { estado: 'incompleto', n: 2 },
+          { estado: 'completo', n: 5 },
+        ],
+      }) // porEstado
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: 1,
+            numero_factura: 'R-2026-030',
+            matricula: '1234ABC',
+            tipo_operacion: 'retail-rebu',
+            invoice_date: '2026-05-02',
+            checklist: [],
+          },
+          {
+            id: 2,
+            numero_factura: 'F-2026-011',
+            matricula: '5678DEF',
+            tipo_operacion: 'retail-vat',
+            invoice_date: '2026-06-10',
+            checklist: [],
+          },
+        ],
+      }) // incompletos
+
+    const res = await GET(makeRequest('?quarter=2&year=2026'))
+    const body = await res.json()
+
+    expect(body.ok).toBe(false)
+    expect(body.resumen.bloqueantes).toEqual(['expedientesIncompletos'])
+    expect(body.expedientes).toMatchObject({
+      ok: false,
+      verificable: true,
+      count: 2,
+      porEstado: { incompleto: 2, completo: 5 },
+    })
   })
 
   it('never lets gastoSinNumeroCanonico gaps become a bloqueante even when non-zero', async () => {
@@ -122,6 +184,7 @@ describe('GET /api/admin/pre-cierre', () => {
       .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [{ '?column?': 1 }] }) // colCheck exists
       .mockResolvedValueOnce({ rows: [{ id: 9, tipo: 'mecauto', numero_factura: 'M-1', vehiculo_id: 3 }] })
+      .mockResolvedValueOnce({ rows: [{ reg: null }] }) // tabla expedientes no existe
 
     const res = await GET(makeRequest('?quarter=3&year=2026'))
     const body = await res.json()

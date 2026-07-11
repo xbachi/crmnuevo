@@ -40,6 +40,7 @@ import {
 import { computeAmounts, type Amounts } from '@/lib/invoiceAmounts'
 import { appendRegistro } from '@/lib/facturacionRegistro'
 import { assertPeriodoAbierto, PeriodoCerradoError } from '@/lib/periodoLock'
+import { crearExpedienteAlEmitir } from '@/lib/expedientes'
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -229,6 +230,25 @@ export async function issueInvoice(opts: IssueOptions): Promise<IssueResult> {
 
   if (reserved.alreadyExisted) {
     return { invoice: reserved.invoice, alreadyExisted: true, duplicateOverride }
+  }
+
+  // Best-effort: expediente (deal jacket) de la venta, FUERA de la transacción
+  // de numeración. La emisión nunca falla por el expediente; si el INSERT
+  // falla, el backfill/recalcular lo repone después.
+  try {
+    await crearExpedienteAlEmitir(pool, {
+      invoiceType: opts.invoiceType,
+      dealId: opts.dealId,
+      vehiculoId: sale.vehiculo.id,
+      matricula: sale.vehiculo.matricula,
+      numeroFactura: reserved.invoice.full_invoice_number,
+      invoiceDate,
+    })
+  } catch (expedienteError) {
+    console.error(
+      `[invoiceService] expediente creation failed for ${reserved.invoice.full_invoice_number}:`,
+      expedienteError
+    )
   }
 
   // 4. Generate + upload PDF (best effort; row stays PDF_PENDING on failure)
