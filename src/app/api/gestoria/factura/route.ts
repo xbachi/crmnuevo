@@ -27,6 +27,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/direct-database'
 import { parseImporte } from '@/lib/gastoImporte'
 import { CATEGORIAS, periodoFromDate, carpetaDestino, normPlate, type Categoria } from '@/lib/facturasRegistro'
+import { esPeriodoCerrado } from '@/lib/periodoLock'
 
 export async function POST(request: NextRequest) {
   const secret = process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
@@ -53,6 +54,21 @@ export async function POST(request: NextRequest) {
 
   const { anio, trimestre, mes } = periodoFromDate(fecha)
   const destino = carpetaDestino(categoria, matricula, anio, mes)
+
+  // Cierre mensual: si la fecha de la factura cae en un mes ya cerrado, no se
+  // registra. El PDF existe igual en OneDrive; el 409 avisa a n8n/el operador
+  // que ese período ya se entregó a gestoría (n8n lo loguea).
+  if (fecha && (await esPeriodoCerrado(pool, fecha).catch(() => false))) {
+    return NextResponse.json(
+      {
+        error: `el período ${anio}-${String(mes).padStart(2, '0')} está cerrado; la factura no se registró`,
+        code: 'PERIODO_CERRADO',
+        hint: 'el documento quedó archivado en OneDrive pero el período ya se entregó a gestoría; reabrí el período desde /api/admin/periodos si corresponde y reenviá',
+        periodo: { anio, trimestre, mes },
+      },
+      { status: 409 }
+    )
+  }
 
   try {
     const ins = await pool.query(

@@ -20,6 +20,9 @@ const PUBLIC_API_PREFIXES = [
   '/api/gestoria/factura',
   // Revisión del registro para entrega a gestoría (X-Admin-Secret).
   '/api/gestoria/audit',
+  // Manifiesto de entrega y libro IVA/REBU del trimestre (X-Admin-Secret).
+  '/api/gestoria/manifiesto',
+  '/api/gestoria/libro',
   // Endpoints admin de monitoreo y reparación (X-Admin-Secret).
   '/api/admin/check-costobeneficio',
   '/api/admin/check-facturas',
@@ -28,6 +31,8 @@ const PUBLIC_API_PREFIXES = [
   '/api/admin/anomalias-costos',
   // Reconciliación pre-cierre de trimestre y reintento de outbox (X-Admin-Secret).
   '/api/admin/pre-cierre',
+  // Cierre mensual: listar/cerrar/reabrir períodos contables (X-Admin-Secret).
+  '/api/admin/periodos',
   '/api/admin/webhook-outbox/retry',
   // Cron de Vercel (self-auth por CRON_SECRET / X-Admin-Secret).
   '/api/cron/costobeneficio',

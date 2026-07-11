@@ -43,6 +43,8 @@ function setupQueries({ dupRow }: { dupRow?: typeof DUP_ROW } = {}) {
   mockQuery.mockReset()
   mockResync.mockClear()
   mockQuery.mockImplementation(async (sql: string) => {
+    // periodoLock: sin tabla periodos_contables → todo abierto
+    if (sql.includes('to_regclass')) return { rows: [{ t: null }] }
     if (sql.includes('FROM "Vehiculo"')) return { rows: [{ id: 392, matricula: '6935KYC' }] }
     if (sql.includes('numero_canonico = $2')) return { rows: dupRow ? [dupRow] : [] }
     if (sql.includes('INSERT INTO gasto_facturas')) return { rows: [] }
