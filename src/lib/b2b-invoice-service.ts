@@ -20,6 +20,10 @@ import { InvoiceServiceError } from '@/lib/invoiceService'
 import { getVentaB2BById } from '@/lib/b2b-database'
 import type { Pool, PoolClient } from 'pg'
 import { lockAndFindActiveVehicleInvoice } from '@/lib/invoiceVehicleGuard'
+import {
+  persistIssuedInvoiceAndEnqueue,
+  processGestoriaOutbox,
+} from '@/lib/gestoriaOutbox'
 
 export interface IssueB2BOptions {
   ventaB2BId: number
@@ -266,15 +270,20 @@ export async function issueInvoiceForB2B(
       allowOverwrite: true,
     })
 
-    const updated = await pool.query<Invoice>(
-      `UPDATE invoices
-          SET pdf_url = $1, pdf_storage_key = $2,
-              pdf_generated_at = NOW(), status = 'ISSUED', updated_at = NOW()
-        WHERE id = $3
-        RETURNING *`,
-      [blob.url, blob.pathname, inserted.id]
+    const issued = await persistIssuedInvoiceAndEnqueue(
+      inserted.id,
+      blob.url,
+      blob.pathname
     )
-    return { invoice: updated.rows[0], alreadyExisted: false }
+    try {
+      await processGestoriaOutbox({ eventId: issued.outboxId, limit: 1 })
+    } catch (outboxError) {
+      console.error(
+        `[issueInvoiceForB2B] primer intento de gestoría falló para ${issued.invoice.full_invoice_number}:`,
+        (outboxError as Error)?.message ?? outboxError
+      )
+    }
+    return { invoice: issued.invoice, alreadyExisted: false }
   } catch (pdfErr) {
     console.error('[issueInvoiceForB2B] PDF/Blob failed:', pdfErr)
     await pool.query(

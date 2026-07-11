@@ -28,6 +28,7 @@ const PUBLIC_API_PREFIXES = [
   '/api/admin/anomalias-costos',
   // Cron de Vercel (self-auth por CRON_SECRET / X-Admin-Secret).
   '/api/cron/costobeneficio',
+  '/api/cron/gestoria-outbox',
 ]
 
 export async function middleware(request: NextRequest) {

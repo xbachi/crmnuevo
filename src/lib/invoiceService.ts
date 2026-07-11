@@ -21,8 +21,11 @@ import { put } from '@vercel/blob'
 import { pool } from '@/lib/direct-database'
 import { generarFactura } from '@/lib/contractGenerator'
 import { pickInvoiceNumber } from '@/lib/invoiceNumbering'
-import { notifyGestoriaInvoice } from '@/lib/gestoriaWebhook'
 import { notifyCostoBeneficio } from '@/lib/costoBeneficio'
+import {
+  persistIssuedInvoiceAndEnqueue,
+  processGestoriaOutbox,
+} from '@/lib/gestoriaOutbox'
 import {
   INVOICE_CONFIG,
   buildFullInvoiceNumber,
@@ -194,29 +197,22 @@ export async function issueInvoice(opts: IssueOptions): Promise<IssueResult> {
       pdf
     )
 
-    const updated = await pool.query<Invoice>(
-      `UPDATE invoices
-       SET pdf_url = $1,
-           pdf_storage_key = $2,
-           pdf_generated_at = NOW(),
-           status = 'ISSUED',
-           updated_at = NOW()
-       WHERE id = $3
-       RETURNING *`,
-      [upload.url, upload.pathname, reserved.invoice.id]
+    const issued = await persistIssuedInvoiceAndEnqueue(
+      reserved.invoice.id,
+      upload.url,
+      upload.pathname
     )
 
-    // Best-effort: file the PDF into OneDrive/GESTORIA via n8n. Never blocks or
-    // breaks issuance (no-op unless configured; notify swallows all errors).
-    await notifyGestoriaInvoice({
-      numeroFactura: reserved.invoice.full_invoice_number,
-      fechaISO: invoiceDate,
-      matricula: vehicle.plate,
-      marca: vehicle.make,
-      modelo: vehicle.model,
-      tipo: opts.invoiceType,
-      pdfBase64: Buffer.from(pdf).toString('base64'),
-    })
+    // Primer intento inmediato. Si falla, el evento vuelve a PENDING y el cron
+    // lo reintenta sin perder la factura ni depender de esta petición.
+    try {
+      await processGestoriaOutbox({ eventId: issued.outboxId, limit: 1 })
+    } catch (outboxError) {
+      console.error(
+        `[invoiceService] no se pudo ejecutar el primer intento de gestoría para ${issued.invoice.full_invoice_number}:`,
+        (outboxError as Error)?.message ?? outboxError
+      )
+    }
 
     // Best-effort: bloque coste/beneficio en Google Sheets. Igual que el
     // webhook de gestoría: nunca lanza ni bloquea la emisión.
@@ -228,7 +224,7 @@ export async function issueInvoice(opts: IssueOptions): Promise<IssueResult> {
       salePrice: amounts.total_amount,
     })
 
-    return { invoice: updated.rows[0], alreadyExisted: false }
+    return { invoice: issued.invoice, alreadyExisted: false }
   } catch (pdfError) {
     console.error(
       `[invoiceService] PDF generation/upload failed for invoice ${reserved.invoice.full_invoice_number}:`,
@@ -292,17 +288,21 @@ export async function regeneratePdf(
   )
   const upload = await uploadPdfToBlob(invoice.full_invoice_number, pdf)
 
-  const updated = await pool.query<Invoice>(
-    `UPDATE invoices
-     SET pdf_url = $1,
-         pdf_storage_key = $2,
-         pdf_regenerated_at = NOW(),
-         status = CASE WHEN status IN ('PDF_PENDING', 'ERROR') THEN 'ISSUED' ELSE status END,
-         updated_at = NOW()
-     WHERE id = $3
-     RETURNING *`,
-    [upload.url, upload.pathname, invoice.id]
+  const issued = await persistIssuedInvoiceAndEnqueue(
+    invoice.id,
+    upload.url,
+    upload.pathname,
+    true
   )
+
+  try {
+    await processGestoriaOutbox({ eventId: issued.outboxId, limit: 1 })
+  } catch (outboxError) {
+    console.error(
+      `[regeneratePdf] primer intento de gestoría falló para ${invoice.full_invoice_number}:`,
+      (outboxError as Error)?.message ?? outboxError
+    )
+  }
 
   await pool.query(
     `INSERT INTO invoice_audit_logs
@@ -317,7 +317,7 @@ export async function regeneratePdf(
     ]
   )
 
-  return updated.rows[0]
+  return issued.invoice
 }
 
 // ---------------------------------------------------------------------------
