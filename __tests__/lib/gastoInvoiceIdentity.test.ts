@@ -11,8 +11,8 @@ describe('identidad de facturas de gasto', () => {
     )
   })
 
-  it('normaliza el número sin depender de mayúsculas ni espacios', () => {
-    expect(normalizeNumeroFacturaKey(' ab  123 ')).toBe('AB123')
+  it('normaliza el número sin depender de mayúsculas ni separadores', () => {
+    expect(normalizeNumeroFacturaKey(' ab / 12-3. ')).toBe('AB123')
   })
 
   it('compara importes con precisión de céntimos', () => {

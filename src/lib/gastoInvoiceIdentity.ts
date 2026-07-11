@@ -3,7 +3,7 @@ export function normalizeProveedorKey(proveedor: string): string {
 }
 
 export function normalizeNumeroFacturaKey(numeroFactura: string): string {
-  return numeroFactura.trim().replace(/\s+/g, '').toUpperCase()
+  return numeroFactura.replace(/[^A-Za-z0-9]+/g, '').toUpperCase()
 }
 
 export function sameMoneyAmount(left: number, right: number): boolean {

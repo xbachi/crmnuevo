@@ -107,9 +107,16 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     )
   }
-  const proveedor = b.proveedor ? String(b.proveedor).trim() : tipoRaw
+  const proveedorInput = b.proveedor ? String(b.proveedor).trim() : ''
+  const proveedor = proveedorInput || tipoRaw
   const proveedorKey = normalizeProveedorKey(proveedor)
   const numeroFacturaKey = normalizeNumeroFacturaKey(numeroFactura)
+  if (!numeroFacturaKey) {
+    return NextResponse.json(
+      { error: 'numeroFactura no contiene letras ni números' },
+      { status: 400 }
+    )
+  }
   const client = await pool.connect()
   let vehiculo: { id: number; matricula: string }
   let total: number
@@ -164,8 +171,8 @@ export async function POST(request: NextRequest) {
       const existingRes = await client.query(
         `SELECT id, vehiculo_id, matricula, tipo, importe, proveedor, numero_factura
            FROM gasto_facturas
-          WHERE LOWER(BTRIM(COALESCE(NULLIF(proveedor, ''), tipo))) = $1
-            AND UPPER(REGEXP_REPLACE(BTRIM(numero_factura), '\\s+', '', 'g')) = $2
+          WHERE LOWER(REGEXP_REPLACE(BTRIM(COALESCE(NULLIF(proveedor, ''), tipo)), '\\s+', ' ', 'g')) = $1
+            AND UPPER(REGEXP_REPLACE(BTRIM(numero_factura), '[^A-Za-z0-9]+', '', 'g')) = $2
           LIMIT 1`,
         [proveedorKey, numeroFacturaKey]
       )
