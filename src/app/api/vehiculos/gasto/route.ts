@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
   try {
     const { resyncVehiculoRowToCB } = await import('@/lib/costoBeneficio')
     const r = await Promise.race([
-      resyncVehiculoRowToCB(vehiculo.id, 'CB 2026'),
+      resyncVehiculoRowToCB(vehiculo.id, 'CB 2026', 'auto-expense'),
       new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000)),
     ])
     cbResync = r ? `${r.action}: ${r.detail}` : 'timeout'

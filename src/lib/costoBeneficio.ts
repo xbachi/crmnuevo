@@ -105,7 +105,7 @@ export function buildCarRow(v: VehicleCostData, opts: CostoBeneficioOptions, r: 
     toEsDate(opts.invoiceDate), MES_FORMULA(r), v.referencia ?? b, [v.marca, v.modelo].filter(Boolean).join(' ') || b,
     v.matricula ?? b, regimen, compra ?? b, b, CN_INFORME,
     v.gastosMecanica ?? b, v.gastosPintura ?? b, v.gastosLimpieza ?? b, v.gastosOtros ?? b,
-    COSTE_FORMULA(r), opts.salePrice, IVA_FORMULA(r), MARGEN_FORMULA(r), PCT_FORMULA(r), b,
+    COSTE_FORMULA(r), opts.salePrice, IVA_FORMULA(r), MARGEN_FORMULA(r), PCT_FORMULA(r), opts.numeroFactura,
   ]
 }
 
@@ -114,7 +114,20 @@ async function openTab(sheetName?: string): Promise<Ctx | { error: string }> {
   const auth = await getGoogleSheetsAuth()
   const api = google.sheets({ version: 'v4', auth })
   const spreadsheetId = process.env.COSTOBENEFICIO_SPREADSHEET_ID || COSTOBENEFICIO_SPREADSHEET_ID_DEFAULT
-  const wanted = sheetName || process.env.COSTOBENEFICIO_SHEET_NAME || COSTOBENEFICIO_SHEET_NAME_DEFAULT
+  const envName = (process.env.COSTOBENEFICIO_SHEET_NAME ?? '').trim()
+  let wanted: string
+  if (sheetName) {
+    wanted = sheetName
+  } else if (envName) {
+    // env seteado (no vacío): se respeta, pero si difiere de la pestaña canónica
+    // avisamos (en prod estuvo mal seteado a "2026" apuntando a otra hoja).
+    wanted = envName
+    if (envName !== COSTOBENEFICIO_SHEET_NAME_DEFAULT) {
+      log(`aviso: COSTOBENEFICIO_SHEET_NAME="${envName}" difiere de la pestaña canónica "${COSTOBENEFICIO_SHEET_NAME_DEFAULT}"`)
+    }
+  } else {
+    wanted = COSTOBENEFICIO_SHEET_NAME_DEFAULT
+  }
   const meta = await api.spreadsheets.get({ spreadsheetId, fields: 'sheets(properties(sheetId,title))' })
   const tab = (meta.data.sheets ?? []).find((s) => s.properties?.title === wanted)
   if (!tab?.properties?.title || tab.properties.sheetId == null) {
@@ -151,11 +164,10 @@ export async function syncCostoBeneficio(opts: CostoBeneficioOptions): Promise<C
     if ('error' in ctx) { log(ctx.error); return { ok: false, action: 'error', detail: ctx.error, warnings } }
     const { api, spreadsheetId, sheetId, sheetTitle, rows } = ctx
 
-    // dedup (col C ref / col E matrícula) en toda la hoja
-    const dup = findDuplicate(rows, v.matricula, v.referencia)
+    // dedup por Nº DE FACTURA (col S) en toda la hoja
+    const dup = findDuplicate(rows, opts.numeroFactura)
     if (dup) {
-      const col = dup.kind === 'plate' ? 'matrícula E' : 'referencia C'
-      return { ok: true, action: 'duplicate', detail: `ya existe (${col}${dup.row})`, warnings }
+      return { ok: true, action: 'duplicate', detail: `ya existe factura ${opts.numeroFactura} (S${dup.row})`, warnings }
     }
 
     // ubicar banda del mes y fila destino (1-based)
@@ -257,7 +269,7 @@ export async function notifyCostoBeneficio(opts: CostoBeneficioOptions): Promise
  * tardío llegue solo a la hoja, sin esperar una emisión. No-op si el coche aún
  * no tiene fila en CB (todavía no se emitió su factura de venta).
  */
-export async function resyncVehiculoRowToCB(vehiculoId: number, sheetName?: string): Promise<CostoBeneficioResult> {
+export async function resyncVehiculoRowToCB(vehiculoId: number, sheetName?: string, source: string = 'auto-expense'): Promise<CostoBeneficioResult> {
   const warnings: string[] = []
   try {
     if (process.env.COSTOBENEFICIO_DISABLED === '1') return { ok: true, action: 'skipped', detail: 'COSTOBENEFICIO_DISABLED=1', warnings }
@@ -294,6 +306,20 @@ export async function resyncVehiculoRowToCB(vehiculoId: number, sheetName?: stri
 
     const updates = reconcileCostCells(rows[rowNum - 1] as string[], costs, 'overwrite')
     if (updates.length === 0) return { ok: true, action: 'skipped', detail: 'CB ya coincide', warnings }
+
+    // Audit best-effort de cada celda (previo→nuevo). Nunca bloquea el resync.
+    for (const u of updates) {
+      try {
+        await pool.query(
+          `INSERT INTO costobeneficio_logs
+             (source, vehiculo_id, cell_ref, previous_value, new_value, dry_run, action, success, detail)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+          [source, vehiculoId, `${u.col}${rowNum}`, u.prev, String(u.value), false, 'overwrite-cell', true, 'resync-gasto']
+        )
+      } catch (logErr) {
+        console.error('[costoBeneficio] failed to log resync cell:', (logErr as Error)?.message ?? logErr)
+      }
+    }
 
     const data = updates.map((u) => ({ range: `${sheetTitle}!${u.col}${rowNum}`, values: [[u.value]] }))
     await api.spreadsheets.values.batchUpdate({ spreadsheetId, requestBody: { valueInputOption: 'USER_ENTERED', data } })

@@ -37,6 +37,8 @@ export function toEsDate(iso: string): string {
 
 export const normPlate = (s: string) => s.replace(/[\s.\-]/g, '').toUpperCase()
 export const normRef = (s: string) => s.replace(/[#\s.\-]/g, '').toUpperCase()
+// Nº de factura: sólo saca espacios (conserva '/' y guiones, que son parte del número).
+export const normInvoice = (s: string) => s.replace(/\s/g, '').toUpperCase()
 
 /** Índice de mes 0..11 a partir de un ISO YYYY-MM-DD, o -1 si es inválido. */
 export function monthIndexFromIso(iso: string): number {
@@ -72,6 +74,7 @@ export interface CbCosts {
 export interface CbCellUpdate {
   col: string
   value: number | '' // '' = limpiar la celda
+  prev: string // contenido crudo previo de la celda (para audit log previo→nuevo)
 }
 
 /** Parsea una celda con formato es_ES ("11.435", "90,75") a número, o null. */
@@ -114,12 +117,12 @@ export function reconcileCostCells(
   for (const t of targets) {
     if (t.val == null || t.val === 0) continue
     if (mode === 'fill') {
-      if (raw(t.idx) === '') updates.push({ col: t.col, value: t.val })
+      if (raw(t.idx) === '') updates.push({ col: t.col, value: t.val, prev: String(row[t.idx] ?? '') })
     } else if (!near(parseEsCell(row[t.idx]), t.val)) {
-      updates.push({ col: t.col, value: t.val })
+      updates.push({ col: t.col, value: t.val, prev: String(row[t.idx] ?? '') })
     }
   }
-  if (mode === 'overwrite' && raw(7) !== '') updates.push({ col: 'H', value: '' })
+  if (mode === 'overwrite' && raw(7) !== '') updates.push({ col: 'H', value: '', prev: String(row[7] ?? '') })
   return updates
 }
 
@@ -129,27 +132,26 @@ export const isSubtotal = (row: string[] | undefined) =>
   !!row && /^TOTAL\b/i.test(String(row?.[3] ?? '').trim())
 
 export interface Duplicate {
-  kind: 'plate' | 'ref'
+  kind: 'invoice'
   row: number // 1-based
 }
 
 /**
- * Busca un duplicado en la hoja. Recorre fila por fila; en cada una prueba
- * primero matrícula (col E, idx 4) y luego referencia (col C, idx 2, ignorando
- * filas de subtotal). Devuelve el primer match o null.
+ * Busca un duplicado por NÚMERO DE FACTURA (col S, idx 18) en toda la hoja.
+ * Dedup autoritativo: dos facturas del mismo coche (misma matrícula) NO son
+ * duplicados entre sí; el mismo nº de factura repetido SÍ lo es. Ignora filas
+ * de banda de mes y de subtotal. Devuelve el primer match o null.
  */
 export function findDuplicate(
   rows: string[][],
-  plate: string | null,
-  ref: string | null
+  invoiceNumber: string | null
 ): Duplicate | null {
-  const p = plate ? normPlate(plate) : null
-  const r = ref ? normRef(ref) : null
+  const inv = invoiceNumber ? normInvoice(invoiceNumber) : null
+  if (!inv) return null
   for (let i = 0; i < rows.length; i++) {
-    const e = String(rows[i]?.[4] ?? '').trim()
-    const c = String(rows[i]?.[2] ?? '').trim()
-    if (p && e && normPlate(e) === p) return { kind: 'plate', row: i + 1 }
-    if (r && c && normRef(c) === r && !isSubtotal(rows[i])) return { kind: 'ref', row: i + 1 }
+    if (isBand(rows[i]) || isSubtotal(rows[i])) continue
+    const s = String(rows[i]?.[18] ?? '').trim()
+    if (s && normInvoice(s) === inv) return { kind: 'invoice', row: i + 1 }
   }
   return null
 }

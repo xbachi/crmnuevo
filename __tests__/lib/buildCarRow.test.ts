@@ -58,6 +58,10 @@ describe('buildCarRow — columnas de costo de CB (C1 + C2)', () => {
     expect(row[13]).toBe('=SUM(G17:M17)')
   })
 
+  it('S (idx 18) = Nº de factura (dedup por factura en CB)', () => {
+    expect(row[18]).toBe('F-1')
+  })
+
   it('M queda en blanco si no hay gastosOtros', () => {
     const row2 = buildCarRow({ ...V, gastosOtros: null } as never, OPTS as never, 5, 'rebu', 11435)
     expect(row2[12]).toBe('')
