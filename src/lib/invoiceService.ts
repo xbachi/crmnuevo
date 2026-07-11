@@ -37,6 +37,7 @@ import {
   type InvoiceType,
 } from '@/lib/invoiceRepository'
 import { computeAmounts, type Amounts } from '@/lib/invoiceAmounts'
+import { lockAndFindActiveVehicleInvoice } from '@/lib/invoiceVehicleGuard'
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -467,6 +468,30 @@ async function reserveAndInsert(args: {
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
+
+    if (args.sale.vehiculo.id == null) {
+      throw new InvoiceServiceError(
+        'SALE_VEHICLE_NOT_FOUND',
+        'La venta no tiene un vehículo válido asociado.'
+      )
+    }
+    const vehicleInvoice = await lockAndFindActiveVehicleInvoice(
+      client,
+      args.sale.vehiculo.id
+    )
+    if (vehicleInvoice) {
+      if (
+        vehicleInvoice.deal_id === args.sale.id &&
+        vehicleInvoice.invoice_type === args.invoiceType
+      ) {
+        await client.query('ROLLBACK')
+        return { invoice: vehicleInvoice, alreadyExisted: true }
+      }
+      throw new InvoiceServiceError(
+        'VEHICLE_ALREADY_INVOICED',
+        `El vehículo ya tiene la factura activa ${vehicleInvoice.full_invoice_number}. Revisá la venta antes de emitir otra.`
+      )
+    }
 
     // Lock the sequence row for this type
     const seqRes = await client.query(

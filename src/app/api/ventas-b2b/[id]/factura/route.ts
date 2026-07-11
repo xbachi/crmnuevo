@@ -52,7 +52,9 @@ export async function POST(
       const status =
         err.code === 'SALE_NOT_FOUND'
           ? 404
-          : err.code === 'NO_SEQUENCE'
+          : err.code === 'NO_SEQUENCE' ||
+              err.code === 'SALE_VEHICLE_NOT_FOUND' ||
+              err.code === 'VEHICLE_ALREADY_INVOICED'
             ? 409
             : 400
       return NextResponse.json(

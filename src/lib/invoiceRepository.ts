@@ -25,6 +25,7 @@ export type InvoiceStatus =
 export interface Invoice {
   id: number
   deal_id: number | null
+  b2b_venta_id: number | null
   vehiculo_id: number | null
 
   invoice_type: InvoiceType

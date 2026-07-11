@@ -19,6 +19,7 @@ import type { Invoice, InvoiceType } from '@/lib/invoiceRepository'
 import { InvoiceServiceError } from '@/lib/invoiceService'
 import { getVentaB2BById } from '@/lib/b2b-database'
 import type { Pool, PoolClient } from 'pg'
+import { lockAndFindActiveVehicleInvoice } from '@/lib/invoiceVehicleGuard'
 
 export interface IssueB2BOptions {
   ventaB2BId: number
@@ -82,6 +83,30 @@ export async function issueInvoiceForB2B(
   let inserted: Invoice
   try {
     await client.query('BEGIN')
+
+    if (venta.vehiculo_id == null) {
+      throw new InvoiceServiceError(
+        'SALE_VEHICLE_NOT_FOUND',
+        'La venta B2B no tiene un vehículo del CRM asociado.'
+      )
+    }
+    const vehicleInvoice = await lockAndFindActiveVehicleInvoice(
+      client,
+      Number(venta.vehiculo_id)
+    )
+    if (vehicleInvoice) {
+      if (
+        vehicleInvoice.b2b_venta_id === venta.id &&
+        vehicleInvoice.invoice_type === opts.invoiceType
+      ) {
+        await client.query('ROLLBACK')
+        return { invoice: vehicleInvoice, alreadyExisted: true }
+      }
+      throw new InvoiceServiceError(
+        'VEHICLE_ALREADY_INVOICED',
+        `El vehículo ya tiene la factura activa ${vehicleInvoice.full_invoice_number}. Revisá la venta antes de emitir otra.`
+      )
+    }
 
     // 3) Reservar número de la secuencia (mismo patrón que retail)
     const seqRes = await client.query(
