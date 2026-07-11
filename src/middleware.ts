@@ -26,6 +26,9 @@ const PUBLIC_API_PREFIXES = [
   '/api/admin/repair-costobeneficio',
   '/api/admin/resync-costobeneficio',
   '/api/admin/anomalias-costos',
+  // Reconciliación pre-cierre de trimestre y reintento de outbox (X-Admin-Secret).
+  '/api/admin/pre-cierre',
+  '/api/admin/webhook-outbox/retry',
   // Cron de Vercel (self-auth por CRON_SECRET / X-Admin-Secret).
   '/api/cron/costobeneficio',
 ]
