@@ -44,20 +44,21 @@ interface Costs {
   gastosOtros: number | null
 }
 
-/** Costos actuales del CRM por deal_id. */
-async function loadCostsByDeal(dealIds: number[]): Promise<Map<number, Costs>> {
+/** Costos actuales del CRM por vehiculo_id. */
+async function loadCostsByVehicle(
+  vehicleIds: number[]
+): Promise<Map<number, Costs>> {
   const map = new Map<number, Costs>()
-  if (dealIds.length === 0) return map
+  if (vehicleIds.length === 0) return map
   const res = await pool.query(
-    `SELECT d.id AS deal_id, v."precioCompra", v."gastosTransporte",
+    `SELECT v.id AS vehiculo_id, v."precioCompra", v."gastosTransporte",
             v."gastosMecanica", v."gastosPintura", v."gastosLimpieza", v."gastosOtros"
-       FROM "Deal" d JOIN "Vehiculo" v ON v.id = d."vehiculoId"
-      WHERE d.id = ANY($1)`,
-    [dealIds]
+       FROM "Vehiculo" v WHERE v.id = ANY($1)`,
+    [vehicleIds]
   )
   const num = (x: unknown) => (x != null ? Number(x) : null)
   for (const r of res.rows) {
-    map.set(r.deal_id, {
+    map.set(r.vehiculo_id, {
       precioCompra: num(r.precioCompra),
       gastosTransporte: num(r.gastosTransporte),
       gastosMecanica: num(r.gastosMecanica),
@@ -215,15 +216,16 @@ export async function POST(request: NextRequest) {
     }
 
     const invoices = await getEmittedInvoices(year)
-    const costs = await loadCostsByDeal([
-      ...new Set(invoices.map((i) => i.deal_id)),
-    ])
+    const vehicleIds = invoices
+      .map((invoice) => invoice.vehiculo_id)
+      .filter((id): id is number => id != null)
+    const costs = await loadCostsByVehicle([...new Set(vehicleIds)])
 
     const updates: sheets_v4.Schema$ValueRange[] = []
     const filled: string[] = []
     const plannedRanges = new Set<string>()
     for (const inv of invoices) {
-      const c = costs.get(inv.deal_id)
+      const c = inv.vehiculo_id == null ? undefined : costs.get(inv.vehiculo_id)
       if (!c) continue
       const rowNum =
         (inv.matricula && plateRow.get(normPlate(inv.matricula))) ||

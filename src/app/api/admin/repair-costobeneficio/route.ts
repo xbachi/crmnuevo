@@ -20,7 +20,9 @@ import { getGoogleSheetsAuth } from '@/lib/googleSheets'
 import { isInSheet } from '@/lib/facturasMonitor'
 import { getEmittedInvoices, type EmittedInvoice } from '@/lib/facturasQuery'
 
-const SHEET_ID = process.env.COSTOBENEFICIO_SPREADSHEET_ID || '1o0GRJKvzjiDl7dQSdRzxy6jWIT1Ll7fAIKx4yGjYhwM'
+const SHEET_ID =
+  process.env.COSTOBENEFICIO_SPREADSHEET_ID ||
+  '1o0GRJKvzjiDl7dQSdRzxy6jWIT1Ll7fAIKx4yGjYhwM'
 // Pestaña canónica de costo/beneficio. NO leemos COSTOBENEFICIO_SHEET_NAME acá:
 // en prod está mal seteado a "2026" (otra hoja). Overridable por ?tab=.
 const DEFAULT_TAB = 'CB 2026'
@@ -35,13 +37,21 @@ async function getSheetRows(tab: string): Promise<string[][]> {
   return res.data.values || []
 }
 
-async function syncInvoiceToSheet(inv: EmittedInvoice, tab: string, dryRun: boolean): Promise<{ ok: boolean; detail: string }> {
+async function syncInvoiceToSheet(
+  inv: EmittedInvoice,
+  tab: string,
+  dryRun: boolean
+): Promise<{ ok: boolean; detail: string }> {
   if (dryRun) {
-    return { ok: true, detail: `[DRY-RUN] insertaría ${inv.full_invoice_number}` }
+    return {
+      ok: true,
+      detail: `[DRY-RUN] insertaría ${inv.full_invoice_number}`,
+    }
   }
   const { syncCostoBeneficio } = await import('@/lib/costoBeneficio')
   const result = await syncCostoBeneficio({
     dealId: inv.deal_id,
+    vehiculoId: inv.vehiculo_id,
     numeroFactura: inv.full_invoice_number,
     invoiceType: inv.invoice_type,
     invoiceDate: inv.invoice_date,
@@ -53,21 +63,27 @@ async function syncInvoiceToSheet(inv: EmittedInvoice, tab: string, dryRun: bool
 }
 
 export async function POST(request: NextRequest) {
-  const secret = process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
+  const secret =
+    process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
   const got = request.headers.get('x-admin-secret') ?? ''
   if (!secret || got !== secret) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
   const { searchParams } = new URL(request.url)
-  const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()), 10)
+  const year = parseInt(
+    searchParams.get('year') || String(new Date().getFullYear()),
+    10
+  )
   const monthRaw = searchParams.get('month')
   const month = monthRaw ? parseInt(monthRaw, 10) : undefined
   const tab = searchParams.get('tab') || DEFAULT_TAB
   const dryRun = searchParams.get('dryRun') === 'true'
 
   const details: string[] = []
-  details.push(`Año: ${year}${month ? ` · Mes: ${month}` : ''}${dryRun ? ' (DRY-RUN)' : ''}`)
+  details.push(
+    `Año: ${year}${month ? ` · Mes: ${month}` : ''}${dryRun ? ' (DRY-RUN)' : ''}`
+  )
   details.push(`Hoja: ${tab}`)
 
   try {
@@ -100,7 +116,9 @@ export async function POST(request: NextRequest) {
       for (const m of Object.keys(byMonth).sort()) {
         details.push(`        ${m}: ${byMonth[m].length} facturas`)
         byMonth[m].forEach((inv) => {
-          details.push(`          - ${inv.invoice_date} ${inv.full_invoice_number} ${inv.referencia || inv.matricula}`)
+          details.push(
+            `          - ${inv.invoice_date} ${inv.full_invoice_number} ${inv.referencia || inv.matricula}`
+          )
         })
       }
     }
@@ -155,6 +173,9 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     const msg = (err as Error).message
     details.push(`\n❌ Error fatal: ${msg}`)
-    return NextResponse.json({ ok: false, error: msg, details: details.join('\n') }, { status: 500 })
+    return NextResponse.json(
+      { ok: false, error: msg, details: details.join('\n') },
+      { status: 500 }
+    )
   }
 }
