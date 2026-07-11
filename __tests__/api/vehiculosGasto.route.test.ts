@@ -94,7 +94,7 @@ describe('POST /api/vehiculos/gasto — dedup por numero_canonico', () => {
     const inserts = insertCalls()
     expect(inserts).toHaveLength(1)
     expect(inserts[0][1][4]).toBe('FC26-179')
-    expect(mockResync).toHaveBeenCalledWith(392, 'CB 2026')
+    expect(mockResync).toHaveBeenCalledWith(392, 'CB 2026', 'auto-expense')
   })
 
   it('filename sin nº extraíble (canónico null) → no chequea duplicado e inserta con null', async () => {
