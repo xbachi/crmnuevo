@@ -39,6 +39,7 @@ import {
 } from '@/lib/invoiceRepository'
 import { computeAmounts, type Amounts } from '@/lib/invoiceAmounts'
 import { appendRegistro } from '@/lib/facturacionRegistro'
+import { assertPeriodoAbierto, PeriodoCerradoError } from '@/lib/periodoLock'
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -168,6 +169,21 @@ export async function issueInvoice(opts: IssueOptions): Promise<IssueResult> {
   const vehicle = buildVehicleSnapshot(sale)
   const amounts = computeAmounts(sale.importeTotal ?? 0, opts.invoiceType)
   const invoiceDate = (opts.invoiceDate ?? new Date()).toISOString().slice(0, 10)
+
+  // 3a. Cierre mensual: una factura no puede caer en un mes ya entregado a la
+  // gestoría (auditoría 2T: ventas de abril contadas en marzo). La lib devuelve
+  // "abierto" si la tabla periodos_contables aún no existe.
+  try {
+    await assertPeriodoAbierto(pool, invoiceDate, 'No se puede emitir la factura')
+  } catch (err) {
+    if (err instanceof PeriodoCerradoError) {
+      throw new InvoiceServiceError('PERIODO_CERRADO', err.message, {
+        anio: err.anio,
+        mes: err.mes,
+      })
+    }
+    throw err
+  }
 
   // 3b. Anti-duplicate-vehicle guard: the same car must not get two active
   // sale invoices from two different deals/ventas (root cause of the

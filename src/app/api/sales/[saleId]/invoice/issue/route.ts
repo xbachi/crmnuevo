@@ -75,7 +75,7 @@ export async function POST(
       const status =
         err.code === 'SALE_NOT_FOUND'
           ? 404
-          : err.code === 'NO_SEQUENCE'
+          : err.code === 'NO_SEQUENCE' || err.code === 'PERIODO_CERRADO'
             ? 409
             : 400
       return NextResponse.json(

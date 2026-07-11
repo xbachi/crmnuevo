@@ -4,6 +4,7 @@ import { parseImporte } from '@/lib/gastoImporte'
 import { TIPO_A_CAMPO, normPlate, campoParaTipo, tiposCanonicos } from '@/lib/gastoMapping'
 import { validarImporte } from '@/lib/gastoRangos'
 import { extraerNumeroCanonico } from '@/lib/facturaNumero'
+import { esPeriodoCerrado } from '@/lib/periodoLock'
 
 /**
  * POST /api/vehiculos/gasto
@@ -77,6 +78,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'matricula o referencia requerida' }, { status: 400 })
   }
   const proveedor = b.proveedor ? String(b.proveedor).trim() : tipoRaw
+
+  // Cierre mensual: los gastos se cargan en tiempo real, así que se valida la
+  // fecha ACTUAL — si el mes corriente figura cerrado, algo raro pasa (reloj,
+  // cierre por error) y no hay que tocar números ya entregados a gestoría.
+  const hoy = new Date().toISOString().slice(0, 10)
+  if (await esPeriodoCerrado(pool, hoy).catch(() => false)) {
+    return NextResponse.json(
+      {
+        error: `el período ${hoy.slice(0, 7)} (mes actual) está cerrado; gasto no cargado`,
+        code: 'PERIODO_CERRADO',
+        hint: 'reabrí el período desde /api/admin/periodos si corresponde y reenviá',
+      },
+      { status: 409 }
+    )
+  }
 
   // 1) resolver vehículo
   const vres = matricula
