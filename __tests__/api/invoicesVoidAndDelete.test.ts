@@ -126,6 +126,7 @@ describe('POST /api/invoices/[id]/anular — VOID keeps the row and the number',
       number: 23,
       invoice_type: 'REBU',
       total_amount: '3373.00',
+      invoice_date: '2026-05-10',
     })
     mockedConnect.mockResolvedValue(client)
 
@@ -141,6 +142,8 @@ describe('POST /api/invoices/[id]/anular — VOID keeps the row and the number',
     const calls = client.query.mock.calls.map((c) => String(c[0]))
     expect(calls.some((sql) => sql.includes("SET status = 'VOIDED'"))).toBe(true)
     expect(calls.some((sql) => sql.includes('invoice_audit_logs'))).toBe(true)
+    // Cadena de integridad Verifactu-lite: la anulación añade su eslabón.
+    expect(calls.some((sql) => sql.includes('INSERT INTO facturacion_registros'))).toBe(true)
     expect(calls.some((sql) => sql.includes('UPDATE "Deal"'))).toBe(true)
     expect(calls.some((sql) => sql.includes('DELETE FROM invoices'))).toBe(false)
     expect(calls.some((sql) => sql.trim().startsWith('COMMIT'))).toBe(true)

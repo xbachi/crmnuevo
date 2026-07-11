@@ -26,6 +26,8 @@ const PUBLIC_API_PREFIXES = [
   '/api/admin/repair-costobeneficio',
   '/api/admin/resync-costobeneficio',
   '/api/admin/anomalias-costos',
+  // Verificación de la cadena de integridad de facturación (X-Admin-Secret).
+  '/api/admin/verifactu',
   // Reconciliación pre-cierre de trimestre y reintento de outbox (X-Admin-Secret).
   '/api/admin/pre-cierre',
   '/api/admin/webhook-outbox/retry',

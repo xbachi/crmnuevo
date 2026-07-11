@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/direct-database'
 import { readSessionFromRequest } from '@/lib/auth-server'
+import { appendRegistro } from '@/lib/facturacionRegistro'
 
 /**
  * POST /api/invoices/{id}/anular
@@ -88,6 +89,18 @@ export async function POST(
         session.role,
       ]
     )
+
+    // Cadena de integridad "Verifactu-lite" (pendiente de homologación):
+    // eslabón 'anulacion' en el mismo tx que marca VOIDED. Si falla, la
+    // anulación entera hace rollback.
+    await appendRegistro(client, {
+      tipoRegistro: 'anulacion',
+      invoiceId: inv.id,
+      numeroSerie: inv.full_invoice_number,
+      fechaExpedicion: inv.invoice_date,
+      importeTotal: inv.total_amount,
+      metadata: { origen: 'retail', reason },
+    })
 
     // Revert the linked retail Deal so it can be re-invoiced. Guard on the
     // factura field so we don't clobber a deal already re-invoiced with a

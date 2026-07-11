@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/direct-database'
 import { requireAdminSession } from '@/lib/apiAuth'
+import { appendRegistro } from '@/lib/facturacionRegistro'
 
 /**
  * POST /api/ventas-b2b/{id}/factura/anular
@@ -37,8 +38,10 @@ export async function POST(
         id: number
         full_invoice_number: string
         status: string
+        invoice_date: string | Date
+        total_amount: string
       }>(
-        `SELECT id, full_invoice_number, status
+        `SELECT id, full_invoice_number, status, invoice_date, total_amount
            FROM invoices
           WHERE b2b_venta_id = $1 AND status <> 'VOIDED'
           ORDER BY id DESC
@@ -71,6 +74,18 @@ export async function POST(
           auth.session.role,
         ]
       )
+
+      // Cadena de integridad "Verifactu-lite" (pendiente de homologación):
+      // eslabón 'anulacion' en el mismo tx que marca VOIDED. Si falla, la
+      // anulación entera hace rollback.
+      await appendRegistro(client, {
+        tipoRegistro: 'anulacion',
+        invoiceId: inv.id,
+        numeroSerie: inv.full_invoice_number,
+        fechaExpedicion: inv.invoice_date,
+        importeTotal: inv.total_amount,
+        metadata: { origen: 'b2b', b2b_venta_id: ventaB2BId, reason: motivo },
+      })
 
       await client.query('COMMIT')
 

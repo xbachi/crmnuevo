@@ -38,6 +38,7 @@ import {
   type InvoiceType,
 } from '@/lib/invoiceRepository'
 import { computeAmounts, type Amounts } from '@/lib/invoiceAmounts'
+import { appendRegistro } from '@/lib/facturacionRegistro'
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -647,6 +648,23 @@ async function reserveAndInsert(args: {
         args.userRole,
       ]
     )
+
+    // Cadena de integridad "Verifactu-lite" (pendiente de homologación):
+    // eslabón 'alta' en el MISMO tx que reserva el número e inserta la
+    // factura. Si falla, la emisión entera hace rollback — una factura sin
+    // eslabón en la cadena no debe existir.
+    await appendRegistro(client, {
+      tipoRegistro: 'alta',
+      invoiceId: inserted.id,
+      numeroSerie: inserted.full_invoice_number,
+      fechaExpedicion: args.invoiceDate,
+      importeTotal: args.amounts.total_amount,
+      metadata: {
+        origen: 'retail',
+        deal_id: args.sale.id,
+        invoice_type: args.invoiceType,
+      },
+    })
 
     // Sincroniza el Deal con la factura recién emitida en el mismo tx
     // para que un fallo aquí haga rollback del INSERT + bump de secuencia.

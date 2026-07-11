@@ -18,6 +18,7 @@ import { INVOICE_CONFIG, formatNumber } from '@/config/invoiceConfig'
 import { findActiveSaleInvoiceForVehicle, type Invoice, type InvoiceType } from '@/lib/invoiceRepository'
 import { InvoiceServiceError } from '@/lib/invoiceService'
 import { getVentaB2BById } from '@/lib/b2b-database'
+import { appendRegistro } from '@/lib/facturacionRegistro'
 
 export interface IssueB2BOptions {
   ventaB2BId: number
@@ -219,6 +220,22 @@ export async function issueInvoiceForB2B(
         }),
       ]
     )
+
+    // 6b) Cadena de integridad "Verifactu-lite" (pendiente de homologación):
+    // eslabón 'alta' en el MISMO tx que reserva el número e inserta la
+    // factura. Si falla, la emisión entera hace rollback.
+    await appendRegistro(client, {
+      tipoRegistro: 'alta',
+      invoiceId: inserted.id,
+      numeroSerie: inserted.full_invoice_number,
+      fechaExpedicion: invoiceDate,
+      importeTotal: precio,
+      metadata: {
+        origen: 'b2b',
+        b2b_venta_id: venta.id,
+        invoice_type: opts.invoiceType,
+      },
+    })
 
     await client.query('COMMIT')
   } catch (err) {
