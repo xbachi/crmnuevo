@@ -3,6 +3,8 @@ import { del } from '@vercel/blob'
 import { pool } from '@/lib/direct-database'
 import { getInvoiceById, getAuditLogsForInvoice } from '@/lib/invoiceRepository'
 import { readSessionFromRequest } from '@/lib/auth-server'
+import { canHardDeleteInvoice } from '@/lib/invoiceDeletionPolicy'
+import { requireApiSession } from '@/lib/apiAuth'
 
 /**
  * GET /api/invoices/{id}
@@ -10,9 +12,12 @@ import { readSessionFromRequest } from '@/lib/auth-server'
  * Returns the invoice + its audit log entries.
  */
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = requireApiSession(request)
+  if (auth.response) return auth.response
+
   try {
     const { id: idRaw } = await params
     const id = parseInt(idRaw, 10)
@@ -21,7 +26,10 @@ export async function GET(
     }
     const invoice = await getInvoiceById(id)
     if (!invoice) {
-      return NextResponse.json({ error: 'Factura no encontrada' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'Factura no encontrada' },
+        { status: 404 }
+      )
     }
     const auditLogs = await getAuditLogsForInvoice(id)
     return NextResponse.json({ invoice, auditLogs })
@@ -37,14 +45,13 @@ export async function GET(
 /**
  * DELETE /api/invoices/{id}
  *
- * Admin-only hard delete. Frees the fiscal number so the next issuance reuses
- * it (no gaps) — for internal corrections BEFORE filing with Hacienda. It:
+ * Hard delete is disabled once a fiscal number has been reserved, regardless
+ * of status. Rows must remain as an auditable tombstone.
  *   - records a snapshot in invoice_deletion_logs (survives the row delete;
  *     invoice_audit_logs cascade away with the invoice),
  *   - reverts the linked retail Deal back to 'vendido' (clears factura /
  *     fechaFacturada) so it can be re-invoiced,
- *   - deletes the invoices row (frees the unique-per-sale / per-b2b index and
- *     opens the (series, number) slot for gap-filling reuse),
+ *   - deletes the technical row without allowing its number to be reused,
  *   - best-effort deletes the PDF from Vercel Blob.
  *
  * Body opcional: { reason?: string }.
@@ -56,7 +63,10 @@ export async function DELETE(
   const session = readSessionFromRequest(request)
   if (!session || session.role !== 'admin') {
     return NextResponse.json(
-      { error: 'Solo un administrador puede eliminar facturas.', code: 'FORBIDDEN' },
+      {
+        error: 'Solo un administrador puede eliminar facturas.',
+        code: 'FORBIDDEN',
+      },
       { status: 403 }
     )
   }
@@ -69,7 +79,9 @@ export async function DELETE(
 
   const body = await request.json().catch(() => ({}))
   const reason =
-    typeof body?.reason === 'string' && body.reason.trim() ? body.reason.trim() : null
+    typeof body?.reason === 'string' && body.reason.trim()
+      ? body.reason.trim()
+      : null
 
   const client = await pool.connect()
   let pdfStorageKey: string | null = null
@@ -83,11 +95,27 @@ export async function DELETE(
     )
     if (invRes.rows.length === 0) {
       await client.query('ROLLBACK')
-      return NextResponse.json({ error: 'Factura no encontrada' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'Factura no encontrada' },
+        { status: 404 }
+      )
     }
     const inv = invRes.rows[0]
     pdfStorageKey = inv.pdf_storage_key
     freedNumber = inv.full_invoice_number
+
+    if (!canHardDeleteInvoice(inv.status)) {
+      await client.query('ROLLBACK')
+      return NextResponse.json(
+        {
+          error:
+            'Una factura con número fiscal reservado no se puede borrar. Debe conservarse y corregirse mediante su estado o una rectificativa.',
+          code: 'INVOICE_IMMUTABLE',
+          status: inv.status,
+        },
+        { status: 409 }
+      )
+    }
 
     // Paper trail that outlives the row.
     await client.query(
@@ -118,7 +146,10 @@ export async function DELETE(
     if (inv.deal_id) {
       await client.query(
         `UPDATE "Deal"
-            SET estado = CASE WHEN estado = 'facturado' THEN 'vendido' ELSE estado END,
+            SET estado = CASE
+                  WHEN factura = $1 AND estado = 'facturado' THEN 'vendido'
+                  ELSE estado
+                END,
                 "fechaFacturada" = CASE WHEN factura = $1 THEN NULL ELSE "fechaFacturada" END,
                 factura = CASE WHEN factura = $1 THEN NULL ELSE factura END
           WHERE id = $2`,

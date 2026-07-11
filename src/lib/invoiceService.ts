@@ -99,11 +99,15 @@ export async function previewInvoice(
   const vehicle = buildVehicleSnapshot(sale)
   const amounts = computeAmounts(sale.importeTotal ?? 0, invoiceType)
 
-  // Mirror the issuance rule (gap-filling) so the preview shows the number
-  // that will actually be assigned — including a freed/deleted number that
-  // will be reused. No lock here: a concurrent issue may still take it.
+  // Mirror the monotonic issuance rule. No lock here: a concurrent issue may
+  // still take this number before the real issuance reserves it.
   const startNumber = sequence.start_number ?? sequence.next_number
-  const number = await assignNumber(pool, sequence.series, startNumber)
+  const number = await assignNumber(
+    pool,
+    sequence.series,
+    startNumber,
+    sequence.next_number
+  )
 
   return {
     invoiceType,
@@ -430,40 +434,22 @@ function buildVehicleSnapshot(sale: SaleSnapshot) {
 }
 
 /**
- * Resolve the next invoice number for a series using gap-filling. Pulls the
- * state pickInvoiceNumber needs (system max, absolute max, occupied numbers in
- * the managed range) and delegates the rule. Works with either the pool or a
- * locked client — callers that need atomicity must already hold the sequence
+ * Resolve the next invoice number without filling holes. Works with either the
+ * pool or a locked client; callers that need atomicity must hold the sequence
  * row lock.
  */
 async function assignNumber(
   db: Pool | PoolClient,
   series: string,
-  startNumber: number
+  startNumber: number,
+  nextNumber: number
 ): Promise<number> {
-  const agg = await db.query<{
-    sys_max: string | null
-    abs_max: string | null
-  }>(
-    `SELECT MAX(number) FILTER (WHERE status <> 'IMPORTED') AS sys_max,
-            MAX(number)                                     AS abs_max
-       FROM invoices WHERE series = $1`,
+  const agg = await db.query<{ abs_max: string | null }>(
+    `SELECT MAX(number) AS abs_max FROM invoices WHERE series = $1`,
     [series]
   )
-  const sysMax =
-    agg.rows[0]?.sys_max != null ? Number(agg.rows[0].sys_max) : null
   const absMax = agg.rows[0]?.abs_max != null ? Number(agg.rows[0].abs_max) : 0
-
-  let occupied: number[] = []
-  if (sysMax != null && sysMax >= startNumber) {
-    const occ = await db.query<{ number: number }>(
-      `SELECT number FROM invoices WHERE series = $1 AND number BETWEEN $2 AND $3`,
-      [series, startNumber, sysMax]
-    )
-    occupied = occ.rows.map((r) => Number(r.number))
-  }
-
-  return pickInvoiceNumber({ startNumber, sysMax, absMax, occupied })
+  return pickInvoiceNumber({ startNumber, nextNumber, absMax })
 }
 
 async function reserveAndInsert(args: {
@@ -502,15 +488,10 @@ async function reserveAndInsert(args: {
     const seqNext = seq.next_number as number
     const series = seq.series as string
 
-    // Gap-filling number assignment (while holding the sequence lock):
-    //  - Reuse the lowest free number in [start_number, system max] so an
-    //    invoice deleted by an admin gets its number re-occupied (no gaps).
-    //  - Otherwise take the next correlative, jumping over any legacy IMPORTED
-    //    row above the system max so we never hit invoices_unique_series_number.
-    // start_number is the series floor; legacy IMPORTED rows live below it and
-    // are never disturbed. See invoiceNumbering.pickInvoiceNumber.
+    // Monotonic assignment while holding the sequence lock. Deleted numbers
+    // remain consumed and legacy rows above the sequence are skipped.
     const startNumber = (seq.start_number as number | null) ?? seqNext
-    const number = await assignNumber(client, series, startNumber)
+    const number = await assignNumber(client, series, startNumber, seqNext)
     if (number !== seqNext) {
       console.warn(
         `[invoiceService] sequence ${series} (deal ${args.sale.id}): assigning ${number} (next_number was ${seqNext})`
