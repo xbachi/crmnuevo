@@ -10,8 +10,12 @@ CREATE TABLE IF NOT EXISTS gasto_facturas (
   importe        NUMERIC(12,2) NOT NULL, -- total con IVA (como figura en la planilla)
   proveedor      TEXT,
   created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE (tipo, numero_factura)
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_gasto_facturas_vehiculo ON gasto_facturas(vehiculo_id);
 CREATE INDEX IF NOT EXISTS idx_gasto_facturas_matricula ON gasto_facturas(matricula);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_gasto_facturas_proveedor_numero
+  ON gasto_facturas (
+    LOWER(BTRIM(COALESCE(NULLIF(proveedor, ''), tipo))),
+    UPPER(REGEXP_REPLACE(BTRIM(numero_factura), '\\s+', '', 'g'))
+  );
