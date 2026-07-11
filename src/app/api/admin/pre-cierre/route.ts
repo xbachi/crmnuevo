@@ -125,12 +125,57 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // 7. Expedientes del trimestre (deal jacket). La tabla puede no existir
+    //    todavía (migración create-expedientes.sql pendiente) → to_regclass,
+    //    mismo patrón que numero_canonico. A diferencia de aquél, los
+    //    expedientes incompletos SÍ son bloqueantes: un expediente incompleto
+    //    nunca se considera finalizado.
+    const expTable = await pool.query<{ reg: string | null }>(
+      `SELECT to_regclass('public.expedientes') AS reg`
+    )
+    let expedientes: Record<string, unknown>
+    let expedientesIncompletos = 0
+    if (expTable.rows[0]?.reg) {
+      const porEstadoRes = await pool.query<{ estado: string; n: number }>(
+        `SELECT estado, COUNT(*)::int AS n
+           FROM expedientes
+          WHERE invoice_date >= $1 AND invoice_date < $2
+          GROUP BY estado`,
+        [from, to]
+      )
+      const porEstado: Record<string, number> = {}
+      for (const row of porEstadoRes.rows) porEstado[row.estado] = row.n
+      const incompletos = await pool.query(
+        `SELECT id, numero_factura, matricula, tipo_operacion, invoice_date::text, checklist
+           FROM expedientes
+          WHERE estado = 'incompleto' AND invoice_date >= $1 AND invoice_date < $2
+          ORDER BY invoice_date`,
+        [from, to]
+      )
+      expedientesIncompletos = incompletos.rows.length
+      expedientes = {
+        ok: expedientesIncompletos === 0,
+        verificable: true,
+        count: expedientesIncompletos,
+        porEstado,
+        detalle: incompletos.rows,
+      }
+    } else {
+      expedientes = {
+        ok: true,
+        verificable: false,
+        count: null,
+        nota: 'tabla expedientes no existe — aplicar create-expedientes.sql',
+      }
+    }
+
     const bloqueantes: string[] = []
     if (sinLog.rows.length > 0) bloqueantes.push('facturasSinAutomationLog')
     if (sinExpediente.rows.length > 0) bloqueantes.push('facturasSinExpediente')
     if (outbox.rows.length > 0) bloqueantes.push('outboxPendientes')
     if (sinFecha.rows.length > 0) bloqueantes.push('registroSinFecha')
     if (sinImporte.rows.length > 0) bloqueantes.push('registroSinImporte')
+    if (expedientesIncompletos > 0) bloqueantes.push('expedientesIncompletos')
     // gastoSinNumeroCanonico es informativo, nunca entra en bloqueantes.
 
     return NextResponse.json({
@@ -164,6 +209,7 @@ export async function GET(request: NextRequest) {
         detalle: sinImporte.rows,
       },
       gastoSinNumeroCanonico,
+      expedientes,
     })
   } catch (err) {
     return NextResponse.json({ ok: false, error: (err as Error).message }, { status: 500 })

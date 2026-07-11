@@ -18,6 +18,7 @@ import { INVOICE_CONFIG, formatNumber } from '@/config/invoiceConfig'
 import { findActiveSaleInvoiceForVehicle, type Invoice, type InvoiceType } from '@/lib/invoiceRepository'
 import { InvoiceServiceError } from '@/lib/invoiceService'
 import { getVentaB2BById } from '@/lib/b2b-database'
+import { crearExpedienteAlEmitir } from '@/lib/expedientes'
 
 export interface IssueB2BOptions {
   ventaB2BId: number
@@ -226,6 +227,24 @@ export async function issueInvoiceForB2B(
     throw err
   } finally {
     client.release()
+  }
+
+  // 6b) Best-effort: expediente (deal jacket) de la venta, fuera del tx de
+  // numeración. Nunca rompe la emisión.
+  try {
+    await crearExpedienteAlEmitir(pool, {
+      invoiceType: opts.invoiceType,
+      b2bVentaId: venta.id,
+      vehiculoId: venta.vehiculo_id ?? null,
+      matricula: venta.vehiculo_matricula ?? null,
+      numeroFactura: inserted.full_invoice_number,
+      invoiceDate: inserted.invoice_date ?? null,
+    })
+  } catch (expedienteError) {
+    console.error(
+      `[issueInvoiceForB2B] expediente creation failed for ${inserted.full_invoice_number}:`,
+      expedienteError
+    )
   }
 
   // 7) Generar PDF + subir a Vercel Blob (fuera del tx)
