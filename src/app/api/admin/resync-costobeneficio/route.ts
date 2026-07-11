@@ -139,11 +139,13 @@ export async function POST(request: NextRequest) {
     }
 
     const invoices = await getEmittedInvoices(year)
-    const costs = await loadCostsByDeal([...new Set(invoices.map((i) => i.deal_id))])
+    const dealIds = [...new Set(invoices.map((i) => i.deal_id).filter((id): id is number => id != null))]
+    const costs = await loadCostsByDeal(dealIds)
 
     const updates: sheets_v4.Schema$ValueRange[] = []
     const filled: string[] = []
     for (const inv of invoices) {
+      if (inv.deal_id == null) continue // sin deal (B2B/huérfana): sin costos que reconciliar
       const c = costs.get(inv.deal_id)
       if (!c) continue
       const rowNum =

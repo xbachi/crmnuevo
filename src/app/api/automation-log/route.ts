@@ -38,32 +38,32 @@ export async function POST(request: NextRequest) {
     JSON.stringify(b.detalle ?? {}),
   ]
 
-  // Upsert por número de factura: re-reportar la misma factura (p. ej. tras
-  // reenviar a la gestora un mail que había fallado) ACTUALIZA la fila en vez
-  // de crear un duplicado. Conserva created_at original.
-  const numeroFactura = params[1] as string | null
-  if (numeroFactura) {
-    const upd = await pool.query(
-      `UPDATE automation_logs
-          SET tipo=$1, coche=$3, matricula=$4, invoice_type=$5,
-              venta_guardada=$6, compra_adjunta=$7, email_gestora=$8,
-              contrato_enviado=$9, ok=$10, notas=$11, detalle_json=$12
-        WHERE numero_factura=$2`,
-      params
-    )
-    if ((upd.rowCount ?? 0) > 0) {
-      return NextResponse.json({ ok: true, updated: upd.rowCount })
-    }
-  }
-
-  await pool.query(
+  // Upsert atómico por número de factura: re-reportar la misma factura (p. ej.
+  // tras reenviar a la gestora un mail que había fallado) ACTUALIZA la fila en
+  // vez de crear un duplicado. Conserva created_at original.
+  // Requiere el índice único de fix-automation-logs-unique.sql (aplicado antes
+  // de este deploy); ON CONFLICT sobre una columna sin constraint falla.
+  // xmax=0 es el truco estándar de Postgres para distinguir INSERT de UPDATE
+  // en el mismo RETURNING (evita la carrera UPDATE-then-INSERT anterior, que
+  // podía duplicar filas si dos reportes de la misma factura llegaban a la vez).
+  const upsert = await pool.query<{ inserted: boolean }>(
     `INSERT INTO automation_logs
        (tipo, numero_factura, coche, matricula, invoice_type,
         venta_guardada, compra_adjunta, email_gestora, contrato_enviado, ok, notas, detalle_json)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+     ON CONFLICT (numero_factura) DO UPDATE SET
+       tipo=EXCLUDED.tipo, coche=EXCLUDED.coche, matricula=EXCLUDED.matricula,
+       invoice_type=EXCLUDED.invoice_type, venta_guardada=EXCLUDED.venta_guardada,
+       compra_adjunta=EXCLUDED.compra_adjunta, email_gestora=EXCLUDED.email_gestora,
+       contrato_enviado=EXCLUDED.contrato_enviado, ok=EXCLUDED.ok,
+       notas=EXCLUDED.notas, detalle_json=EXCLUDED.detalle_json
+     RETURNING (xmax = 0) AS inserted`,
     params
   )
-  return NextResponse.json({ ok: true, inserted: true })
+  const wasInserted = upsert.rows[0]?.inserted ?? true
+  return NextResponse.json(
+    wasInserted ? { ok: true, inserted: true } : { ok: true, updated: 1 }
+  )
 }
 
 export async function GET(request: NextRequest) {

@@ -35,7 +35,11 @@ async function getSheetRows(tab: string): Promise<string[][]> {
   return res.data.values || []
 }
 
-async function syncInvoiceToSheet(inv: EmittedInvoice, tab: string, dryRun: boolean): Promise<{ ok: boolean; detail: string }> {
+async function syncInvoiceToSheet(
+  inv: EmittedInvoice & { deal_id: number },
+  tab: string,
+  dryRun: boolean
+): Promise<{ ok: boolean; detail: string }> {
   if (dryRun) {
     return { ok: true, detail: `[DRY-RUN] insertaría ${inv.full_invoice_number}` }
   }
@@ -111,8 +115,18 @@ export async function POST(request: NextRequest) {
     let failed = 0
     const errors: string[] = []
     for (const inv of missing) {
+      if (inv.deal_id == null) {
+        details.push(`      ⚠ ${inv.full_invoice_number}: sin deal asociado, no se puede reparar automáticamente`)
+        errors.push(`${inv.full_invoice_number}: sin deal_id`)
+        failed++
+        continue
+      }
       try {
-        const result = await syncInvoiceToSheet(inv, tab, dryRun)
+        const result = await syncInvoiceToSheet(
+          inv as EmittedInvoice & { deal_id: number },
+          tab,
+          dryRun
+        )
         if (result.ok) {
           details.push(`      ✓ ${inv.full_invoice_number}: ${result.detail}`)
           inserted++

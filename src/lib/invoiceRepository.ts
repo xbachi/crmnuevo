@@ -23,6 +23,7 @@ export interface Invoice {
   id: number
   deal_id: number | null
   vehiculo_id: number | null
+  b2b_venta_id: number | null
 
   invoice_type: InvoiceType
   series: string
@@ -230,6 +231,51 @@ export async function getDefaultActiveSequence(
     [invoiceType]
   )
   return res.rows[0] ?? null
+}
+
+export interface ActiveVehicleInvoice {
+  id: number
+  full_invoice_number: string
+  status: InvoiceStatus
+  deal_id: number | null
+  b2b_venta_id: number | null
+  /** 'retail' when linked to a Deal, 'b2b' when linked to a venta_b2b. */
+  origin: 'retail' | 'b2b'
+}
+
+/**
+ * Finds an active (ISSUED/PDF_PENDING) sale invoice for a vehicle, across
+ * BOTH retail (deal_id) and B2B (b2b_venta_id) origins. Used to guard against
+ * the same car being invoiced twice from two different sale records — the
+ * root cause of the R-2026-023/024 and R-2026-025/026 duplicates.
+ *
+ * `excludeDealId` / `excludeB2BVentaId` let the caller ignore its own sale
+ * (e.g. a retry / re-issue of the very same deal must not flag itself).
+ */
+export async function findActiveSaleInvoiceForVehicle(
+  vehiculoId: number,
+  opts: { excludeDealId?: number; excludeB2BVentaId?: number } = {}
+): Promise<ActiveVehicleInvoice | null> {
+  const res = await pool.query<{
+    id: number
+    full_invoice_number: string
+    status: InvoiceStatus
+    deal_id: number | null
+    b2b_venta_id: number | null
+  }>(
+    `SELECT id, full_invoice_number, status, deal_id, b2b_venta_id
+       FROM invoices
+      WHERE vehiculo_id = $1
+        AND status IN ('ISSUED', 'PDF_PENDING')
+        AND (deal_id IS NULL OR deal_id <> $2)
+        AND (b2b_venta_id IS NULL OR b2b_venta_id <> $3)
+      ORDER BY id DESC
+      LIMIT 1`,
+    [vehiculoId, opts.excludeDealId ?? -1, opts.excludeB2BVentaId ?? -1]
+  )
+  const row = res.rows[0]
+  if (!row) return null
+  return { ...row, origin: row.deal_id != null ? 'retail' : 'b2b' }
 }
 
 export async function getAuditLogsForInvoice(invoiceId: number) {

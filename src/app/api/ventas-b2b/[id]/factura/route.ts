@@ -39,12 +39,19 @@ export async function POST(
       ventaB2BId,
       invoiceType,
       idempotencyKey,
+      allowDuplicate: body?.allowDuplicate === true,
     })
     return NextResponse.json(result, {
       status: result.alreadyExisted ? 200 : 201,
     })
   } catch (err) {
     if (err instanceof InvoiceServiceError) {
+      if (err.code === 'VEHICLE_ALREADY_INVOICED') {
+        return NextResponse.json(
+          { error: err.message, code: err.code, existing: err.details },
+          { status: 409 }
+        )
+      }
       const status =
         err.code === 'SALE_NOT_FOUND' ? 404 : err.code === 'NO_SEQUENCE' ? 409 : 400
       return NextResponse.json({ error: err.message, code: err.code }, { status })

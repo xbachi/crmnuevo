@@ -5,8 +5,9 @@ const pick = (
   startNumber: number,
   sysMax: number | null,
   absMax: number,
-  occupied: number[]
-) => pickInvoiceNumber({ startNumber, sysMax, absMax, occupied })
+  occupied: number[],
+  burned: number[] = []
+) => pickInvoiceNumber({ startNumber, sysMax, absMax, occupied, burned })
 
 describe('pickInvoiceNumber — first issuance', () => {
   it('uses the series floor on an empty series (REBU seeded at 23)', () => {
@@ -80,5 +81,35 @@ describe('pickInvoiceNumber — legacy IMPORTED safety', () => {
     // (all taken) so we go next → 4301 (jump the IMPORTED), leaving the
     // 4225..4299 legacy gap alone.
     expect(pick(4222, 4224, 4300, [4222, 4223, 4224])).toBe(4301)
+  })
+})
+
+describe('pickInvoiceNumber — burned numbers never return to the pool (prod incident)', () => {
+  // Real incident (2026-07): F-2026-4236 and R-2026-027 were each assigned to
+  // TWO different invoices because a deleted number was silently reused as a
+  // hole. Fix: any number logged in invoice_deletion_logs is "burned" and the
+  // picker must never offer it again, hole or correlative.
+
+  it('VAT: skips the burned hole at 4236 (F-2026-4236) even though it looks free', () => {
+    const occupied = [
+      4222, 4223, 4224, 4225, 4226, 4227, 4228, 4229, 4230, 4231, 4232, 4233,
+      4234, 4235, 4237, 4238,
+    ]
+    // Without burned=[4236] this would return 4236 (the hole). It must not.
+    expect(pick(4222, 4238, 4238, occupied, [4236])).toBe(4239)
+  })
+
+  it('REBU: skips the burned hole at 27 (R-2026-027) even as the only hole', () => {
+    const occupied = [23, 24, 25, 26, 28]
+    // Without burned=[27] this would return 27. It must not.
+    expect(pick(23, 28, 28, occupied, [27])).toBe(29)
+  })
+
+  it('jumps over a burned number sitting exactly at the next correlative', () => {
+    expect(pick(23, 26, 26, [23, 24, 25, 26], [27])).toBe(28)
+  })
+
+  it('no burned numbers → behaviour is unchanged (regression guard)', () => {
+    expect(pick(23, 25, 25, [23, 25], [])).toBe(24)
   })
 })
