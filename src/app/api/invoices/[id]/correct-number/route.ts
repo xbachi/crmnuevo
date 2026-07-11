@@ -150,7 +150,7 @@ export async function PATCH(
 
     // Suggest advancing the sequence if the corrected number is higher
     let advisory: string | null = null
-    const advRes = await pool.query(
+    const advRes = await client.query(
       `SELECT next_number FROM invoice_sequences
        WHERE invoice_type = $1 AND series = $2 AND is_active = TRUE`,
       [before.invoice_type, newSeries]

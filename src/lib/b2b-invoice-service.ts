@@ -18,6 +18,7 @@ import { INVOICE_CONFIG, formatNumber } from '@/config/invoiceConfig'
 import type { Invoice, InvoiceType } from '@/lib/invoiceRepository'
 import { InvoiceServiceError } from '@/lib/invoiceService'
 import { getVentaB2BById } from '@/lib/b2b-database'
+import type { Pool, PoolClient } from 'pg'
 
 export interface IssueB2BOptions {
   ventaB2BId: number
@@ -33,8 +34,11 @@ export interface IssueB2BResult {
 /**
  * Verifica si ya hay una factura emitida (no anulada) para una venta B2B.
  */
-async function getInvoiceByB2BVentaId(ventaId: number): Promise<Invoice | null> {
-  const { rows } = await pool.query<Invoice>(
+async function getInvoiceByB2BVentaId(
+  ventaId: number,
+  db: Pool | PoolClient = pool
+): Promise<Invoice | null> {
+  const { rows } = await db.query<Invoice>(
     `SELECT * FROM invoices
       WHERE b2b_venta_id = $1 AND status <> 'VOIDED'
       ORDER BY id DESC
@@ -161,7 +165,7 @@ export async function issueInvoiceForB2B(
         e?.constraint === 'idx_invoices_unique_per_b2b_venta'
       ) {
         await client.query('ROLLBACK')
-        const existing2 = await getInvoiceByB2BVentaId(opts.ventaB2BId)
+        const existing2 = await getInvoiceByB2BVentaId(opts.ventaB2BId, client)
         if (existing2) return { invoice: existing2, alreadyExisted: true }
       }
       throw err
@@ -204,11 +208,10 @@ export async function issueInvoiceForB2B(
       numero: venta.numero,
       fechaCreacion: new Date(),
       cliente: {
-        nombre: venta.cliente_razon_social.split(' ')[0] ?? venta.cliente_razon_social,
-        apellidos: venta.cliente_razon_social
-          .split(' ')
-          .slice(1)
-          .join(' '),
+        nombre:
+          venta.cliente_razon_social.split(' ')[0] ??
+          venta.cliente_razon_social,
+        apellidos: venta.cliente_razon_social.split(' ').slice(1).join(' '),
         dni: venta.cliente_cif_nif,
       },
       vehiculo: {
@@ -254,7 +257,10 @@ export async function issueInvoiceForB2B(
        VALUES ($1, 'STATUS_CHANGED', $2, $3)`,
       [
         inserted.id,
-        JSON.stringify({ status: 'PDF_PENDING', error: (pdfErr as Error)?.message }),
+        JSON.stringify({
+          status: 'PDF_PENDING',
+          error: (pdfErr as Error)?.message,
+        }),
         'Fallo en generación o subida de PDF; número fiscal ya reservado.',
       ]
     )

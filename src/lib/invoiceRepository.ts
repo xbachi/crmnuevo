@@ -8,6 +8,9 @@
  */
 
 import { pool } from '@/lib/direct-database'
+import type { Pool, PoolClient } from 'pg'
+
+type Queryable = Pool | PoolClient
 
 export type InvoiceType = 'VAT' | 'REBU' | 'RECTIFYING'
 
@@ -166,16 +169,22 @@ export async function listInvoices(
   return { rows: dataRes.rows, total, page, pageSize }
 }
 
-export async function getInvoiceById(id: number): Promise<Invoice | null> {
-  const res = await pool.query<Invoice>(`SELECT * FROM invoices WHERE id = $1`, [id])
+export async function getInvoiceById(
+  id: number,
+  db: Queryable = pool
+): Promise<Invoice | null> {
+  const res = await db.query<Invoice>(`SELECT * FROM invoices WHERE id = $1`, [
+    id,
+  ])
   return res.rows[0] ?? null
 }
 
 export async function getInvoiceByDealAndType(
   dealId: number,
-  invoiceType: InvoiceType
+  invoiceType: InvoiceType,
+  db: Queryable = pool
 ): Promise<Invoice | null> {
-  const res = await pool.query<Invoice>(
+  const res = await db.query<Invoice>(
     `SELECT * FROM invoices
      WHERE deal_id = $1 AND invoice_type = $2 AND status NOT IN ('VOIDED')
      ORDER BY id DESC LIMIT 1`,
@@ -185,9 +194,10 @@ export async function getInvoiceByDealAndType(
 }
 
 export async function getInvoiceByIdempotencyKey(
-  key: string
+  key: string,
+  db: Queryable = pool
 ): Promise<Invoice | null> {
-  const res = await pool.query<Invoice>(
+  const res = await db.query<Invoice>(
     `SELECT * FROM invoices WHERE idempotency_key = $1`,
     [key]
   )

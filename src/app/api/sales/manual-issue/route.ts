@@ -31,6 +31,8 @@ export async function POST(request: NextRequest) {
   if (auth.response) return auth.response
 
   const client = await pool.connect()
+  let transactionOpen = false
+  let clientReleased = false
   try {
     const body = await request.json().catch(() => ({}))
     const invoiceType = (body?.invoiceType ?? 'VAT') as InvoiceType
@@ -66,6 +68,7 @@ export async function POST(request: NextRequest) {
     }
 
     await client.query('BEGIN')
+    transactionOpen = true
 
     // 1) Cliente: find by DNI or create. Match ignoring case AND all whitespace
     // (incl. internal spaces) so a recurring client isn't duplicated (and
@@ -194,6 +197,9 @@ export async function POST(request: NextRequest) {
     }
 
     await client.query('COMMIT')
+    transactionOpen = false
+    client.release()
+    clientReleased = true
 
     // 4) Issue the invoice through the same atomic service as everywhere else
     const idempotencyKey =
@@ -213,7 +219,7 @@ export async function POST(request: NextRequest) {
     // Best-effort: the invoice is already issued, so a failure here must not
     // turn a successful issuance into an error.
     try {
-      await client.query(
+      await pool.query(
         `UPDATE "Vehiculo"
             SET estado = 'VENDIDO', "dealActivoId" = $1, "updatedAt" = NOW()
           WHERE id = $2`,
@@ -231,7 +237,10 @@ export async function POST(request: NextRequest) {
       { status: result.alreadyExisted ? 200 : 201 }
     )
   } catch (err) {
-    await client.query('ROLLBACK').catch(() => {})
+    if (transactionOpen) {
+      await client.query('ROLLBACK').catch(() => {})
+      transactionOpen = false
+    }
     if (err instanceof InvoiceServiceError) {
       const status =
         err.code === 'SALE_NOT_FOUND'
@@ -287,6 +296,6 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   } finally {
-    client.release()
+    if (!clientReleased) client.release()
   }
 }

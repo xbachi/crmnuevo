@@ -160,7 +160,9 @@ export async function issueInvoice(opts: IssueOptions): Promise<IssueResult> {
   const buyer = buildBuyerSnapshot(sale)
   const vehicle = buildVehicleSnapshot(sale)
   const amounts = computeAmounts(sale.importeTotal ?? 0, opts.invoiceType)
-  const invoiceDate = (opts.invoiceDate ?? new Date()).toISOString().slice(0, 10)
+  const invoiceDate = (opts.invoiceDate ?? new Date())
+    .toISOString()
+    .slice(0, 10)
 
   const reserved = await reserveAndInsert({
     sale,
@@ -182,7 +184,10 @@ export async function issueInvoice(opts: IssueOptions): Promise<IssueResult> {
   // 4. Generate + upload PDF (best effort; row stays PDF_PENDING on failure)
   try {
     const pdf = await generatePdf(reserved.invoice, sale)
-    const upload = await uploadPdfToBlob(reserved.invoice.full_invoice_number, pdf)
+    const upload = await uploadPdfToBlob(
+      reserved.invoice.full_invoice_number,
+      pdf
+    )
 
     const updated = await pool.query<Invoice>(
       `UPDATE invoices
@@ -252,7 +257,10 @@ export async function regeneratePdf(
   userRole?: string | null
 ): Promise<Invoice> {
   if (!reason || reason.trim().length < 3) {
-    throw new InvoiceServiceError('REASON_REQUIRED', 'Es obligatorio indicar el motivo de la regeneración.')
+    throw new InvoiceServiceError(
+      'REASON_REQUIRED',
+      'Es obligatorio indicar el motivo de la regeneración.'
+    )
   }
 
   const invoice = await getInvoiceById(invoiceId)
@@ -356,7 +364,10 @@ async function loadSale(dealId: number): Promise<SaleSnapshot> {
   )
   const row = res.rows[0]
   if (!row) {
-    throw new InvoiceServiceError('SALE_NOT_FOUND', `Venta (Deal) ${dealId} no encontrada.`)
+    throw new InvoiceServiceError(
+      'SALE_NOT_FOUND',
+      `Venta (Deal) ${dealId} no encontrada.`
+    )
   }
 
   return {
@@ -394,14 +405,16 @@ async function loadSale(dealId: number): Promise<SaleSnapshot> {
 }
 
 function buildBuyerSnapshot(sale: SaleSnapshot) {
-  const fullName = `${sale.cliente.nombre ?? ''} ${sale.cliente.apellidos ?? ''}`.trim()
+  const fullName =
+    `${sale.cliente.nombre ?? ''} ${sale.cliente.apellidos ?? ''}`.trim()
   return {
     name: fullName || 'Cliente sin nombre',
     nif_cif: sale.cliente.dni ?? null,
     email: sale.cliente.email ?? null,
-    address: [sale.cliente.direccion, sale.cliente.ciudad, sale.cliente.provincia]
-      .filter(Boolean)
-      .join(', ') || null,
+    address:
+      [sale.cliente.direccion, sale.cliente.ciudad, sale.cliente.provincia]
+        .filter(Boolean)
+        .join(', ') || null,
   }
 }
 
@@ -428,13 +441,17 @@ async function assignNumber(
   series: string,
   startNumber: number
 ): Promise<number> {
-  const agg = await db.query<{ sys_max: string | null; abs_max: string | null }>(
+  const agg = await db.query<{
+    sys_max: string | null
+    abs_max: string | null
+  }>(
     `SELECT MAX(number) FILTER (WHERE status <> 'IMPORTED') AS sys_max,
             MAX(number)                                     AS abs_max
        FROM invoices WHERE series = $1`,
     [series]
   )
-  const sysMax = agg.rows[0]?.sys_max != null ? Number(agg.rows[0].sys_max) : null
+  const sysMax =
+    agg.rows[0]?.sys_max != null ? Number(agg.rows[0].sys_max) : null
   const absMax = agg.rows[0]?.abs_max != null ? Number(agg.rows[0].abs_max) : 0
 
   let occupied: number[] = []
@@ -560,9 +577,15 @@ async function reserveAndInsert(args: {
     } catch (err) {
       const e = err as { code?: string; constraint?: string }
       // Idempotency-key collision: another request raced us with the same key
-      if (e?.code === '23505' && e?.constraint === 'invoices_unique_idempotency_key') {
+      if (
+        e?.code === '23505' &&
+        e?.constraint === 'invoices_unique_idempotency_key'
+      ) {
         await client.query('ROLLBACK')
-        const existing = await getInvoiceByIdempotencyKey(args.idempotencyKey!)
+        const existing = await getInvoiceByIdempotencyKey(
+          args.idempotencyKey!,
+          client
+        )
         if (existing) {
           return { invoice: existing, alreadyExisted: true }
         }
@@ -570,7 +593,11 @@ async function reserveAndInsert(args: {
       // Per-deal duplicate: another request already created the invoice
       if (e?.code === '23505' && e?.constraint?.includes('unique_per_sale')) {
         await client.query('ROLLBACK')
-        const existing = await getInvoiceByDealAndType(args.sale.id, args.invoiceType)
+        const existing = await getInvoiceByDealAndType(
+          args.sale.id,
+          args.invoiceType,
+          client
+        )
         if (existing) {
           return { invoice: existing, alreadyExisted: true }
         }
@@ -635,7 +662,11 @@ async function generatePdf(
   // the *snapshot* we just persisted so the PDF matches the invoice row.
   const dealData = invoiceToDealData(invoice, sale)
   const tipoFactura = invoiceTypeToLegacy(invoice.invoice_type)
-  return generarFactura(dealData as never, tipoFactura, invoice.full_invoice_number)
+  return generarFactura(
+    dealData as never,
+    tipoFactura,
+    invoice.full_invoice_number
+  )
 }
 
 function invoiceTypeToLegacy(type: InvoiceType): 'IVA' | 'REBU' {
@@ -718,7 +749,10 @@ async function uploadPdfToBlob(
 // ---------------------------------------------------------------------------
 
 export class InvoiceServiceError extends Error {
-  constructor(public code: string, message: string) {
+  constructor(
+    public code: string,
+    message: string
+  ) {
     super(message)
     this.name = 'InvoiceServiceError'
   }

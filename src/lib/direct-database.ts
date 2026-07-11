@@ -1,5 +1,6 @@
 // Conexión directa a PostgreSQL sin Prisma para evitar problemas del pooler
 import { Pool } from 'pg'
+import { DATABASE_POOL_MAX } from '@/lib/databasePoolConfig'
 
 // Cargar variables de entorno manualmente
 import fs from 'fs'
@@ -34,21 +35,11 @@ console.log('DATABASE_URL cargada:', process.env.DATABASE_URL ? 'Sí' : 'No')
 // Background: 2026-05-04 we saw EMAXCONN (limit 200) in prod after an
 // infinite-loop bug spammed /api/invoice-sequences. Default pg.Pool max=10
 // × dozens of warm Vercel instances saturated the Supabase free-tier
-// pooler. First fix was `max: 1` per instance, which fixed EMAXCONN but
-// introduced a self-deadlock:
+// pooler. Keep one connection per serverless instance. Callers that hold a
+// checked-out client must use it for nested queries, or release it before
+// calling helpers backed by the pool.
 //
-//   pool.connect() in updateDeal()
-//     → holds client #1 of 1
-//     → awaits getDealById(id)
-//       → calls pool.query(...) which checks out client #2
-//       → BLOCKS forever (or until connectionTimeoutMillis)
-//   → 500 propagates as silent PUT failure → state never persists.
-//
-// Bumping to max=3 gives one slot for the outer transaction and at least
-// two for nested helper queries. Still extremely conservative: 3 × 50
-// peak warm instances = 150, well under the 200 pooler limit.
-//
-//   max=3                       — outer + nested + headroom.
+//   max=1                       — hard per-instance cap.
 //   idleTimeoutMillis=10000     — drop idle sockets so warm instances
 //                                 don't squat on slots.
 //   connectionTimeoutMillis=5000 — fail fast; surfaces saturation as 500
@@ -58,7 +49,7 @@ const pool = new Pool({
   ssl: {
     rejectUnauthorized: false,
   },
-  max: 3,
+  max: DATABASE_POOL_MAX,
   idleTimeoutMillis: 10_000,
   connectionTimeoutMillis: 5_000,
 })
@@ -668,12 +659,14 @@ export async function updateDeal(
   id: number,
   dealData: Partial<DealCreateData>
 ): Promise<Deal | null> {
-  const client = await pool.connect()
-  try {
-    // Obtener el deal actual para auditoría
-    const currentDeal = await getDealById(id)
-    if (!currentDeal) return null
+  // Read before checking out the only pool client. Holding a client while
+  // calling getDealById (which uses the pool) deadlocks when max=1.
+  const currentDeal = await getDealById(id)
+  if (!currentDeal) return null
 
+  const client = await pool.connect()
+  let clientReleased = false
+  try {
     const oldEstado = currentDeal.estado
     const newEstado = (dealData as any).estado
     const vehiculoId = currentDeal.vehiculoId
@@ -767,12 +760,14 @@ export async function updateDeal(
       )
     }
 
+    client.release()
+    clientReleased = true
     return await getDealById(id)
   } catch (error) {
     console.error('Error actualizando deal:', error)
     throw error
   } finally {
-    client.release()
+    if (!clientReleased) client.release()
   }
 }
 
