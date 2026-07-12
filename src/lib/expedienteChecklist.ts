@@ -63,18 +63,19 @@ const item = (clave: string, requerido: boolean): ChecklistItemDef => ({
 
 /** Checklist de documentos por tipo de operación (definición, sin estado). */
 export function checklistRequerida(tipo: TipoOperacion): ChecklistItemDef[] {
-  // Comunes a toda venta: la factura emitida y el contrato firmado con el comprador.
-  const base = [item('factura-venta', true), item('contrato-venta', true)]
+  // El contrato de compraventa con el comprador solo existe en REBU a
+  // particular y en depósito (regla del negocio); en ventas con IVA y B2B la
+  // factura es el documento de la operación (contrato opcional si aparece).
   switch (tipo) {
     case 'retail-vat':
-      return [...base, item('factura-compra', true)]
+      return [item('factura-venta', true), item('contrato-venta', false), item('factura-compra', true)]
     case 'retail-rebu':
       // Comprado a particular → el justificante de compra es un CONTRATO.
-      return [...base, item('contrato-compra', true)]
+      return [item('factura-venta', true), item('contrato-venta', true), item('contrato-compra', true)]
     case 'b2b':
-      return [...base, item('factura-compra', true), item('contrato-compra', false)]
+      return [item('factura-venta', true), item('contrato-venta', false), item('factura-compra', true), item('contrato-compra', false)]
     case 'deposito':
-      return [...base, item('contrato-deposito', true)]
+      return [item('factura-venta', true), item('contrato-venta', true), item('contrato-deposito', true)]
   }
 }
 

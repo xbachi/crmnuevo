@@ -22,7 +22,8 @@ function makeDb(handlers: Array<[string, unknown]>) {
 
 const checklistVat = (presentes: Record<string, boolean>): ChecklistItem[] => [
   { clave: 'factura-venta', label: 'Factura de venta', requerido: true, presente: presentes['factura-venta'] ?? false },
-  { clave: 'contrato-venta', label: 'Contrato de venta', requerido: true, presente: presentes['contrato-venta'] ?? false },
+  // contrato-venta solo es requerido en REBU a particular y depósito
+  { clave: 'contrato-venta', label: 'Contrato de venta', requerido: false, presente: presentes['contrato-venta'] ?? false },
   { clave: 'factura-compra', label: 'Factura de compra', requerido: true, presente: presentes['factura-compra'] ?? false },
 ]
 
@@ -38,6 +39,7 @@ describe('recalcularExpediente', () => {
               numero_factura: 'F-2026-005',
               matricula: '1234ABC',
               estado: 'incompleto',
+              tipo_operacion: 'retail-vat',
               checklist: checklistVat({ 'factura-venta': true, 'contrato-venta': true }),
             },
           ],
@@ -77,13 +79,14 @@ describe('recalcularExpediente', () => {
               numero_factura: 'F-2026-006',
               matricula: '5678DEF',
               estado: 'enviado',
-              // contrato-venta faltante (nadie lo marcó y no hay evidencia)
-              checklist: checklistVat({ 'factura-venta': true, 'factura-compra': true }),
+              tipo_operacion: 'retail-vat',
+              // factura-compra faltante (requerida en retail-vat; sin evidencia)
+              checklist: checklistVat({ 'factura-venta': true, 'contrato-venta': true }),
             },
           ],
         },
       ],
-      ['FROM automation_logs', { rows: [{ venta_guardada: true, compra_adjunta: true, contrato_enviado: false }] }],
+      ['FROM automation_logs', { rows: [{ venta_guardada: true, compra_adjunta: false, contrato_enviado: false }] }],
       ['FROM facturas_registro', { rows: [] }],
     ])
 
@@ -104,6 +107,7 @@ describe('recalcularExpediente', () => {
               numero_factura: 'F-2026-007',
               matricula: null,
               estado: 'completo',
+              tipo_operacion: 'retail-vat',
               checklist: checklistVat({
                 'factura-venta': true,
                 'contrato-venta': true,
@@ -149,6 +153,7 @@ describe('recalcularExpediente', () => {
               numero_factura: 'F-2026-030',
               matricula: '8061KRN',
               estado: 'incompleto',
+              tipo_operacion: 'retail-vat',
               checklist: checklistVat({ 'contrato-venta': true }),
             },
           ],

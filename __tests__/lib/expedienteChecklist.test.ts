@@ -18,10 +18,10 @@ const claves = (tipo: Parameters<typeof checklistRequerida>[0]) =>
   checklistRequerida(tipo).map((i) => [i.clave, i.requerido])
 
 describe('checklistRequerida', () => {
-  it('retail-vat: factura-venta + contrato-venta + factura-compra, todos requeridos', () => {
+  it('retail-vat: factura-venta y factura-compra requeridas; contrato-venta opcional (solo REBU/depósito lo llevan)', () => {
     expect(claves('retail-vat')).toEqual([
       ['factura-venta', true],
-      ['contrato-venta', true],
+      ['contrato-venta', false],
       ['factura-compra', true],
     ])
   })
@@ -34,10 +34,10 @@ describe('checklistRequerida', () => {
     ])
   })
 
-  it('b2b: factura-compra requerida, contrato-compra opcional', () => {
+  it('b2b: factura-compra requerida; contrato-venta y contrato-compra opcionales', () => {
     expect(claves('b2b')).toEqual([
       ['factura-venta', true],
-      ['contrato-venta', true],
+      ['contrato-venta', false],
       ['factura-compra', true],
       ['contrato-compra', false],
     ])

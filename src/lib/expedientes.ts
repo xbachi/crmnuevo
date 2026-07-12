@@ -14,6 +14,7 @@
 import type { Pool, PoolClient } from 'pg'
 import {
   checklistInicial,
+  checklistRequerida,
   evaluarEstado,
   inferirTipoOperacion,
   esDepositoVehiculoTipo,
@@ -127,8 +128,8 @@ export async function recalcularExpediente(
   db: Db,
   id: number
 ): Promise<ResultadoRecalculo | null> {
-  const expRes = await db.query<ExpedienteRow>(
-    `SELECT id, numero_factura, matricula, estado, checklist
+  const expRes = await db.query<ExpedienteRow & { tipo_operacion: TipoOperacion }>(
+    `SELECT id, numero_factura, matricula, estado, checklist, tipo_operacion
        FROM expedientes WHERE id = $1`,
     [id]
   )
@@ -138,7 +139,16 @@ export async function recalcularExpediente(
   const evidencia = await buscarEvidencia(db, exp.numero_factura, exp.matricula)
   const carpeta = await buscarEvidenciaCarpeta(db, exp.matricula)
 
-  const checklist: ChecklistItem[] = (exp.checklist ?? []).map((item) => {
+  // La checklist guardada se reconcilia con la DEFINICIÓN VIGENTE del tipo:
+  // si cambia una regla (p.ej. contrato-venta dejó de ser requerido en
+  // retail-vat), el recálculo la propaga sin perder presente/nota manuales.
+  const guardadaPorClave = new Map((exp.checklist ?? []).map((i) => [i.clave, i]))
+  const reconciliada: ChecklistItem[] = checklistRequerida(exp.tipo_operacion).map((def) => {
+    const prev = guardadaPorClave.get(def.clave)
+    return { ...def, presente: prev?.presente ?? false, ...(prev?.nota != null ? { nota: prev.nota } : {}) }
+  })
+
+  const checklist: ChecklistItem[] = reconciliada.map((item) => {
     const porDb = evidencia[item.clave] === true
     const porCarpeta = carpeta[item.clave] === true
     const next: ChecklistItem = { ...item, presente: item.presente || porDb || porCarpeta }
@@ -148,12 +158,16 @@ export async function recalcularExpediente(
     }
     return next
   })
+  const presenteAntes = new Map((exp.checklist ?? []).map((i) => [i.clave, i.presente]))
   const itemsActualizados = checklist
-    .filter((item, i) => item.presente && !(exp.checklist?.[i]?.presente ?? false))
+    .filter((item) => item.presente && !(presenteAntes.get(item.clave) ?? false))
     .map((item) => item.clave)
 
   const estadoDespues = evaluarEstado(checklist, exp.estado)
-  const cambio = itemsActualizados.length > 0 || estadoDespues !== exp.estado
+  const requeridosCambiaron =
+    JSON.stringify((exp.checklist ?? []).map((i) => [i.clave, i.requerido])) !==
+    JSON.stringify(checklist.map((i) => [i.clave, i.requerido]))
+  const cambio = itemsActualizados.length > 0 || estadoDespues !== exp.estado || requeridosCambiaron
   if (cambio) {
     await db.query(
       `UPDATE expedientes
