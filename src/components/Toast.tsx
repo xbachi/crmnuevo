@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 
 interface ToastProps {
   message: string
@@ -134,19 +134,26 @@ export function useToast() {
   const [toasts, setToasts] = useState<
     Array<{ id: string; message: string; type: 'success' | 'error' | 'info' }>
   >([])
+  const nextId = useRef(0)
 
-  const showToast = (
-    message: string,
-    type: 'success' | 'error' | 'info' = 'info'
-  ) => {
-    // Usar un contador en lugar de Date.now() y Math.random() para evitar errores de hidratación
-    const id = `toast-${toasts.length + 1}`
-    setToasts((prev) => [...prev, { id, message, type }])
-  }
+  // showToast/removeToast con identidad ESTABLE (useCallback sin deps): varias
+  // páginas los usan como dependencia de useCallback/useEffect — si cambian en
+  // cada render, el efecto de carga se dispara en loop infinito (bug real de
+  // /expedientes: la página quedaba cargando y parpadeando para siempre).
+  const showToast = useCallback(
+    (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+      // Contador en ref en lugar de Date.now()/Math.random() (hidratación) y en
+      // lugar de toasts.length (obligaría a depender del estado).
+      nextId.current += 1
+      const id = `toast-${nextId.current}`
+      setToasts((prev) => [...prev, { id, message, type }])
+    },
+    []
+  )
 
-  const removeToast = (id: string) => {
+  const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id))
-  }
+  }, [])
 
   const ToastContainer = () => (
     <div className="fixed top-4 right-4 z-50 space-y-2">
