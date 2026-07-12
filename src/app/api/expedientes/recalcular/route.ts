@@ -15,6 +15,10 @@ import { pool } from '@/lib/direct-database'
 import { quarterRange } from '@/lib/facturasMonitor'
 import { recalcularExpediente, type ResultadoRecalculo } from '@/lib/expedientes'
 
+// ~4 queries por expediente con pool de 1 conexión: el default de 10s no
+// alcanza para un trimestre entero (timeout real observado en prod).
+export const maxDuration = 60
+
 export async function POST(request: NextRequest) {
   const secret = process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
   if (!secret || (request.headers.get('x-admin-secret') ?? '') !== secret) {
