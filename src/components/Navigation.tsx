@@ -328,6 +328,18 @@ export default function Navigation() {
       roles: ['admin', 'asesor'],
     },
     {
+      href: '/expedientes',
+      label: 'Expedientes',
+      icon: DocumentacionIcon,
+      roles: ['admin', 'asesor'],
+    },
+    {
+      href: '/revision',
+      label: 'Revisión',
+      icon: AutomatizacionesIcon,
+      roles: ['admin', 'asesor'],
+    },
+    {
       href: '/generador-facturas',
       label: 'Generador Facturas',
       icon: FacturasIcon,
