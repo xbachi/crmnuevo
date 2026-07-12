@@ -101,11 +101,15 @@ async function loadVehicleCosts(dealId: number): Promise<VehicleCostData | null>
  */
 export function buildCarRow(v: VehicleCostData, opts: CostoBeneficioOptions, r: number, regimen: string, compra: number | null): (string | number)[] {
   const b = ''
+  // pg devuelve NUMERIC como string ("19500.00"); con USER_ENTERED en locale
+  // es_ES eso entra como TEXTO (punto decimal) y rompe las fórmulas P/Q.
+  // Coerción acá = todos los caminos (emisión, repair, backfill) escriben número.
+  const num = (x: unknown): number | '' => (x == null || x === '' ? b : Number(x))
   return [
     toEsDate(opts.invoiceDate), MES_FORMULA(r), v.referencia ?? b, [v.marca, v.modelo].filter(Boolean).join(' ') || b,
-    v.matricula ?? b, regimen, compra ?? b, b, CN_INFORME,
-    v.gastosMecanica ?? b, v.gastosPintura ?? b, v.gastosLimpieza ?? b, v.gastosOtros ?? b,
-    COSTE_FORMULA(r), opts.salePrice, IVA_FORMULA(r), MARGEN_FORMULA(r), PCT_FORMULA(r), opts.numeroFactura,
+    v.matricula ?? b, regimen, num(compra), b, CN_INFORME,
+    num(v.gastosMecanica), num(v.gastosPintura), num(v.gastosLimpieza), num(v.gastosOtros),
+    COSTE_FORMULA(r), num(opts.salePrice), IVA_FORMULA(r), MARGEN_FORMULA(r), PCT_FORMULA(r), opts.numeroFactura,
   ]
 }
 

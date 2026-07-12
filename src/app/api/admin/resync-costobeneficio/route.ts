@@ -103,10 +103,10 @@ export async function POST(request: NextRequest) {
   // fallar con 400, no colarse como false y disparar una escritura real.
   let params: {
     year: number; tab: string; dryRun: boolean; reorderApril: boolean
-    mode: 'fill' | 'overwrite'; clearCompra: string[]
+    mode: 'fill' | 'overwrite'; clearCompra: string[]; fixFormato: boolean
   }
   try {
-    assertKnownParams(searchParams, ['year', 'tab', 'dryRun', 'reorderApril', 'mode', 'clearCompra', 'confirm'])
+    assertKnownParams(searchParams, ['year', 'tab', 'dryRun', 'reorderApril', 'mode', 'clearCompra', 'confirm', 'fixFormato'])
     const dryRun = parseStrictBool(searchParams, 'dryRun', false)
     // 'fill' (default): sólo rellena celdas vacías, no pisa nada.
     // 'overwrite': corrige valores distintos al CRM y limpia H (arregla el doble
@@ -125,12 +125,16 @@ export async function POST(request: NextRequest) {
       // ?clearCompra=MAT1,MAT2 → limpia SOLO la columna G (compra) de esas
       // matrículas (para revertir un valor cargado por error). No toca J/K/L/M.
       clearCompra: (searchParams.get('clearCompra') || '').split(',').map((s) => normPlate(s)).filter(Boolean),
+      // ?fixFormato=true → repara celdas de valor que quedaron como TEXTO
+      // ("19500.00" con punto, de cuando pg pasaba NUMERIC como string):
+      // las reescribe como número real para que las fórmulas P/Q funcionen.
+      fixFormato: parseStrictBool(searchParams, 'fixFormato', false),
     }
   } catch (e) {
     if (e instanceof AdminParamError) return NextResponse.json({ error: e.message }, { status: 400 })
     throw e
   }
-  const { year, tab, dryRun, reorderApril, mode, clearCompra } = params
+  const { year, tab, dryRun, reorderApril, mode, clearCompra, fixFormato } = params
 
   try {
     const ctx = await openTab(tab)
@@ -158,6 +162,38 @@ export async function POST(request: NextRequest) {
         await api.spreadsheets.values.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { valueInputOption: 'USER_ENTERED', data } })
       }
       return NextResponse.json({ ok: true, action: 'clearCompra', dryRun, cleared })
+    }
+
+    // Modo fixFormato: repara celdas de valor guardadas como TEXTO numérico con
+    // punto ("19500.00") que en locale es_ES no cuentan como número y rompen
+    // las fórmulas P/Q. Se reescriben como número real. No toca nada más.
+    if (fixFormato) {
+      const raw = await api.spreadsheets.values.get({
+        spreadsheetId: SHEET_ID,
+        range: `${title}!A1:S`,
+        valueRenderOption: 'UNFORMATTED_VALUE',
+      })
+      const rawRows = (raw.data.values ?? []) as unknown[][]
+      // Columnas de valor: G compra, H porte, J taller, K chapa, L limpieza, M otros, O precio
+      const VALUE_COLS: Array<[number, string]> = [[6, 'G'], [7, 'H'], [9, 'J'], [10, 'K'], [11, 'L'], [12, 'M'], [14, 'O']]
+      const data: sheets_v4.Schema$ValueRange[] = []
+      const fixed: string[] = []
+      rawRows.forEach((r, i) => {
+        const fRow = rows[i] ?? []
+        if (isBand(fRow as string[]) || isSubtotal(fRow as string[])) return
+        for (const [idx, col] of VALUE_COLS) {
+          const v = r[idx]
+          if (typeof v === 'string' && /^-?\d+(\.\d+)?$/.test(v.trim())) {
+            const n = Number(v.trim())
+            data.push({ range: `${title}!${col}${i + 1}`, values: [[n]] })
+            fixed.push(`${col}${i + 1}: "${v}" → ${n}`)
+          }
+        }
+      })
+      if (!dryRun && data.length) {
+        await api.spreadsheets.values.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { valueInputOption: 'USER_ENTERED', data } })
+      }
+      return NextResponse.json({ ok: true, action: 'fixFormato', dryRun, celdasReparadas: fixed.length, fixed })
     }
 
     const invoices = await getEmittedInvoices(year)
