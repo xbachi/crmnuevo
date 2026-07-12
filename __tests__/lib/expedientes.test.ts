@@ -122,6 +122,56 @@ describe('recalcularExpediente', () => {
     expect(query.mock.calls.some(([sql]) => sql.includes('UPDATE expedientes'))).toBe(false)
   })
 
+  it('promueve items por el snapshot de OneDrive con fuente carpeta-onedrive', async () => {
+    const { db, query } = makeDb([
+      // orden importa (primera coincidencia gana): las queries del snapshot
+      // también contienen "FROM expedientes" como substring.
+      ['to_regclass', { rows: [{ reg: 'expedientes_carpetas' }] }],
+      [
+        'expedientes_carpetas',
+        {
+          rows: [
+            {
+              archivos: [
+                { nombre: 'Factura-Venta-F-2026-030.pdf' },
+                { nombre: 'Factura-Compra-XXXX.pdf' },
+              ],
+            },
+          ],
+        },
+      ],
+      [
+        'FROM expedientes',
+        {
+          rows: [
+            {
+              id: 12,
+              numero_factura: 'F-2026-030',
+              matricula: '8061KRN',
+              estado: 'incompleto',
+              checklist: checklistVat({ 'contrato-venta': true }),
+            },
+          ],
+        },
+      ],
+      ['FROM automation_logs', { rows: [] }],
+      ['FROM facturas_registro', { rows: [] }],
+    ])
+
+    const r = await recalcularExpediente(db, 12)
+
+    expect(r?.itemsActualizados?.sort()).toEqual(['factura-compra', 'factura-venta'])
+    expect(r?.estadoDespues).toBe('completo')
+    const update = query.mock.calls.find(([sql]) => sql.includes('UPDATE expedientes'))
+    const [, params] = update as [string, unknown[]]
+    const saved = JSON.parse(params[0] as string) as ChecklistItem[]
+    const fv = saved.find((i) => i.clave === 'factura-venta')
+    expect(fv?.presente).toBe(true)
+    expect(fv?.nota).toBe('fuente: carpeta-onedrive')
+    // el marcado a mano no se toca ni recibe nota
+    expect(saved.find((i) => i.clave === 'contrato-venta')?.nota).toBeUndefined()
+  })
+
   it('devuelve null si el expediente no existe', async () => {
     const { db } = makeDb([['FROM expedientes', { rows: [] }]])
     expect(await recalcularExpediente(db, 999)).toBeNull()

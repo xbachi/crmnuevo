@@ -22,6 +22,7 @@ import {
   type EstadoExpediente,
 } from '@/lib/expedienteChecklist'
 import { normPlate } from '@/lib/facturasRegistro'
+import { detectarDocs, CLAVE_A_DOC } from '@/lib/expedienteDocs'
 
 type Db = Pool | PoolClient
 
@@ -115,7 +116,10 @@ interface ExpedienteRow {
  *  - 'factura-compra'  ← automation_logs.compra_adjunta O facturas_registro
  *  - 'contrato-compra'   con categoria 'coche-compra' y la misma matrícula
  *  - 'contrato-venta'  ← automation_logs.contrato_enviado
- *  - 'contrato-deposito' → sin verificación automática (lo marca el humano)
+ *  - 'contrato-deposito' → sin verificación automática en DB (lo marca el humano)
+ *  - cualquier item     ← snapshot de OneDrive (expedientes_carpetas): si la
+ *    carpeta del coche contiene un archivo que detectarDocs reconoce, el item
+ *    se promueve con fuente 'carpeta-onedrive'.
  * Los items sin evidencia quedan como estaban. Actualiza estado con
  * evaluarEstado (degrada a 'incompleto' si falta un requerido).
  */
@@ -132,11 +136,18 @@ export async function recalcularExpediente(
   if (!exp) return null
 
   const evidencia = await buscarEvidencia(db, exp.numero_factura, exp.matricula)
+  const carpeta = await buscarEvidenciaCarpeta(db, exp.matricula)
 
-  const checklist: ChecklistItem[] = (exp.checklist ?? []).map((item) => ({
-    ...item,
-    presente: item.presente || evidencia[item.clave] === true,
-  }))
+  const checklist: ChecklistItem[] = (exp.checklist ?? []).map((item) => {
+    const porDb = evidencia[item.clave] === true
+    const porCarpeta = carpeta[item.clave] === true
+    const next: ChecklistItem = { ...item, presente: item.presente || porDb || porCarpeta }
+    // Promovido SOLO por el snapshot → dejar rastro de la fuente.
+    if (!item.presente && !porDb && porCarpeta && !next.nota) {
+      next.nota = 'fuente: carpeta-onedrive'
+    }
+    return next
+  })
   const itemsActualizados = checklist
     .filter((item, i) => item.presente && !(exp.checklist?.[i]?.presente ?? false))
     .map((item) => item.clave)
@@ -205,4 +216,32 @@ async function buscarEvidencia(
     'contrato-compra': compraAdjunta || registroCompra,
     'contrato-venta': contratoEnviado,
   }
+}
+
+/**
+ * Evidencia desde el snapshot de OneDrive (expedientes_carpetas): los nombres
+ * de archivo de la(s) carpeta(s) del coche pasados por detectarDocs. Tabla
+ * opcional → to_regclass; sin tabla/matrícula/fila devuelve {} (no verificable).
+ */
+async function buscarEvidenciaCarpeta(
+  db: Db,
+  matricula: string | null
+): Promise<Record<string, boolean>> {
+  if (!matricula) return {}
+  const reg = await db.query<{ reg: string | null }>(
+    `SELECT to_regclass('public.expedientes_carpetas') AS reg`
+  )
+  if (!reg.rows[0]?.reg) return {}
+  const res = await db.query<{ archivos: { nombre: string }[] }>(
+    `SELECT archivos FROM expedientes_carpetas WHERE matricula_norm = $1`,
+    [normPlate(matricula)]
+  )
+  if (res.rows.length === 0) return {}
+  const archivos = res.rows.flatMap((r) => (Array.isArray(r.archivos) ? r.archivos : []))
+  const docs = detectarDocs(archivos)
+  const evidencia: Record<string, boolean> = {}
+  for (const [clave, flag] of Object.entries(CLAVE_A_DOC)) {
+    if (docs[flag]) evidencia[clave] = true
+  }
+  return evidencia
 }

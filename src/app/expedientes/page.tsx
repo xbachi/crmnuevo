@@ -11,6 +11,7 @@ import {
   type EstadoExpediente,
   type TipoOperacion,
 } from '@/lib/expedienteChecklist'
+import type { MesChequeo, ResultadoChequeo } from '@/lib/chequeoExpedientes'
 
 interface Expediente {
   id: number
@@ -51,7 +52,30 @@ export default function ExpedientesPage() {
   const [estadoFilter, setEstadoFilter] = useState<string>('')
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const [savingKey, setSavingKey] = useState<string | null>(null)
+  const [chequeo, setChequeo] = useState<ResultadoChequeo | null>(null)
+  const [chequeando, setChequeando] = useState(false)
   const { showToast } = useToast()
+
+  const runChequeo = async () => {
+    if (quarter === 'todos') return
+    setChequeando(true)
+    try {
+      const res = await fetch(
+        `/api/gestoria/chequeo-expedientes?quarter=${quarter}&year=${year}`
+      )
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(body.error || 'Error en el chequeo')
+      setChequeo(body as ResultadoChequeo)
+    } catch (err) {
+      console.error(err)
+      showToast(
+        err instanceof Error ? err.message : 'Error al chequear los expedientes',
+        'error'
+      )
+    } finally {
+      setChequeando(false)
+    }
+  }
 
   const fetchExpedientes = useCallback(async () => {
     setIsLoading(true)
@@ -191,7 +215,28 @@ export default function ExpedientesPage() {
                 ))}
               </select>
             </div>
+            <button
+              onClick={runChequeo}
+              disabled={chequeando || quarter === 'todos'}
+              title={
+                quarter === 'todos'
+                  ? 'Elegí un trimestre concreto para chequear'
+                  : undefined
+              }
+              className={`ml-auto px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all ${
+                chequeando || quarter === 'todos'
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  : 'bg-indigo-600 text-white hover:bg-indigo-700'
+              }`}
+            >
+              {chequeando
+                ? 'Chequeando…'
+                : 'Chequear expedientes gestoría'}
+            </button>
           </div>
+
+          {/* Resultado del chequeo integral */}
+          {chequeo && <ChequeoPanel chequeo={chequeo} />}
 
           {/* Contenido */}
           {isLoading ? (
@@ -390,6 +435,209 @@ function ExpedienteRow({
                 })}
               </div>
             </div>
+          </td>
+        </tr>
+      )}
+    </>
+  )
+}
+
+function ChequeoPanel({ chequeo }: { chequeo: ResultadoChequeo }) {
+  const [mesAbierto, setMesAbierto] = useState<string | null>(null)
+  const { resumen, meses, expedientesDocs } = chequeo
+  const sinSnapshot = meses.some((m) => !m.carpetas.verificable)
+  const conFaltantes = expedientesDocs.filter((e) => e.faltantes.length > 0)
+
+  return (
+    <div className="space-y-4">
+      {/* Banner resumen */}
+      {resumen.ok ? (
+        <div className="bg-green-50 border border-green-300 rounded-xl p-4 flex items-center gap-3">
+          <span className="text-green-600 text-xl font-bold">✓</span>
+          <div>
+            <div className="text-sm font-bold text-green-800">
+              Listo para cerrar — {chequeo.quarter}T {chequeo.year}
+            </div>
+            <div className="text-xs text-green-700">
+              Facturas, carpetas de OneDrive y bandas de CB cuadran, sin
+              documentos faltantes.
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-red-50 border border-red-300 rounded-xl p-4">
+          <div className="text-sm font-bold text-red-800">
+            ✗ {resumen.bloqueantes.length} bloqueante
+            {resumen.bloqueantes.length === 1 ? '' : 's'} para cerrar{' '}
+            {chequeo.quarter}T {chequeo.year}
+          </div>
+          <ul className="mt-2 space-y-1 text-xs text-red-700 list-disc list-inside">
+            {resumen.bloqueantes.map((b, i) => (
+              <li key={i}>{b}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {sinSnapshot && (
+        <div className="bg-yellow-50 border border-yellow-300 rounded-xl p-4 text-sm text-yellow-800">
+          Sin snapshot de OneDrive todavía (corre a las 21:15 o pedilo manual)
+          — las carpetas de expedientes no se pudieron verificar.
+        </div>
+      )}
+      {resumen.notas
+        .filter((n) => !n.startsWith('sin snapshot'))
+        .map((n, i) => (
+          <div
+            key={i}
+            className="bg-yellow-50 border border-yellow-300 rounded-xl p-4 text-sm text-yellow-800"
+          >
+            {n}
+          </div>
+        ))}
+
+      {/* Tabla por mes */}
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                {['Mes', 'Facturas DB', 'Carpetas OneDrive', 'Banda CB', 'Cuadra'].map(
+                  (h) => (
+                    <th
+                      key={h}
+                      className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      {h}
+                    </th>
+                  )
+                )}
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {meses.map((m) => (
+                <MesChequeoRow
+                  key={m.mes}
+                  mes={m}
+                  abierto={mesAbierto === m.mes}
+                  onToggle={() => setMesAbierto(mesAbierto === m.mes ? null : m.mes)}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Expedientes con documentos faltantes */}
+      {conFaltantes.length > 0 && (
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 space-y-3">
+          <h3 className="text-sm font-bold text-gray-800">
+            Expedientes con documentos faltantes ({conFaltantes.length})
+          </h3>
+          {conFaltantes.map((e) => (
+            <div
+              key={`${e.mes}-${e.carpeta}`}
+              className="flex flex-wrap items-center gap-2 border border-gray-100 rounded-lg px-3 py-2"
+            >
+              <span className="text-sm font-medium text-gray-900">{e.carpeta}</span>
+              <span className="text-xs text-gray-500">
+                {e.mes} · {e.matricula ?? 'sin matrícula'} ·{' '}
+                {e.tipoOperacion === 'desconocido'
+                  ? 'operación desconocida'
+                  : TIPO_OPERACION_LABEL[e.tipoOperacion]}
+              </span>
+              {e.faltantes.map((f) => (
+                <span
+                  key={f}
+                  className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700"
+                >
+                  falta {f}
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function MesChequeoRow({
+  mes,
+  abierto,
+  onToggle,
+}: {
+  mes: MesChequeo
+  abierto: boolean
+  onToggle: () => void
+}) {
+  const d = mes.descuadres
+  const nDescuadres =
+    d.facturasSinCarpeta.length +
+    d.carpetasSinFactura.length +
+    d.cbSinFactura.length +
+    d.facturaSinCb.length +
+    d.bandaIncorrecta.length
+
+  return (
+    <>
+      <tr className="hover:bg-gray-50 cursor-pointer" onClick={onToggle}>
+        <td className="px-3 sm:px-6 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+          {mes.mes}
+        </td>
+        <td className="px-3 sm:px-6 py-3 whitespace-nowrap text-sm text-gray-700">
+          {mes.facturas.count}
+        </td>
+        <td className="px-3 sm:px-6 py-3 whitespace-nowrap text-sm text-gray-700">
+          {mes.carpetas.verificable ? mes.carpetas.count : '—'}
+        </td>
+        <td className="px-3 sm:px-6 py-3 whitespace-nowrap text-sm text-gray-700">
+          {mes.cbBanda.verificable ? mes.cbBanda.count : '—'}
+        </td>
+        <td className="px-3 sm:px-6 py-3 whitespace-nowrap">
+          <span
+            className={`px-2 py-1 rounded-full text-xs font-bold ${
+              mes.ok ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+            }`}
+          >
+            {mes.ok ? '✓' : `✗ ${nDescuadres} descuadre${nDescuadres === 1 ? '' : 's'}`}
+          </span>
+        </td>
+      </tr>
+      {abierto && (
+        <tr className="bg-gray-50">
+          <td colSpan={5} className="px-3 sm:px-6 py-3 text-xs text-gray-700 space-y-1">
+            {nDescuadres === 0 && (
+              <div className="text-green-700">Sin descuadres en {mes.mes}.</div>
+            )}
+            {d.bandaIncorrecta.map((b) => (
+              <div key={`bi-${b.matricula}`} className="text-red-700 font-medium">
+                Banda incorrecta: {b.matricula} facturado en {b.mesFactura} pero
+                está en la banda {b.bandaCb} de CB
+              </div>
+            ))}
+            {d.facturasSinCarpeta.map((f) => (
+              <div key={`fsc-${f.numero}`}>
+                Factura sin carpeta en OneDrive: {f.numero} (
+                {f.matricula ?? 'sin matrícula'})
+              </div>
+            ))}
+            {d.carpetasSinFactura.map((c) => (
+              <div key={`csf-${c}`}>Carpeta sin factura activa: {c}</div>
+            ))}
+            {d.cbSinFactura.map((m2) => (
+              <div key={`cbs-${m2}`}>En banda CB sin factura activa: {m2}</div>
+            ))}
+            {d.facturaSinCb.map((f) => (
+              <div key={`fscb-${f.numero}`}>
+                Factura sin fila en CB: {f.numero} ({f.matricula ?? 'sin matrícula'})
+              </div>
+            ))}
+            {mes.carpetas.scannedAt && (
+              <div className="text-gray-400">
+                Snapshot OneDrive: {mes.carpetas.scannedAt}
+              </div>
+            )}
           </td>
         </tr>
       )}

@@ -20,6 +20,12 @@ const PUBLIC_API_PREFIXES = [
   '/api/gestoria/factura',
   // Revisión del registro para entrega a gestoría (X-Admin-Secret).
   '/api/gestoria/audit',
+  // Snapshot del inventario de carpetas de expedientes en OneDrive; lo POSTea
+  // el script del server (X-Webhook-Secret).
+  '/api/gestoria/expedientes-snapshot',
+  // Chequeo integral de expedientes: X-Admin-Secret O sesión, validado en el
+  // handler (mismo patrón que /api/automation-log).
+  '/api/gestoria/chequeo-expedientes',
   // Manifiesto de entrega y libro IVA/REBU del trimestre (X-Admin-Secret).
   '/api/gestoria/manifiesto',
   '/api/gestoria/libro',
