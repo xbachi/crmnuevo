@@ -104,9 +104,10 @@ export async function POST(request: NextRequest) {
   let params: {
     year: number; tab: string; dryRun: boolean; reorderApril: boolean
     mode: 'fill' | 'overwrite'; clearCompra: string[]; fixFormato: boolean
+    moveMes: string; moveMats: string[]
   }
   try {
-    assertKnownParams(searchParams, ['year', 'tab', 'dryRun', 'reorderApril', 'mode', 'clearCompra', 'confirm', 'fixFormato'])
+    assertKnownParams(searchParams, ['year', 'tab', 'dryRun', 'reorderApril', 'mode', 'clearCompra', 'confirm', 'fixFormato', 'moveMes', 'moveMats'])
     const dryRun = parseStrictBool(searchParams, 'dryRun', false)
     // 'fill' (default): sólo rellena celdas vacías, no pisa nada.
     // 'overwrite': corrige valores distintos al CRM y limpia H (arregla el doble
@@ -129,12 +130,18 @@ export async function POST(request: NextRequest) {
       // ("19500.00" con punto, de cuando pg pasaba NUMERIC como string):
       // las reescribe como número real para que las fórmulas P/Q funcionen.
       fixFormato: parseStrictBool(searchParams, 'fixFormato', false),
+      // ?moveMes=ABRIL&moveMats=MAT1,MAT2 → mueve las filas de esas matrículas
+      // a la banda del mes indicado (para corregir ventas contadas en el mes
+      // equivocado, p.ej. facturas de abril en la banda MARZO). Fija col B al
+      // mes destino y col A a la fecha real de la factura.
+      moveMes: (searchParams.get('moveMes') || '').trim().toUpperCase(),
+      moveMats: (searchParams.get('moveMats') || '').split(',').map((s) => normPlate(s)).filter(Boolean),
     }
   } catch (e) {
     if (e instanceof AdminParamError) return NextResponse.json({ error: e.message }, { status: 400 })
     throw e
   }
-  const { year, tab, dryRun, reorderApril, mode, clearCompra, fixFormato } = params
+  const { year, tab, dryRun, reorderApril, mode, clearCompra, fixFormato, moveMes, moveMats } = params
 
   try {
     const ctx = await openTab(tab)
@@ -194,6 +201,79 @@ export async function POST(request: NextRequest) {
         await api.spreadsheets.values.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { valueInputOption: 'USER_ENTERED', data } })
       }
       return NextResponse.json({ ok: true, action: 'fixFormato', dryRun, celdasReparadas: fixed.length, fixed })
+    }
+
+    // Modo moveMes: mueve filas de coche a la banda del mes correcto (corrige
+    // ventas contadas en el mes equivocado). Una fila por iteración, releyendo
+    // la hoja tras cada movimiento (los índices se corren). moveDimension
+    // conserva valores y ajusta las fórmulas de la propia fila.
+    if (moveMes && moveMats.length > 0) {
+      const MESES_OK = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE']
+      if (!MESES_OK.includes(moveMes)) {
+        return NextResponse.json({ error: `moveMes inválido: "${moveMes}"` }, { status: 400 })
+      }
+      // fecha real de factura por matrícula (para rellenar col A)
+      const fres = await pool.query(
+        `SELECT REPLACE(REPLACE(REPLACE(UPPER(vehicle_plate),' ',''),'-',''),'.','') AS plate,
+                to_char(MAX(invoice_date), 'DD/MM/YYYY') AS fecha
+           FROM invoices
+          WHERE EXTRACT(YEAR FROM invoice_date) = $1 AND vehicle_plate IS NOT NULL
+          GROUP BY 1`,
+        [year]
+      )
+      const fechaByPlate = new Map<string, string>(fres.rows.map((r: { plate: string; fecha: string }) => [r.plate, r.fecha]))
+
+      const moved: string[] = []
+      const errores: string[] = []
+      for (const mat of moveMats) {
+        // releer SIEMPRE: cada moveDimension corre los índices
+        const fresh = await openTab(tab)
+        const fRows = fresh.rows
+        let srcRow = 0 // 1-based
+        fRows.forEach((r, i) => {
+          if (isBand(r) || isSubtotal(r)) return
+          if (normPlate(cell(r, 4)) === mat) srcRow = i + 1
+        })
+        if (!srcRow) { errores.push(`${mat}: no encontrada en la hoja`); continue }
+        // banda destino: fila de banda del mes → su subtotal
+        let bandRow = 0, subRow = 0
+        for (let i = 0; i < fRows.length; i++) {
+          if (isBand(fRows[i]) && cell(fRows[i], 0).toUpperCase() === moveMes) { bandRow = i + 1; continue }
+          if (bandRow && !subRow && isSubtotal(fRows[i])) { subRow = i + 1; break }
+        }
+        if (!bandRow || !subRow) { errores.push(`${mat}: banda ${moveMes} o su subtotal no encontrados`); continue }
+        if (srcRow > bandRow && srcRow < subRow) { moved.push(`${mat}: ya está en ${moveMes} (fila ${srcRow})`); continue }
+
+        if (!dryRun) {
+          // mover la fila a justo antes del subtotal del mes destino
+          await fresh.api.spreadsheets.batchUpdate({
+            spreadsheetId: SHEET_ID,
+            requestBody: {
+              requests: [{
+                moveDimension: {
+                  source: { sheetId: fresh.sheetId, dimension: 'ROWS', startIndex: srcRow - 1, endIndex: srcRow },
+                  destinationIndex: subRow - 1,
+                },
+              }],
+            },
+          })
+          // fila destino tras el move: si venía de arriba, todo lo de abajo subió 1
+          const newRow = srcRow < subRow ? subRow - 1 : subRow
+          const cellData: sheets_v4.Schema$ValueRange[] = [
+            { range: `${fresh.title}!B${newRow}`, values: [[moveMes]] },
+          ]
+          const fecha = fechaByPlate.get(mat)
+          if (fecha) cellData.push({ range: `${fresh.title}!A${newRow}`, values: [[fecha]] })
+          await fresh.api.spreadsheets.values.batchUpdate({
+            spreadsheetId: SHEET_ID,
+            requestBody: { valueInputOption: 'USER_ENTERED', data: cellData },
+          })
+          moved.push(`${mat}: fila ${srcRow} → ${newRow} (banda ${moveMes}, B=${moveMes}${fecha ? `, A=${fecha}` : ''})`)
+        } else {
+          moved.push(`${mat}: fila ${srcRow} → antes de subtotal ${moveMes} (fila ${subRow}) [dry-run]`)
+        }
+      }
+      return NextResponse.json({ ok: errores.length === 0, action: 'moveMes', dryRun, mes: moveMes, moved, errores })
     }
 
     const invoices = await getEmittedInvoices(year)
