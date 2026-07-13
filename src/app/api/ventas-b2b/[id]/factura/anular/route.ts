@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/direct-database'
 import { requireAdminSession } from '@/lib/apiAuth'
 import { appendRegistro } from '@/lib/facturacionRegistro'
+import { liberarVehiculoDeVentaB2B } from '@/lib/b2b-database'
 
 /**
  * POST /api/ventas-b2b/{id}/factura/anular
@@ -40,8 +41,10 @@ export async function POST(
         status: string
         invoice_date: string | Date
         total_amount: string
+        vehiculo_id: number | null
       }>(
-        `SELECT id, full_invoice_number, status, invoice_date, total_amount
+        `SELECT id, full_invoice_number, status, invoice_date, total_amount,
+                vehiculo_id
            FROM invoices
           WHERE b2b_venta_id = $1 AND status <> 'VOIDED'
           ORDER BY id DESC
@@ -88,6 +91,15 @@ export async function POST(
       })
 
       await client.query('COMMIT')
+
+      // Factura VOIDED → la venta deja de ser vigente (criterio de
+      // ventasUnificadas) → el coche vuelve a stock. Fuera del tx fiscal:
+      // el estado del vehículo nunca puede tumbar una anulación ya commiteada.
+      await liberarVehiculoDeVentaB2B(pool, {
+        vehiculoId: inv.vehiculo_id,
+        ventaId: ventaB2BId,
+        origen: `anular-factura-b2b:${inv.full_invoice_number}`,
+      })
 
       return NextResponse.json({
         voided: true,

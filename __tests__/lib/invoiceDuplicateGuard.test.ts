@@ -15,7 +15,11 @@ jest.mock('@vercel/blob', () => ({ put: jest.fn(), del: jest.fn() }))
 jest.mock('@/lib/contractGenerator', () => ({ generarFactura: jest.fn() }))
 jest.mock('@/lib/gestoriaWebhook', () => ({ notifyGestoriaInvoice: jest.fn() }))
 jest.mock('@/lib/costoBeneficio', () => ({ notifyCostoBeneficio: jest.fn() }))
-jest.mock('@/lib/b2b-database', () => ({ getVentaB2BById: jest.fn() }))
+jest.mock('@/lib/b2b-database', () => ({
+  getVentaB2BById: jest.fn(),
+  marcarVehiculoDeVentaB2BVendido: jest.fn(),
+  liberarVehiculoDeVentaB2B: jest.fn(),
+}))
 
 import { pool } from '@/lib/direct-database'
 import { put } from '@vercel/blob'
