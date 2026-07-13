@@ -793,38 +793,6 @@ export default function DealDetail() {
     }
   }
 
-  const handleAnularFactura = async () => {
-    if (!deal?.factura) return
-
-    try {
-      // Eliminar archivo físico del servidor
-      await fetch(`/api/documents/${deal.id}/factura`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dealNumber: deal.numero }),
-      })
-
-      // Actualizar base de datos
-      const response = await fetch(`/api/deals/${deal.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          factura: null,
-          estado: deal.contratoVenta ? 'vendido' : 'reservado', // Si tiene contrato de venta, mantener vendido
-        }),
-      })
-
-      if (response.ok) {
-        showToast('Factura anulada exitosamente', 'success')
-        await loadDeal()
-      } else {
-        showToast('Error al anular la factura', 'error')
-      }
-    } catch (error) {
-      console.error('Error anulando factura:', error)
-      showToast('Error al anular la factura', 'error')
-    }
-  }
 
   const handleConfirmFactura = async (
     tipoFactura: 'IVA' | 'REBU',
@@ -2289,14 +2257,18 @@ export default function DealDetail() {
                         </svg>
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">Factura</p>
+                        <p className="font-medium text-gray-900">
+                          Factura legacy
+                        </p>
                         <p className="text-sm text-gray-500">
-                          {deal.factura ? 'Generada' : 'No generada'}
+                          {deal.factura
+                            ? `${deal.factura} — del sistema anterior`
+                            : 'No generada'}
                         </p>
                       </div>
                     </div>
                     {deal.factura ? (
-                      <div className="flex space-x-2">
+                      <div className="flex items-center space-x-2">
                         <button
                           onClick={handleDescargarFactura}
                           disabled={isUpdating}
@@ -2304,13 +2276,16 @@ export default function DealDetail() {
                         >
                           Descargar
                         </button>
-                        <button
-                          onClick={handleAnularFactura}
-                          disabled={isUpdating}
-                          className="px-3 py-1 bg-red-100 text-red-700 rounded-md text-sm font-medium hover:bg-red-200 transition-colors"
+                        {/* El viejo "Anular" solo borraba el PDF y limpiaba
+                            Deal.factura: la factura fiscal seguía emitida y con
+                            su número consumido. Anular de verdad = rectificativa
+                            (sección Facturación). */}
+                        <span
+                          className="px-3 py-1 bg-gray-100 text-gray-500 rounded-md text-xs"
+                          title="Para anular una factura fiscal hay que emitir una rectificativa desde la sección Facturación."
                         >
-                          Anular
-                        </button>
+                          Para anular: rectificar en Facturación ↓
+                        </span>
                       </div>
                     ) : (
                       <span className="px-3 py-1 bg-gray-100 text-gray-400 rounded-md text-sm font-medium cursor-not-allowed">
