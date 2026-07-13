@@ -90,7 +90,10 @@ export default function CondicionesPagoModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-gray-900 bg-opacity-40 flex items-center justify-center z-50 p-4">
+    <div
+      data-testid="condiciones-pago-modal"
+      className="fixed inset-0 bg-gray-900 bg-opacity-40 flex items-center justify-center z-50 p-4"
+    >
       <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900">
@@ -113,6 +116,7 @@ export default function CondicionesPagoModal({
               Forma de pago *
             </label>
             <select
+              data-testid="forma-pago"
               value={formaPago}
               onChange={(e) => handleFormaPago(e.target.value as FormaPago | '')}
               className={inputClass}
@@ -131,6 +135,7 @@ export default function CondicionesPagoModal({
                   Banco / financiera *
                 </label>
                 <input
+                  data-testid="banco"
                   type="text"
                   list="bancos-sugeridos"
                   value={banco}
@@ -153,6 +158,7 @@ export default function CondicionesPagoModal({
                     Interés (% TIN) *
                   </label>
                   <input
+                    data-testid="interes"
                     type="number"
                     min="0"
                     step="0.01"
@@ -170,6 +176,7 @@ export default function CondicionesPagoModal({
                     Cuotas *
                   </label>
                   <input
+                    data-testid="cuotas"
                     type="number"
                     min="1"
                     step="1"
@@ -189,6 +196,7 @@ export default function CondicionesPagoModal({
                     Monto financiado (€) *
                   </label>
                   <input
+                    data-testid="monto-financiado"
                     type="number"
                     min="0"
                     step="0.01"
@@ -206,6 +214,7 @@ export default function CondicionesPagoModal({
                       Monto al contado (€) *
                     </label>
                     <input
+                      data-testid="monto-contado"
                       type="number"
                       min="0"
                       step="0.01"
@@ -243,6 +252,7 @@ export default function CondicionesPagoModal({
             <div className="flex gap-6">
               <label className="flex items-center gap-2 text-sm text-gray-800">
                 <input
+                  data-testid="garantia-si"
                   type="radio"
                   name="garantiaPremium"
                   checked={garantiaPremium === true}
@@ -255,6 +265,7 @@ export default function CondicionesPagoModal({
               </label>
               <label className="flex items-center gap-2 text-sm text-gray-800">
                 <input
+                  data-testid="garantia-no"
                   type="radio"
                   name="garantiaPremium"
                   checked={garantiaPremium === false}
@@ -269,7 +280,10 @@ export default function CondicionesPagoModal({
           </div>
 
           {error && (
-            <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+            <div
+              data-testid="condiciones-error"
+              className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700"
+            >
               {error}
             </div>
           )}
@@ -284,6 +298,7 @@ export default function CondicionesPagoModal({
             Cancelar
           </button>
           <button
+            data-testid="condiciones-submit"
             onClick={handleSubmit}
             disabled={isSubmitting}
             className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors ${

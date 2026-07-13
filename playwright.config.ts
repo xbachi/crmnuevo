@@ -3,6 +3,11 @@ import { defineConfig, devices } from '@playwright/test'
 /**
  * @see https://playwright.dev/docs/test-configuration
  */
+// El puerto es configurable (E2E_PORT) para poder correr la suite cuando el
+// 3000 ya está ocupado por otro dev server.
+const PORT = process.env.E2E_PORT || '3000'
+const BASE_URL = process.env.E2E_BASE_URL || `http://localhost:${PORT}`
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
@@ -15,7 +20,7 @@ export default defineConfig({
     ['junit', { outputFile: 'qa/artifacts/junit-results.xml' }],
   ],
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: BASE_URL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -58,10 +63,10 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
+    command: `npm run dev -- --port ${PORT}`,
+    url: BASE_URL,
     reuseExistingServer: !process.env.CI,
-    timeout: 120000,
+    timeout: 180000,
   },
 
   outputDir: 'qa/artifacts/test-results',
