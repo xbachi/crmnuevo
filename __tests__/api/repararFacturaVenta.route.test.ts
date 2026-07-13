@@ -148,7 +148,7 @@ describe('POST /api/expedientes/reparar-factura-venta — dryRun (por defecto)',
         matricula: '1111AAA',
         fecha: '2026-05-11',
         carpeta: '81-Seat-Leon-1111AAA',
-        archivo: 'Factura-Venta-F-2026-030.pdf',
+        archivo: 'Factura-Venta-Seat-Leon-1111AAA.pdf',
         aplicado: false,
       },
     ])
@@ -212,7 +212,7 @@ describe('POST /api/expedientes/reparar-factura-venta — dryRun:false', () => {
     expect(body.ok).toBe(true)
     expect(body.reparadas[0]).toMatchObject({
       numero: 'F-2026-030',
-      archivo: 'Factura-Venta-F-2026-030.pdf',
+      archivo: 'Factura-Venta-Seat-Leon-1111AAA.pdf',
       aplicado: true,
     })
 

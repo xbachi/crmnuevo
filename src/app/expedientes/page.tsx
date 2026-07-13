@@ -63,6 +63,20 @@ interface ReparacionFacturaVenta {
   notaSinPdf?: string
 }
 
+interface NormalizacionNombres {
+  ok: boolean
+  dryRun: boolean
+  year: number
+  quarter: number
+  carpetas: number
+  renombrados: { carpeta: string; de: string; a: string }[]
+  duplicados: { carpeta: string; nombre: string; duplicadoDe: string }[]
+  omitidos: { carpeta: string; nombre: string; motivo: string }[]
+  yaCanonicos: { carpeta: string; nombre: string }[]
+  fallidos: { carpeta: string; nombre: string; motivo: string }[]
+  nota?: string
+}
+
 const ESTADO_BADGE: Record<EstadoExpediente, string> = {
   incompleto: 'bg-red-100 text-red-700',
   completo: 'bg-green-100 text-green-700',
@@ -85,8 +99,52 @@ export default function ExpedientesPage() {
   const [chequeando, setChequeando] = useState(false)
   const [reparacion, setReparacion] = useState<ReparacionFacturaVenta | null>(null)
   const [reparando, setReparando] = useState(false)
+  const [nombres, setNombres] = useState<NormalizacionNombres | null>(null)
+  const [normalizando, setNormalizando] = useState(false)
   const { showToast } = useToast()
   const { isAdmin } = useAuth()
+
+  const runNormalizacion = async (dryRun: boolean) => {
+    if (quarter === 'todos') return
+    setNormalizando(true)
+    try {
+      const res = await fetch('/api/expedientes/normalizar-nombres', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ year, quarter, dryRun }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(body.nota || body.error || 'Error al normalizar los nombres')
+      setNombres(body as NormalizacionNombres)
+      if (!dryRun) {
+        const n = (body as NormalizacionNombres).renombrados.length
+        showToast(
+          n > 0 ? `${n} archivo(s) renombrados en OneDrive` : 'No había nada que renombrar',
+          n > 0 ? 'success' : 'info'
+        )
+      }
+    } catch (err) {
+      console.error(err)
+      showToast(err instanceof Error ? err.message : 'Error al normalizar', 'error')
+    } finally {
+      setNormalizando(false)
+    }
+  }
+
+  const aplicarNormalizacion = async () => {
+    if (!nombres) return
+    const total = nombres.renombrados.length + nombres.duplicados.length
+    if (total === 0) return
+    const ok = window.confirm(
+      `Se van a renombrar ${nombres.renombrados.length} archivo(s)` +
+        (nombres.duplicados.length > 0
+          ? ` y borrar ${nombres.duplicados.length} duplicado(s) exactos`
+          : '') +
+        ' en OneDrive. Queda registrado y es reversible. ¿Aplicar?'
+    )
+    if (!ok) return
+    await runNormalizacion(false)
+  }
 
   const runReparacion = async (dryRun: boolean) => {
     if (quarter === 'todos') return
@@ -318,8 +376,35 @@ export default function ExpedientesPage() {
                   {reparando ? 'Reparando…' : 'Reparar facturas de venta'}
                 </button>
               )}
+              {isAdmin && (
+                <button
+                  onClick={() => runNormalizacion(true)}
+                  disabled={normalizando || quarter === 'todos'}
+                  title={
+                    quarter === 'todos'
+                      ? 'Elegí un trimestre concreto para normalizar'
+                      : 'Simula primero: no renombra nada hasta confirmar'
+                  }
+                  className={`px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all ${
+                    normalizando || quarter === 'todos'
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      : 'bg-teal-600 text-white hover:bg-teal-700'
+                  }`}
+                >
+                  {normalizando ? 'Normalizando…' : 'Normalizar nombres de archivos'}
+                </button>
+              )}
             </div>
           </div>
+
+          {/* Normalización de nombres de archivo en OneDrive */}
+          {nombres && (
+            <NombresPanel
+              nom={nombres}
+              onAplicar={aplicarNormalizacion}
+              aplicando={normalizando}
+            />
+          )}
 
           {/* Reparación de facturas de venta */}
           {reparacion && (
@@ -534,6 +619,116 @@ function ExpedienteRow({
         </tr>
       )}
     </>
+  )
+}
+
+function NombresPanel({
+  nom,
+  onAplicar,
+  aplicando,
+}: {
+  nom: NormalizacionNombres
+  onAplicar: () => void
+  aplicando: boolean
+}) {
+  const pendientes = nom.renombrados.length + nom.duplicados.length
+
+  return (
+    <div className="bg-white rounded-xl shadow-md border border-teal-200 p-4 space-y-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <h3 className="text-sm font-bold text-gray-800">
+          Nombres de archivo — {nom.quarter}T {nom.year}
+        </h3>
+        <span className="text-xs text-gray-500">
+          {nom.carpetas} carpeta(s) · {nom.renombrados.length}{' '}
+          {nom.dryRun ? 'a renombrar' : 'renombrados'} · {nom.duplicados.length} duplicado(s) ·{' '}
+          {nom.omitidos.length} sin tocar · {nom.yaCanonicos.length} ya correctos
+        </span>
+        {nom.dryRun && pendientes > 0 && (
+          <button
+            onClick={onAplicar}
+            disabled={aplicando}
+            className={`ml-auto px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all ${
+              aplicando
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'bg-teal-600 text-white hover:bg-teal-700'
+            }`}
+          >
+            {aplicando ? 'Aplicando…' : `Aplicar (${pendientes})`}
+          </button>
+        )}
+      </div>
+
+      {nom.nota && <div className="text-xs text-gray-500">{nom.nota}</div>}
+
+      {nom.renombrados.length > 0 && (
+        <div className="space-y-1">
+          <div className="text-xs font-bold text-gray-700">
+            {nom.dryRun ? 'Se renombrarán' : 'Renombrados'} ({nom.renombrados.length})
+          </div>
+          {nom.renombrados.map((r) => (
+            <div
+              key={`${r.carpeta}-${r.de}`}
+              className="flex flex-wrap items-center gap-2 border border-gray-100 rounded-lg px-3 py-2 text-xs"
+            >
+              <span className="font-medium text-gray-900">{r.carpeta}</span>
+              <span className="text-gray-500 line-through">{r.de}</span>
+              <span className="text-gray-400">→</span>
+              <span className="px-2 py-1 rounded-full bg-teal-100 text-teal-800 font-medium">
+                {r.a}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {nom.duplicados.length > 0 && (
+        <div className="space-y-1">
+          <div className="text-xs font-bold text-yellow-800">
+            Duplicados exactos ({nom.duplicados.length}) — {nom.dryRun ? 'se borrarán' : 'borrados'}
+          </div>
+          {nom.duplicados.map((d) => (
+            <div
+              key={`${d.carpeta}-${d.nombre}`}
+              className="border border-yellow-100 bg-yellow-50 rounded-lg px-3 py-2 text-xs text-yellow-900"
+            >
+              <span className="font-medium">{d.carpeta}</span> · {d.nombre}
+              {d.duplicadoDe ? ` = ${d.duplicadoDe} (mismo contenido)` : ''}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {nom.omitidos.length > 0 && (
+        <div className="space-y-1">
+          <div className="text-xs font-bold text-gray-700">
+            Sin tocar ({nom.omitidos.length}) — no se renombra lo que no está identificado con
+            certeza
+          </div>
+          {nom.omitidos.map((o) => (
+            <div
+              key={`${o.carpeta}-${o.nombre}`}
+              className="flex flex-wrap items-center gap-2 border border-gray-100 rounded-lg px-3 py-2 text-xs"
+            >
+              <span className="font-medium text-gray-900">{o.carpeta}</span>
+              <span className="text-gray-700">{o.nombre}</span>
+              <span className="ml-auto text-gray-500">{o.motivo}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {nom.fallidos.length > 0 && (
+        <div className="space-y-1">
+          <div className="text-xs font-bold text-red-700">Fallos ({nom.fallidos.length})</div>
+          {nom.fallidos.map((f) => (
+            <div key={`${f.carpeta}-${f.nombre}`} className="text-xs text-red-700">
+              {f.carpeta} / {f.nombre}: {f.motivo}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 

@@ -12,6 +12,7 @@
  */
 
 import { insertOutboxPending, markOutboxEnviado, markOutboxFallo } from '@/lib/webhookOutbox'
+import { nombreFacturaVenta } from '@/lib/nombreCanonico'
 
 export interface GestoriaInvoicePayload {
   numeroFactura: string
@@ -21,6 +22,9 @@ export interface GestoriaInvoicePayload {
   modelo: string | null
   tipo: string // 'VAT' | 'REBU' | ...
   pdfBase64: string
+  /** Canonical file name the receiver must use (see src/lib/nombreCanonico.ts).
+   *  Filled in by postGestoriaWebhook — callers don't need to set it. */
+  nombreArchivo?: string
 }
 
 export interface WebhookSendResult {
@@ -40,6 +44,17 @@ export async function postGestoriaWebhook(
   const secret = process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 6_000)
+  // El nombre del archivo lo decide el CRM (convención canónica), no el receptor:
+  // así la factura nace ya con el nombre bueno y no hay que renombrarla después.
+  const conNombre: GestoriaInvoicePayload = {
+    ...payload,
+    nombreArchivo:
+      payload.nombreArchivo ??
+      nombreFacturaVenta(
+        { marca: payload.marca, modelo: payload.modelo, matricula: payload.matricula },
+        payload.numeroFactura
+      ),
+  }
   try {
     const res = await fetch(url, {
       method: 'POST',
@@ -47,7 +62,7 @@ export async function postGestoriaWebhook(
         'Content-Type': 'application/json',
         'X-Webhook-Secret': secret,
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(conNombre),
       signal: controller.signal,
     })
     if (!res.ok) {

@@ -150,6 +150,20 @@ export interface ArchivoAmbiguo {
   motivo: string
 }
 
+/** Estado de un archivo concreto de la carpeta. Sólo `clasificado` es seguro de
+ *  renombrar: el resto se toca a mano. */
+export type EstadoArchivo = 'clasificado' | 'ambiguo' | 'irrelevante' | 'conflicto'
+
+export interface ArchivoClasificado {
+  nombre: string
+  hash: string | null
+  doc: DocClave | null
+  /** de dónde salió la identificación (null si no se identificó) */
+  fuente: 'hash' | 'nombre' | null
+  estado: EstadoArchivo
+  motivo?: string
+}
+
 export interface AnalisisCarpeta {
   docs: DocsDetectados
   /** mismo contenido guardado dos veces (mismo tipo de doc) */
@@ -158,6 +172,8 @@ export interface AnalisisCarpeta {
   mismoArchivoDosNombres: AlertaConflicto[]
   /** no clasificable ni por hash ni por nombre → revisar a mano */
   ambiguos: ArchivoAmbiguo[]
+  /** clasificación archivo por archivo (base del renombrado canónico) */
+  archivos: ArchivoClasificado[]
 }
 
 export interface CtxDeteccion {
@@ -215,6 +231,8 @@ export function analizarCarpeta(
   }
 
   // 2. Clasificación archivo por archivo: hash → nombre → ambiguo.
+  const clasificados: ArchivoClasificado[] = []
+  const CONFLICTO = 'mismo contenido que otro archivo con nombre de otro documento'
   for (const a of archivos ?? []) {
     const h = normHash(a.hash)
     const reg = h ? ctx.hashes?.get(h) : undefined
@@ -222,25 +240,50 @@ export function analizarCarpeta(
     // tiene matrícula): un PDF de otro coche en esta carpeta no la completa.
     if (reg && (!reg.matricula || !plate || reg.matricula === plate)) {
       docs[reg.doc] = true
+      // Identificado por contenido, pero si además está en un grupo en conflicto
+      // no se puede tocar: renombrarlo consolidaría un documento que no existe.
+      clasificados.push(
+        enConflicto.has(h!)
+          ? { nombre: a.nombre, hash: h, doc: reg.doc, fuente: 'hash', estado: 'conflicto', motivo: CONFLICTO }
+          : { nombre: a.nombre, hash: h, doc: reg.doc, fuente: 'hash', estado: 'clasificado' }
+      )
       continue
     }
     if (h && enConflicto.has(h)) {
-      ambiguos.push({
+      ambiguos.push({ nombre: a.nombre, motivo: CONFLICTO })
+      clasificados.push({
         nombre: a.nombre,
-        motivo: 'mismo contenido que otro archivo con nombre de otro documento',
+        hash: h,
+        doc: null,
+        fuente: null,
+        estado: 'conflicto',
+        motivo: CONFLICTO,
       })
       continue
     }
     const c = clasificarPorNombre(a.nombre)
-    if (c === 'irrelevante') continue
+    if (c === 'irrelevante') {
+      clasificados.push({
+        nombre: a.nombre,
+        hash: h,
+        doc: null,
+        fuente: null,
+        estado: 'irrelevante',
+        motivo: 'documento que no es de la checklist',
+      })
+      continue
+    }
     if (c === 'ambiguo') {
-      ambiguos.push({ nombre: a.nombre, motivo: 'no se pudo clasificar por hash ni por nombre' })
+      const motivo = 'no se pudo clasificar por hash ni por nombre'
+      ambiguos.push({ nombre: a.nombre, motivo })
+      clasificados.push({ nombre: a.nombre, hash: h, doc: null, fuente: null, estado: 'ambiguo', motivo })
       continue
     }
     docs[c] = true
+    clasificados.push({ nombre: a.nombre, hash: h, doc: c, fuente: 'nombre', estado: 'clasificado' })
   }
 
-  return { docs, duplicados, mismoArchivoDosNombres, ambiguos }
+  return { docs, duplicados, mismoArchivoDosNombres, ambiguos, archivos: clasificados }
 }
 
 /** Qué documentos hay en la carpeta (atajo de analizarCarpeta). */
