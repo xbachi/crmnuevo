@@ -55,6 +55,10 @@ export interface IssueOptions {
   userRole?: string | null
   /** Explicitly bypass the anti-duplicate-vehicle guard (legitimate resale). */
   allowDuplicate?: boolean
+  /** Don't await the gestoría/costo-beneficio notifications inline: return them
+   *  as `IssueResult.runNotifications` so the caller (a route handler) can run
+   *  them with `after()` once the response is already on the wire. */
+  deferNotifications?: boolean
 }
 
 export interface PreviewResult {
@@ -78,6 +82,10 @@ export interface IssueResult {
   /** True when a duplicate-vehicle invoice was found but the caller passed
    *  allowDuplicate:true to proceed anyway (legitimate resale). */
   duplicateOverride?: boolean
+  /** Only set when `deferNotifications:true`. Off the critical path: the invoice
+   *  already exists and already has its fiscal number, so the caller must send
+   *  the response first and run this with `after()`. Never throws. */
+  runNotifications?: () => Promise<void>
 }
 
 // ---------------------------------------------------------------------------
@@ -196,14 +204,22 @@ export async function issueInvoice(opts: IssueOptions): Promise<IssueResult> {
     })
     if (conflict) {
       if (!opts.allowDuplicate) {
+        const origen =
+          conflict.deal_id != null
+            ? `deal ${conflict.deal_id}`
+            : conflict.b2b_venta_id != null
+              ? `venta B2B ${conflict.b2b_venta_id}`
+              : conflict.origin
         throw new InvoiceServiceError(
           'VEHICLE_ALREADY_INVOICED',
-          `El vehículo ya tiene una factura de venta activa (${conflict.full_invoice_number}, origen ${conflict.origin}).`,
+          `Este coche ya está facturado en ${conflict.full_invoice_number} (${origen}). Emitir otra factura del mismo coche es una duplicación fiscal.`,
           {
             existingInvoiceId: conflict.id,
             fullInvoiceNumber: conflict.full_invoice_number,
             origin: conflict.origin,
             status: conflict.status,
+            dealId: conflict.deal_id,
+            b2bVentaId: conflict.b2b_venta_id,
           }
         )
       }
@@ -234,6 +250,7 @@ export async function issueInvoice(opts: IssueOptions): Promise<IssueResult> {
   // Best-effort: expediente (deal jacket) de la venta, FUERA de la transacción
   // de numeración. La emisión nunca falla por el expediente; si el INSERT
   // falla, el backfill/recalcular lo repone después.
+  const stage = stageTimer(reserved.invoice.full_invoice_number)
   try {
     await crearExpedienteAlEmitir(pool, {
       invoiceType: opts.invoiceType,
@@ -249,11 +266,15 @@ export async function issueInvoice(opts: IssueOptions): Promise<IssueResult> {
       expedienteError
     )
   }
+  stage('expediente')
 
-  // 4. Generate + upload PDF (best effort; row stays PDF_PENDING on failure)
+  // 4. Generate + upload PDF (best effort; row stays PDF_PENDING on failure).
+  //    El PDF y el blob SÍ van inline: el usuario lo descarga al instante.
   try {
     const pdf = await generatePdf(reserved.invoice, sale)
+    stage('pdf')
     const upload = await uploadPdfToBlob(reserved.invoice.full_invoice_number, pdf)
+    stage('blob')
 
     const updated = await pool.query<Invoice>(
       `UPDATE invoices
@@ -266,29 +287,51 @@ export async function issueInvoice(opts: IssueOptions): Promise<IssueResult> {
        RETURNING *`,
       [upload.url, upload.pathname, reserved.invoice.id]
     )
+    stage('update')
 
-    // Best-effort: file the PDF into OneDrive/GESTORIA via n8n. Never blocks or
-    // breaks issuance (no-op unless configured; notify swallows all errors).
-    await notifyGestoriaInvoice({
-      numeroFactura: reserved.invoice.full_invoice_number,
-      fechaISO: invoiceDate,
-      matricula: vehicle.plate,
-      marca: vehicle.make,
-      modelo: vehicle.model,
-      tipo: opts.invoiceType,
-      pdfBase64: Buffer.from(pdf).toString('base64'),
-    })
+    // Archivado en OneDrive/GESTORIA (n8n, PDF en base64 → rclone) + bloque
+    // coste/beneficio en Google Sheets. Los dos son lentos (segundos, a veces
+    // decenas) y NINGUNO es necesario para responderle al usuario: la factura
+    // ya existe, ya tiene número fiscal y ya tiene PDF. Best-effort: ninguno
+    // lanza (dejan traza en webhook_outbox).
+    const runNotifications = async () => {
+      try {
+        await notifyGestoriaInvoice({
+          numeroFactura: reserved.invoice.full_invoice_number,
+          fechaISO: invoiceDate,
+          matricula: vehicle.plate,
+          marca: vehicle.make,
+          modelo: vehicle.model,
+          tipo: opts.invoiceType,
+          pdfBase64: Buffer.from(pdf).toString('base64'),
+        })
+        stage('notify:gestoria')
+        await notifyCostoBeneficio({
+          dealId: opts.dealId,
+          numeroFactura: reserved.invoice.full_invoice_number,
+          invoiceType: opts.invoiceType,
+          invoiceDate,
+          salePrice: amounts.total_amount,
+        })
+        stage('notify:costobeneficio')
+      } catch (notifyError) {
+        console.error(
+          `[invoiceService] notifications failed for ${reserved.invoice.full_invoice_number}:`,
+          notifyError
+        )
+      }
+    }
 
-    // Best-effort: bloque coste/beneficio en Google Sheets. Igual que el
-    // webhook de gestoría: nunca lanza ni bloquea la emisión.
-    await notifyCostoBeneficio({
-      dealId: opts.dealId,
-      numeroFactura: reserved.invoice.full_invoice_number,
-      invoiceType: opts.invoiceType,
-      invoiceDate,
-      salePrice: amounts.total_amount,
-    })
+    if (opts.deferNotifications) {
+      return {
+        invoice: updated.rows[0],
+        alreadyExisted: false,
+        duplicateOverride,
+        runNotifications,
+      }
+    }
 
+    await runNotifications()
     return { invoice: updated.rows[0], alreadyExisted: false, duplicateOverride }
   } catch (pdfError) {
     console.error(
@@ -381,6 +424,20 @@ export async function regeneratePdf(
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
+
+/** Duración por etapa de la emisión, para poder ver en los logs de Vercel dónde
+ *  se va el tiempo (el PDF y el blob son inline; las notificaciones no). */
+function stageTimer(invoiceNumber: string) {
+  let last = Date.now()
+  const start = last
+  return (name: string) => {
+    const now = Date.now()
+    console.log(
+      `[invoiceService] ${invoiceNumber} ${name}=${now - last}ms total=${now - start}ms`
+    )
+    last = now
+  }
+}
 
 interface SaleSnapshot {
   id: number

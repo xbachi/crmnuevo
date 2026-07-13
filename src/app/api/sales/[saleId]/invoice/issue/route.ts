@@ -1,7 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { issueInvoice, InvoiceServiceError } from '@/lib/invoiceService'
 import type { InvoiceType } from '@/lib/invoiceRepository'
 import { requireApiSession } from '@/lib/apiAuth'
+
+// PDF + subida al blob van inline (el usuario descarga la factura enseguida);
+// el archivado en OneDrive y la hoja de costo/beneficio se ejecutan con after(),
+// ya fuera del camino crítico pero dentro de la misma invocación.
+export const maxDuration = 60
 
 /**
  * POST /api/sales/{saleId}/invoice/issue
@@ -51,15 +56,20 @@ export async function POST(
       request.headers.get('idempotency-key') ||
       null
 
-    const result = await issueInvoice({
+    const { runNotifications, ...result } = await issueInvoice({
       dealId: saleId,
       invoiceType,
       idempotencyKey,
       notes: typeof body?.notes === 'string' ? body.notes : null,
       allowDuplicate: body?.allowDuplicate === true,
+      deferNotifications: true,
       userId: String(auth.session.uid),
       userRole: auth.session.role,
     })
+
+    // Fuera del camino crítico: la factura ya existe, ya tiene número fiscal y
+    // ya tiene PDF. after() las corre cuando la respuesta ya salió.
+    if (runNotifications) after(runNotifications)
 
     return NextResponse.json(result, {
       status: result.alreadyExisted ? 200 : 201,

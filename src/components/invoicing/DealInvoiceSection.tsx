@@ -95,7 +95,17 @@ export default function DealInvoiceSection({
   const [previewType, setPreviewType] = useState<'VAT' | 'REBU' | null>(null)
   const [issuing, setIssuing] = useState(false)
   const [downloadingId, setDownloadingId] = useState<number | null>(null)
-  const [justIssued, setJustIssued] = useState<string | null>(null)
+  /** Factura recién emitida en esta sesión. Se conserva aparte de `invoices`
+   *  para que el refetch NO la pise si el listado del servidor todavía no la
+   *  devuelve (réplica/caché): el usuario tiene que verla al instante. */
+  const [justIssued, setJustIssued] = useState<Invoice | null>(null)
+  const [bannerClosed, setBannerClosed] = useState(false)
+  /** Coche ya facturado en otra venta: mensaje del servidor + tipo pendiente,
+   *  para poder forzar la emisión con allowDuplicate tras confirmación. */
+  const [dupConflict, setDupConflict] = useState<{
+    message: string
+    type: 'VAT' | 'REBU'
+  } | null>(null)
 
   const handleDownload = useCallback(
     async (inv: Invoice) => {
@@ -110,20 +120,23 @@ export default function DealInvoiceSection({
     [showToast]
   )
 
-  const load = useCallback(async () => {
-    setIsLoading(true)
-    try {
-      const res = await fetch(`/api/invoices?dealId=${saleId}&pageSize=10`)
-      if (res.ok) {
-        const data = await res.json()
-        setInvoices(data.rows ?? [])
+  const load = useCallback(
+    async (silent = false) => {
+      if (!silent) setIsLoading(true)
+      try {
+        const res = await fetch(`/api/invoices?dealId=${saleId}&pageSize=10`)
+        if (res.ok) {
+          const data = await res.json()
+          setInvoices(data.rows ?? [])
+        }
+      } catch (e) {
+        console.error('[DealInvoiceSection] load', e)
+      } finally {
+        if (!silent) setIsLoading(false)
       }
-    } catch (e) {
-      console.error('[DealInvoiceSection] load', e)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [saleId])
+    },
+    [saleId]
+  )
 
   useEffect(() => {
     load()
@@ -149,17 +162,41 @@ export default function DealInvoiceSection({
     }
   }
 
-  const handleIssue = async (type: 'VAT' | 'REBU') => {
+  // Facturas que se listan (todo lo que no está anulado). Una RECTIFIED sigue
+  // en el histórico, pero NO bloquea: su abono (FR) la dejó sin efecto y la
+  // venta se puede volver a facturar. Un abono (invoice_type RECTIFYING)
+  // tampoco bloquea — no es una factura de venta.
+  const knownInvoices =
+    justIssued && !invoices.some((i) => i.id === justIssued.id)
+      ? [justIssued, ...invoices]
+      : invoices
+  const listedInvoices = knownInvoices.filter((i) => i.status !== 'VOIDED')
+  const hasActiveInvoice = listedInvoices.some(
+    (i) => i.status !== 'RECTIFIED' && i.invoice_type !== 'RECTIFYING'
+  )
+  const activeInvoice = listedInvoices.find(
+    (i) => i.status !== 'RECTIFIED' && i.invoice_type !== 'RECTIFYING'
+  )
+
+  const handleIssue = async (
+    type: 'VAT' | 'REBU',
+    opts: { allowDuplicate?: boolean } = {}
+  ) => {
     if (issuing) return
-    const confirmation = window.confirm(
-      `¿Emitir factura ${type === 'VAT' ? 'con IVA' : 'REBU'}?\n\n` +
-        'Esta acción consume el siguiente número fiscal del CRM y crea una factura ' +
-        'definitiva. Solo se puede revertir desde el módulo de facturación.\n\n' +
-        '¿Confirmás?'
-    )
-    if (!confirmation) return
+    if (hasActiveInvoice) return // ya facturado: no se re-emite, se rectifica
+
+    if (!opts.allowDuplicate) {
+      const confirmation = window.confirm(
+        `¿Emitir factura ${type === 'VAT' ? 'con IVA' : 'REBU'}?\n\n` +
+          'Esta acción consume el siguiente número fiscal del CRM y crea una factura ' +
+          'definitiva. Solo se puede revertir desde el módulo de facturación.\n\n' +
+          '¿Confirmás?'
+      )
+      if (!confirmation) return
+    }
 
     setIssuing(true)
+    setDupConflict(null)
     const idempotencyKey = uuidv4()
     try {
       const res = await fetch(`/api/sales/${saleId}/invoice/issue`, {
@@ -168,10 +205,22 @@ export default function DealInvoiceSection({
           'Content-Type': 'application/json',
           'Idempotency-Key': idempotencyKey,
         },
-        body: JSON.stringify({ invoiceType: type }),
+        body: JSON.stringify({
+          invoiceType: type,
+          ...(opts.allowDuplicate ? { allowDuplicate: true } : {}),
+        }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
+        // El coche ya está facturado en OTRA venta: mostramos el mensaje del
+        // servidor tal cual y ofrecemos forzar (duplicación fiscal consciente).
+        if (data?.code === 'VEHICLE_ALREADY_INVOICED') {
+          setDupConflict({
+            message: data.error ?? 'Este coche ya está facturado en otra venta.',
+            type,
+          })
+          return
+        }
         showToast(data?.error ?? 'Error al emitir factura.', 'error')
         return
       }
@@ -194,18 +243,27 @@ export default function DealInvoiceSection({
           data.invoice,
           ...prev.filter((i) => i.id !== data.invoice.id),
         ])
-        setJustIssued(data.invoice.full_invoice_number)
+        setJustIssued(data.invoice)
+        setBannerClosed(false)
       }
       setPreview(null)
       setPreviewType(null)
-      await load()
+      setDupConflict(null)
       if (onInvoiceIssued) {
         await onInvoiceIssued()
       }
     } catch (e) {
       console.error(e)
-      showToast('Error al emitir factura.', 'error')
+      showToast(
+        'Error de red al emitir la factura. Puede que se haya emitido igual: ' +
+          'revisá abajo antes de reintentar.',
+        'error'
+      )
     } finally {
+      // Reconciliamos SIEMPRE con el servidor (también tras un error o un
+      // timeout): si la factura se creó, los botones quedan bloqueados y no se
+      // puede emitir una segunda por reintento manual.
+      await load(true)
       setIssuing(false)
     }
   }
@@ -218,16 +276,14 @@ export default function DealInvoiceSection({
     )
   }
 
-  // Active invoice = anything that's not VOIDED. IMPORTED counts (it's the
-  // legacy invoice already emitted externally — don't issue another one).
-  const activeInvoices = invoices.filter((i) => i.status !== 'VOIDED')
-
-  if (activeInvoices.length > 0) {
-    // Show the existing invoice(s) summary; suppress the "issue" buttons.
+  if (hasActiveInvoice) {
+    // Ya facturado: los botones de emisión quedan deshabilitados de forma
+    // PERMANENTE (no solo durante el request). Para cambiar la factura hay que
+    // rectificar desde el detalle.
     return (
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
         <ToastContainer />
-        {justIssued && (
+        {justIssued && !bannerClosed && (
           <div className="px-4 py-3 bg-green-50 border-b border-green-200 flex items-start justify-between">
             <div className="flex items-center space-x-2 text-green-800">
               <svg
@@ -244,11 +300,11 @@ export default function DealInvoiceSection({
                 />
               </svg>
               <span className="text-sm font-medium">
-                ✓ Factura {justIssued} generada correctamente.
+                ✓ Factura {justIssued.full_invoice_number} generada correctamente.
               </span>
             </div>
             <button
-              onClick={() => setJustIssued(null)}
+              onClick={() => setBannerClosed(true)}
               className="text-green-600 hover:text-green-800 text-xs font-medium"
             >
               Cerrar
@@ -259,7 +315,7 @@ export default function DealInvoiceSection({
           <h3 className="text-sm font-semibold text-gray-900">Facturación</h3>
         </div>
         <div className="divide-y divide-gray-100">
-          {activeInvoices.map((inv) => (
+          {listedInvoices.map((inv) => (
             <div
               key={inv.id}
               className="px-4 py-3 flex items-center justify-between"
@@ -300,8 +356,31 @@ export default function DealInvoiceSection({
             </div>
           ))}
         </div>
-        <div className="px-4 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
-          Para emitir una factura rectificativa o anular, abrí el detalle.
+        <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 space-y-2">
+          <div className="flex space-x-2">
+            <button
+              type="button"
+              disabled
+              title="Esta venta ya está facturada"
+              className="px-3 py-1.5 bg-gray-200 text-gray-500 text-xs font-medium rounded cursor-not-allowed"
+            >
+              Emitir IVA
+            </button>
+            <button
+              type="button"
+              disabled
+              title="Esta venta ya está facturada"
+              className="px-3 py-1.5 bg-gray-200 text-gray-500 text-xs font-medium rounded cursor-not-allowed"
+            >
+              Emitir REBU
+            </button>
+          </div>
+          <p className="text-xs text-gray-500">
+            Esta venta <strong>ya está facturada</strong>
+            {activeInvoice ? ` (${activeInvoice.full_invoice_number})` : ''}. No se
+            puede volver a emitir: para cambiarla hay que emitir una factura
+            rectificativa (o anularla) desde el detalle.
+          </p>
         </div>
       </div>
     )
@@ -328,8 +407,8 @@ export default function DealInvoiceSection({
             />
           </svg>
           <span className="text-sm font-medium">
-            Generando la factura y el PDF… puede tardar unos segundos, no cierres
-            la página.
+            Emitiendo… (puede tardar unos segundos). Se está generando la factura
+            y el PDF, no cierres la página.
           </span>
         </div>
       )}
@@ -352,6 +431,49 @@ export default function DealInvoiceSection({
             actual. Si volvés a emitir desde acá, vas a consumir un nuevo número
             fiscal. Si la legacy ya está cerrada con el gestor, no la vuelvas a
             emitir.
+          </div>
+        )}
+
+        {listedInvoices.length > 0 && (
+          <div className="bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded p-3">
+            Esta venta tuvo factura ({listedInvoices
+              .map((i) => i.full_invoice_number)
+              .join(', ')}
+            ), rectificada o anulada. Podés emitir una nueva: consumirá un número
+            fiscal nuevo.
+          </div>
+        )}
+
+        {dupConflict && (
+          <div className="bg-red-50 border-2 border-red-400 rounded p-3 space-y-2">
+            <p className="text-sm font-semibold text-red-900">
+              Coche ya facturado — riesgo de duplicación fiscal
+            </p>
+            <p className="text-xs text-red-800">{dupConflict.message}</p>
+            <div className="flex space-x-2 pt-1">
+              <button
+                onClick={() => {
+                  const ok = window.confirm(
+                    `${dupConflict.message}\n\n` +
+                      'Si emitís igual, el mismo coche va a quedar con DOS facturas de ' +
+                      'venta activas (duplicación fiscal). Solo seguí si es una reventa ' +
+                      'real del mismo vehículo.\n\n¿Emitir igualmente?'
+                  )
+                  if (ok) handleIssue(dupConflict.type, { allowDuplicate: true })
+                }}
+                disabled={issuing}
+                className="px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded hover:bg-red-700 disabled:opacity-50"
+              >
+                {issuing ? 'Emitiendo…' : 'Emitir igualmente (duplicación fiscal)'}
+              </button>
+              <button
+                onClick={() => setDupConflict(null)}
+                disabled={issuing}
+                className="px-3 py-1.5 bg-white text-gray-700 text-xs font-medium rounded border border-gray-300 hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+            </div>
           </div>
         )}
 
