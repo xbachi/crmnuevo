@@ -26,6 +26,9 @@ export const ESTADOS_EXPEDIENTE = [
   'completo',
   'enviado',
   'confirmado',
+  // Factura rectificada (anulada con una FR): el expediente deja de ser un
+  // pendiente del trimestre. Terminal — el recálculo no lo degrada.
+  'anulado',
 ] as const
 export type EstadoExpediente = (typeof ESTADOS_EXPEDIENTE)[number]
 
@@ -91,6 +94,7 @@ export function faltanRequeridos(checklist: ChecklistItem[]): string[] {
 
 /**
  * Estado derivado de la checklist.
+ *  - 'anulado' (factura rectificada) es terminal: se conserva.
  *  - Falta algún requerido → 'incompleto' SIEMPRE (aunque estuviera en
  *    enviado/confirmado: se degrada — un expediente incompleto nunca está
  *    finalizado).
@@ -101,6 +105,9 @@ export function evaluarEstado(
   checklist: ChecklistItem[],
   estadoActual: EstadoExpediente = 'incompleto'
 ): EstadoExpediente {
+  // 'anulado' es terminal: la factura ya no existe operativamente, no tiene
+  // sentido exigirle documentos.
+  if (estadoActual === 'anulado') return 'anulado'
   if (faltanRequeridos(checklist).length > 0) return 'incompleto'
   return estadoActual === 'incompleto' ? 'completo' : estadoActual
 }

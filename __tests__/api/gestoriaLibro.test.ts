@@ -141,6 +141,73 @@ describe('GET /api/gestoria/libro', () => {
     expect(json.totales.emitidas_vat).toMatchObject({ count: 1, base: 10000, cuota: 2100 })
   })
 
+  it('rectificativas: la original RECTIFIED y la FR negativa se listan juntas y netean a CERO', async () => {
+    // Un par VAT (F-2026-0031 rectificada por FR-2026-001) y un par REBU
+    // (R-2026-0032 rectificada por FR-2026-002).
+    const PARES = [
+      { ...EMITIDAS[0], status: 'RECTIFIED' },
+      {
+        full_invoice_number: 'FR-2026-001',
+        invoice_date: '2026-06-01',
+        invoice_type: 'RECTIFYING',
+        status: 'PDF_PENDING',
+        vehicle_plate: '1111AAA',
+        vehiculo_id: 10,
+        total_amount: '-12100.00',
+        taxable_base: '-10000.00',
+        vat_amount: '-2100.00',
+        precio_compra: '8000.00',
+        precio_venta: '12100.00',
+      },
+      { ...EMITIDAS[1], status: 'RECTIFIED' },
+      {
+        full_invoice_number: 'FR-2026-002',
+        invoice_date: '2026-06-01',
+        invoice_type: 'RECTIFYING',
+        status: 'PDF_PENDING',
+        vehicle_plate: '2222BBB',
+        vehiculo_id: 11,
+        total_amount: '-9000.00',
+        taxable_base: null, // rectificativa de una REBU → sin desglose
+        vat_amount: null,
+        precio_compra: '6580.00',
+        precio_venta: '9000.00',
+      },
+    ]
+    mockQuery.mockReset()
+    mockQuery.mockImplementation(async (sql: string) => {
+      if (sql.includes('FROM invoices i')) return { rows: PARES }
+      if (sql.includes('FROM facturas_registro')) return { rows: [] }
+      throw new Error(`SQL inesperado en test: ${sql}`)
+    })
+
+    const res = await GET(makeRequest('?quarter=2&year=2026'))
+    const json = await res.json()
+
+    // Las CUATRO filas se listan (la gestoría tiene que ver la anulación).
+    expect(json.emitidas).toHaveLength(4)
+
+    // La rectificativa de una REBU suma en el bloque REBU, no en el de IVA.
+    const frRebu = json.emitidas.find((e: { numero: string }) => e.numero === 'FR-2026-002')
+    expect(frRebu.regimen).toBe('REBU')
+    expect(frRebu.margen).toBe(-2420)
+    expect(frRebu.cuota_rebu).toBe(-420)
+
+    const frVat = json.emitidas.find((e: { numero: string }) => e.numero === 'FR-2026-001')
+    expect(frVat.regimen).toBe('VAT')
+    expect(frVat.base).toBe(-10000)
+    expect(frVat.cuota).toBe(-2100)
+
+    // Neteo a cero en los totales del trimestre.
+    expect(json.totales.emitidas_vat).toMatchObject({ count: 2, base: 0, cuota: 0, total: 0 })
+    expect(json.totales.emitidas_rebu).toMatchObject({
+      count: 2,
+      total: 0,
+      margen: 0,
+      cuota_rebu: 0,
+    })
+  })
+
   it('format=csv → BOM UTF-8, separador ; y attachment libro-2026-T2.csv', async () => {
     setupQueries()
     const res = await GET(makeRequest('?quarter=2&year=2026&format=csv'))
@@ -153,8 +220,8 @@ describe('GET /api/gestoria/libro', () => {
     const bytes = Buffer.from(await res.arrayBuffer())
     expect([...bytes.subarray(0, 3)]).toEqual([0xef, 0xbb, 0xbf])
     const text = bytes.toString('utf8')
-    expect(text).toContain('numero;fecha;tipo;estado;matricula;total')
-    expect(text).toContain('R-2026-0032;2026-04-10;REBU;ISSUED;2222BBB;9000,00')
+    expect(text).toContain('numero;fecha;tipo;regimen;estado;matricula;total')
+    expect(text).toContain('R-2026-0032;2026-04-10;REBU;REBU;ISSUED;2222BBB;9000,00')
     expect(text).toContain('sin precio de compra cargado')
     expect(text).toContain('FACTURAS RECIBIDAS')
     expect(text).toContain('TOTALES')

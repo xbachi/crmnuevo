@@ -54,6 +54,15 @@ export interface Invoice {
   rebu_vat_amount: string | null
 
   status: InvoiceStatus
+
+  /** Rectificativa → factura original que anula. Opcional: la columna la
+   *  agrega create-serie-rectificativas.sql (undefined si aún no se aplicó). */
+  rectifies_invoice_id?: number | null
+  /** Original → rectificativa que la anuló. */
+  rectified_by_invoice_id?: number | null
+  /** Motivo de la rectificación (texto libre del usuario). */
+  rectification_reason?: string | null
+
   pdf_url: string | null
   pdf_storage_key: string | null
   pdf_generated_at: string | null
@@ -178,7 +187,7 @@ export async function getInvoiceByDealAndType(
 ): Promise<Invoice | null> {
   const res = await pool.query<Invoice>(
     `SELECT * FROM invoices
-     WHERE deal_id = $1 AND invoice_type = $2 AND status NOT IN ('VOIDED')
+     WHERE deal_id = $1 AND invoice_type = $2 AND status NOT IN ('VOIDED', 'RECTIFIED')
      ORDER BY id DESC LIMIT 1`,
     [dealId, invoiceType]
   )

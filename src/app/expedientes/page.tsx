@@ -40,6 +40,7 @@ const ESTADO_BADGE: Record<EstadoExpediente, string> = {
   completo: 'bg-green-100 text-green-700',
   enviado: 'bg-blue-100 text-blue-700',
   confirmado: 'bg-emerald-100 text-emerald-800',
+  anulado: 'bg-gray-200 text-gray-600',
 }
 
 const currentQuarter = () => Math.floor(new Date().getMonth() / 3) + 1

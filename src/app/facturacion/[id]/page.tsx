@@ -10,6 +10,7 @@ import {
 } from '@/components/invoicing/InvoiceStatusBadge'
 import RegeneratePdfModal from '@/components/invoicing/RegeneratePdfModal'
 import CorrectNumberModal from '@/components/invoicing/CorrectNumberModal'
+import RectificarModal from '@/components/invoicing/RectificarModal'
 import { useAuth } from '@/contexts/AuthContext'
 
 interface Invoice {
@@ -39,6 +40,9 @@ interface Invoice {
   total_amount: string
   rebu_margin: string | null
   status: string
+  rectifies_invoice_id?: number | null
+  rectified_by_invoice_id?: number | null
+  rectification_reason?: string | null
   pdf_url: string | null
   pdf_generated_at: string | null
   pdf_regenerated_at: string | null
@@ -120,6 +124,7 @@ export default function InvoiceDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [isRegenerateOpen, setIsRegenerateOpen] = useState(false)
   const [isCorrectOpen, setIsCorrectOpen] = useState(false)
+  const [isRectificarOpen, setIsRectificarOpen] = useState(false)
   const { user } = useAuth()
   const isAdmin = user?.role === 'admin'
 
@@ -164,6 +169,24 @@ export default function InvoiceDetailPage() {
     await load()
   }
 
+  const handleRectificar = async (motivo: string) => {
+    if (!invoice) return
+    const res = await fetch(`/api/invoices/${invoice.id}/rectificar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ motivo }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error(data?.error ?? 'Error al rectificar la factura.')
+    }
+    showToast(
+      `Rectificativa ${data?.rectificativa?.full_invoice_number ?? ''} emitida. ${invoice.full_invoice_number} queda anulada.`,
+      'success'
+    )
+    await load()
+  }
+
   if (isLoading) {
     return (
       <div className="bg-white border border-gray-200 rounded-lg p-8 text-center text-sm text-gray-500">
@@ -189,8 +212,16 @@ export default function InvoiceDetailPage() {
   }
 
   const isImported = invoice.status === 'IMPORTED'
+  const isRectificativa = invoice.invoice_type === 'RECTIFYING'
+  const isRectificada = invoice.status === 'RECTIFIED'
   const canDownload = !!invoice.pdf_url
-  const canRegenerate = !isImported
+  const canRegenerate = !isImported && !isRectificativa
+  // Una rectificativa no se rectifica; una ya rectificada tampoco (409 igual).
+  const canRectificar =
+    isAdmin &&
+    !isRectificativa &&
+    !isRectificada &&
+    ['ISSUED', 'PDF_PENDING', 'IMPORTED'].includes(invoice.status)
 
   return (
     <div className="space-y-6">
@@ -236,6 +267,15 @@ export default function InvoiceDetailPage() {
               Regenerar PDF
             </button>
           )}
+          {canRectificar && (
+            <button
+              onClick={() => setIsRectificarOpen(true)}
+              className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700"
+              title="Emitir una rectificativa que anula esta factura (admin)"
+            >
+              Rectificar / anular factura
+            </button>
+          )}
           {isAdmin && (
             <button
               onClick={() => setIsCorrectOpen(true)}
@@ -247,6 +287,47 @@ export default function InvoiceDetailPage() {
           )}
         </div>
       </div>
+
+      {isRectificada && (
+        <div className="bg-purple-50 border border-purple-200 rounded-md p-4 text-sm text-purple-900">
+          <strong>Factura rectificada (anulada).</strong> Se emitió una factura
+          rectificativa que la anula por el mismo importe en negativo. Esta
+          factura conserva su número — no se borra, para no dejar huecos en la
+          numeración — pero ya no cuenta como venta.
+          {invoice.rectified_by_invoice_id && (
+            <>
+              {' '}
+              <Link
+                href={`/facturacion/${invoice.rectified_by_invoice_id}`}
+                className="underline font-medium"
+              >
+                Ver la rectificativa →
+              </Link>
+            </>
+          )}
+        </div>
+      )}
+
+      {isRectificativa && (
+        <div className="bg-purple-50 border border-purple-200 rounded-md p-4 text-sm text-purple-900">
+          <strong>Factura rectificativa.</strong> Anula por el importe en
+          negativo a la factura original.
+          {invoice.rectifies_invoice_id && (
+            <>
+              {' '}
+              <Link
+                href={`/facturacion/${invoice.rectifies_invoice_id}`}
+                className="underline font-medium"
+              >
+                Ver la factura rectificada →
+              </Link>
+            </>
+          )}
+          {invoice.rectification_reason && (
+            <p className="mt-1 italic">Motivo: {invoice.rectification_reason}</p>
+          )}
+        </div>
+      )}
 
       {isImported && (
         <div className="bg-blue-50 border border-blue-200 rounded-md p-4 text-sm text-blue-800">
@@ -301,7 +382,7 @@ export default function InvoiceDetailPage() {
       <Section title="Importes">
         <div className="grid grid-cols-2 gap-3 text-sm">
           <Field label="Precio venta" value={formatEUR(invoice.vehicle_sale_price)} />
-          {invoice.invoice_type === 'VAT' ? (
+          {invoice.taxable_base != null ? (
             <>
               <Field
                 label="Base imponible"
@@ -425,6 +506,14 @@ export default function InvoiceDetailPage() {
         invoiceNumber={invoice.full_invoice_number}
         onClose={() => setIsRegenerateOpen(false)}
         onConfirm={handleRegenerate}
+      />
+
+      <RectificarModal
+        isOpen={isRectificarOpen}
+        invoiceNumber={invoice.full_invoice_number}
+        totalAmount={invoice.total_amount}
+        onClose={() => setIsRectificarOpen(false)}
+        onConfirm={handleRectificar}
       />
 
       <CorrectNumberModal
