@@ -3,7 +3,11 @@
  * expedientes en OneDrive (el CRM en Vercel no puede leer OneDrive; un script
  * del server escanea GESTORIA/<año>/<trimestre> y POSTea acá el estado íntegro).
  *
- * Body: { anio, trimestre, carpetas: [{mes, carpeta, archivos: [{nombre, bytes}]}] }
+ * Body: { anio, trimestre, carpetas: [{mes, carpeta, archivos: [{nombre, bytes, hash}]}] }
+ *
+ * `hash` = md5 del contenido del archivo (mismo algoritmo que
+ * facturas_registro.hash_contenido → cruzan). Es OPCIONAL: los snapshots viejos
+ * sin hash se siguen aceptando (la detección cae al nombre).
  *
  * Reemplazo TOTAL del trimestre en una transacción: DELETE de las filas de ese
  * (anio, trimestre) + INSERT del snapshot completo. Así una carpeta borrada en
@@ -19,8 +23,11 @@ import { matriculaFromCarpeta } from '@/lib/expedienteDocs'
 interface CarpetaBody {
   mes: string
   carpeta: string
-  archivos: { nombre: string; bytes?: number }[]
+  archivos: { nombre: string; bytes: number | null; hash: string | null }[]
 }
+
+// md5 hex (32) o sha256 hex (64); cualquier otra cosa se guarda como null.
+const HASH_RE = /^[0-9a-f]{32}$|^[0-9a-f]{64}$/
 
 export async function POST(request: NextRequest) {
   const secret = process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
@@ -48,12 +55,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'cada carpeta requiere mes y carpeta' }, { status: 400 })
     }
     const archivos = (Array.isArray(c.archivos) ? c.archivos : [])
-      .map((a: Record<string, unknown>) => ({
-        nombre: String(a?.nombre ?? '').trim(),
-        bytes: typeof a?.bytes === 'number' ? a.bytes : null,
-      }))
+      .map((a: Record<string, unknown>) => {
+        const hash = String(a?.hash ?? '').trim().toLowerCase()
+        return {
+          nombre: String(a?.nombre ?? '').trim(),
+          bytes: typeof a?.bytes === 'number' ? a.bytes : null,
+          hash: HASH_RE.test(hash) ? hash : null,
+        }
+      })
       .filter((a) => a.nombre)
-    carpetas.push({ mes, carpeta, archivos: archivos as CarpetaBody['archivos'] })
+    carpetas.push({ mes, carpeta, archivos })
   }
 
   try {

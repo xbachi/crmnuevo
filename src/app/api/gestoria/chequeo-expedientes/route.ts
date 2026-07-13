@@ -23,6 +23,7 @@ import {
   type CbCocheBanda,
 } from '@/lib/chequeoExpedientes'
 import { normPlate } from '@/lib/costoBeneficioSheet'
+import type { RegistroHash } from '@/lib/expedienteDocs'
 import type { TipoOperacion } from '@/lib/expedienteChecklist'
 
 const SHEET_ID =
@@ -96,7 +97,7 @@ export async function GET(request: NextRequest) {
         mes: string
         carpeta: string
         matricula_norm: string | null
-        archivos: { nombre: string; bytes?: number }[]
+        archivos: { nombre: string; bytes?: number | null; hash?: string | null }[]
         scanned_at: string
       }>(
         `SELECT mes, carpeta, matricula_norm, archivos, scanned_at::text
@@ -133,10 +134,42 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 4. Hoja CB entera (la banda equivocada puede ser de otro trimestre).
+    // 4. Registro de facturas (hash de contenido) → identifica los PDFs de la
+    //    carpeta sin depender del nombre. Sin límite de período: la factura de
+    //    compra de un coche vendido en el 2T puede ser de cualquier fecha.
+    let registros: RegistroHash[] = []
+    const regFact = await pool.query<{ reg: string | null }>(
+      `SELECT to_regclass('public.facturas_registro') AS reg`
+    )
+    if (regFact.rows[0]?.reg) {
+      const rows = await pool.query<{
+        hash_contenido: string
+        categoria: string
+        matricula: string | null
+      }>(
+        `SELECT hash_contenido, categoria, matricula
+           FROM facturas_registro
+          WHERE categoria = 'coche-compra' AND matricula IS NOT NULL`
+      )
+      registros = rows.rows.map((r) => ({
+        hash: r.hash_contenido,
+        categoria: r.categoria,
+        matricula: r.matricula,
+      }))
+    }
+
+    // 5. Hoja CB entera (la banda equivocada puede ser de otro trimestre).
     const cb = await leerCbBandas(year)
 
-    const resultado = chequearExpedientes({ year, quarter, facturas, carpetas, cb, tipos })
+    const resultado = chequearExpedientes({
+      year,
+      quarter,
+      facturas,
+      carpetas,
+      cb,
+      tipos,
+      registros,
+    })
     return NextResponse.json({ ok: resultado.resumen.ok, ...resultado })
   } catch (err) {
     return NextResponse.json({ ok: false, error: (err as Error).message }, { status: 500 })
