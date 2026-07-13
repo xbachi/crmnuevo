@@ -40,6 +40,8 @@ const PUBLIC_API_PREFIXES = [
   // Rectificativa por secreto de admin (la UI usa /api/invoices/[id]/rectificar
   // con sesión; este camino es para operaciones puntuales por script).
   '/api/admin/rectificar-factura',
+  // Reparación del PDF de rectificativas en PDF_PENDING (X-Admin-Secret).
+  '/api/admin/rectificativas-pdf',
   // Stock aging / recon tracking (X-Admin-Secret).
   '/api/admin/stock-aging',
   // Reconciliación pre-cierre de trimestre y reintento de outbox (X-Admin-Secret).

@@ -18,12 +18,20 @@
  * rectificativa y 'anulacion' de la original. Si la cadena falla, rollback de
  * todo (mismo criterio que la emisión normal).
  *
- * PDF: NO se genera acá (el generador sólo entiende IVA/REBU en positivo). La
- * rectificativa queda en PDF_PENDING con el número ya reservado.
+ * PDF (best-effort, fuera de la transacción — igual que la emisión normal):
+ *   · el de la rectificativa (sello "RECTIFICATIVA", importes en negativo,
+ *     referencia a la original con número y fecha + art. 15 RD 1619/2012);
+ *   · se REGENERA el de la original, que pasa a llevar el sello "ANULADA" y la
+ *     referencia a la FR — lo que se descargue hoy del CRM tiene que verse
+ *     anulado.
+ * Si algo de esto falla, la rectificativa NO se rompe: queda en PDF_PENDING con
+ * el número ya reservado y se repara con /api/admin/rectificativas-pdf.
  */
 
 import type { PoolClient } from 'pg'
 import { pool } from '@/lib/direct-database'
+import { generateAndAttachPdf } from '@/lib/invoiceService'
+import { notifyGestoriaInvoice } from '@/lib/gestoriaWebhook'
 import { formatNumber } from '@/config/invoiceConfig'
 import { resolveNextNumber } from '@/lib/invoiceNumbering'
 import { computeAmounts, type Amounts } from '@/lib/invoiceAmounts'
@@ -165,11 +173,18 @@ export interface RectificarOptions {
   userRole?: string | null
   /** Fecha de expedición de la rectificativa (default: hoy). */
   fecha?: Date
+  /** No esperar al archivado en OneDrive/gestoría (webhook n8n, lento): se
+   *  devuelve como `runNotifications` para que el route lo corra con after().
+   *  Mismo criterio que issueInvoice. */
+  deferNotifications?: boolean
 }
 
 export interface RectificarResult {
   rectificativa: Invoice
   original: Invoice
+  /** Sólo con `deferNotifications: true`. Fuera del camino crítico: la FR ya
+   *  existe, ya tiene número y ya tiene PDF. Nunca lanza. */
+  runNotifications?: () => Promise<void>
 }
 
 /**
@@ -190,6 +205,7 @@ export async function rectificarFactura(
   const fechaRect = (opts.fecha ?? new Date()).toISOString().slice(0, 10)
 
   const client = await pool.connect()
+  let emitida: RectificarResult
   try {
     await client.query('BEGIN')
 
@@ -403,13 +419,128 @@ export async function rectificarFactura(
     }
 
     await client.query('COMMIT')
-    return { rectificativa, original: updRes.rows[0] ?? original }
+    emitida = { rectificativa, original: updRes.rows[0] ?? original }
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {})
     throw err
   } finally {
     client.release()
   }
+
+  // A partir de acá la rectificativa YA existe y tiene número fiscal: nada de
+  // lo que sigue puede hacerla fallar.
+  return attachPdfs(emitida, opts)
+}
+
+/**
+ * PDFs de la rectificación, best-effort y fuera de la transacción:
+ *   1. PDF de la FR (sello RECTIFICATIVA) → Blob + status ISSUED.
+ *   2. PDF de la original REGENERADO con el sello ANULADA + referencia a la FR
+ *      (la descarga del CRM sirve el blob guardado, así que hay que rehacerlo;
+ *      la copia ya archivada en OneDrive no se toca — la anulación frente a la
+ *      gestoría la documenta la FR, que sí se archiva).
+ * Un fallo acá deja la FR en PDF_PENDING (reparable con
+ * POST /api/admin/rectificativas-pdf), nunca revierte la emisión.
+ */
+async function attachPdfs(
+  emitida: RectificarResult,
+  opts: RectificarOptions
+): Promise<RectificarResult> {
+  const { rectificativa, original } = emitida
+
+  let result = emitida
+  let pdfFR: Uint8Array | null = null
+  try {
+    const attached = await generateAndAttachPdf(rectificativa)
+    pdfFR = attached.pdf
+    result = { rectificativa: attached.invoice, original }
+  } catch (pdfError) {
+    console.error(
+      `[invoiceRectificativa] PDF generation/upload failed for ${rectificativa.full_invoice_number}:`,
+      pdfError
+    )
+    await auditar(
+      rectificativa.id,
+      'STATUS_CHANGED',
+      { status: 'PDF_PENDING', error: (pdfError as Error)?.message ?? String(pdfError) },
+      'Fallo en generación o subida del PDF de la rectificativa; número reservado.',
+      opts.userId ?? null
+    )
+  }
+
+  // La original ya está RECTIFIED: su PDF se rehace con el sello ANULADA.
+  try {
+    const restampada = await generateAndAttachPdf(original)
+    result = { ...result, original: restampada.invoice }
+    await auditar(
+      original.id,
+      'PDF_REGENERATED',
+      { pdf_url: restampada.invoice.pdf_url },
+      `Sello ANULADA: rectificada por ${rectificativa.full_invoice_number}`,
+      opts.userId ?? null
+    )
+  } catch (stampError) {
+    console.error(
+      `[invoiceRectificativa] no se pudo re-sellar el PDF de ${original.full_invoice_number}:`,
+      stampError
+    )
+  }
+
+  // Archivado de la FR en OneDrive/GESTORIA: la gestora necesita ver las DOS
+  // (original + rectificativa) en el expediente. NO se notifica a
+  // costo/beneficio: una venta anulada no computa (misma regla que el resto de
+  // los consumidores operativos).
+  const runNotifications = async () => {
+    if (!pdfFR) return
+    try {
+      await notifyGestoriaInvoice({
+        numeroFactura: result.rectificativa.full_invoice_number,
+        fechaISO: fechaISO(result.rectificativa.invoice_date),
+        matricula: result.rectificativa.vehicle_plate,
+        marca: result.rectificativa.vehicle_make,
+        modelo: result.rectificativa.vehicle_model,
+        tipo: 'RECTIFYING',
+        pdfBase64: Buffer.from(pdfFR).toString('base64'),
+      })
+    } catch (notifyError) {
+      console.error(
+        `[invoiceRectificativa] archivado en gestoría falló para ${result.rectificativa.full_invoice_number}:`,
+        notifyError
+      )
+    }
+  }
+
+  if (opts.deferNotifications) {
+    return { ...result, runNotifications }
+  }
+  await runNotifications()
+  return result
+}
+
+/** Traza del post-proceso del PDF. Nunca lanza: es la red de contención, no
+ *  puede tumbar una rectificativa ya emitida. */
+async function auditar(
+  invoiceId: number,
+  action: string,
+  values: Record<string, unknown>,
+  reason: string,
+  userId: string | null
+): Promise<void> {
+  try {
+    await pool.query(
+      `INSERT INTO invoice_audit_logs (invoice_id, action, new_values_json, reason, user_id)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [invoiceId, action, JSON.stringify(values), reason, userId]
+    )
+  } catch (err) {
+    console.error('[invoiceRectificativa] audit log falló:', err)
+  }
+}
+
+function fechaISO(value: string | Date): string {
+  return value instanceof Date
+    ? value.toISOString().slice(0, 10)
+    : String(value).slice(0, 10)
 }
 
 async function assertPeriodo(

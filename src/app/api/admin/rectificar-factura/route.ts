@@ -12,7 +12,7 @@
  * fiscal y no es reversible, así que no puede dispararse por accidente.
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { rectificarFactura, RectificarError } from '@/lib/invoiceRectificativa'
 
 export const maxDuration = 60
@@ -37,12 +37,14 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { rectificativa, original } = await rectificarFactura({
+    const { rectificativa, original, runNotifications } = await rectificarFactura({
       invoiceId,
       motivo: body?.motivo,
       userId: 'admin-secret',
       userRole: 'admin',
+      deferNotifications: true,
     })
+    if (runNotifications) after(runNotifications)
     return NextResponse.json({
       ok: true,
       rectificativa: {
@@ -50,6 +52,7 @@ export async function POST(request: NextRequest) {
         numero: rectificativa.full_invoice_number,
         importe: rectificativa.total_amount,
         status: rectificativa.status,
+        pdf_url: rectificativa.pdf_url,
       },
       original: {
         id: original.id,

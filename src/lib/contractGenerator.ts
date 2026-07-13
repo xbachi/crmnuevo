@@ -8,12 +8,14 @@ import {
   type CondicionesPago,
 } from './ventaCondicionesPago'
 import {
+  COLORS,
   drawAccentBar,
   drawVendorBlock,
   drawInvoiceTitleBar,
   drawClientCard,
   drawItemsTable,
   drawTotalsBox,
+  drawWatermark,
   drawFooter,
   drawSectionTitle,
   drawPartyCard,
@@ -1480,7 +1482,31 @@ export interface GenerarFacturaOptions {
   /** Si true, omite la línea "Garantía: 12 meses". Usado en B2B
    *  (compraventa "en el estado" entre profesionales — sin garantía). */
   skipGarantia?: boolean
+  /** Fecha de expedición a imprimir. Default: hoy (comportamiento histórico).
+   *  El módulo de facturación pasa `invoice_date` para que un PDF regenerado
+   *  meses después siga mostrando la fecha real de la factura. */
+  fechaFactura?: Date
+  /** Factura RECTIFICATIVA (serie FR, importes en negativo): título propio,
+   *  sello diagonal, referencia legal a la original y cita normativa. */
+  rectificativa?: {
+    /** Número de la factura rectificada (p. ej. "R-2026-023"). */
+    numeroOriginal: string
+    /** Fecha de la factura rectificada, ya formateada (DD/MM/AAAA). */
+    fechaOriginal: string
+    motivo: string
+  }
+  /** Factura ORIGINAL ya rectificada (status RECTIFIED): sello "ANULADA" y
+   *  referencia a la rectificativa que la anuló. */
+  anuladaPor?: {
+    numeroRectificativa: string
+    /** Fecha de la rectificativa, ya formateada (DD/MM/AAAA). */
+    fechaRectificativa: string
+  }
 }
+
+/** Nota normativa obligatoria en toda factura rectificativa. */
+const RECTIFICATIVA_LEGAL_NOTE =
+  'Factura rectificativa expedida conforme al art. 15 del RD 1619/2012 (Reglamento de facturación).'
 
 export async function generarFactura(
   deal: DealData,
@@ -1511,7 +1537,8 @@ export async function generarFactura(
     const numeroFactura =
       numeroFacturaPersonalizado ||
       `FAC-${new Date().getFullYear()}-${String((deal as any).id || Math.floor(Math.random() * 1000)).padStart(4, '0')}`
-    const fechaFactura = new Date()
+    const fechaFactura = options.fechaFactura ?? new Date()
+    const rect = options.rectificativa
 
     // === HEADER: logo + datos del emisor + barra de acento ===
     yPosition = await addLogoToContract(doc, yPosition)
@@ -1524,12 +1551,17 @@ export async function generarFactura(
     // === Título + pill con número y fecha ===
     yPosition = drawInvoiceTitleBar(
       doc,
-      tipoFactura === 'IVA' ? 'FACTURA' : 'FACTURA REBU',
+      rect
+        ? 'FACTURA RECTIFICATIVA'
+        : tipoFactura === 'IVA'
+          ? 'FACTURA'
+          : 'FACTURA REBU',
       numeroFactura,
       fechaFactura.toLocaleDateString('es-ES'),
       margin,
       yPosition,
-      contentWidth
+      contentWidth,
+      rect ? 15 : 20
     )
     yPosition += 4
 
@@ -1595,7 +1627,10 @@ export async function generarFactura(
 
     const items: InvoiceItemRow[] = [
       {
-        description: `Venta de vehículo: ${marca} ${modelo}`.trim(),
+        description: (rect
+          ? `Anulación de la venta del vehículo: ${marca} ${modelo}`
+          : `Venta de vehículo: ${marca} ${modelo}`
+        ).trim(),
         details: detailLines,
         // En IVA el precio unitario es el subtotal (sin IVA); en REBU es el total.
         unitPrice: tipoFactura === 'IVA' ? subtotal : total,
@@ -1616,6 +1651,53 @@ export async function generarFactura(
       yPosition
     )
     yPosition += 4
+
+    // === Referencia legal de la rectificativa (art. 15 RD 1619/2012) ===
+    // La ley exige identificar la factura rectificada: número Y fecha.
+    if (rect) {
+      doc.setFontSize(8)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(...COLORS.danger)
+      doc.text(
+        `Rectifica a la factura ${rect.numeroOriginal} de fecha ${rect.fechaOriginal}`,
+        margin,
+        yPosition
+      )
+      yPosition += 4
+
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(75, 85, 99)
+      const motivoLines = doc.splitTextToSize(
+        `Motivo: ${rect.motivo}`,
+        contentWidth
+      )
+      motivoLines.forEach((line: string, i: number) => {
+        doc.text(line, margin, yPosition + i * 3.5)
+      })
+      yPosition += motivoLines.length * 3.5 + 1
+
+      doc.setFontSize(7.5)
+      doc.text(RECTIFICATIVA_LEGAL_NOTE, margin, yPosition, {
+        maxWidth: contentWidth,
+      })
+      yPosition += 6
+      doc.setTextColor(17, 24, 39)
+    }
+
+    // === Original ya rectificada: queda sin efecto ===
+    if (options.anuladaPor) {
+      doc.setFontSize(8)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(...COLORS.danger)
+      doc.text(
+        `FACTURA ANULADA — Rectificada por ${options.anuladaPor.numeroRectificativa} de fecha ${options.anuladaPor.fechaRectificativa}`,
+        margin,
+        yPosition,
+        { maxWidth: contentWidth }
+      )
+      yPosition += 6
+      doc.setTextColor(17, 24, 39)
+    }
 
     // === Notas comerciales / régimen fiscal ===
     if (tipoFactura === 'REBU') {
@@ -1639,7 +1721,8 @@ export async function generarFactura(
       doc.text('IVA incluido en el precio', margin, yPosition)
       yPosition += 4
     }
-    if (!options.skipGarantia) {
+    // La rectificativa anula la venta: no "otorga" garantía comercial alguna.
+    if (!options.skipGarantia && !rect) {
       doc.setFont('helvetica', 'normal')
       doc.setTextColor(17, 24, 39)
       doc.text('Garantía: 12 meses', margin, yPosition)
@@ -1677,6 +1760,13 @@ export async function generarFactura(
 
     // === Footer corporativo (siempre al pie) ===
     drawFooter(doc, vendor, pageWidth, pageHeight, margin)
+
+    // === Sellos diagonales (van último: encima de todo, en TODAS las páginas) ===
+    if (rect) {
+      drawWatermark(doc, 'RECTIFICATIVA', { fontSize: 44, opacity: 0.15 })
+    } else if (options.anuladaPor) {
+      drawWatermark(doc, 'ANULADA', { fontSize: 54, opacity: 0.18 })
+    }
 
     // === Output ===
     console.log('🔍 [GENERAR FACTURA] Generando buffer del PDF...')

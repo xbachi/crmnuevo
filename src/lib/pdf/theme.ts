@@ -10,12 +10,13 @@
  * con su layout actual porque tienen mucho texto y otro flow.
  */
 
-import type { jsPDF } from 'jspdf'
+import { GState, type jsPDF } from 'jspdf'
 
 // -----------------------------------------------------------------------------
 // Paleta SevenCars (verde corporativo)
 // -----------------------------------------------------------------------------
 export const COLORS = {
+  danger: [183, 28, 28] as [number, number, number], // #b71c1c — sellos ANULADA / RECTIFICATIVA
   brandDark: [4, 120, 87] as [number, number, number], // #047857 emerald-700
   brandLight: [16, 185, 129] as [number, number, number], // #10b981 emerald-500
   textPrimary: [17, 24, 39] as [number, number, number], // gray-900
@@ -31,12 +32,16 @@ export const COLORS = {
 // Formato monetario (idéntico al resto del CRM)
 // -----------------------------------------------------------------------------
 export function formatEUR(value: number): string {
+  // Importes negativos (rectificativas) son legítimos y llevan signo. Lo que NO
+  // puede salir impreso es "-0,00 €": un -0 o un residuo de redondeo se
+  // normaliza a cero positivo.
+  const v = !value || Math.abs(value) < 0.005 ? 0 : value
   return new Intl.NumberFormat('es-ES', {
     style: 'currency',
     currency: 'EUR',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(value || 0)
+  }).format(v)
 }
 
 // -----------------------------------------------------------------------------
@@ -112,6 +117,9 @@ export function drawVendorBlock(
 
 /**
  * Título "FACTURA" con número + fecha a la derecha en un pill.
+ *
+ * `fontSize` baja a 15 en "FACTURA RECTIFICATIVA": con 20pt el título chocaría
+ * contra el pill del número.
  */
 export function drawInvoiceTitleBar(
   doc: jsPDF,
@@ -120,10 +128,11 @@ export function drawInvoiceTitleBar(
   invoiceDate: string,
   x: number,
   y: number,
-  width: number
+  width: number,
+  fontSize: number = 20
 ): number {
   // Título grande izquierda
-  doc.setFontSize(20)
+  doc.setFontSize(fontSize)
   doc.setFont('helvetica', 'bold')
   textRgb(doc, COLORS.brandDark)
   doc.text(title, x, y + 7)
@@ -342,6 +351,53 @@ export function drawTotalsBox(
 
   textRgb(doc, COLORS.textPrimary)
   return y + boxH + 4
+}
+
+/**
+ * Sello diagonal semitransparente sobre TODAS las páginas del documento
+ * ("RECTIFICATIVA", "ANULADA"). Se dibuja al final, encima del contenido: la
+ * opacidad baja lo mantiene legible debajo.
+ *
+ * Deja el estado gráfico como lo encontró (opacidad 1, negro, 10pt normal) para
+ * no contaminar lo que se dibuje después.
+ */
+export function drawWatermark(
+  doc: jsPDF,
+  text: string,
+  opts: {
+    fontSize?: number
+    opacity?: number
+    color?: [number, number, number]
+    angle?: number
+  } = {}
+): void {
+  const {
+    fontSize = 50,
+    opacity = 0.15,
+    color = COLORS.danger,
+    angle = 25,
+  } = opts
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
+  const totalPages = doc.getNumberOfPages()
+
+  for (let page = 1; page <= totalPages; page++) {
+    doc.setPage(page)
+    doc.setGState(new GState({ opacity }))
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(fontSize)
+    textRgb(doc, color)
+    doc.text(text, pageWidth / 2, pageHeight * 0.55, {
+      angle,
+      align: 'center',
+    })
+    doc.setGState(new GState({ opacity: 1 }))
+  }
+
+  doc.setPage(totalPages)
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'normal')
+  textRgb(doc, COLORS.textPrimary)
 }
 
 // =============================================================================

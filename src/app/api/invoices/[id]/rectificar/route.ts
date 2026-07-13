@@ -13,9 +13,13 @@
  * rectificativa que ya existe. Período contable cerrado → 409 PERIODO_CERRADO.
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { requireAdminSession } from '@/lib/apiAuth'
 import { rectificarFactura, RectificarError } from '@/lib/invoiceRectificativa'
+
+// El PDF de la FR y el re-sellado de la original van inline (el usuario los
+// descarga enseguida); el archivado en OneDrive/gestoría, con after().
+export const maxDuration = 60
 
 export async function POST(
   request: NextRequest,
@@ -33,12 +37,15 @@ export async function POST(
   const body = await request.json().catch(() => ({}))
 
   try {
-    const { rectificativa, original } = await rectificarFactura({
+    const { rectificativa, original, runNotifications } = await rectificarFactura({
       invoiceId: id,
       motivo: body?.motivo,
       userId: String(auth.session.uid),
       userRole: auth.session.role,
+      deferNotifications: true,
     })
+
+    if (runNotifications) after(runNotifications)
 
     return NextResponse.json({
       ok: true,
@@ -48,15 +55,16 @@ export async function POST(
         total_amount: rectificativa.total_amount,
         invoice_date: rectificativa.invoice_date,
         status: rectificativa.status,
+        pdf_url: rectificativa.pdf_url,
       },
       original: {
         id: original.id,
         full_invoice_number: original.full_invoice_number,
         status: original.status,
       },
-      // El PDF de la rectificativa todavía no se genera (el generador sólo
-      // entiende IVA/REBU en positivo): la fila queda en PDF_PENDING.
-      pdf_pendiente: true,
+      // El PDF es best-effort: si falló, la FR queda en PDF_PENDING (número ya
+      // reservado) y se repara con POST /api/admin/rectificativas-pdf.
+      pdf_pendiente: rectificativa.status === 'PDF_PENDING',
     })
   } catch (err) {
     if (err instanceof RectificarError) {
