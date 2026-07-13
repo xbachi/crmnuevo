@@ -17,7 +17,10 @@ import { generarFactura } from '@/lib/contractGenerator'
 import { INVOICE_CONFIG, formatNumber } from '@/config/invoiceConfig'
 import { findActiveSaleInvoiceForVehicle, type Invoice, type InvoiceType } from '@/lib/invoiceRepository'
 import { InvoiceServiceError } from '@/lib/invoiceService'
-import { getVentaB2BById } from '@/lib/b2b-database'
+import {
+  getVentaB2BById,
+  marcarVehiculoDeVentaB2BVendido,
+} from '@/lib/b2b-database'
 import { appendRegistro } from '@/lib/facturacionRegistro'
 import { crearExpedienteAlEmitir } from '@/lib/expedientes'
 
@@ -245,6 +248,14 @@ export async function issueInvoiceForB2B(
   } finally {
     client.release()
   }
+
+  // 6c) El coche facturado queda VENDIDO (igual que el Deal retail al pasar a
+  // 'facturado'). Idempotente y fuera del tx: el número fiscal ya está
+  // reservado y el estado del vehículo no puede tumbar la emisión.
+  await marcarVehiculoDeVentaB2BVendido(pool, {
+    vehiculoId: venta.vehiculo_id,
+    origen: `factura-b2b:${inserted.full_invoice_number}`,
+  })
 
   // 6b) Best-effort: expediente (deal jacket) de la venta, fuera del tx de
   // numeración. Nunca rompe la emisión.

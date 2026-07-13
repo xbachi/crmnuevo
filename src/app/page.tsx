@@ -32,6 +32,7 @@ interface DepositoStats {
 
 interface UltimaOperacion {
   id: string
+  tipo?: 'retail' | 'b2b'
   referencia: string
   cliente: string
   vehiculo: string
@@ -309,7 +310,8 @@ export default function Home() {
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex-1 min-w-0">
                               <h4 className="text-xs sm:text-sm font-semibold text-gray-900 mb-1 truncate">
-                                Deal #{operacion.referencia}
+                                {operacion.tipo === 'b2b' ? 'B2B' : 'Deal'} #
+                                {operacion.referencia}
                               </h4>
                               <span
                                 className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getEstadoColor(operacion.estado)}`}

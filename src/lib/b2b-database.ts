@@ -5,6 +5,11 @@
  */
 
 import { pool } from '@/lib/direct-database'
+import {
+  liberarVehiculoVendido,
+  marcarVehiculoVendido,
+  type Queryable,
+} from '@/lib/vehiculoVenta'
 
 // =============================================================================
 // Tipos
@@ -310,4 +315,102 @@ export async function deleteVentaB2B(id: number): Promise<VentaB2B | null> {
     [id]
   )
   return rows[0] ?? null
+}
+
+// =============================================================================
+// Efecto sobre el vehículo (misma máquina de estados que retail)
+// =============================================================================
+
+/**
+ * Predicado SQL: la venta B2B `alias` está VIGENTE (cuenta como venta real).
+ * Mismo criterio fiscal que ventasUnificadas.ts: no está ANULADA, y si tiene
+ * facturas, al menos una está activa (una venta cuya única factura quedó
+ * RECTIFIED/VOIDED es una venta anulada). Sin facturas todavía → vigente.
+ */
+export function ventaB2BVigenteSql(alias = 'vb'): string {
+  return `(
+    ${alias}.status <> 'ANULADO'
+    AND (
+      EXISTS (
+        SELECT 1 FROM invoices i
+         WHERE i.b2b_venta_id = ${alias}.id
+           AND i.status IN ('ISSUED', 'IMPORTED', 'PDF_PENDING')
+           AND i.invoice_type <> 'RECTIFYING'
+      )
+      OR NOT EXISTS (
+        SELECT 1 FROM invoices i
+         WHERE i.b2b_venta_id = ${alias}.id
+           AND i.status IN ('RECTIFIED', 'VOIDED')
+      )
+    )
+  )`
+}
+
+/** ¿Queda alguna OTRA venta B2B vigente sobre el mismo vehículo? */
+export async function vehiculoTieneOtraVentaB2BVigente(
+  db: Queryable,
+  vehiculoId: number,
+  exceptVentaId: number
+): Promise<boolean> {
+  const { rows } = await db.query<{ existe: boolean }>(
+    `SELECT EXISTS (
+       SELECT 1 FROM venta_b2b vb
+        WHERE vb.vehiculo_id = $1
+          AND vb.id <> $2
+          AND ${ventaB2BVigenteSql('vb')}
+     ) AS existe`,
+    [vehiculoId, exceptVentaId]
+  )
+  return rows[0]?.existe ?? false
+}
+
+/**
+ * Una venta B2B dejó de ser vigente (borrada / factura anulada o rectificada):
+ * el vehículo vuelve a stock, salvo que otra venta B2B vigente o un deal
+ * retail lo sigan reclamando. Best-effort: nunca rompe al caller.
+ */
+export async function liberarVehiculoDeVentaB2B(
+  db: Queryable,
+  args: { vehiculoId: number | null; ventaId: number; origen: string }
+): Promise<void> {
+  if (args.vehiculoId == null) return
+  try {
+    if (
+      await vehiculoTieneOtraVentaB2BVigente(db, args.vehiculoId, args.ventaId)
+    ) {
+      return
+    }
+    await liberarVehiculoVendido(db, args.vehiculoId, { origen: args.origen })
+  } catch (err) {
+    console.error(
+      `[liberarVehiculoDeVentaB2B] no se pudo liberar el vehículo ${args.vehiculoId} (origen: ${args.origen}):`,
+      err
+    )
+  }
+}
+
+/**
+ * Una venta B2B vigente marca su vehículo como VENDIDO (equivalente al
+ * Deal retail que pasa a 'vendido'/'facturado'). Best-effort e idempotente.
+ */
+export async function marcarVehiculoDeVentaB2BVendido(
+  db: Queryable,
+  args: { vehiculoId: number | null; origen: string }
+): Promise<void> {
+  if (args.vehiculoId == null) return
+  try {
+    const r = await marcarVehiculoVendido(db, args.vehiculoId, {
+      origen: args.origen,
+    })
+    if (r === 'transicion-invalida' || r === 'sin-vehiculo') {
+      console.warn(
+        `[marcarVehiculoDeVentaB2BVendido] vehículo ${args.vehiculoId} no marcado (${r}, origen: ${args.origen})`
+      )
+    }
+  } catch (err) {
+    console.error(
+      `[marcarVehiculoDeVentaB2BVendido] no se pudo marcar el vehículo ${args.vehiculoId} (origen: ${args.origen}):`,
+      err
+    )
+  }
 }

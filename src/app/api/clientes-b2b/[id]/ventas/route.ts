@@ -3,8 +3,10 @@ import {
   listVentasB2BByCliente,
   createVentaB2B,
   getClienteB2BById,
+  marcarVehiculoDeVentaB2BVendido,
   type FormaPagoB2B,
 } from '@/lib/b2b-database'
+import { pool } from '@/lib/direct-database'
 
 async function parseId(params: Promise<{ id: string }>): Promise<number | null> {
   const { id: raw } = await params
@@ -89,6 +91,14 @@ export async function POST(
       notas: body.notas || null,
       notas_estado_vehiculo: body.notas_estado_vehiculo || null,
     })
+
+    // La venta B2B no tiene reserva: crearla YA es vender. Mismo efecto que el
+    // Deal retail al pasar a 'vendido' — si no, el coche sigue en stock.
+    await marcarVehiculoDeVentaB2BVendido(pool, {
+      vehiculoId: created.vehiculo_id,
+      origen: `venta-b2b:${created.numero}`,
+    })
+
     return NextResponse.json(created, { status: 201 })
   } catch (err) {
     console.error('[POST /api/clientes-b2b/[id]/ventas]', err)

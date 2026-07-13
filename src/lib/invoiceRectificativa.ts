@@ -37,6 +37,7 @@ import { resolveNextNumber } from '@/lib/invoiceNumbering'
 import { computeAmounts, type Amounts } from '@/lib/invoiceAmounts'
 import { appendRegistro } from '@/lib/facturacionRegistro'
 import { assertPeriodoAbierto, PeriodoCerradoError } from '@/lib/periodoLock'
+import { liberarVehiculoDeVentaB2B } from '@/lib/b2b-database'
 import type { Invoice, InvoiceStatus, InvoiceType } from '@/lib/invoiceRepository'
 
 export class RectificarError extends Error {
@@ -429,6 +430,19 @@ export async function rectificarFactura(
 
   // A partir de acá la rectificativa YA existe y tiene número fiscal: nada de
   // lo que sigue puede hacerla fallar.
+
+  // Original de una venta B2B rectificada: la venta deja de ser vigente
+  // (mismo criterio que ventasUnificadas) → el coche vuelve a stock. El retail
+  // no necesita esto: su Deal ya volvió a 'vendido' y el vehículo sigue vendido.
+  const rectificada = emitida.original
+  if (rectificada.b2b_venta_id != null) {
+    await liberarVehiculoDeVentaB2B(pool, {
+      vehiculoId: rectificada.vehiculo_id ?? null,
+      ventaId: rectificada.b2b_venta_id,
+      origen: `rectificativa-b2b:${rectificada.full_invoice_number}`,
+    })
+  }
+
   return attachPdfs(emitida, opts)
 }
 

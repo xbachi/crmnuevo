@@ -4,7 +4,9 @@ import {
   getVentaB2BById,
   deleteVentaB2B,
   ventaB2BHasActiveInvoice,
+  liberarVehiculoDeVentaB2B,
 } from '@/lib/b2b-database'
+import { pool } from '@/lib/direct-database'
 
 export async function GET(
   _req: NextRequest,
@@ -63,6 +65,14 @@ export async function DELETE(
     if (!deleted) {
       return NextResponse.json({ error: 'No se pudo borrar' }, { status: 500 })
     }
+
+    // La venta ya no existe: el coche vuelve a stock (igual que deleteDeal en
+    // retail), salvo que otra venta B2B vigente o un deal lo reclamen.
+    await liberarVehiculoDeVentaB2B(pool, {
+      vehiculoId: deleted.vehiculo_id,
+      ventaId: id,
+      origen: `delete-venta-b2b:${deleted.numero}`,
+    })
 
     // Cleanup del PDF del contrato (best-effort)
     if (deleted.pdf_storage_key) {

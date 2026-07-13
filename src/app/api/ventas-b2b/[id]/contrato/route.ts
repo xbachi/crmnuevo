@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { put } from '@vercel/blob'
-import { getVentaB2BById, updateVentaB2BPdf } from '@/lib/b2b-database'
+import {
+  getVentaB2BById,
+  updateVentaB2BPdf,
+  marcarVehiculoDeVentaB2BVendido,
+} from '@/lib/b2b-database'
 import { generarContratoCompraventaEstado } from '@/lib/contractGenerator'
+import { pool } from '@/lib/direct-database'
 
 /**
  * POST /api/ventas-b2b/{id}/contrato
@@ -64,6 +69,13 @@ export async function POST(
     })
 
     await updateVentaB2BPdf(venta.id, blob.url, blob.pathname)
+
+    // La venta queda FIRMADO: el coche está vendido (idempotente si ya lo está,
+    // p.ej. porque se marcó al crear la venta).
+    await marcarVehiculoDeVentaB2BVendido(pool, {
+      vehiculoId: venta.vehiculo_id,
+      origen: `contrato-b2b:${venta.numero}`,
+    })
 
     return NextResponse.json({
       id: venta.id,

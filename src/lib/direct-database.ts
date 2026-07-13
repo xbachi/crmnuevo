@@ -4,6 +4,13 @@ import { Pool } from 'pg'
 // Cargar variables de entorno manualmente
 import fs from 'fs'
 import path from 'path'
+import {
+  buildVentasUnificadasQuery,
+  mapVentaRow,
+  MAX_PAGE_SIZE,
+  type VentaRowDb,
+  type VentaTipo,
+} from './ventasUnificadas'
 
 // Función para cargar .env.local
 function loadEnvFile() {
@@ -2268,46 +2275,50 @@ export async function getDepositoStats(): Promise<DepositoStats> {
 
 export interface UltimaOperacion {
   id: string
+  tipo: VentaTipo
   referencia: string
   cliente: string
   vehiculo: string
   estado: string
   fecha: string
   precio: number
+  href: string
 }
 
+/**
+ * Últimas operaciones del home. Antes miraba sólo "Deal": una venta B2B nunca
+ * aparecía. Ahora reusa la misma vista unificada retail + B2B de /ventas
+ * (ventasUnificadas.ts), que ya resuelve estado, factura y anulación.
+ */
 export async function getUltimasOperaciones(
   limit: number = 5
 ): Promise<UltimaOperacion[]> {
   const client = await pool.connect()
   try {
-    const result = await client.query(
-      `
-      SELECT 
-        d.id,
-        d.numero as referencia,
-        COALESCE(c.nombre || ' ' || c.apellidos, 'Cliente no encontrado') as cliente,
-        COALESCE(v.marca || ' ' || v.modelo, 'Vehículo no encontrado') as vehiculo,
-        COALESCE(d.estado, 'Sin estado') as estado,
-        d."createdAt" as fecha,
-        COALESCE(d."importeTotal", 0) as precio
-      FROM "Deal" d
-      LEFT JOIN "Cliente" c ON d."clienteId" = c.id
-      LEFT JOIN "Vehiculo" v ON d."vehiculoId" = v.id
-      ORDER BY d."createdAt" DESC
-      LIMIT $1
-    `,
-      [limit]
-    )
+    const { sql, params } = buildVentasUnificadasQuery({
+      tipo: 'todas',
+      estado: 'todos',
+      q: '',
+      desde: null,
+      hasta: null,
+      page: 1,
+      pageSize: Math.min(Math.max(1, limit), MAX_PAGE_SIZE),
+    })
+    const result = await client.query<{
+      payload: { rows: VentaRowDb[] }
+    }>(sql, params)
 
-    return result.rows.map((row) => ({
-      id: row.id.toString(),
-      referencia: row.referencia || 'Sin referencia',
-      cliente: row.cliente,
-      vehiculo: row.vehiculo,
-      estado: row.estado,
-      fecha: row.fecha,
-      precio: parseFloat(row.precio) || 0,
+    const rows = result.rows[0]?.payload?.rows ?? []
+    return rows.map(mapVentaRow).map((v) => ({
+      id: v.key,
+      tipo: v.tipo,
+      referencia: v.numero || 'Sin referencia',
+      cliente: v.cliente || 'Cliente no encontrado',
+      vehiculo: v.vehiculo || 'Vehículo no encontrado',
+      estado: v.anulada ? 'anulado' : v.estado || 'Sin estado',
+      fecha: v.fecha ?? '',
+      precio: v.importe ?? 0,
+      href: v.href,
     }))
   } catch (error) {
     console.error('Error fetching ultimas operaciones:', error)
