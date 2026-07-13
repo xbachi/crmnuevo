@@ -12,9 +12,18 @@ jest.mock('@/lib/direct-database', () => ({
   pool: { connect: jest.fn(), query: jest.fn() },
 }))
 jest.mock('@/lib/auth-server', () => ({ readSessionFromRequest: jest.fn() }))
+// El PDF de la FR (y el re-sellado de la original) son best-effort y viven
+// fuera de la transacción: acá se mockean para aislar los invariantes fiscales.
+jest.mock('@/lib/invoiceService', () => ({ generateAndAttachPdf: jest.fn() }))
+jest.mock('@/lib/gestoriaWebhook', () => ({ notifyGestoriaInvoice: jest.fn() }))
+jest.mock('next/server', () => {
+  const actual = jest.requireActual('next/server')
+  return { ...actual, after: jest.fn() }
+})
 
 import { NextRequest } from 'next/server'
 import { pool } from '@/lib/direct-database'
+import { generateAndAttachPdf } from '@/lib/invoiceService'
 import { readSessionFromRequest } from '@/lib/auth-server'
 import { POST } from '@/app/api/invoices/[id]/rectificar/route'
 
@@ -136,6 +145,11 @@ const params = { params: Promise.resolve({ id: '23' }) }
 beforeEach(() => {
   jest.clearAllMocks()
   mockedSession.mockReturnValue(adminSession)
+  ;(pool.query as jest.Mock).mockResolvedValue({ rows: [], rowCount: 0 })
+  ;(generateAndAttachPdf as jest.Mock).mockImplementation(async (inv) => ({
+    invoice: { ...inv, status: inv.status === 'PDF_PENDING' ? 'ISSUED' : inv.status, pdf_url: 'https://blob/x.pdf' },
+    pdf: new Uint8Array([1, 2, 3]),
+  }))
 })
 
 describe('POST /api/invoices/[id]/rectificar', () => {
@@ -166,7 +180,9 @@ describe('POST /api/invoices/[id]/rectificar', () => {
     expect(body.rectificativa.full_invoice_number).toBe('FR-2026-001')
     expect(Number(body.rectificativa.total_amount)).toBe(-9000)
     expect(body.original.status).toBe('RECTIFIED')
-    expect(body.pdf_pendiente).toBe(true)
+    // La FR sale con PDF (best-effort, fuera de la tx).
+    expect(body.pdf_pendiente).toBe(false)
+    expect(body.rectificativa.pdf_url).toBe('https://blob/x.pdf')
 
     const sqls = calls.map((c) => c.sql)
     expect(sqls.some((s) => s.includes('BEGIN'))).toBe(true)

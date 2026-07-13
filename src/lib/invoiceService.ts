@@ -18,7 +18,10 @@
 
 import { put } from '@vercel/blob'
 import { pool } from '@/lib/direct-database'
-import { generarFactura } from '@/lib/contractGenerator'
+import {
+  generarFactura,
+  type GenerarFacturaOptions,
+} from '@/lib/contractGenerator'
 import { resolveNextNumber } from '@/lib/invoiceNumbering'
 import { notifyGestoriaInvoice } from '@/lib/gestoriaWebhook'
 import { notifyCostoBeneficio } from '@/lib/costoBeneficio'
@@ -383,14 +386,7 @@ export async function regeneratePdf(
   // Reconstruct the DealData shape that generarFactura expects from the
   // invoice snapshot, NOT from current Deal data — that's the whole point
   // of storing a snapshot.
-  const pseudoDeal = invoiceToDealData(invoice)
-  const tipoFactura = invoiceTypeToLegacy(invoice.invoice_type)
-
-  const pdf = await generarFactura(
-    pseudoDeal as never,
-    tipoFactura,
-    invoice.full_invoice_number
-  )
+  const pdf = await buildInvoicePdf(invoice)
   const upload = await uploadPdfToBlob(invoice.full_invoice_number, pdf)
 
   const updated = await pool.query<Invoice>(
@@ -739,19 +735,108 @@ async function reserveAndInsert(args: {
   }
 }
 
+/**
+ * Bytes del PDF de UNA factura, a partir de su snapshot (nunca de los datos
+ * vivos del Deal). Único punto que sabe traducir una fila de `invoices` a los
+ * parámetros del generador, incluidas las dos variantes documentales:
+ *
+ *   · RECTIFYING → "FACTURA RECTIFICATIVA": sello diagonal, importes en
+ *     negativo, referencia a la original (número Y fecha), motivo y cita del
+ *     art. 15 RD 1619/2012. El régimen (IVA/REBU) se HEREDA de la original.
+ *   · RECTIFIED  → la original que ya fue anulada: sello "ANULADA" y la
+ *     referencia a la rectificativa. Quien imprima hoy la original vieja tiene
+ *     que ver que está sin efecto.
+ */
+export async function buildInvoicePdf(
+  invoice: Invoice,
+  sale?: SaleSnapshot
+): Promise<Uint8Array> {
+  const dealData = invoiceToDealData(invoice, sale)
+  const options: GenerarFacturaOptions = {
+    fechaFactura: toLocalDate(invoice.invoice_date),
+  }
+  let tipoFactura = invoiceTypeToLegacy(invoice.invoice_type)
+
+  if (invoice.invoice_type === 'RECTIFYING') {
+    const original = invoice.rectifies_invoice_id
+      ? await getInvoiceById(invoice.rectifies_invoice_id)
+      : null
+    // Invariante de invoiceRectificativa: RECTIFYING con taxable_base NULL
+    // ⇔ rectifica una REBU (sin desglose de IVA en el documento).
+    tipoFactura = invoice.taxable_base == null ? 'REBU' : 'IVA'
+    options.rectificativa = {
+      numeroOriginal: original?.full_invoice_number ?? '—',
+      fechaOriginal: formatFechaES(original?.invoice_date),
+      motivo: invoice.rectification_reason ?? 'No especificado',
+    }
+  } else if (invoice.status === 'RECTIFIED' && invoice.rectified_by_invoice_id) {
+    const rectificativa = await getInvoiceById(invoice.rectified_by_invoice_id)
+    if (rectificativa) {
+      options.anuladaPor = {
+        numeroRectificativa: rectificativa.full_invoice_number,
+        fechaRectificativa: formatFechaES(rectificativa.invoice_date),
+      }
+    }
+  }
+
+  return generarFactura(
+    dealData as never,
+    tipoFactura,
+    invoice.full_invoice_number,
+    options
+  )
+}
+
+/**
+ * Genera el PDF de una factura ya emitida, lo sube a Blob y actualiza la fila.
+ * NO toca número, secuencia ni importes. Usado por la emisión normal y por la
+ * rectificativa (que hasta ahora quedaba en PDF_PENDING sin documento).
+ */
+export async function generateAndAttachPdf(
+  invoice: Invoice
+): Promise<{ invoice: Invoice; pdf: Uint8Array }> {
+  const pdf = await buildInvoicePdf(invoice)
+  const upload = await uploadPdfToBlob(invoice.full_invoice_number, pdf)
+  const updated = await pool.query<Invoice>(
+    `UPDATE invoices
+        SET pdf_url = $1,
+            pdf_storage_key = $2,
+            pdf_generated_at = COALESCE(pdf_generated_at, NOW()),
+            status = CASE WHEN status IN ('PDF_PENDING', 'ERROR') THEN 'ISSUED' ELSE status END,
+            updated_at = NOW()
+      WHERE id = $3
+      RETURNING *`,
+    [upload.url, upload.pathname, invoice.id]
+  )
+  return { invoice: updated.rows[0] ?? invoice, pdf }
+}
+
 async function generatePdf(
   invoice: Invoice,
   sale: SaleSnapshot
 ): Promise<Uint8Array> {
   // Build the DealData shape the existing generator expects, sourced from
   // the *snapshot* we just persisted so the PDF matches the invoice row.
-  const dealData = invoiceToDealData(invoice, sale)
-  const tipoFactura = invoiceTypeToLegacy(invoice.invoice_type)
-  return generarFactura(dealData as never, tipoFactura, invoice.full_invoice_number)
+  return buildInvoicePdf(invoice, sale)
 }
 
 function invoiceTypeToLegacy(type: InvoiceType): 'IVA' | 'REBU' {
   return type === 'REBU' ? 'REBU' : 'IVA'
+}
+
+/** DATE de Postgres (string 'YYYY-MM-DD' o Date) → Date local, sin corrimiento
+ *  de zona horaria (`new Date('2026-03-05')` es medianoche UTC). */
+function toLocalDate(value: string | Date | null | undefined): Date | undefined {
+  if (!value) return undefined
+  if (value instanceof Date) return value
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value))
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : undefined
+}
+
+/** DATE de Postgres → 'DD/MM/AAAA'. */
+export function formatFechaES(value: string | Date | null | undefined): string {
+  const d = toLocalDate(value)
+  return d ? d.toLocaleDateString('es-ES') : '—'
 }
 
 function invoiceToDealData(invoice: Invoice, sale?: SaleSnapshot) {
