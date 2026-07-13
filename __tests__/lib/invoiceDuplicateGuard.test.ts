@@ -72,6 +72,20 @@ describe('findActiveSaleInvoiceForVehicle — repository', () => {
     const [, params] = mockedPoolQuery.mock.calls[0]
     expect(params).toEqual([ZAFIRA_VEHICULO_ID, 144, -1])
   })
+
+  it('cuenta las IMPORTED (legacy ya emitida) pero NO las anuladas, rectificadas ni los abonos', async () => {
+    mockedPoolQuery.mockResolvedValue({ rows: [] })
+    await findActiveSaleInvoiceForVehicle(ZAFIRA_VEHICULO_ID, { excludeDealId: 144 })
+    const [sql] = mockedPoolQuery.mock.calls[0] as [string]
+
+    // Activas: una legacy IMPORTED del mismo coche sí bloquea.
+    expect(sql).toContain("status IN ('ISSUED', 'PDF_PENDING', 'IMPORTED')")
+    // VOIDED / RECTIFIED quedan fuera del IN → una factura rectificada NO
+    // bloquea la re-emisión del mismo vehículo.
+    expect(sql).not.toContain('RECTIFIED')
+    // El abono (serie FR) no es una venta: no puede bloquear.
+    expect(sql).toContain("invoice_type <> 'RECTIFYING'")
+  })
 })
 
 describe('issueInvoice — anti-duplicate-vehicle guard (retail vs retail)', () => {
@@ -131,9 +145,12 @@ describe('issueInvoice — anti-duplicate-vehicle guard (retail vs retail)', () 
 
     await expect(issueInvoice({ dealId: 144, invoiceType: 'REBU' })).rejects.toMatchObject({
       code: 'VEHICLE_ALREADY_INVOICED',
+      // El mensaje llega tal cual a la UI: tiene que decir QUÉ factura y de QUÉ deal.
+      message: expect.stringContaining('R-2026-023 (deal 143)'),
       details: expect.objectContaining({
         fullInvoiceNumber: 'R-2026-023',
         origin: 'retail',
+        dealId: 143,
       }),
     })
     expect(mockedConnect).not.toHaveBeenCalled() // never reaches number reservation

@@ -253,10 +253,16 @@ export interface ActiveVehicleInvoice {
 }
 
 /**
- * Finds an active (ISSUED/PDF_PENDING) sale invoice for a vehicle, across
- * BOTH retail (deal_id) and B2B (b2b_venta_id) origins. Used to guard against
- * the same car being invoiced twice from two different sale records — the
- * root cause of the R-2026-023/024 and R-2026-025/026 duplicates.
+ * Finds an active (ISSUED/PDF_PENDING/IMPORTED) sale invoice for a vehicle,
+ * across BOTH retail (deal_id) and B2B (b2b_venta_id) origins. Used to guard
+ * against the same car being invoiced twice from two different sale records —
+ * the root cause of the R-2026-023/024 and R-2026-025/026 duplicates.
+ *
+ * NO cuentan como activas:
+ *  - VOIDED / RECTIFIED  → la factura ya no está viva; el coche debe poder
+ *    re-facturarse (una anulada/rectificada no puede bloquear la re-emisión).
+ *  - invoice_type = 'RECTIFYING' → el abono (serie FR) no es una venta; si
+ *    bloqueara, rectificar dejaría el coche imposible de re-facturar.
  *
  * `excludeDealId` / `excludeB2BVentaId` let the caller ignore its own sale
  * (e.g. a retry / re-issue of the very same deal must not flag itself).
@@ -275,7 +281,8 @@ export async function findActiveSaleInvoiceForVehicle(
     `SELECT id, full_invoice_number, status, deal_id, b2b_venta_id
        FROM invoices
       WHERE vehiculo_id = $1
-        AND status IN ('ISSUED', 'PDF_PENDING')
+        AND status IN ('ISSUED', 'PDF_PENDING', 'IMPORTED')
+        AND invoice_type <> 'RECTIFYING'
         AND (deal_id IS NULL OR deal_id <> $2)
         AND (b2b_venta_id IS NULL OR b2b_venta_id <> $3)
       ORDER BY id DESC
