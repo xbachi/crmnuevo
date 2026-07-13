@@ -7,6 +7,7 @@ import {
   InvoiceStatusBadge,
   InvoiceTypeBadge,
 } from '@/components/invoicing/InvoiceStatusBadge'
+import DealRectificarButton from '@/components/invoicing/DealRectificarButton'
 import { downloadPdf } from '@/lib/pdf/download'
 
 interface Invoice {
@@ -290,6 +291,14 @@ export default function DealInvoiceSection({
                     {downloadingId === inv.id ? 'Descargando…' : 'Descargar PDF'}
                   </button>
                 ) : null}
+                <DealRectificarButton
+                  invoiceId={inv.id}
+                  invoiceNumber={inv.full_invoice_number}
+                  invoiceType={inv.invoice_type}
+                  status={inv.status}
+                  totalAmount={inv.total_amount}
+                  onRectificada={load}
+                />
                 <Link
                   href={`/facturacion/${inv.id}`}
                   className="px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded hover:bg-gray-200"
@@ -301,7 +310,8 @@ export default function DealInvoiceSection({
           ))}
         </div>
         <div className="px-4 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
-          Para emitir una factura rectificativa o anular, abrí el detalle.
+          Rectificar / anular emite una factura rectificativa (serie FR) y deja la
+          original anulada conservando su número.
         </div>
       </div>
     )
