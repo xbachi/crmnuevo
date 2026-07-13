@@ -3,7 +3,10 @@
  *
  * Libro registro de facturas del trimestre, estructurado para la gestoría:
  *
- *  - Emitidas (invoices, sin VOIDED):
+ *  - Emitidas (invoices, sin VOIDED). Incluye a propósito las RECTIFIED (la
+ *    original anulada, en positivo) y las RECTIFYING (la rectificativa, en
+ *    negativo): el par netea a cero y la gestoría ve las dos, que es lo que
+ *    pide una anulación formal.
  *      · VAT: base/cuota desde taxable_base/vat_amount (la tabla los guarda al
  *        emitir — computeAmounts). Si faltan (legacy IMPORTED), se derivan
  *        base = total/1,21 y cuota = total − base, marcado base_derivada=true.
@@ -46,6 +49,9 @@ interface EmitidaLibro {
   numero: string
   fecha: string
   tipo: string
+  /** Régimen fiscal real de la fila: una RECTIFYING hereda el de la factura
+   *  que rectifica (es lo que decide en qué bloque de totales suma). */
+  regimen: 'VAT' | 'REBU'
   estado: string
   matricula: string | null
   total: number
@@ -61,10 +67,18 @@ const round2 = (n: number) => Number(n.toFixed(2))
 
 function toLibroRow(r: EmitidaDbRow): EmitidaLibro {
   const total = Number(r.total_amount)
+  // Una rectificativa de REBU se guarda sin desglose (taxable_base NULL), igual
+  // que la REBU que anula; una de VAT siempre trae base/cuota (negativas) —
+  // invariante garantizado por computeRectificativaAmounts.
+  const esRectificativa = r.invoice_type === 'RECTIFYING'
+  const esRebu =
+    r.invoice_type === 'REBU' || (esRectificativa && r.taxable_base == null)
+
   const row: EmitidaLibro = {
     numero: r.full_invoice_number,
     fecha: r.invoice_date,
     tipo: r.invoice_type,
+    regimen: esRebu ? 'REBU' : 'VAT',
     estado: r.status,
     matricula: r.vehicle_plate,
     total,
@@ -76,14 +90,18 @@ function toLibroRow(r: EmitidaDbRow): EmitidaLibro {
     nota: null,
   }
 
-  if (r.invoice_type === 'REBU') {
+  if (esRebu) {
     const compra = r.precio_compra != null ? Number(r.precio_compra) : null
     if (!compra) {
       row.nota = 'sin precio de compra cargado'
       return row
     }
-    const venta = r.precio_venta != null && Number(r.precio_venta) !== 0 ? Number(r.precio_venta) : total
-    row.margen = round2(venta - compra)
+    const venta = r.precio_venta != null && Number(r.precio_venta) !== 0 ? Number(r.precio_venta) : Math.abs(total)
+    const margen = round2(venta - compra)
+    // La rectificativa anula el margen de la original: mismo importe con signo
+    // opuesto → el par netea a cero también en el bloque REBU.
+    const signo = esRectificativa ? -1 : 1
+    row.margen = round2(margen * signo)
     row.cuota_rebu = round2((row.margen * VAT_RATE) / (100 + VAT_RATE))
     if (r.precio_venta == null || Number(r.precio_venta) === 0) {
       row.nota = 'margen calculado con el total de la factura (precioVenta no cargado)'
@@ -91,7 +109,7 @@ function toLibroRow(r: EmitidaDbRow): EmitidaLibro {
     return row
   }
 
-  // VAT (y RECTIFYING, que comparte desglose base + 21%).
+  // VAT (y las RECTIFYING de una VAT, con base/cuota negativas).
   if (r.taxable_base != null) {
     row.base = Number(r.taxable_base)
     row.cuota = r.vat_amount != null ? Number(r.vat_amount) : round2(total - row.base)
@@ -156,8 +174,8 @@ export async function GET(request: NextRequest) {
       cuota: null as number | null,
     }))
 
-    const vat = emitidas.filter((e) => e.tipo !== 'REBU')
-    const rebu = emitidas.filter((e) => e.tipo === 'REBU')
+    const vat = emitidas.filter((e) => e.regimen === 'VAT')
+    const rebu = emitidas.filter((e) => e.regimen === 'REBU')
     const sum = (xs: (number | null)[]) => round2(xs.reduce<number>((a, x) => a + (x ?? 0), 0))
     const totales = {
       emitidas_vat: {
@@ -184,11 +202,11 @@ export async function GET(request: NextRequest) {
         {
           titulo: `LIBRO REGISTRO ${year} T${quarter} — FACTURAS EMITIDAS`,
           headers: [
-            'numero', 'fecha', 'tipo', 'estado', 'matricula', 'total',
+            'numero', 'fecha', 'tipo', 'regimen', 'estado', 'matricula', 'total',
             'base', 'cuota', 'margen_rebu', 'cuota_rebu', 'nota',
           ],
           rows: emitidas.map((e) => [
-            e.numero, e.fecha, e.tipo, e.estado, e.matricula, csvNum(e.total),
+            e.numero, e.fecha, e.tipo, e.regimen, e.estado, e.matricula, csvNum(e.total),
             csvNum(e.base), csvNum(e.cuota), csvNum(e.margen), csvNum(e.cuota_rebu), e.nota,
           ]),
         },
@@ -223,6 +241,7 @@ export async function GET(request: NextRequest) {
       generado_at: new Date().toISOString(),
       notas: [
         'REBU: cuota_rebu = margen × 21/121 (IVA incluido en el margen); sin precioCompra el margen va null',
+        'Rectificativas (FR, RECTIFYING): importes NEGATIVOS; se listan junto a la original RECTIFIED y netean a cero',
         'Recibidas: base/cuota null — sin desglose en origen, completa la gestoría',
       ],
       emitidas,

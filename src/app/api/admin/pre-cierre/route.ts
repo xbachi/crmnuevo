@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
          FROM invoices i
          LEFT JOIN automation_logs al ON al.numero_factura = i.full_invoice_number
         WHERE i.status = 'ISSUED' AND i.invoice_date >= $1 AND i.invoice_date < $2
+          AND i.invoice_type <> 'RECTIFYING'
           AND al.id IS NULL
         ORDER BY i.invoice_date`,
       [from, to]
@@ -57,6 +58,7 @@ export async function GET(request: NextRequest) {
          FROM invoices i
          LEFT JOIN automation_logs al ON al.numero_factura = i.full_invoice_number
         WHERE i.status = 'ISSUED' AND i.invoice_date >= $1 AND i.invoice_date < $2
+          AND i.invoice_type <> 'RECTIFYING'
           AND COALESCE(al.venta_guardada, FALSE) = FALSE
         ORDER BY i.invoice_date`,
       [from, to]

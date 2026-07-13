@@ -28,7 +28,9 @@ import type { TipoOperacion } from '@/lib/expedienteChecklist'
 const SHEET_ID =
   process.env.COSTOBENEFICIO_SPREADSHEET_ID || '1o0GRJKvzjiDl7dQSdRzxy6jWIT1Ll7fAIKx4yGjYhwM'
 
-// Estados de factura que cuentan como activas (emitidas de verdad).
+// Estados de factura que cuentan como activas (emitidas de verdad). Excluye
+// RECTIFIED (la original anulada por una rectificativa); las RECTIFYING se
+// filtran por invoice_type — una rectificativa no es una venta con expediente.
 const ACTIVE_STATUSES = ['ISSUED', 'IMPORTED', 'PDF_PENDING']
 
 async function leerCbBandas(year: number): Promise<CbCocheBanda[] | null> {
@@ -74,6 +76,7 @@ export async function GET(request: NextRequest) {
       `SELECT full_invoice_number, invoice_date::text, vehicle_plate
          FROM invoices
         WHERE status = ANY($1) AND invoice_date >= $2 AND invoice_date < $3
+          AND invoice_type <> 'RECTIFYING'
         ORDER BY invoice_date`,
       [ACTIVE_STATUSES, from, to]
     )

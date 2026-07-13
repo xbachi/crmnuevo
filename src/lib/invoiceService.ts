@@ -16,11 +16,10 @@
  *     same number.
  */
 
-import type { Pool, PoolClient } from 'pg'
 import { put } from '@vercel/blob'
 import { pool } from '@/lib/direct-database'
 import { generarFactura } from '@/lib/contractGenerator'
-import { pickInvoiceNumber } from '@/lib/invoiceNumbering'
+import { resolveNextNumber } from '@/lib/invoiceNumbering'
 import { notifyGestoriaInvoice } from '@/lib/gestoriaWebhook'
 import { notifyCostoBeneficio } from '@/lib/costoBeneficio'
 import {
@@ -112,7 +111,7 @@ export async function previewInvoice(
   // that will actually be assigned — including a freed/deleted number that
   // will be reused. No lock here: a concurrent issue may still take it.
   const startNumber = sequence.start_number ?? sequence.next_number
-  const number = await assignNumber(pool, sequence.series, startNumber)
+  const number = await resolveNextNumber(pool, sequence.series, startNumber)
 
   return {
     invoiceType,
@@ -488,47 +487,6 @@ function buildVehicleSnapshot(sale: SaleSnapshot) {
   }
 }
 
-/**
- * Resolve the next invoice number for a series using gap-filling. Pulls the
- * state pickInvoiceNumber needs (system max, absolute max, occupied numbers in
- * the managed range) and delegates the rule. Works with either the pool or a
- * locked client — callers that need atomicity must already hold the sequence
- * row lock.
- */
-async function assignNumber(
-  db: Pool | PoolClient,
-  series: string,
-  startNumber: number
-): Promise<number> {
-  const agg = await db.query<{ sys_max: string | null; abs_max: string | null }>(
-    `SELECT MAX(number) FILTER (WHERE status <> 'IMPORTED') AS sys_max,
-            MAX(number)                                     AS abs_max
-       FROM invoices WHERE series = $1`,
-    [series]
-  )
-  const sysMax = agg.rows[0]?.sys_max != null ? Number(agg.rows[0].sys_max) : null
-  const absMax = agg.rows[0]?.abs_max != null ? Number(agg.rows[0].abs_max) : 0
-
-  let occupied: number[] = []
-  if (sysMax != null && sysMax >= startNumber) {
-    const occ = await db.query<{ number: number }>(
-      `SELECT number FROM invoices WHERE series = $1 AND number BETWEEN $2 AND $3`,
-      [series, startNumber, sysMax]
-    )
-    occupied = occ.rows.map((r) => Number(r.number))
-  }
-
-  // Numbers that were ever deleted for this series (invoice_deletion_logs)
-  // must never be reissued — see pickInvoiceNumber's `burned` param.
-  const burnedRes = await db.query<{ number: number }>(
-    `SELECT DISTINCT number FROM invoice_deletion_logs WHERE series = $1`,
-    [series]
-  )
-  const burned = burnedRes.rows.map((r) => Number(r.number))
-
-  return pickInvoiceNumber({ startNumber, sysMax, absMax, occupied, burned })
-}
-
 async function reserveAndInsert(args: {
   sale: SaleSnapshot
   invoiceType: InvoiceType
@@ -573,7 +531,7 @@ async function reserveAndInsert(args: {
     // start_number is the series floor; legacy IMPORTED rows live below it and
     // are never disturbed. See invoiceNumbering.pickInvoiceNumber.
     const startNumber = (seq.start_number as number | null) ?? seqNext
-    const number = await assignNumber(client, series, startNumber)
+    const number = await resolveNextNumber(client, series, startNumber)
     if (number !== seqNext) {
       console.warn(
         `[invoiceService] sequence ${series} (deal ${args.sale.id}): assigning ${number} (next_number was ${seqNext})`

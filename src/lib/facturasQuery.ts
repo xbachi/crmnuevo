@@ -47,6 +47,7 @@ export async function getEmittedInvoices(year: number, month?: number): Promise<
        LEFT JOIN "Vehiculo" v ON v.id = d."vehiculoId"
       WHERE i.invoice_date >= $1 AND i.invoice_date < $2
         AND i.status = ANY($3)
+        AND i.invoice_type <> 'RECTIFYING'
       ORDER BY i.invoice_date`,
     [from, to, EMITTED_STATUSES as unknown as string[]]
   )

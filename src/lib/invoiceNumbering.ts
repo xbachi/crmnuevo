@@ -21,6 +21,8 @@
  *     R-2026-027 each assigned to two different documents).
  */
 
+import type { Pool, PoolClient } from 'pg'
+
 export interface PickInvoiceNumberInput {
   /** First number the CRM ever assigns in this series (seeded next_number). */
   startNumber: number
@@ -54,4 +56,48 @@ export function pickInvoiceNumber(input: PickInvoiceNumberInput): number {
   let next = Math.max(startNumber, (sysMax ?? startNumber - 1) + 1, absMax + 1)
   while (burnedSet.has(next)) next++
   return next
+}
+
+/**
+ * Resolve the next invoice number for a series using the rule above. Pulls the
+ * state pickInvoiceNumber needs (system max, absolute max, occupied numbers in
+ * the managed range, burned numbers) and delegates. Works with either the pool
+ * or a locked client — callers that need atomicity must already hold the
+ * sequence row lock (SELECT ... FOR UPDATE on invoice_sequences).
+ *
+ * Lives here (and not in invoiceService) because BOTH the issuance flow and
+ * the rectificativa flow consume numbers and must follow the exact same rule.
+ */
+export async function resolveNextNumber(
+  db: Pool | PoolClient,
+  series: string,
+  startNumber: number
+): Promise<number> {
+  const agg = await db.query<{ sys_max: string | null; abs_max: string | null }>(
+    `SELECT MAX(number) FILTER (WHERE status <> 'IMPORTED') AS sys_max,
+            MAX(number)                                     AS abs_max
+       FROM invoices WHERE series = $1`,
+    [series]
+  )
+  const sysMax = agg.rows[0]?.sys_max != null ? Number(agg.rows[0].sys_max) : null
+  const absMax = agg.rows[0]?.abs_max != null ? Number(agg.rows[0].abs_max) : 0
+
+  let occupied: number[] = []
+  if (sysMax != null && sysMax >= startNumber) {
+    const occ = await db.query<{ number: number }>(
+      `SELECT number FROM invoices WHERE series = $1 AND number BETWEEN $2 AND $3`,
+      [series, startNumber, sysMax]
+    )
+    occupied = occ.rows.map((r) => Number(r.number))
+  }
+
+  // Numbers that were ever deleted for this series (invoice_deletion_logs)
+  // must never be reissued — see pickInvoiceNumber's `burned` param.
+  const burnedRes = await db.query<{ number: number }>(
+    `SELECT DISTINCT number FROM invoice_deletion_logs WHERE series = $1`,
+    [series]
+  )
+  const burned = burnedRes.rows.map((r) => Number(r.number))
+
+  return pickInvoiceNumber({ startNumber, sysMax, absMax, occupied, burned })
 }
