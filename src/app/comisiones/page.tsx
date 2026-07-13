@@ -84,6 +84,23 @@ const MESES = [
   'Diciembre',
 ]
 
+const MESES_CORTOS = [
+  'ENE',
+  'FEB',
+  'MAR',
+  'ABR',
+  'MAY',
+  'JUN',
+  'JUL',
+  'AGO',
+  'SEP',
+  'OCT',
+  'NOV',
+  'DIC',
+]
+
+const YEAR_MIN = 2025
+
 const TRAMO_BADGE: Record<TramoComision, string> = {
   contado: 'bg-green-100 text-green-700',
   financiadoBajo: 'bg-blue-100 text-blue-700',
@@ -105,10 +122,24 @@ export default function ComisionesPage() {
   const { isAdmin } = useAuth()
   const { showToast, ToastContainer } = useToast()
   const now = new Date()
-  const [year, setYear] = useState(now.getFullYear())
-  const [month, setMonth] = useState(now.getMonth() + 1)
+  const currentYear = now.getFullYear()
+  const currentMonth = now.getMonth() + 1
+  const yearMax = currentYear
+  const [year, setYear] = useState(currentYear)
+  const [month, setMonth] = useState(currentMonth)
   const [data, setData] = useState<ApiResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+
+  // Un mes que todavía no terminó de empezar no se liquida.
+  const esFuturo = (y: number, m: number) =>
+    y > currentYear || (y === currentYear && m > currentMonth)
+
+  const cambiarYear = (nextYear: number) => {
+    if (nextYear < YEAR_MIN || nextYear > yearMax) return
+    setYear(nextYear)
+    // Si el mes activo todavía no ocurrió en el año destino, caer al último liquidable.
+    if (esFuturo(nextYear, month)) setMonth(currentMonth)
+  }
 
   const fetchComisiones = useCallback(async () => {
     setIsLoading(true)
@@ -187,35 +218,63 @@ export default function ComisionesPage() {
             </div>
           )}
 
-          {/* Selector de período */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-600">Mes:</span>
-              <select
-                value={month}
-                onChange={(e) => setMonth(parseInt(e.target.value, 10))}
-                className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-blue-500"
-              >
-                {MESES.map((m, i) => (
-                  <option key={m} value={i + 1}>
-                    {m}
-                  </option>
-                ))}
-              </select>
+          {/* Solapas de mes — las comisiones se liquidan mes a mes, nunca por trimestre */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                Liquidación mensual
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => cambiarYear(year - 1)}
+                  disabled={year <= YEAR_MIN}
+                  className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Año anterior"
+                >
+                  ‹
+                </button>
+                <span className="text-sm font-bold text-gray-800 tabular-nums w-12 text-center">
+                  {year}
+                </span>
+                <button
+                  onClick={() => cambiarYear(year + 1)}
+                  disabled={year >= yearMax}
+                  className="px-2 py-1 rounded-md text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Año siguiente"
+                >
+                  ›
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-600">Año:</span>
-              <select
-                value={year}
-                onChange={(e) => setYear(parseInt(e.target.value, 10))}
-                className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-blue-500"
-              >
-                {[2025, 2026, 2027].map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
+            <div className="overflow-x-auto">
+              <div className="grid grid-cols-6 sm:grid-cols-12 gap-1 min-w-[520px]">
+                {MESES_CORTOS.map((m, i) => {
+                  const mes = i + 1
+                  const activo = mes === month
+                  const futuro = esFuturo(year, mes)
+                  return (
+                    <button
+                      key={m}
+                      onClick={() => setMonth(mes)}
+                      disabled={futuro}
+                      title={
+                        futuro
+                          ? `${MESES[i]} ${year} todavía no ocurrió`
+                          : `${MESES[i]} ${year}`
+                      }
+                      className={`px-2 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-all border ${
+                        activo
+                          ? 'bg-slate-800 text-white border-slate-800 shadow-sm'
+                          : futuro
+                            ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed'
+                            : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:text-gray-900'
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           </div>
 
