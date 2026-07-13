@@ -4,6 +4,10 @@ import { LOGO_CONTRATO_BASE64 } from './logoBase64'
 import { formatCurrency, getVehiculoAño, capitalizeText } from './utils'
 import { INVOICE_CONFIG } from '@/config/invoiceConfig'
 import {
+  describirCondicionesPago,
+  type CondicionesPago,
+} from './ventaCondicionesPago'
+import {
   drawAccentBar,
   drawVendorBlock,
   drawInvoiceTitleBar,
@@ -411,6 +415,8 @@ export interface DealData {
   formaPagoSena?: string
   fechaReservaDesde?: Date
   fechaReservaExpira?: Date
+  /** Condiciones de pago capturadas al generar el contrato de venta. */
+  condicionesPago?: CondicionesPago
 }
 
 // Función para convertir números a letras
@@ -1130,10 +1136,13 @@ export async function generarContratoVenta(
   const precioEnLetras = numeroALetras(Math.floor(precio))
   y += 4 // respiro extra antes del punto 2
 
+  const textoFormaPago = deal.condicionesPago
+    ? ` Forma de pago: ${describirCondicionesPago(deal.condicionesPago)}.`
+    : ''
   y = drawNumberedPoint(
     doc,
     2,
-    `Por la cantidad de ${formatCurrency(precio)} (${precioEnLetras} euros), garantizado por 12 meses desde la fecha de entrega conforme al RDL 1/2007.`,
+    `Por la cantidad de ${formatCurrency(precio)} (${precioEnLetras} euros), garantizado por 12 meses desde la fecha de entrega conforme al RDL 1/2007.${textoFormaPago}`,
     margin,
     y,
     contentWidth

@@ -20,6 +20,8 @@ import {
   capitalizeText,
 } from '@/lib/utils'
 import DealVentaInfo from '@/components/DealVentaInfo'
+import CondicionesPagoModal from '@/components/CondicionesPagoModal'
+import type { CondicionesPago } from '@/lib/ventaCondicionesPago'
 import FacturaTypeModal from '@/components/FacturaTypeModal'
 import DealInvoiceSection from '@/components/invoicing/DealInvoiceSection'
 import NotasSection from '@/components/NotasSection'
@@ -236,6 +238,7 @@ export default function DealDetail() {
   // Estado para el modal de confirmación
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [showFacturaModal, setShowFacturaModal] = useState(false)
+  const [showCondicionesPago, setShowCondicionesPago] = useState(false)
 
   useEffect(() => {
     if (params.id) {
@@ -516,14 +519,38 @@ export default function DealDetail() {
     }
   }
 
-  const handleGenerarContratoVenta = async () => {
+  // El contrato de venta exige capturar antes las condiciones de pago:
+  // el botón solo abre el modal; la generación real ocurre al confirmar.
+  const handleGenerarContratoVenta = () => {
+    if (!deal) {
+      showToast('No hay datos del deal disponibles', 'error')
+      return
+    }
+    setShowCondicionesPago(true)
+  }
+
+  const handleCondicionesPagoConfirmadas = async (
+    condiciones: CondicionesPago
+  ) => {
+    if (!deal) return
     try {
       setIsGeneratingVenta(true)
 
-      if (!deal) {
-        showToast('No hay datos del deal disponibles', 'error')
+      // Guardar condiciones de pago. Si falla, el contrato NO se genera.
+      const condRes = await fetch(`/api/deals/${deal.id}/condiciones-pago`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(condiciones),
+      })
+      if (!condRes.ok) {
+        const err = await condRes.json().catch(() => ({}))
+        showToast(
+          err.error || 'Error guardando las condiciones de pago',
+          'error'
+        )
         return
       }
+      setShowCondicionesPago(false)
 
       // Siempre generar un nuevo contrato (no usar caché)
       // Generar el contrato
@@ -546,6 +573,7 @@ export default function DealDetail() {
             formaPagoSena: deal.formaPagoSena,
             fechaReservaDesde: deal.fechaReservaDesde,
             fechaReservaExpira: deal.fechaReservaExpira,
+            condicionesPago: condiciones,
           },
         }),
       })
@@ -1400,6 +1428,15 @@ export default function DealDetail() {
     <ProtectedRoute>
       <div className="min-h-screen bg-slate-50">
         <ToastContainer />
+
+        {showCondicionesPago && (
+          <CondicionesPagoModal
+            precioVenta={deal.importeTotal || 0}
+            isSubmitting={isGeneratingVenta}
+            onConfirm={handleCondicionesPagoConfirmadas}
+            onClose={() => setShowCondicionesPago(false)}
+          />
+        )}
 
         {/* Header */}
         <div className="bg-white shadow-sm border-b border-slate-200">
