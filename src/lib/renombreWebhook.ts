@@ -68,7 +68,10 @@ export function renombreWebhookUrl(): string | null {
   }
 }
 
-export async function postRenombreWebhook(payload: RenombrePayload): Promise<RenombreResult> {
+export async function postRenombreWebhook(
+  payload: RenombrePayload,
+  opts: { timeoutMs?: number } = {}
+): Promise<RenombreResult> {
   const url = renombreWebhookUrl()
   if (!url) {
     return { ok: false, error: 'sin webhook de renombrado (N8N_RENAME_WEBHOOK_URL / N8N_INVOICE_WEBHOOK_URL)' }
@@ -77,9 +80,10 @@ export async function postRenombreWebhook(payload: RenombrePayload): Promise<Ren
   const secret =
     process.env.N8N_RENAME_WEBHOOK_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
   const controller = new AbortController()
-  // El mount rclone es lento: un trimestre entero puede tardar bastante más que
-  // los 6s del webhook de facturas.
-  const timeout = setTimeout(() => controller.abort(), 40_000)
+  // El mount rclone es lento, pero el que llama manda LOTES y tiene su propio
+  // presupuesto (la función de Vercel muere a los 60s): nunca esperar más de lo
+  // que le queda al handler, o el 502 se lo come él y la traza queda sin confirmar.
+  const timeout = setTimeout(() => controller.abort(), opts.timeoutMs ?? 40_000)
   try {
     const res = await fetch(url, {
       method: 'POST',
