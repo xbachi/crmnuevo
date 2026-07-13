@@ -18,6 +18,10 @@ jest.mock('@/components/Toast', () => ({
   }),
 }))
 jest.mock('@/lib/pdf/download', () => ({ downloadPdf: jest.fn() }))
+// El botón de rectificar (montado dentro de la sección) lee la sesión.
+jest.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 1, role: 'admin' }, isLoading: false }),
+}))
 
 const ISSUED_INVOICE = {
   id: 99,
