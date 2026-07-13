@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { useToast } from '@/components/Toast'
+import { useAuth } from '@/contexts/AuthContext'
 import {
   ESTADOS_EXPEDIENTE,
   TIPO_OPERACION_LABEL,
@@ -35,6 +36,33 @@ interface ApiResponse {
   expedientes: Expediente[]
 }
 
+interface ReparacionFacturaVenta {
+  ok: boolean
+  dryRun: boolean
+  year: number
+  quarter: number
+  totalFacturas: number
+  reparadas: {
+    numero: string
+    matricula: string | null
+    fecha: string
+    carpeta: string | null
+    archivo: string
+    aplicado: boolean
+  }[]
+  sinPdfEnCrm: {
+    numero: string
+    matricula: string | null
+    fecha: string
+    status: string
+    motivo: string
+  }[]
+  yaEstaban: { numero: string; matricula: string | null; fecha: string; carpeta: string }[]
+  fallidas: { numero: string; matricula: string | null; error: string }[]
+  nota?: string
+  notaSinPdf?: string
+}
+
 const ESTADO_BADGE: Record<EstadoExpediente, string> = {
   incompleto: 'bg-red-100 text-red-700',
   completo: 'bg-green-100 text-green-700',
@@ -55,7 +83,46 @@ export default function ExpedientesPage() {
   const [savingKey, setSavingKey] = useState<string | null>(null)
   const [chequeo, setChequeo] = useState<ResultadoChequeo | null>(null)
   const [chequeando, setChequeando] = useState(false)
+  const [reparacion, setReparacion] = useState<ReparacionFacturaVenta | null>(null)
+  const [reparando, setReparando] = useState(false)
   const { showToast } = useToast()
+  const { isAdmin } = useAuth()
+
+  const runReparacion = async (dryRun: boolean) => {
+    if (quarter === 'todos') return
+    setReparando(true)
+    try {
+      const res = await fetch('/api/expedientes/reparar-factura-venta', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ year, quarter, dryRun }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(body.nota || body.error || 'Error en la reparación')
+      setReparacion(body as ReparacionFacturaVenta)
+      if (!dryRun) {
+        const n = (body as ReparacionFacturaVenta).reparadas.filter((r) => r.aplicado).length
+        showToast(
+          n > 0 ? `${n} factura(s) copiadas al expediente` : 'No había nada que copiar',
+          n > 0 ? 'success' : 'info'
+        )
+      }
+    } catch (err) {
+      console.error(err)
+      showToast(err instanceof Error ? err.message : 'Error al reparar', 'error')
+    } finally {
+      setReparando(false)
+    }
+  }
+
+  const aplicarReparacion = async () => {
+    if (!reparacion || reparacion.reparadas.length === 0) return
+    const ok = window.confirm(
+      `Se van a copiar ${reparacion.reparadas.length} factura(s) de venta a su carpeta de expediente en OneDrive. ¿Aplicar?`
+    )
+    if (!ok) return
+    await runReparacion(false)
+  }
 
   const runChequeo = async () => {
     if (quarter === 'todos') return
@@ -216,25 +283,52 @@ export default function ExpedientesPage() {
                 ))}
               </select>
             </div>
-            <button
-              onClick={runChequeo}
-              disabled={chequeando || quarter === 'todos'}
-              title={
-                quarter === 'todos'
-                  ? 'Elegí un trimestre concreto para chequear'
-                  : undefined
-              }
-              className={`ml-auto px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all ${
-                chequeando || quarter === 'todos'
-                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                  : 'bg-indigo-600 text-white hover:bg-indigo-700'
-              }`}
-            >
-              {chequeando
-                ? 'Chequeando…'
-                : 'Chequear expedientes gestoría'}
-            </button>
+            <div className="ml-auto flex flex-wrap items-center gap-2">
+              <button
+                onClick={runChequeo}
+                disabled={chequeando || quarter === 'todos'}
+                title={
+                  quarter === 'todos'
+                    ? 'Elegí un trimestre concreto para chequear'
+                    : undefined
+                }
+                className={`px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all ${
+                  chequeando || quarter === 'todos'
+                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                }`}
+              >
+                {chequeando ? 'Chequeando…' : 'Chequear expedientes gestoría'}
+              </button>
+              {isAdmin && (
+                <button
+                  onClick={() => runReparacion(true)}
+                  disabled={reparando || quarter === 'todos'}
+                  title={
+                    quarter === 'todos'
+                      ? 'Elegí un trimestre concreto para reparar'
+                      : 'Simula primero: no copia nada hasta confirmar'
+                  }
+                  className={`px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all ${
+                    reparando || quarter === 'todos'
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      : 'bg-amber-600 text-white hover:bg-amber-700'
+                  }`}
+                >
+                  {reparando ? 'Reparando…' : 'Reparar facturas de venta'}
+                </button>
+              )}
+            </div>
           </div>
+
+          {/* Reparación de facturas de venta */}
+          {reparacion && (
+            <ReparacionPanel
+              rep={reparacion}
+              onAplicar={aplicarReparacion}
+              aplicando={reparando}
+            />
+          )}
 
           {/* Resultado del chequeo integral */}
           {chequeo && <ChequeoPanel chequeo={chequeo} />}
@@ -440,6 +534,108 @@ function ExpedienteRow({
         </tr>
       )}
     </>
+  )
+}
+
+function ReparacionPanel({
+  rep,
+  onAplicar,
+  aplicando,
+}: {
+  rep: ReparacionFacturaVenta
+  onAplicar: () => void
+  aplicando: boolean
+}) {
+  return (
+    <div className="bg-white rounded-xl shadow-md border border-amber-200 p-4 space-y-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <h3 className="text-sm font-bold text-gray-800">
+          Reparación de facturas de venta — {rep.quarter}T {rep.year}
+        </h3>
+        <span className="text-xs text-gray-500">
+          {rep.totalFacturas} facturas · {rep.yaEstaban.length} ya estaban ·{' '}
+          {rep.reparadas.length} {rep.dryRun ? 'a copiar' : 'copiadas'} ·{' '}
+          {rep.sinPdfEnCrm.length} sin PDF en el CRM
+        </span>
+        {rep.dryRun && rep.reparadas.length > 0 && (
+          <button
+            onClick={onAplicar}
+            disabled={aplicando}
+            className={`ml-auto px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all ${
+              aplicando
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'bg-amber-600 text-white hover:bg-amber-700'
+            }`}
+          >
+            {aplicando ? 'Aplicando…' : `Aplicar (${rep.reparadas.length})`}
+          </button>
+        )}
+      </div>
+
+      {rep.nota && <div className="text-xs text-gray-500">{rep.nota}</div>}
+
+      {rep.reparadas.length > 0 && (
+        <div className="space-y-1">
+          <div className="text-xs font-bold text-gray-700">
+            {rep.dryRun
+              ? 'Se copiarán al expediente (el CRM tiene el PDF)'
+              : 'Copiadas al expediente'}
+          </div>
+          {rep.reparadas.map((r) => (
+            <div
+              key={r.numero}
+              className="flex flex-wrap items-center gap-2 border border-gray-100 rounded-lg px-3 py-2 text-xs"
+            >
+              <span className="font-medium text-gray-900">{r.numero}</span>
+              <span className="text-gray-500">
+                {r.matricula ?? 'sin matrícula'} · {r.fecha} ·{' '}
+                {r.carpeta ?? 'carpeta a crear'}
+              </span>
+              <span className="ml-auto px-2 py-1 rounded-full bg-amber-100 text-amber-800 font-medium">
+                {r.aplicado ? '✓ ' : ''}
+                {r.archivo}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {rep.sinPdfEnCrm.length > 0 && (
+        <div className="space-y-1">
+          <div className="text-xs font-bold text-red-700">
+            No reparables automáticamente ({rep.sinPdfEnCrm.length}) — subilas a mano
+          </div>
+          {rep.notaSinPdf && (
+            <div className="text-xs text-red-600">{rep.notaSinPdf}</div>
+          )}
+          {rep.sinPdfEnCrm.map((s) => (
+            <div
+              key={s.numero}
+              className="flex flex-wrap items-center gap-2 border border-red-100 bg-red-50 rounded-lg px-3 py-2 text-xs"
+            >
+              <span className="font-medium text-gray-900">{s.numero}</span>
+              <span className="text-gray-600">
+                {s.matricula ?? 'sin matrícula'} · {s.fecha} · {s.status}
+              </span>
+              <span className="ml-auto text-red-700">{s.motivo}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {rep.fallidas.length > 0 && (
+        <div className="space-y-1">
+          <div className="text-xs font-bold text-red-700">
+            Fallos ({rep.fallidas.length})
+          </div>
+          {rep.fallidas.map((f) => (
+            <div key={f.numero} className="text-xs text-red-700">
+              {f.numero} ({f.matricula ?? 'sin matrícula'}): {f.error}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 
