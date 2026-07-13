@@ -36,7 +36,9 @@ describe('detectarDocs — nombres reales de factura de venta', () => {
 
 describe('detectarDocs — compra y contratos reales', () => {
   it('Factura-Compra-XXXX.pdf → sólo facturaCompra', () => {
-    expect(detectar('Factura-Compra-XXXX.pdf')).toEqual(soloUno('facturaCompra'))
+    expect(detectar('Factura-Compra-XXXX.pdf')).toEqual(
+      soloUno('facturaCompra')
+    )
   })
 
   it.each([
@@ -98,15 +100,24 @@ describe('docsFaltantes por tipo de operación', () => {
     expect(docsFaltantes('retail-vat', docsRetailVat)).toEqual([])
   })
 
-  it('retail-vat sin factura de compra → falta factura-compra', () => {
+  it('retail-vat sin NINGÚN justificante de compra → falta el justificante (Kona 6935KYC)', () => {
     const docs = detectarDocs([
       { nombre: 'Factura-Venta-F-2026-020.pdf' },
-      { nombre: 'Contrato comprador.jpeg' },
+      { nombre: 'Contrato comprador.jpeg' }, // contrato de VENTA, no de compra
     ])
-    expect(docsFaltantes('retail-vat', docs)).toEqual(['factura-compra'])
+    expect(docsFaltantes('retail-vat', docs)).toEqual(['justificante-compra'])
   })
 
-  it('retail-rebu exige CONTRATO de compra (compra venta lo cubre)', () => {
+  it('retail-vat de un coche comprado a un PARTICULAR: el contrato de compraventa basta (VW Taigo 3835LWT)', () => {
+    const docs = detectarDocs([
+      { nombre: 'factura-iva-F-2026-4233.pdf' },
+      { nombre: 'CONTRATO COMPRA VENTA.pdf' },
+    ])
+    // antes reportaba "falta factura-compra": un papel que un particular NO puede emitir
+    expect(docsFaltantes('retail-vat', docs)).toEqual([])
+  })
+
+  it('retail-rebu: el contrato de compraventa cubre el justificante de compra', () => {
     const docs = detectarDocs([
       { nombre: 'factura-rebu-factura-rebu-F-2026-019.pdf' },
       { nombre: 'CONTRATO COMPRA VENTA.jpeg' },
@@ -128,15 +139,14 @@ describe('docsFaltantes por tipo de operación', () => {
     expect(docsFaltantes('deposito', docs)).toEqual(['contrato-venta'])
   })
 
-  it('b2b: contrato-compra es opcional, no cuenta como faltante', () => {
+  it('b2b: la factura de compra cubre el justificante', () => {
     expect(docsFaltantes('b2b', docsRetailVat)).toEqual([])
   })
 
   it('desconocido: exige factura de venta + justificante de compra', () => {
-    expect(docsFaltantes('desconocido', detectar('permiso-circulacion.pdf'))).toEqual([
-      'factura-venta',
-      'factura-compra o contrato-compra',
-    ])
+    expect(
+      docsFaltantes('desconocido', detectar('permiso-circulacion.pdf'))
+    ).toEqual(['factura-venta', 'justificante-compra'])
     // contrato de compra alcanza como justificante
     const conContrato = detectarDocs([
       { nombre: 'factura-iva-F-2026-4221.pdf' },
@@ -159,11 +169,15 @@ describe('detectarDocs — casos reales que fallaban por el nombre', () => {
   })
 
   it('Contrrato compra-sandero.jpeg (typo real) → contratoCompra', () => {
-    expect(detectar('Contrrato compra-sandero.jpeg')).toEqual(soloUno('contratoCompra'))
+    expect(detectar('Contrrato compra-sandero.jpeg')).toEqual(
+      soloUno('contratoCompra')
+    )
   })
 
   it('Contrato vendedor.jpeg → contratoCompra (lo firma quien nos vende)', () => {
-    expect(detectar('Contrato vendedor.jpeg')).toEqual(soloUno('contratoCompra'))
+    expect(detectar('Contrato vendedor.jpeg')).toEqual(
+      soloUno('contratoCompra')
+    )
   })
 
   it('factura.pdf a secas NO se da por buena: queda ambigua', () => {
@@ -171,7 +185,10 @@ describe('detectarDocs — casos reales que fallaban por el nombre', () => {
     expect(r.docs.facturaCompra).toBe(false)
     expect(r.docs.facturaVenta).toBe(false)
     expect(r.ambiguos).toEqual([
-      { nombre: 'factura.pdf', motivo: 'no se pudo clasificar por hash ni por nombre' },
+      {
+        nombre: 'factura.pdf',
+        motivo: 'no se pudo clasificar por hash ni por nombre',
+      },
     ])
   })
 
@@ -204,14 +221,21 @@ describe('alertas de contenido', () => {
   it('duplicado: FRA.pdf y "Sevencars Motors SL ESW-MP-19.pdf" con el mismo md5', () => {
     const archivos = [
       { nombre: 'FRA.pdf', bytes: 311878, hash: MD5_COMPRA },
-      { nombre: 'Sevencars Motors SL ESW-MP-19.pdf', bytes: 311878, hash: MD5_COMPRA },
+      {
+        nombre: 'Sevencars Motors SL ESW-MP-19.pdf',
+        bytes: 311878,
+        hash: MD5_COMPRA,
+      },
     ]
     const hashes = indexarRegistros([
       { hash: MD5_COMPRA, categoria: 'coche-compra', matricula: '0608NLF' },
     ])
     const r = analizarCarpeta(archivos, { hashes, matricula: '0608NLF' })
     expect(r.duplicados).toEqual([
-      { hash: MD5_COMPRA, nombres: ['FRA.pdf', 'Sevencars Motors SL ESW-MP-19.pdf'] },
+      {
+        hash: MD5_COMPRA,
+        nombres: ['FRA.pdf', 'Sevencars Motors SL ESW-MP-19.pdf'],
+      },
     ])
     expect(r.mismoArchivoDosNombres).toEqual([])
     // el hash lo identifica: la factura de compra SÍ está (una sola vez)
@@ -265,7 +289,10 @@ describe('alertas de contenido', () => {
   })
 
   it('documentos que no son de la checklist no ensucian la lista de ambiguos', () => {
-    const r = analizarCarpeta([{ nombre: 'permiso-circulacion.pdf' }, { nombre: 'ficha-tecnica.pdf' }])
+    const r = analizarCarpeta([
+      { nombre: 'permiso-circulacion.pdf' },
+      { nombre: 'ficha-tecnica.pdf' },
+    ])
     expect(r.ambiguos).toEqual([])
     expect(r.duplicados).toEqual([])
   })

@@ -6,7 +6,10 @@
  */
 
 import type { Pool } from 'pg'
-import { crearExpedienteAlEmitir, recalcularExpediente } from '@/lib/expedientes'
+import {
+  crearExpedienteAlEmitir,
+  recalcularExpediente,
+} from '@/lib/expedientes'
 import type { ChecklistItem } from '@/lib/expedienteChecklist'
 
 // Dispatcher: primera coincidencia por substring de SQL gana.
@@ -20,11 +23,36 @@ function makeDb(handlers: Array<[string, unknown]>) {
   return { db: { query } as unknown as Pool, query }
 }
 
+// Checklist retail-vat vigente: el justificante de compra es un grupo
+// "al menos uno" (factura de compra O contrato de compraventa).
 const checklistVat = (presentes: Record<string, boolean>): ChecklistItem[] => [
-  { clave: 'factura-venta', label: 'Factura de venta', requerido: true, presente: presentes['factura-venta'] ?? false },
+  {
+    clave: 'factura-venta',
+    label: 'Factura de venta',
+    requerido: true,
+    presente: presentes['factura-venta'] ?? false,
+  },
   // contrato-venta solo es requerido en REBU a particular y depósito
-  { clave: 'contrato-venta', label: 'Contrato de venta', requerido: false, presente: presentes['contrato-venta'] ?? false },
-  { clave: 'factura-compra', label: 'Factura de compra', requerido: true, presente: presentes['factura-compra'] ?? false },
+  {
+    clave: 'contrato-venta',
+    label: 'Contrato de venta',
+    requerido: false,
+    presente: presentes['contrato-venta'] ?? false,
+  },
+  {
+    clave: 'factura-compra',
+    label: 'Factura de compra',
+    requerido: true,
+    grupo: 'justificante-compra',
+    presente: presentes['factura-compra'] ?? false,
+  },
+  {
+    clave: 'contrato-compra',
+    label: 'Contrato de compra',
+    requerido: true,
+    grupo: 'justificante-compra',
+    presente: presentes['contrato-compra'] ?? false,
+  },
 ]
 
 describe('recalcularExpediente', () => {
@@ -40,7 +68,10 @@ describe('recalcularExpediente', () => {
               matricula: '1234ABC',
               estado: 'incompleto',
               tipo_operacion: 'retail-vat',
-              checklist: checklistVat({ 'factura-venta': true, 'contrato-venta': true }),
+              checklist: checklistVat({
+                'factura-venta': true,
+                'contrato-venta': true,
+              }),
             },
           ],
         },
@@ -60,7 +91,9 @@ describe('recalcularExpediente', () => {
       itemsActualizados: ['factura-compra'],
       cambio: true,
     })
-    const update = query.mock.calls.find(([sql]) => sql.includes('UPDATE expedientes'))
+    const update = query.mock.calls.find(([sql]) =>
+      sql.includes('UPDATE expedientes')
+    )
     expect(update).toBeDefined()
     const [, params] = update as [string, unknown[]]
     const saved = JSON.parse(params[0] as string) as ChecklistItem[]
@@ -81,12 +114,26 @@ describe('recalcularExpediente', () => {
               estado: 'enviado',
               tipo_operacion: 'retail-vat',
               // factura-compra faltante (requerida en retail-vat; sin evidencia)
-              checklist: checklistVat({ 'factura-venta': true, 'contrato-venta': true }),
+              checklist: checklistVat({
+                'factura-venta': true,
+                'contrato-venta': true,
+              }),
             },
           ],
         },
       ],
-      ['FROM automation_logs', { rows: [{ venta_guardada: true, compra_adjunta: false, contrato_enviado: false }] }],
+      [
+        'FROM automation_logs',
+        {
+          rows: [
+            {
+              venta_guardada: true,
+              compra_adjunta: false,
+              contrato_enviado: false,
+            },
+          ],
+        },
+      ],
       ['FROM facturas_registro', { rows: [] }],
     ])
 
@@ -117,13 +164,26 @@ describe('recalcularExpediente', () => {
           ],
         },
       ],
-      ['FROM automation_logs', { rows: [{ venta_guardada: true, compra_adjunta: false, contrato_enviado: true }] }],
+      [
+        'FROM automation_logs',
+        {
+          rows: [
+            {
+              venta_guardada: true,
+              compra_adjunta: false,
+              contrato_enviado: true,
+            },
+          ],
+        },
+      ],
     ])
 
     const r = await recalcularExpediente(db, 9)
     expect(r?.estadoDespues).toBe('completo')
     expect(r?.cambio).toBe(false)
-    expect(query.mock.calls.some(([sql]) => sql.includes('UPDATE expedientes'))).toBe(false)
+    expect(
+      query.mock.calls.some(([sql]) => sql.includes('UPDATE expedientes'))
+    ).toBe(false)
   })
 
   it('promueve items por el snapshot de OneDrive con fuente carpeta-onedrive', async () => {
@@ -165,16 +225,23 @@ describe('recalcularExpediente', () => {
 
     const r = await recalcularExpediente(db, 12)
 
-    expect(r?.itemsActualizados?.sort()).toEqual(['factura-compra', 'factura-venta'])
+    expect(r?.itemsActualizados?.sort()).toEqual([
+      'factura-compra',
+      'factura-venta',
+    ])
     expect(r?.estadoDespues).toBe('completo')
-    const update = query.mock.calls.find(([sql]) => sql.includes('UPDATE expedientes'))
+    const update = query.mock.calls.find(([sql]) =>
+      sql.includes('UPDATE expedientes')
+    )
     const [, params] = update as [string, unknown[]]
     const saved = JSON.parse(params[0] as string) as ChecklistItem[]
     const fv = saved.find((i) => i.clave === 'factura-venta')
     expect(fv?.presente).toBe(true)
     expect(fv?.nota).toBe('fuente: carpeta-onedrive')
     // el marcado a mano no se toca ni recibe nota
-    expect(saved.find((i) => i.clave === 'contrato-venta')?.nota).toBeUndefined()
+    expect(
+      saved.find((i) => i.clave === 'contrato-venta')?.nota
+    ).toBeUndefined()
   })
 
   it('devuelve null si el expediente no existe', async () => {
@@ -200,7 +267,9 @@ describe('crearExpedienteAlEmitir', () => {
     })
 
     expect(r).toEqual({ id: 42, tipoOperacion: 'deposito' })
-    const insert = query.mock.calls.find(([sql]) => sql.includes('INSERT INTO expedientes'))
+    const insert = query.mock.calls.find(([sql]) =>
+      sql.includes('INSERT INTO expedientes')
+    )
     const [, params] = insert as [string, unknown[]]
     expect(params[0]).toBe('deposito')
     expect(params[4]).toBe('9999ZZZ') // matrícula normalizada
@@ -242,7 +311,10 @@ describe('recalcularExpediente con alias de matrícula', () => {
           ],
         },
       ],
-      ["to_regclass('public.vehiculo_matriculas')", { rows: [{ reg: 'vehiculo_matriculas' }] }],
+      [
+        "to_regclass('public.vehiculo_matriculas')",
+        { rows: [{ reg: 'vehiculo_matriculas' }] },
+      ],
       [
         'JOIN vehiculo_matriculas m2',
         {
@@ -259,9 +331,124 @@ describe('recalcularExpediente con alias de matrícula', () => {
 
     const r = await recalcularExpediente(db, 9)
 
-    const registro = query.mock.calls.find((c) => String(c[0]).includes('FROM facturas_registro'))!
+    const registro = query.mock.calls.find((c) =>
+      String(c[0]).includes('FROM facturas_registro')
+    )!
     expect(registro[1]).toEqual([['5439NNW', '5732BDR']])
     expect(r?.itemsActualizados).toContain('factura-compra')
     expect(r?.estadoDespues).toBe('completo')
+  })
+})
+
+describe('recalcularExpediente propaga la regla nueva del justificante de compra', () => {
+  it('expediente retail-vat viejo (exigía factura-compra) + coche de particular → contrato basta, completo', async () => {
+    const { db, query } = makeDb([
+      [
+        "to_regclass('public.expedientes_carpetas')",
+        { rows: [{ reg: 'expedientes_carpetas' }] },
+      ],
+      [
+        'FROM expedientes_carpetas',
+        { rows: [{ archivos: [{ nombre: 'CONTRATO COMPRA VENTA.pdf' }] }] },
+      ],
+      [
+        'FROM expedientes',
+        {
+          rows: [
+            {
+              id: 33,
+              numero_factura: 'F-2026-4233',
+              matricula: '3835LWT',
+              estado: 'incompleto',
+              tipo_operacion: 'retail-vat',
+              // checklist GUARDADA con la definición VIEJA: sin contrato-compra
+              checklist: [
+                {
+                  clave: 'factura-venta',
+                  label: 'Factura de venta',
+                  requerido: true,
+                  presente: true,
+                },
+                {
+                  clave: 'contrato-venta',
+                  label: 'Contrato de venta',
+                  requerido: false,
+                  presente: true,
+                },
+                {
+                  clave: 'factura-compra',
+                  label: 'Factura de compra',
+                  requerido: true,
+                  presente: false,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      ['FROM automation_logs', { rows: [] }],
+      ['FROM facturas_registro', { rows: [] }], // no hay factura de compra: es de particular
+    ])
+
+    const r = await recalcularExpediente(db, 33)
+
+    // El contrato de compraventa (carpeta) satisface el grupo → ya no falta nada.
+    expect(r?.estadoDespues).toBe('completo')
+    expect(r?.cambio).toBe(true)
+    const update = query.mock.calls.find(([sql]) =>
+      sql.includes('UPDATE expedientes')
+    )!
+    const [, params] = update as [string, unknown[]]
+    const saved = JSON.parse(params[0] as string) as ChecklistItem[]
+    // la definición vigente se propagó al expediente ya guardado
+    expect(saved.map((i) => i.clave)).toEqual([
+      'factura-venta',
+      'contrato-venta',
+      'factura-compra',
+      'contrato-compra',
+    ])
+    expect(saved.find((i) => i.clave === 'contrato-compra')).toMatchObject({
+      presente: true,
+      grupo: 'justificante-compra',
+      nota: 'fuente: carpeta-onedrive',
+    })
+    // la factura de compra sigue ausente y NO se marca (no existe)
+    expect(saved.find((i) => i.clave === 'factura-compra')?.presente).toBe(
+      false
+    )
+    expect(params[1]).toBe('completo')
+  })
+
+  it('sin factura NI contrato de compra el expediente sigue incompleto', async () => {
+    const { db } = makeDb([
+      [
+        "to_regclass('public.expedientes_carpetas')",
+        { rows: [{ reg: 'expedientes_carpetas' }] },
+      ],
+      [
+        'FROM expedientes_carpetas',
+        { rows: [{ archivos: [{ nombre: 'permiso-circulacion.pdf' }] }] },
+      ],
+      [
+        'FROM expedientes',
+        {
+          rows: [
+            {
+              id: 34,
+              numero_factura: 'F-2026-4240',
+              matricula: '6935KYC',
+              estado: 'completo',
+              tipo_operacion: 'retail-vat',
+              checklist: checklistVat({ 'factura-venta': true }),
+            },
+          ],
+        },
+      ],
+      ['FROM automation_logs', { rows: [] }],
+      ['FROM facturas_registro', { rows: [] }],
+    ])
+
+    const r = await recalcularExpediente(db, 34)
+    expect(r?.estadoDespues).toBe('incompleto')
   })
 })

@@ -2,11 +2,23 @@
  * Piezas puras del expediente de venta (sin pg, testeables).
  *
  * Un expediente ("deal jacket") agrupa los documentos que la gestoría necesita
- * por cada venta. La checklist requerida depende del tipo de operación:
- *   · retail-vat  → coche con factura de compra
- *   · retail-rebu → coche comprado a particular (contrato de compra, no factura)
- *   · b2b         → venta a empresa (factura de compra requerida; contrato opcional)
- *   · deposito    → coche en depósito/consignación (contrato de depósito)
+ * por cada venta. La checklist depende del tipo de operación (cómo se VENDIÓ):
+ *   · retail-vat  → venta con IVA general
+ *   · retail-rebu → venta en REBU
+ *   · b2b         → venta a empresa
+ *   · deposito    → coche en depósito/consignación (no se compró: no hay
+ *                   justificante de compra que exigir)
+ *
+ * JUSTIFICANTE DE COMPRA — el régimen de VENTA no decide qué documento de
+ * COMPRA tiene el coche: eso depende de a QUIÉN se le compró.
+ *   · comprado a una empresa (Ayvens, Arval, Auto1…) → FACTURA de compra
+ *   · comprado a un particular                        → CONTRATO de compraventa
+ *     (un particular no emite facturas: no existe tal documento)
+ * Por eso los dos items van en el GRUPO 'justificante-compra': se satisface con
+ * CUALQUIERA de los dos, y sólo falta si no hay NINGUNO. Antes se exigía
+ * 'factura-compra' a todo retail-vat, y un coche de particular vendido con IVA
+ * (caso VW Taigo 3835LWT) figuraba eternamente como "falta factura de compra"
+ * pidiendo un papel que no puede existir.
  *
  * Regla dura: un expediente incompleto NUNCA se considera finalizado —
  * evaluarEstado degrada a 'incompleto' cualquier estado (completo/enviado/
@@ -36,11 +48,24 @@ export interface ChecklistItemDef {
   clave: string
   label: string
   requerido: boolean
+  /** Items alternativos: basta con que UNO del grupo esté presente. */
+  grupo?: string
 }
 
 export interface ChecklistItem extends ChecklistItemDef {
   presente: boolean
   nota?: string | null
+}
+
+/** Grupo "al menos uno": factura de compra (empresa) O contrato (particular). */
+export const GRUPO_JUSTIFICANTE_COMPRA = 'justificante-compra'
+
+/** Etiqueta legible de una clave faltante (item suelto o grupo). */
+export function faltanteLabel(clave: string): string {
+  if (clave === GRUPO_JUSTIFICANTE_COMPRA) {
+    return 'Justificante de compra (factura de compra o contrato de compraventa)'
+  }
+  return ITEM_LABELS[clave] ?? clave
 }
 
 export const TIPO_OPERACION_LABEL: Record<TipoOperacion, string> = {
@@ -58,29 +83,57 @@ const ITEM_LABELS: Record<string, string> = {
   'contrato-deposito': 'Contrato de depósito',
 }
 
-const item = (clave: string, requerido: boolean): ChecklistItemDef => ({
+const item = (
+  clave: string,
+  requerido: boolean,
+  grupo?: string
+): ChecklistItemDef => ({
   clave,
   label: ITEM_LABELS[clave] ?? clave,
   requerido,
+  ...(grupo ? { grupo } : {}),
 })
+
+/** Los dos justificantes de compra posibles, como grupo "al menos uno". */
+const justificanteCompra = (): ChecklistItemDef[] => [
+  item('factura-compra', true, GRUPO_JUSTIFICANTE_COMPRA),
+  item('contrato-compra', true, GRUPO_JUSTIFICANTE_COMPRA),
+]
 
 /** Checklist de documentos por tipo de operación (definición, sin estado). */
 export function checklistRequerida(tipo: TipoOperacion): ChecklistItemDef[] {
-  // El contrato de compraventa con el comprador solo existe en REBU a
+  // El contrato de compraventa con el COMPRADOR solo existe en REBU a
   // particular y en depósito (regla del negocio); en ventas con IVA y B2B la
   // factura es el documento de la operación (contrato opcional si aparece).
+  // El justificante de COMPRA, en cambio, no lo decide el régimen de venta.
   switch (tipo) {
     case 'retail-vat':
-      return [item('factura-venta', true), item('contrato-venta', false), item('factura-compra', true)]
+      return [
+        item('factura-venta', true),
+        item('contrato-venta', false),
+        ...justificanteCompra(),
+      ]
     case 'retail-rebu':
-      // Comprado a particular → el justificante de compra es un CONTRATO.
-      return [item('factura-venta', true), item('contrato-venta', true), item('contrato-compra', true)]
+      return [
+        item('factura-venta', true),
+        item('contrato-venta', true),
+        ...justificanteCompra(),
+      ]
     case 'b2b':
-      return [item('factura-venta', true), item('contrato-venta', false), item('factura-compra', true), item('contrato-compra', false)]
+      return [
+        item('factura-venta', true),
+        item('contrato-venta', false),
+        ...justificanteCompra(),
+      ]
     case 'deposito':
-      // El contrato de depósito es un acuerdo interno con el propietario: la
-      // gestoría no lo necesita en el expediente (regla del negocio).
-      return [item('factura-venta', true), item('contrato-venta', true), item('contrato-deposito', false)]
+      // El coche no se compró (es del propietario): no hay justificante de
+      // compra. El contrato de depósito es un acuerdo interno: la gestoría no
+      // lo necesita en el expediente (regla del negocio).
+      return [
+        item('factura-venta', true),
+        item('contrato-venta', true),
+        item('contrato-deposito', false),
+      ]
   }
 }
 
@@ -89,9 +142,43 @@ export function checklistInicial(tipo: TipoOperacion): ChecklistItem[] {
   return checklistRequerida(tipo).map((def) => ({ ...def, presente: false }))
 }
 
-/** Claves de items requeridos que faltan. */
+/** ¿Hay algún item del grupo presente? */
+const grupoSatisfecho = (checklist: ChecklistItem[], grupo: string): boolean =>
+  checklist.some((i) => i.grupo === grupo && i.presente)
+
+/**
+ * ¿ESTE item cuenta como faltante? Un item de un grupo "al menos uno" no falta
+ * si otro del grupo está presente (el contrato cubre a la factura de compra y
+ * viceversa) — la UI lo usa para no pintar en rojo un papel que no hace falta.
+ */
+export function itemFalta(
+  checklist: ChecklistItem[],
+  item: ChecklistItem
+): boolean {
+  if (item.presente || !item.requerido) return false
+  if (item.grupo) return !grupoSatisfecho(checklist, item.grupo)
+  return true
+}
+
+/**
+ * Claves requeridas que faltan. Los items sueltos se reportan por su clave;
+ * un grupo "al menos uno" sin ningún documento se reporta UNA vez por la clave
+ * del grupo ('justificante-compra'), no por cada alternativa.
+ */
 export function faltanRequeridos(checklist: ChecklistItem[]): string[] {
-  return checklist.filter((i) => i.requerido && !i.presente).map((i) => i.clave)
+  const faltantes: string[] = []
+  const gruposVistos = new Set<string>()
+  for (const i of checklist) {
+    if (!i.requerido || i.presente) continue
+    if (i.grupo) {
+      if (gruposVistos.has(i.grupo)) continue
+      gruposVistos.add(i.grupo)
+      if (!grupoSatisfecho(checklist, i.grupo)) faltantes.push(i.grupo)
+      continue
+    }
+    faltantes.push(i.clave)
+  }
+  return faltantes
 }
 
 /**
@@ -116,7 +203,9 @@ export function evaluarEstado(
 
 /** Detecta un vehículo en depósito/consignación por su Vehiculo.tipo
  *  ("Deposito Venta", "Deposito", "D", variantes con acento). */
-export function esDepositoVehiculoTipo(tipo: string | null | undefined): boolean {
+export function esDepositoVehiculoTipo(
+  tipo: string | null | undefined
+): boolean {
   if (!tipo) return false
   const t = tipo
     .normalize('NFD')
