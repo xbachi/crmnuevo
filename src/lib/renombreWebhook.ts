@@ -49,9 +49,30 @@ export interface RenombreResult {
   resultados?: ResultadoOperacion[]
 }
 
+/**
+ * URL del webhook de renombrado. Si no está seteada explícitamente se deriva de
+ * la del webhook de facturas (mismo n8n, otro path) para no depender de una
+ * variable nueva en Vercel: .../webhook/factura-venta → .../webhook/rename-expedientes
+ */
+export function renombreWebhookUrl(): string | null {
+  const explicita = process.env.N8N_RENAME_WEBHOOK_URL
+  if (explicita) return explicita
+  const facturas = process.env.N8N_INVOICE_WEBHOOK_URL
+  if (!facturas) return null
+  try {
+    const u = new URL(facturas)
+    u.pathname = u.pathname.replace(/[^/]+$/, 'rename-expedientes')
+    return u.toString()
+  } catch {
+    return null
+  }
+}
+
 export async function postRenombreWebhook(payload: RenombrePayload): Promise<RenombreResult> {
-  const url = process.env.N8N_RENAME_WEBHOOK_URL
-  if (!url) return { ok: false, error: 'N8N_RENAME_WEBHOOK_URL no configurada' }
+  const url = renombreWebhookUrl()
+  if (!url) {
+    return { ok: false, error: 'sin webhook de renombrado (N8N_RENAME_WEBHOOK_URL / N8N_INVOICE_WEBHOOK_URL)' }
+  }
 
   const secret =
     process.env.N8N_RENAME_WEBHOOK_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
