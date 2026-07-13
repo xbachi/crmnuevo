@@ -43,6 +43,7 @@ import { computeAmounts, type Amounts } from '@/lib/invoiceAmounts'
 import { appendRegistro } from '@/lib/facturacionRegistro'
 import { assertPeriodoAbierto, PeriodoCerradoError } from '@/lib/periodoLock'
 import { crearExpedienteAlEmitir } from '@/lib/expedientes'
+import { chequearRegimen, type AvisoRegimen } from '@/lib/origenCompra'
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -58,6 +59,9 @@ export interface IssueOptions {
   userRole?: string | null
   /** Explicitly bypass the anti-duplicate-vehicle guard (legitimate resale). */
   allowDuplicate?: boolean
+  /** Explicitly bypass the purchase-origin/VAT-regime guard: emitir con IVA un
+   *  coche comprado a un particular (decisión fiscal consciente). */
+  allowRegimen?: boolean
   /** Don't await the gestoría/costo-beneficio notifications inline: return them
    *  as `IssueResult.runNotifications` so the caller (a route handler) can run
    *  them with `after()` once the response is already on the wire. */
@@ -75,6 +79,10 @@ export interface PreviewResult {
   buyer: ReturnType<typeof buildBuyerSnapshot>
   vehicle: ReturnType<typeof buildVehicleSnapshot>
   amounts: Amounts
+  /** Régimen incoherente con el origen de la compra (o no verificable). El
+   *  usuario elige el régimen ACÁ: el aviso tiene que verse en la vista previa,
+   *  no sólo al chocar contra el error de la emisión. */
+  avisoRegimen: AvisoRegimen | null
 }
 
 export interface IssueResult {
@@ -85,6 +93,9 @@ export interface IssueResult {
   /** True when a duplicate-vehicle invoice was found but the caller passed
    *  allowDuplicate:true to proceed anyway (legitimate resale). */
   duplicateOverride?: boolean
+  /** Aviso no bloqueante (origen de la compra no verificable) para que la UI lo
+   *  muestre después de emitir. Los bloqueantes lanzan REGIMEN_INCOHERENTE. */
+  avisoRegimen?: AvisoRegimen | null
   /** Only set when `deferNotifications:true`. Off the critical path: the invoice
    *  already exists and already has its fiscal number, so the caller must send
    *  the response first and run this with `after()`. Never throws. */
@@ -124,6 +135,15 @@ export async function previewInvoice(
   const startNumber = sequence.start_number ?? sequence.next_number
   const number = await resolveNextNumber(pool, sequence.series, startNumber)
 
+  // Coherencia régimen ↔ origen de la compra. Nunca lanza acá: la vista previa
+  // informa, la emisión es la que bloquea.
+  const avisoRegimen = await chequearRegimen(pool, {
+    invoiceType,
+    total: amounts.total_amount,
+    vehiculoId: sale.vehiculo.id,
+    matricula: sale.vehiculo.matricula,
+  })
+
   return {
     invoiceType,
     series: sequence.series,
@@ -137,6 +157,7 @@ export async function previewInvoice(
     buyer,
     vehicle,
     amounts,
+    avisoRegimen,
   }
 }
 
@@ -179,13 +200,19 @@ export async function issueInvoice(opts: IssueOptions): Promise<IssueResult> {
   const buyer = buildBuyerSnapshot(sale)
   const vehicle = buildVehicleSnapshot(sale)
   const amounts = computeAmounts(sale.importeTotal ?? 0, opts.invoiceType)
-  const invoiceDate = (opts.invoiceDate ?? new Date()).toISOString().slice(0, 10)
+  const invoiceDate = (opts.invoiceDate ?? new Date())
+    .toISOString()
+    .slice(0, 10)
 
   // 3a. Cierre mensual: una factura no puede caer en un mes ya entregado a la
   // gestoría (auditoría 2T: ventas de abril contadas en marzo). La lib devuelve
   // "abierto" si la tabla periodos_contables aún no existe.
   try {
-    await assertPeriodoAbierto(pool, invoiceDate, 'No se puede emitir la factura')
+    await assertPeriodoAbierto(
+      pool,
+      invoiceDate,
+      'No se puede emitir la factura'
+    )
   } catch (err) {
     if (err instanceof PeriodoCerradoError) {
       throw new InvoiceServiceError('PERIODO_CERRADO', err.message, {
@@ -233,6 +260,42 @@ export async function issueInvoice(opts: IssueOptions): Promise<IssueResult> {
     }
   }
 
+  // 3c. Coherencia régimen ↔ origen de la compra: un coche comprado a un
+  // particular (contrato, sin factura) facturado con IVA general ingresa IVA
+  // sobre el precio TOTAL en vez de sobre el margen (caso VW Taigo: 3.210,74 €
+  // de más). Va ANTES de reservar número: un bloqueo no puede quemar un número
+  // fiscal. Si el origen no se puede verificar, avisa pero NO bloquea.
+  const avisoRegimen = await chequearRegimen(pool, {
+    invoiceType: opts.invoiceType,
+    total: amounts.total_amount,
+    vehiculoId: sale.vehiculo.id,
+    matricula: sale.vehiculo.matricula,
+  })
+  if (avisoRegimen?.severidad === 'bloqueante') {
+    if (!opts.allowRegimen) {
+      throw new InvoiceServiceError(
+        'REGIMEN_INCOHERENTE',
+        avisoRegimen.message,
+        {
+          origen: avisoRegimen.origen,
+          invoiceType: avisoRegimen.invoiceType,
+          total: avisoRegimen.total,
+          precioCompra: avisoRegimen.precioCompra,
+          ivaGeneral: avisoRegimen.ivaGeneral,
+          ivaRebu: avisoRegimen.ivaRebu,
+          diferencia: avisoRegimen.diferencia,
+        }
+      )
+    }
+    console.warn(
+      `[invoiceService] regimen override for deal ${opts.dealId}: coche comprado a particular facturado con IVA (diferencia estimada ${avisoRegimen.diferencia ?? '?'} €); proceeding because allowRegimen=true`
+    )
+  } else if (avisoRegimen) {
+    console.warn(
+      `[invoiceService] deal ${opts.dealId}: ${avisoRegimen.code} — ${avisoRegimen.message}`
+    )
+  }
+
   const reserved = await reserveAndInsert({
     sale,
     invoiceType: opts.invoiceType,
@@ -246,8 +309,17 @@ export async function issueInvoice(opts: IssueOptions): Promise<IssueResult> {
     userRole: opts.userRole ?? null,
   })
 
+  // Sólo los avisos (origen no verificable) viajan al cliente: los bloqueantes
+  // ya lanzaron más arriba, o el usuario los forzó a conciencia.
+  const aviso = avisoRegimen?.severidad === 'aviso' ? avisoRegimen : null
+
   if (reserved.alreadyExisted) {
-    return { invoice: reserved.invoice, alreadyExisted: true, duplicateOverride }
+    return {
+      invoice: reserved.invoice,
+      alreadyExisted: true,
+      duplicateOverride,
+      avisoRegimen: aviso,
+    }
   }
 
   // Best-effort: expediente (deal jacket) de la venta, FUERA de la transacción
@@ -276,7 +348,10 @@ export async function issueInvoice(opts: IssueOptions): Promise<IssueResult> {
   try {
     const pdf = await generatePdf(reserved.invoice, sale)
     stage('pdf')
-    const upload = await uploadPdfToBlob(reserved.invoice.full_invoice_number, pdf)
+    const upload = await uploadPdfToBlob(
+      reserved.invoice.full_invoice_number,
+      pdf
+    )
     stage('blob')
 
     const updated = await pool.query<Invoice>(
@@ -330,12 +405,18 @@ export async function issueInvoice(opts: IssueOptions): Promise<IssueResult> {
         invoice: updated.rows[0],
         alreadyExisted: false,
         duplicateOverride,
+        avisoRegimen: aviso,
         runNotifications,
       }
     }
 
     await runNotifications()
-    return { invoice: updated.rows[0], alreadyExisted: false, duplicateOverride }
+    return {
+      invoice: updated.rows[0],
+      alreadyExisted: false,
+      duplicateOverride,
+      avisoRegimen: aviso,
+    }
   } catch (pdfError) {
     console.error(
       `[invoiceService] PDF generation/upload failed for invoice ${reserved.invoice.full_invoice_number}:`,
@@ -354,7 +435,12 @@ export async function issueInvoice(opts: IssueOptions): Promise<IssueResult> {
         opts.userId ?? null,
       ]
     )
-    return { invoice: reserved.invoice, alreadyExisted: false, duplicateOverride }
+    return {
+      invoice: reserved.invoice,
+      alreadyExisted: false,
+      duplicateOverride,
+      avisoRegimen: aviso,
+    }
   }
 }
 
@@ -369,7 +455,10 @@ export async function regeneratePdf(
   userRole?: string | null
 ): Promise<Invoice> {
   if (!reason || reason.trim().length < 3) {
-    throw new InvoiceServiceError('REASON_REQUIRED', 'Es obligatorio indicar el motivo de la regeneración.')
+    throw new InvoiceServiceError(
+      'REASON_REQUIRED',
+      'Es obligatorio indicar el motivo de la regeneración.'
+    )
   }
 
   const invoice = await getInvoiceById(invoiceId)
@@ -480,7 +569,10 @@ async function loadSale(dealId: number): Promise<SaleSnapshot> {
   )
   const row = res.rows[0]
   if (!row) {
-    throw new InvoiceServiceError('SALE_NOT_FOUND', `Venta (Deal) ${dealId} no encontrada.`)
+    throw new InvoiceServiceError(
+      'SALE_NOT_FOUND',
+      `Venta (Deal) ${dealId} no encontrada.`
+    )
   }
 
   return {
@@ -518,14 +610,16 @@ async function loadSale(dealId: number): Promise<SaleSnapshot> {
 }
 
 function buildBuyerSnapshot(sale: SaleSnapshot) {
-  const fullName = `${sale.cliente.nombre ?? ''} ${sale.cliente.apellidos ?? ''}`.trim()
+  const fullName =
+    `${sale.cliente.nombre ?? ''} ${sale.cliente.apellidos ?? ''}`.trim()
   return {
     name: fullName || 'Cliente sin nombre',
     nif_cif: sale.cliente.dni ?? null,
     email: sale.cliente.email ?? null,
-    address: [sale.cliente.direccion, sale.cliente.ciudad, sale.cliente.provincia]
-      .filter(Boolean)
-      .join(', ') || null,
+    address:
+      [sale.cliente.direccion, sale.cliente.ciudad, sale.cliente.provincia]
+        .filter(Boolean)
+        .join(', ') || null,
   }
 }
 
@@ -651,7 +745,10 @@ async function reserveAndInsert(args: {
     } catch (err) {
       const e = err as { code?: string; constraint?: string }
       // Idempotency-key collision: another request raced us with the same key
-      if (e?.code === '23505' && e?.constraint === 'invoices_unique_idempotency_key') {
+      if (
+        e?.code === '23505' &&
+        e?.constraint === 'invoices_unique_idempotency_key'
+      ) {
         await client.query('ROLLBACK')
         const existing = await getInvoiceByIdempotencyKey(args.idempotencyKey!)
         if (existing) {
@@ -661,7 +758,10 @@ async function reserveAndInsert(args: {
       // Per-deal duplicate: another request already created the invoice
       if (e?.code === '23505' && e?.constraint?.includes('unique_per_sale')) {
         await client.query('ROLLBACK')
-        const existing = await getInvoiceByDealAndType(args.sale.id, args.invoiceType)
+        const existing = await getInvoiceByDealAndType(
+          args.sale.id,
+          args.invoiceType
+        )
         if (existing) {
           return { invoice: existing, alreadyExisted: true }
         }
@@ -769,7 +869,10 @@ export async function buildInvoicePdf(
       fechaOriginal: formatFechaES(original?.invoice_date),
       motivo: invoice.rectification_reason ?? 'No especificado',
     }
-  } else if (invoice.status === 'RECTIFIED' && invoice.rectified_by_invoice_id) {
+  } else if (
+    invoice.status === 'RECTIFIED' &&
+    invoice.rectified_by_invoice_id
+  ) {
     const rectificativa = await getInvoiceById(invoice.rectified_by_invoice_id)
     if (rectificativa) {
       options.anuladaPor = {
@@ -826,7 +929,9 @@ function invoiceTypeToLegacy(type: InvoiceType): 'IVA' | 'REBU' {
 
 /** DATE de Postgres (string 'YYYY-MM-DD' o Date) → Date local, sin corrimiento
  *  de zona horaria (`new Date('2026-03-05')` es medianoche UTC). */
-function toLocalDate(value: string | Date | null | undefined): Date | undefined {
+function toLocalDate(
+  value: string | Date | null | undefined
+): Date | undefined {
   if (!value) return undefined
   if (value instanceof Date) return value
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value))

@@ -14,7 +14,13 @@
  * Todo puro (sin pg): los registros de hash entran como argumento.
  */
 
-import { checklistRequerida, type TipoOperacion } from '@/lib/expedienteChecklist'
+import {
+  checklistRequerida,
+  faltanRequeridos,
+  GRUPO_JUSTIFICANTE_COMPRA,
+  type ChecklistItemDef,
+  type TipoOperacion,
+} from '@/lib/expedienteChecklist'
 import { normPlate } from '@/lib/facturasRegistro'
 import { canonPlate, type AliasIndex } from '@/lib/aliasMatriculas'
 
@@ -52,7 +58,10 @@ export interface RegistroHash {
 }
 
 /** hash → documento que ese contenido ES, según el registro de facturas. */
-export type IndiceHash = Map<string, { doc: DocClave; matricula: string | null }>
+export type IndiceHash = Map<
+  string,
+  { doc: DocClave; matricula: string | null }
+>
 
 // Sólo las categorías que corresponden a un documento de la checklist. La
 // factura de VENTA todavía no se registra en facturas_registro (el CRM la emite
@@ -63,17 +72,24 @@ const CATEGORIA_A_DOC: Record<string, DocClave> = {
 }
 
 const normHash = (h: string | null | undefined): string | null => {
-  const s = String(h ?? '').trim().toLowerCase()
+  const s = String(h ?? '')
+    .trim()
+    .toLowerCase()
   return s ? s : null
 }
 
-export function indexarRegistros(registros: RegistroHash[] | null | undefined): IndiceHash {
+export function indexarRegistros(
+  registros: RegistroHash[] | null | undefined
+): IndiceHash {
   const idx: IndiceHash = new Map()
   for (const r of registros ?? []) {
     const doc = CATEGORIA_A_DOC[r.categoria]
     const hash = normHash(r.hash)
     if (!doc || !hash) continue
-    idx.set(hash, { doc, matricula: r.matricula ? normPlate(r.matricula) : null })
+    idx.set(hash, {
+      doc,
+      matricula: r.matricula ? normPlate(r.matricula) : null,
+    })
   }
   return idx
 }
@@ -153,7 +169,11 @@ export interface ArchivoAmbiguo {
 
 /** Estado de un archivo concreto de la carpeta. Sólo `clasificado` es seguro de
  *  renombrar: el resto se toca a mano. */
-export type EstadoArchivo = 'clasificado' | 'ambiguo' | 'irrelevante' | 'conflicto'
+export type EstadoArchivo =
+  | 'clasificado'
+  | 'ambiguo'
+  | 'irrelevante'
+  | 'conflicto'
 
 export interface ArchivoClasificado {
   nombre: string
@@ -192,7 +212,8 @@ const vacio = (): DocsDetectados => ({
   contratoDeposito: false,
 })
 
-const esDoc = (c: Clasificacion): c is DocClave => c !== 'ambiguo' && c !== 'irrelevante'
+const esDoc = (c: Clasificacion): c is DocClave =>
+  c !== 'ambiguo' && c !== 'irrelevante'
 
 /**
  * Análisis completo de una carpeta: documentos presentes + alertas de
@@ -235,7 +256,8 @@ export function analizarCarpeta(
 
   // 2. Clasificación archivo por archivo: hash → nombre → ambiguo.
   const clasificados: ArchivoClasificado[] = []
-  const CONFLICTO = 'mismo contenido que otro archivo con nombre de otro documento'
+  const CONFLICTO =
+    'mismo contenido que otro archivo con nombre de otro documento'
   for (const a of archivos ?? []) {
     const h = normHash(a.hash)
     const reg = h ? ctx.hashes?.get(h) : undefined
@@ -252,8 +274,21 @@ export function analizarCarpeta(
       // no se puede tocar: renombrarlo consolidaría un documento que no existe.
       clasificados.push(
         enConflicto.has(h!)
-          ? { nombre: a.nombre, hash: h, doc: reg.doc, fuente: 'hash', estado: 'conflicto', motivo: CONFLICTO }
-          : { nombre: a.nombre, hash: h, doc: reg.doc, fuente: 'hash', estado: 'clasificado' }
+          ? {
+              nombre: a.nombre,
+              hash: h,
+              doc: reg.doc,
+              fuente: 'hash',
+              estado: 'conflicto',
+              motivo: CONFLICTO,
+            }
+          : {
+              nombre: a.nombre,
+              hash: h,
+              doc: reg.doc,
+              fuente: 'hash',
+              estado: 'clasificado',
+            }
       )
       continue
     }
@@ -284,14 +319,33 @@ export function analizarCarpeta(
     if (c === 'ambiguo') {
       const motivo = 'no se pudo clasificar por hash ni por nombre'
       ambiguos.push({ nombre: a.nombre, motivo })
-      clasificados.push({ nombre: a.nombre, hash: h, doc: null, fuente: null, estado: 'ambiguo', motivo })
+      clasificados.push({
+        nombre: a.nombre,
+        hash: h,
+        doc: null,
+        fuente: null,
+        estado: 'ambiguo',
+        motivo,
+      })
       continue
     }
     docs[c] = true
-    clasificados.push({ nombre: a.nombre, hash: h, doc: c, fuente: 'nombre', estado: 'clasificado' })
+    clasificados.push({
+      nombre: a.nombre,
+      hash: h,
+      doc: c,
+      fuente: 'nombre',
+      estado: 'clasificado',
+    })
   }
 
-  return { docs, duplicados, mismoArchivoDosNombres, ambiguos, archivos: clasificados }
+  return {
+    docs,
+    duplicados,
+    mismoArchivoDosNombres,
+    ambiguos,
+    archivos: clasificados,
+  }
 }
 
 /** Qué documentos hay en la carpeta (atajo de analizarCarpeta). */
@@ -305,22 +359,44 @@ export function detectarDocs(
 /**
  * Claves de checklist requeridas para el tipo de operación que NO se detectan
  * en la carpeta. Con tipo 'desconocido' (no hay expediente para la matrícula)
- * se exige lo mínimo defendible: factura de venta + justificante de compra
- * (factura O contrato de compra).
+ * se exige lo mínimo defendible: factura de venta + justificante de compra.
+ *
+ * Delega en faltanRequeridos para que la regla del grupo "al menos uno"
+ * (factura de compra O contrato de compraventa) sea la MISMA que la del
+ * expediente guardado: un coche de particular no puede tener factura de compra.
  */
 export function docsFaltantes(
   tipoOperacion: TipoOperacion | 'desconocido',
   docs: DocsDetectados
 ): string[] {
-  if (tipoOperacion === 'desconocido') {
-    const faltan: string[] = []
-    if (!docs.facturaVenta) faltan.push('factura-venta')
-    if (!docs.facturaCompra && !docs.contratoCompra) faltan.push('factura-compra o contrato-compra')
-    return faltan
-  }
-  return checklistRequerida(tipoOperacion)
-    .filter((item) => item.requerido && !docs[CLAVE_A_DOC[item.clave]])
-    .map((item) => item.clave)
+  const defs: ChecklistItemDef[] =
+    tipoOperacion === 'desconocido'
+      ? [
+          {
+            clave: 'factura-venta',
+            label: 'Factura de venta',
+            requerido: true,
+          },
+          {
+            clave: 'factura-compra',
+            label: 'Factura de compra',
+            requerido: true,
+            grupo: GRUPO_JUSTIFICANTE_COMPRA,
+          },
+          {
+            clave: 'contrato-compra',
+            label: 'Contrato de compra',
+            requerido: true,
+            grupo: GRUPO_JUSTIFICANTE_COMPRA,
+          },
+        ]
+      : checklistRequerida(tipoOperacion)
+  return faltanRequeridos(
+    defs.map((def) => ({
+      ...def,
+      presente: docs[CLAVE_A_DOC[def.clave]] === true,
+    }))
+  )
 }
 
 /**
@@ -337,7 +413,8 @@ export function matriculaFromCarpeta(carpeta: string): string | null {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toUpperCase()
-  const conLetra = /(?:^|[^A-Z])([A-Z][\s.\-]*\d{4}[\s.\-]*[A-Z]{3})(?![A-Z0-9])/.exec(upper)
+  const conLetra =
+    /(?:^|[^A-Z])([A-Z][\s.\-]*\d{4}[\s.\-]*[A-Z]{3})(?![A-Z0-9])/.exec(upper)
   if (conLetra) return conLetra[1].replace(/[\s.\-]/g, '')
   const compacto = upper.replace(/[\s.\-]/g, '')
   const sinLetra = /(\d{4}[A-Z]{3})(?![A-Z0-9])/.exec(compacto)

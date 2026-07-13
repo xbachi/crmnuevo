@@ -15,7 +15,11 @@ import { put } from '@vercel/blob'
 import { pool } from '@/lib/direct-database'
 import { generarFactura } from '@/lib/contractGenerator'
 import { INVOICE_CONFIG, formatNumber } from '@/config/invoiceConfig'
-import { findActiveSaleInvoiceForVehicle, type Invoice, type InvoiceType } from '@/lib/invoiceRepository'
+import {
+  findActiveSaleInvoiceForVehicle,
+  type Invoice,
+  type InvoiceType,
+} from '@/lib/invoiceRepository'
 import { InvoiceServiceError } from '@/lib/invoiceService'
 import {
   getVentaB2BById,
@@ -23,6 +27,7 @@ import {
 } from '@/lib/b2b-database'
 import { appendRegistro } from '@/lib/facturacionRegistro'
 import { crearExpedienteAlEmitir } from '@/lib/expedientes'
+import { chequearRegimen, type AvisoRegimen } from '@/lib/origenCompra'
 
 export interface IssueB2BOptions {
   ventaB2BId: number
@@ -30,18 +35,24 @@ export interface IssueB2BOptions {
   idempotencyKey?: string | null
   /** Explicitly bypass the anti-duplicate-vehicle guard (legitimate resale). */
   allowDuplicate?: boolean
+  /** Explicitly bypass the purchase-origin/VAT-regime guard (ver origenCompra). */
+  allowRegimen?: boolean
 }
 
 export interface IssueB2BResult {
   invoice: Invoice
   alreadyExisted: boolean
   duplicateOverride?: boolean
+  /** Aviso no bloqueante: no se pudo verificar el origen de la compra. */
+  avisoRegimen?: AvisoRegimen | null
 }
 
 /**
  * Verifica si ya hay una factura emitida (no anulada) para una venta B2B.
  */
-async function getInvoiceByB2BVentaId(ventaId: number): Promise<Invoice | null> {
+async function getInvoiceByB2BVentaId(
+  ventaId: number
+): Promise<Invoice | null> {
   const { rows } = await pool.query<Invoice>(
     `SELECT * FROM invoices
       WHERE b2b_venta_id = $1 AND status <> 'VOIDED'
@@ -99,6 +110,39 @@ export async function issueInvoiceForB2B(
   }
 
   const precio = Number(venta.precio_venta)
+
+  // 2c) Coherencia régimen ↔ origen de la compra: facturar con IVA general un
+  // coche comprado a un particular (contrato, sin factura) ingresa IVA sobre el
+  // precio total en vez de sobre el margen. ANTES de reservar número.
+  const avisoRegimen = await chequearRegimen(pool, {
+    invoiceType: opts.invoiceType,
+    total: precio,
+    vehiculoId: venta.vehiculo_id,
+    matricula: venta.vehiculo_matricula,
+  })
+  if (avisoRegimen?.severidad === 'bloqueante') {
+    if (!opts.allowRegimen) {
+      throw new InvoiceServiceError(
+        'REGIMEN_INCOHERENTE',
+        avisoRegimen.message,
+        {
+          origen: avisoRegimen.origen,
+          invoiceType: avisoRegimen.invoiceType,
+          total: avisoRegimen.total,
+          precioCompra: avisoRegimen.precioCompra,
+          ivaGeneral: avisoRegimen.ivaGeneral,
+          ivaRebu: avisoRegimen.ivaRebu,
+          diferencia: avisoRegimen.diferencia,
+        }
+      )
+    }
+    console.warn(
+      `[b2b-invoice-service] regimen override for venta B2B ${opts.ventaB2BId}: coche comprado a particular facturado con IVA (diferencia estimada ${avisoRegimen.diferencia ?? '?'} €); proceeding because allowRegimen=true`
+    )
+  }
+  const avisoNoBloqueante =
+    avisoRegimen?.severidad === 'aviso' ? avisoRegimen : null
+
   let subtotal: number, vatRate: number | null, vatAmount: number | null
   if (opts.invoiceType === 'VAT') {
     vatRate = INVOICE_CONFIG.vat.standardRate
@@ -282,11 +326,10 @@ export async function issueInvoiceForB2B(
       numero: venta.numero,
       fechaCreacion: new Date(),
       cliente: {
-        nombre: venta.cliente_razon_social.split(' ')[0] ?? venta.cliente_razon_social,
-        apellidos: venta.cliente_razon_social
-          .split(' ')
-          .slice(1)
-          .join(' '),
+        nombre:
+          venta.cliente_razon_social.split(' ')[0] ??
+          venta.cliente_razon_social,
+        apellidos: venta.cliente_razon_social.split(' ').slice(1).join(' '),
         dni: venta.cliente_cif_nif,
       },
       vehiculo: {
@@ -324,7 +367,12 @@ export async function issueInvoiceForB2B(
         RETURNING *`,
       [blob.url, blob.pathname, inserted.id]
     )
-    return { invoice: updated.rows[0], alreadyExisted: false, duplicateOverride }
+    return {
+      invoice: updated.rows[0],
+      alreadyExisted: false,
+      duplicateOverride,
+      avisoRegimen: avisoNoBloqueante,
+    }
   } catch (pdfErr) {
     console.error('[issueInvoiceForB2B] PDF/Blob failed:', pdfErr)
     await pool.query(
@@ -332,10 +380,18 @@ export async function issueInvoiceForB2B(
        VALUES ($1, 'STATUS_CHANGED', $2, $3)`,
       [
         inserted.id,
-        JSON.stringify({ status: 'PDF_PENDING', error: (pdfErr as Error)?.message }),
+        JSON.stringify({
+          status: 'PDF_PENDING',
+          error: (pdfErr as Error)?.message,
+        }),
         'Fallo en generación o subida de PDF; número fiscal ya reservado.',
       ]
     )
-    return { invoice: inserted, alreadyExisted: false, duplicateOverride }
+    return {
+      invoice: inserted,
+      alreadyExisted: false,
+      duplicateOverride,
+      avisoRegimen: avisoNoBloqueante,
+    }
   }
 }

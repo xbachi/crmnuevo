@@ -8,6 +8,8 @@ import {
   ESTADOS_EXPEDIENTE,
   TIPO_OPERACION_LABEL,
   faltanRequeridos,
+  faltanteLabel,
+  itemFalta,
   type ChecklistItem,
   type EstadoExpediente,
   type TipoOperacion,
@@ -57,7 +59,12 @@ interface ReparacionFacturaVenta {
     status: string
     motivo: string
   }[]
-  yaEstaban: { numero: string; matricula: string | null; fecha: string; carpeta: string }[]
+  yaEstaban: {
+    numero: string
+    matricula: string | null
+    fecha: string
+    carpeta: string
+  }[]
   fallidas: { numero: string; matricula: string | null; error: string }[]
   nota?: string
   notaSinPdf?: string
@@ -104,11 +111,16 @@ export default function ExpedientesPage() {
   const [savingKey, setSavingKey] = useState<string | null>(null)
   const [chequeo, setChequeo] = useState<ResultadoChequeo | null>(null)
   const [chequeando, setChequeando] = useState(false)
-  const [reparacion, setReparacion] = useState<ReparacionFacturaVenta | null>(null)
+  const [reparacion, setReparacion] = useState<ReparacionFacturaVenta | null>(
+    null
+  )
   const [reparando, setReparando] = useState(false)
   const [nombres, setNombres] = useState<NormalizacionNombres | null>(null)
   const [normalizando, setNormalizando] = useState(false)
-  const [progreso, setProgreso] = useState<{ hechos: number; total: number } | null>(null)
+  const [progreso, setProgreso] = useState<{
+    hechos: number
+    total: number
+  } | null>(null)
   const { showToast } = useToast()
   const { isAdmin } = useAuth()
 
@@ -120,7 +132,10 @@ export default function ExpedientesPage() {
         body: JSON.stringify({ year, quarter, dryRun }),
       })
       const body = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(body.nota || body.error || 'Error al normalizar los nombres')
+      if (!res.ok)
+        throw new Error(
+          body.nota || body.error || 'Error al normalizar los nombres'
+        )
       return body as NormalizacionNombres
     },
     [year, quarter]
@@ -158,7 +173,13 @@ export default function ExpedientesPage() {
         duplicados.push(...body.duplicados)
         fallidos.push(...body.fallidos)
         setProgreso({ hechos, total: Math.max(total, hechos + body.restantes) })
-        setNombres({ ...body, procesados: hechos, renombrados, duplicados, fallidos })
+        setNombres({
+          ...body,
+          procesados: hechos,
+          renombrados,
+          duplicados,
+          fallidos,
+        })
         if (body.completado) break
         if (body.error) throw new Error(body.error)
         // Sin avance no tiene sentido seguir golpeando: algo lo bloquea.
@@ -181,7 +202,10 @@ export default function ExpedientesPage() {
       )
     } catch (err) {
       console.error(err)
-      showToast(err instanceof Error ? err.message : 'Error al normalizar', 'error')
+      showToast(
+        err instanceof Error ? err.message : 'Error al normalizar',
+        'error'
+      )
     } finally {
       setNormalizando(false)
     }
@@ -217,18 +241,26 @@ export default function ExpedientesPage() {
         body: JSON.stringify({ year, quarter, dryRun }),
       })
       const body = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(body.nota || body.error || 'Error en la reparación')
+      if (!res.ok)
+        throw new Error(body.nota || body.error || 'Error en la reparación')
       setReparacion(body as ReparacionFacturaVenta)
       if (!dryRun) {
-        const n = (body as ReparacionFacturaVenta).reparadas.filter((r) => r.aplicado).length
+        const n = (body as ReparacionFacturaVenta).reparadas.filter(
+          (r) => r.aplicado
+        ).length
         showToast(
-          n > 0 ? `${n} factura(s) copiadas al expediente` : 'No había nada que copiar',
+          n > 0
+            ? `${n} factura(s) copiadas al expediente`
+            : 'No había nada que copiar',
           n > 0 ? 'success' : 'info'
         )
       }
     } catch (err) {
       console.error(err)
-      showToast(err instanceof Error ? err.message : 'Error al reparar', 'error')
+      showToast(
+        err instanceof Error ? err.message : 'Error al reparar',
+        'error'
+      )
     } finally {
       setReparando(false)
     }
@@ -256,7 +288,9 @@ export default function ExpedientesPage() {
     } catch (err) {
       console.error(err)
       showToast(
-        err instanceof Error ? err.message : 'Error al chequear los expedientes',
+        err instanceof Error
+          ? err.message
+          : 'Error al chequear los expedientes',
         'error'
       )
     } finally {
@@ -300,7 +334,7 @@ export default function ExpedientesPage() {
       const payload = await res.json().catch(() => ({}))
       if (res.status === 422) {
         showToast(
-          `${payload.error}. Faltan: ${(payload.faltantes ?? []).join(', ')}`,
+          `${payload.error}. Faltan: ${((payload.faltantes ?? []) as string[]).map(faltanteLabel).join(', ')}`,
           'error'
         )
         return
@@ -356,7 +390,9 @@ export default function ExpedientesPage() {
           {/* Filtros */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-600">Trimestre:</span>
+              <span className="text-sm font-medium text-gray-600">
+                Trimestre:
+              </span>
               <div className="flex bg-gray-100 rounded-lg p-1">
                 {[1, 2, 3, 4, 'todos' as const].map((q) => (
                   <button
@@ -452,7 +488,9 @@ export default function ExpedientesPage() {
                       : 'bg-teal-600 text-white hover:bg-teal-700'
                   }`}
                 >
-                  {normalizando ? 'Normalizando…' : 'Normalizar nombres de archivos'}
+                  {normalizando
+                    ? 'Normalizando…'
+                    : 'Normalizar nombres de archivos'}
                 </button>
               )}
             </div>
@@ -579,11 +617,15 @@ function ExpedienteRow({
             {checklist.map((item) => (
               <span
                 key={item.clave}
-                title={`${item.label}${item.requerido ? ' (requerido)' : ' (opcional)'}`}
+                title={
+                  item.grupo
+                    ? `${item.label} — alternativo: basta con la factura de compra O el contrato de compraventa`
+                    : `${item.label}${item.requerido ? ' (requerido)' : ' (opcional)'}`
+                }
                 className={`px-2 py-1 rounded-full text-xs font-medium ${
                   item.presente
                     ? 'bg-green-100 text-green-700'
-                    : item.requerido
+                    : itemFalta(checklist, item)
                       ? 'bg-red-100 text-red-700'
                       : 'bg-gray-100 text-gray-500'
                 }`}
@@ -661,7 +703,7 @@ function ExpedienteRow({
                       disabled={bloqueado || savingKey === key}
                       title={
                         bloqueado
-                          ? `Faltan requeridos: ${faltantes.join(', ')}`
+                          ? `Faltan requeridos: ${faltantes.map(faltanteLabel).join(', ')}`
                           : undefined
                       }
                       onClick={() => onPatch(exp.id, { estado: e }, key)}
@@ -707,8 +749,9 @@ function NombresPanel({
         </h3>
         <span className="text-xs text-gray-500">
           {nom.carpetas} carpeta(s) · {nom.renombrados.length}{' '}
-          {nom.dryRun ? 'a renombrar' : 'renombrados'} · {nom.duplicados.length} duplicado(s) ·{' '}
-          {nom.omitidos.length} sin tocar · {nom.yaCanonicos.length} ya correctos
+          {nom.dryRun ? 'a renombrar' : 'renombrados'} · {nom.duplicados.length}{' '}
+          duplicado(s) · {nom.omitidos.length} sin tocar ·{' '}
+          {nom.yaCanonicos.length} ya correctos
         </span>
         {aplicando && progreso && (
           <span className="text-xs font-medium text-teal-700">
@@ -739,8 +782,9 @@ function NombresPanel({
       {reanudable && (
         <div className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
           Quedaron {nom.restantes} operación(es) sin hacer
-          {nom.siguienteLote ? ` (sigue por ${nom.siguienteLote})` : ''}. Volvé a aplicar: continúa
-          donde quedó, lo ya renombrado no se vuelve a tocar.
+          {nom.siguienteLote ? ` (sigue por ${nom.siguienteLote})` : ''}. Volvé
+          a aplicar: continúa donde quedó, lo ya renombrado no se vuelve a
+          tocar.
         </div>
       )}
 
@@ -755,7 +799,8 @@ function NombresPanel({
       {nom.renombrados.length > 0 && (
         <div className="space-y-1">
           <div className="text-xs font-bold text-gray-700">
-            {nom.dryRun ? 'Se renombrarán' : 'Renombrados'} ({nom.renombrados.length})
+            {nom.dryRun ? 'Se renombrarán' : 'Renombrados'} (
+            {nom.renombrados.length})
           </div>
           {nom.renombrados.map((r) => (
             <div
@@ -776,7 +821,8 @@ function NombresPanel({
       {nom.duplicados.length > 0 && (
         <div className="space-y-1">
           <div className="text-xs font-bold text-yellow-800">
-            Duplicados exactos ({nom.duplicados.length}) — {nom.dryRun ? 'se borrarán' : 'borrados'}
+            Duplicados exactos ({nom.duplicados.length}) —{' '}
+            {nom.dryRun ? 'se borrarán' : 'borrados'}
           </div>
           {nom.duplicados.map((d) => (
             <div
@@ -793,8 +839,8 @@ function NombresPanel({
       {nom.omitidos.length > 0 && (
         <div className="space-y-1">
           <div className="text-xs font-bold text-gray-700">
-            Sin tocar ({nom.omitidos.length}) — no se renombra lo que no está identificado con
-            certeza
+            Sin tocar ({nom.omitidos.length}) — no se renombra lo que no está
+            identificado con certeza
           </div>
           {nom.omitidos.map((o) => (
             <div
@@ -811,9 +857,14 @@ function NombresPanel({
 
       {nom.fallidos.length > 0 && (
         <div className="space-y-1">
-          <div className="text-xs font-bold text-red-700">Fallos ({nom.fallidos.length})</div>
+          <div className="text-xs font-bold text-red-700">
+            Fallos ({nom.fallidos.length})
+          </div>
           {nom.fallidos.map((f) => (
-            <div key={`${f.carpeta}-${f.nombre}`} className="text-xs text-red-700">
+            <div
+              key={`${f.carpeta}-${f.nombre}`}
+              className="text-xs text-red-700"
+            >
               {f.carpeta} / {f.nombre}: {f.motivo}
             </div>
           ))}
@@ -889,7 +940,8 @@ function ReparacionPanel({
       {rep.sinPdfEnCrm.length > 0 && (
         <div className="space-y-1">
           <div className="text-xs font-bold text-red-700">
-            No reparables automáticamente ({rep.sinPdfEnCrm.length}) — subilas a mano
+            No reparables automáticamente ({rep.sinPdfEnCrm.length}) — subilas a
+            mano
           </div>
           {rep.notaSinPdf && (
             <div className="text-xs text-red-600">{rep.notaSinPdf}</div>
@@ -930,7 +982,9 @@ function ChequeoPanel({ chequeo }: { chequeo: ResultadoChequeo }) {
   const { resumen, meses, expedientesDocs } = chequeo
   const sinSnapshot = meses.some((m) => !m.carpetas.verificable)
   const conFaltantes = expedientesDocs.filter((e) => e.faltantes.length > 0)
-  const conConflicto = expedientesDocs.filter((e) => e.mismoArchivoDosNombres.length > 0)
+  const conConflicto = expedientesDocs.filter(
+    (e) => e.mismoArchivoDosNombres.length > 0
+  )
   const conDuplicados = expedientesDocs.filter((e) => e.duplicados.length > 0)
   const conAmbiguos = expedientesDocs.filter((e) => e.ambiguos.length > 0)
 
@@ -967,8 +1021,8 @@ function ChequeoPanel({ chequeo }: { chequeo: ResultadoChequeo }) {
 
       {sinSnapshot && (
         <div className="bg-yellow-50 border border-yellow-300 rounded-xl p-4 text-sm text-yellow-800">
-          Sin snapshot de OneDrive todavía (corre a las 21:15 o pedilo manual)
-          — las carpetas de expedientes no se pudieron verificar.
+          Sin snapshot de OneDrive todavía (corre a las 21:15 o pedilo manual) —
+          las carpetas de expedientes no se pudieron verificar.
         </div>
       )}
       {resumen.notas
@@ -988,16 +1042,20 @@ function ChequeoPanel({ chequeo }: { chequeo: ResultadoChequeo }) {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                {['Mes', 'Facturas DB', 'Carpetas OneDrive', 'Banda CB', 'Cuadra'].map(
-                  (h) => (
-                    <th
-                      key={h}
-                      className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      {h}
-                    </th>
-                  )
-                )}
+                {[
+                  'Mes',
+                  'Facturas DB',
+                  'Carpetas OneDrive',
+                  'Banda CB',
+                  'Cuadra',
+                ].map((h) => (
+                  <th
+                    key={h}
+                    className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -1006,7 +1064,9 @@ function ChequeoPanel({ chequeo }: { chequeo: ResultadoChequeo }) {
                   key={m.mes}
                   mes={m}
                   abierto={mesAbierto === m.mes}
-                  onToggle={() => setMesAbierto(mesAbierto === m.mes ? null : m.mes)}
+                  onToggle={() =>
+                    setMesAbierto(mesAbierto === m.mes ? null : m.mes)
+                  }
                 />
               ))}
             </tbody>
@@ -1025,7 +1085,9 @@ function ChequeoPanel({ chequeo }: { chequeo: ResultadoChequeo }) {
               key={`${e.mes}-${e.carpeta}`}
               className="flex flex-wrap items-center gap-2 border border-gray-100 rounded-lg px-3 py-2"
             >
-              <span className="text-sm font-medium text-gray-900">{e.carpeta}</span>
+              <span className="text-sm font-medium text-gray-900">
+                {e.carpeta}
+              </span>
               <span className="text-xs text-gray-500">
                 {e.mes} · {e.matricula ?? 'sin matrícula'} ·{' '}
                 {e.tipoOperacion === 'desconocido'
@@ -1037,7 +1099,7 @@ function ChequeoPanel({ chequeo }: { chequeo: ResultadoChequeo }) {
                   key={f}
                   className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700"
                 >
-                  falta {f}
+                  falta {faltanteLabel(f)}
                 </span>
               ))}
             </div>
@@ -1049,7 +1111,8 @@ function ChequeoPanel({ chequeo }: { chequeo: ResultadoChequeo }) {
       {conConflicto.length > 0 && (
         <div className="bg-white rounded-xl shadow-md border border-red-300 p-4 space-y-3">
           <h3 className="text-sm font-bold text-red-800">
-            Mismo archivo con dos nombres ({conConflicto.length}) — error de clasificación
+            Mismo archivo con dos nombres ({conConflicto.length}) — error de
+            clasificación
           </h3>
           {conConflicto.map((e) =>
             e.mismoArchivoDosNombres.map((m) => (
@@ -1057,10 +1120,12 @@ function ChequeoPanel({ chequeo }: { chequeo: ResultadoChequeo }) {
                 key={`${e.carpeta}-${m.hash}`}
                 className="border border-red-100 rounded-lg px-3 py-2"
               >
-                <div className="text-sm font-medium text-gray-900">{e.carpeta}</div>
+                <div className="text-sm font-medium text-gray-900">
+                  {e.carpeta}
+                </div>
                 <div className="text-xs text-red-700">
-                  {m.nombres.join(' = ')} — contenido idéntico: uno de esos documentos no existe
-                  realmente
+                  {m.nombres.join(' = ')} — contenido idéntico: uno de esos
+                  documentos no existe realmente
                 </div>
               </div>
             ))
@@ -1081,8 +1146,12 @@ function ChequeoPanel({ chequeo }: { chequeo: ResultadoChequeo }) {
                 key={`${e.carpeta}-${d.hash}`}
                 className="border border-yellow-100 rounded-lg px-3 py-2"
               >
-                <div className="text-sm font-medium text-gray-900">{e.carpeta}</div>
-                <div className="text-xs text-yellow-800">{d.nombres.join(' = ')}</div>
+                <div className="text-sm font-medium text-gray-900">
+                  {e.carpeta}
+                </div>
+                <div className="text-xs text-yellow-800">
+                  {d.nombres.join(' = ')}
+                </div>
               </div>
             ))
           )}
@@ -1097,12 +1166,18 @@ function ChequeoPanel({ chequeo }: { chequeo: ResultadoChequeo }) {
             {conAmbiguos.reduce((n, e) => n + e.ambiguos.length, 0)})
           </h3>
           {conAmbiguos.map((e) => (
-            <div key={`amb-${e.mes}-${e.carpeta}`} className="border border-gray-100 rounded-lg px-3 py-2">
-              <div className="text-sm font-medium text-gray-900">{e.carpeta}</div>
+            <div
+              key={`amb-${e.mes}-${e.carpeta}`}
+              className="border border-gray-100 rounded-lg px-3 py-2"
+            >
+              <div className="text-sm font-medium text-gray-900">
+                {e.carpeta}
+              </div>
               <ul className="mt-1 text-xs text-gray-600 list-disc list-inside">
                 {e.ambiguos.map((a) => (
                   <li key={a.nombre}>
-                    {a.nombre} <span className="text-gray-400">({a.motivo})</span>
+                    {a.nombre}{' '}
+                    <span className="text-gray-400">({a.motivo})</span>
                   </li>
                 ))}
               </ul>
@@ -1152,18 +1227,26 @@ function MesChequeoRow({
               mes.ok ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
             }`}
           >
-            {mes.ok ? '✓' : `✗ ${nDescuadres} descuadre${nDescuadres === 1 ? '' : 's'}`}
+            {mes.ok
+              ? '✓'
+              : `✗ ${nDescuadres} descuadre${nDescuadres === 1 ? '' : 's'}`}
           </span>
         </td>
       </tr>
       {abierto && (
         <tr className="bg-gray-50">
-          <td colSpan={5} className="px-3 sm:px-6 py-3 text-xs text-gray-700 space-y-1">
+          <td
+            colSpan={5}
+            className="px-3 sm:px-6 py-3 text-xs text-gray-700 space-y-1"
+          >
             {nDescuadres === 0 && (
               <div className="text-green-700">Sin descuadres en {mes.mes}.</div>
             )}
             {d.bandaIncorrecta.map((b) => (
-              <div key={`bi-${b.matricula}`} className="text-red-700 font-medium">
+              <div
+                key={`bi-${b.matricula}`}
+                className="text-red-700 font-medium"
+              >
                 Banda incorrecta: {b.matricula} facturado en {b.mesFactura} pero
                 está en la banda {b.bandaCb} de CB
               </div>
@@ -1182,7 +1265,8 @@ function MesChequeoRow({
             ))}
             {d.facturaSinCb.map((f) => (
               <div key={`fscb-${f.numero}`}>
-                Factura sin fila en CB: {f.numero} ({f.matricula ?? 'sin matrícula'})
+                Factura sin fila en CB: {f.numero} (
+                {f.matricula ?? 'sin matrícula'})
               </div>
             ))}
             {mes.carpetas.scannedAt && (

@@ -116,7 +116,8 @@ interface ExpedienteRow {
  * Re-evalúa la checklist de un expediente contra la evidencia en DB:
  *  - 'factura-venta'   ← automation_logs.venta_guardada
  *  - 'factura-compra'  ← automation_logs.compra_adjunta O facturas_registro
- *  - 'contrato-compra'   con categoria 'coche-compra' y la misma matrícula
+ *                        (categoria 'coche-compra', misma matrícula o alias)
+ *  - 'contrato-compra' ← solo la carpeta de OneDrive (un particular no factura)
  *  - 'contrato-venta'  ← automation_logs.contrato_enviado
  *  - 'contrato-deposito' → sin verificación automática en DB (lo marca el humano)
  *  - cualquier item     ← snapshot de OneDrive (expedientes_carpetas): si la
@@ -129,7 +130,9 @@ export async function recalcularExpediente(
   db: Db,
   id: number
 ): Promise<ResultadoRecalculo | null> {
-  const expRes = await db.query<ExpedienteRow & { tipo_operacion: TipoOperacion }>(
+  const expRes = await db.query<
+    ExpedienteRow & { tipo_operacion: TipoOperacion }
+  >(
     `SELECT id, numero_factura, matricula, estado, checklist, tipo_operacion
        FROM expedientes WHERE id = $1`,
     [id]
@@ -148,32 +151,50 @@ export async function recalcularExpediente(
   // La checklist guardada se reconcilia con la DEFINICIÓN VIGENTE del tipo:
   // si cambia una regla (p.ej. contrato-venta dejó de ser requerido en
   // retail-vat), el recálculo la propaga sin perder presente/nota manuales.
-  const guardadaPorClave = new Map((exp.checklist ?? []).map((i) => [i.clave, i]))
-  const reconciliada: ChecklistItem[] = checklistRequerida(exp.tipo_operacion).map((def) => {
+  const guardadaPorClave = new Map(
+    (exp.checklist ?? []).map((i) => [i.clave, i])
+  )
+  const reconciliada: ChecklistItem[] = checklistRequerida(
+    exp.tipo_operacion
+  ).map((def) => {
     const prev = guardadaPorClave.get(def.clave)
-    return { ...def, presente: prev?.presente ?? false, ...(prev?.nota != null ? { nota: prev.nota } : {}) }
+    return {
+      ...def,
+      presente: prev?.presente ?? false,
+      ...(prev?.nota != null ? { nota: prev.nota } : {}),
+    }
   })
 
   const checklist: ChecklistItem[] = reconciliada.map((item) => {
     const porDb = evidencia[item.clave] === true
     const porCarpeta = carpeta[item.clave] === true
-    const next: ChecklistItem = { ...item, presente: item.presente || porDb || porCarpeta }
+    const next: ChecklistItem = {
+      ...item,
+      presente: item.presente || porDb || porCarpeta,
+    }
     // Promovido SOLO por el snapshot → dejar rastro de la fuente.
     if (!item.presente && !porDb && porCarpeta && !next.nota) {
       next.nota = 'fuente: carpeta-onedrive'
     }
     return next
   })
-  const presenteAntes = new Map((exp.checklist ?? []).map((i) => [i.clave, i.presente]))
+  const presenteAntes = new Map(
+    (exp.checklist ?? []).map((i) => [i.clave, i.presente])
+  )
   const itemsActualizados = checklist
-    .filter((item) => item.presente && !(presenteAntes.get(item.clave) ?? false))
+    .filter(
+      (item) => item.presente && !(presenteAntes.get(item.clave) ?? false)
+    )
     .map((item) => item.clave)
 
   const estadoDespues = evaluarEstado(checklist, exp.estado)
   const requeridosCambiaron =
     JSON.stringify((exp.checklist ?? []).map((i) => [i.clave, i.requerido])) !==
     JSON.stringify(checklist.map((i) => [i.clave, i.requerido]))
-  const cambio = itemsActualizados.length > 0 || estadoDespues !== exp.estado || requeridosCambiaron
+  const cambio =
+    itemsActualizados.length > 0 ||
+    estadoDespues !== exp.estado ||
+    requeridosCambiaron
   if (cambio) {
     await db.query(
       `UPDATE expedientes
@@ -231,10 +252,13 @@ async function buscarEvidencia(
     registroCompra = reg.rows.length > 0
   }
 
+  // Un registro 'coche-compra' es una FACTURA de compra: no prueba que exista
+  // un contrato de compraventa. El contrato solo se detecta en la carpeta del
+  // coche (o lo marca un humano). Antes ambas claves se promovían con la misma
+  // evidencia, lo que daba por presente un contrato inexistente.
   return {
     'factura-venta': ventaGuardada,
     'factura-compra': compraAdjunta || registroCompra,
-    'contrato-compra': compraAdjunta || registroCompra,
     'contrato-venta': contratoEnviado,
   }
 }
@@ -258,7 +282,9 @@ async function buscarEvidenciaCarpeta(
     [matriculas]
   )
   if (res.rows.length === 0) return {}
-  const archivos = res.rows.flatMap((r) => (Array.isArray(r.archivos) ? r.archivos : []))
+  const archivos = res.rows.flatMap((r) =>
+    Array.isArray(r.archivos) ? r.archivos : []
+  )
   const docs = detectarDocs(archivos)
   const evidencia: Record<string, boolean> = {}
   for (const [clave, flag] of Object.entries(CLAVE_A_DOC)) {

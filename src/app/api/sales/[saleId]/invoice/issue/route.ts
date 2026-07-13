@@ -62,6 +62,7 @@ export async function POST(
       idempotencyKey,
       notes: typeof body?.notes === 'string' ? body.notes : null,
       allowDuplicate: body?.allowDuplicate === true,
+      allowRegimen: body?.allowRegimen === true,
       deferNotifications: true,
       userId: String(auth.session.uid),
       userRole: auth.session.role,
@@ -79,6 +80,14 @@ export async function POST(
       if (err.code === 'VEHICLE_ALREADY_INVOICED') {
         return NextResponse.json(
           { error: err.message, code: err.code, existing: err.details },
+          { status: 409 }
+        )
+      }
+      // Régimen incoherente con el origen de la compra: la UI ofrece forzar con
+      // allowRegimen tras confirmación explícita (aviso rojo).
+      if (err.code === 'REGIMEN_INCOHERENTE') {
+        return NextResponse.json(
+          { error: err.message, code: err.code, regimen: err.details },
           { status: 409 }
         )
       }

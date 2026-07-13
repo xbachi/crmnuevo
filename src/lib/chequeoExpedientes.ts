@@ -26,7 +26,7 @@ import {
   type DocsDetectados,
   type RegistroHash,
 } from '@/lib/expedienteDocs'
-import type { TipoOperacion } from '@/lib/expedienteChecklist'
+import { faltanteLabel, type TipoOperacion } from '@/lib/expedienteChecklist'
 
 export interface FacturaActiva {
   numero: string
@@ -54,7 +54,9 @@ export function parseCbBandas(rows: string[][]): CbCocheBanda[] {
   let banda: string | null = null
   rows.forEach((row, i) => {
     if (isBand(row)) {
-      banda = String(row[0] ?? '').trim().toUpperCase()
+      banda = String(row[0] ?? '')
+        .trim()
+        .toUpperCase()
       return
     }
     if (isSubtotal(row)) {
@@ -62,7 +64,8 @@ export function parseCbBandas(rows: string[][]): CbCocheBanda[] {
       return
     }
     const plate = String(row?.[4] ?? '').trim()
-    if (banda && plate) out.push({ banda, matricula: normPlate(plate), fila: i + 1 })
+    if (banda && plate)
+      out.push({ banda, matricula: normPlate(plate), fila: i + 1 })
   })
   return out
 }
@@ -170,10 +173,15 @@ export function chequearExpedientes(args: ChequeoArgs): ResultadoChequeo {
   const bloqueantes: string[] = []
   const notas: string[] = []
   if (carpetas === null) notas.push(SIN_SNAPSHOT)
-  if (cb === null) notas.push('hoja CB no legible — banda de mes no verificable')
+  if (cb === null)
+    notas.push('hoja CB no legible — banda de mes no verificable')
 
   const meses: MesChequeo[] = []
-  for (let numero = (quarter - 1) * 3 + 1; numero <= (quarter - 1) * 3 + 3; numero++) {
+  for (
+    let numero = (quarter - 1) * 3 + 1;
+    numero <= (quarter - 1) * 3 + 3;
+    numero++
+  ) {
     const nombre = MESES[numero - 1]
 
     const factsMes = facturas.filter(
@@ -209,7 +217,9 @@ export function chequearExpedientes(args: ChequeoArgs): ResultadoChequeo {
       // En la banda del mes pero sin factura activa en TODO el trimestre.
       descuadres.cbSinFactura = [
         ...new Set(
-          cbMes.filter((c) => !mesesFactura.has(canon(c.matricula))).map((c) => c.matricula)
+          cbMes
+            .filter((c) => !mesesFactura.has(canon(c.matricula)))
+            .map((c) => c.matricula)
         ),
       ]
       // Facturado este mes pero ausente en TODA la hoja.
@@ -243,15 +253,25 @@ export function chequearExpedientes(args: ChequeoArgs): ResultadoChequeo {
       descuadres.bandaIncorrecta.length === 0
 
     if (descuadres.facturasSinCarpeta.length > 0)
-      bloqueantes.push(`${nombre}: ${descuadres.facturasSinCarpeta.length} factura(s) sin carpeta en OneDrive`)
+      bloqueantes.push(
+        `${nombre}: ${descuadres.facturasSinCarpeta.length} factura(s) sin carpeta en OneDrive`
+      )
     if (descuadres.carpetasSinFactura.length > 0)
-      bloqueantes.push(`${nombre}: ${descuadres.carpetasSinFactura.length} carpeta(s) sin factura activa`)
+      bloqueantes.push(
+        `${nombre}: ${descuadres.carpetasSinFactura.length} carpeta(s) sin factura activa`
+      )
     if (descuadres.cbSinFactura.length > 0)
-      bloqueantes.push(`${nombre}: ${descuadres.cbSinFactura.length} coche(s) en CB sin factura activa`)
+      bloqueantes.push(
+        `${nombre}: ${descuadres.cbSinFactura.length} coche(s) en CB sin factura activa`
+      )
     if (descuadres.facturaSinCb.length > 0)
-      bloqueantes.push(`${nombre}: ${descuadres.facturaSinCb.length} factura(s) sin fila en CB`)
+      bloqueantes.push(
+        `${nombre}: ${descuadres.facturaSinCb.length} factura(s) sin fila en CB`
+      )
     for (const b of descuadres.bandaIncorrecta)
-      bloqueantes.push(`${nombre}: ${b.matricula} facturado en ${b.mesFactura} pero en banda ${b.bandaCb} de CB`)
+      bloqueantes.push(
+        `${nombre}: ${b.matricula} facturado en ${b.mesFactura} pero en banda ${b.bandaCb} de CB`
+      )
 
     const scannedAt = carpMes.find((c) => c.scannedAt)?.scannedAt ?? null
     meses.push({
@@ -259,11 +279,21 @@ export function chequearExpedientes(args: ChequeoArgs): ResultadoChequeo {
       numero,
       facturas: {
         count: factsMes.length,
-        detalle: factsMes.map((f) => ({ numero: f.numero, matricula: f.matricula, fecha: f.fecha })),
+        detalle: factsMes.map((f) => ({
+          numero: f.numero,
+          matricula: f.matricula,
+          fecha: f.fecha,
+        })),
       },
       carpetas:
         carpetas === null
-          ? { verificable: false, count: null, nombres: [], scannedAt: null, nota: SIN_SNAPSHOT }
+          ? {
+              verificable: false,
+              count: null,
+              nombres: [],
+              scannedAt: null,
+              nota: SIN_SNAPSHOT,
+            }
           : {
               verificable: true,
               count: carpMes.length,
@@ -272,8 +302,17 @@ export function chequearExpedientes(args: ChequeoArgs): ResultadoChequeo {
             },
       cbBanda:
         cb === null
-          ? { verificable: false, count: null, matriculas: [], nota: 'hoja CB no legible' }
-          : { verificable: true, count: cbMes.length, matriculas: cbMes.map((c) => c.matricula) },
+          ? {
+              verificable: false,
+              count: null,
+              matriculas: [],
+              nota: 'hoja CB no legible',
+            }
+          : {
+              verificable: true,
+              count: cbMes.length,
+              matriculas: cbMes.map((c) => c.matricula),
+            },
       descuadres,
       ok,
     })
@@ -286,14 +325,15 @@ export function chequearExpedientes(args: ChequeoArgs): ResultadoChequeo {
   let archivosAmbiguos = 0
   const expedientesDocs: ExpedienteDocsCarpeta[] = (carpetas ?? []).map((c) => {
     const plate = c.matricula ? normPlate(c.matricula) : null
-    const tipoOperacion = (plate && tiposCanon.get(canon(plate))) || 'desconocido'
-    const { docs, duplicados, mismoArchivoDosNombres, ambiguos } = analizarCarpeta(
-      c.archivos ?? [],
-      { hashes, matricula: plate, alias }
-    )
+    const tipoOperacion =
+      (plate && tiposCanon.get(canon(plate))) || 'desconocido'
+    const { docs, duplicados, mismoArchivoDosNombres, ambiguos } =
+      analizarCarpeta(c.archivos ?? [], { hashes, matricula: plate, alias })
     const faltantes = docsFaltantes(tipoOperacion, docs)
     if (faltantes.length > 0)
-      bloqueantes.push(`carpeta ${c.carpeta}: falta ${faltantes.join(', ')}`)
+      bloqueantes.push(
+        `carpeta ${c.carpeta}: falta ${faltantes.map(faltanteLabel).join(', ')}`
+      )
     // Mal clasificado = uno de los dos documentos NO existe → bloqueante.
     for (const m of mismoArchivoDosNombres)
       bloqueantes.push(
@@ -314,7 +354,9 @@ export function chequearExpedientes(args: ChequeoArgs): ResultadoChequeo {
     }
   })
   if (carpetasConDuplicados > 0)
-    notas.push(`${carpetasConDuplicados} carpeta(s) con archivos duplicados (mismo contenido guardado dos veces)`)
+    notas.push(
+      `${carpetasConDuplicados} carpeta(s) con archivos duplicados (mismo contenido guardado dos veces)`
+    )
   if (archivosAmbiguos > 0)
     notas.push(`${archivosAmbiguos} archivo(s) sin clasificar — revisar a mano`)
 

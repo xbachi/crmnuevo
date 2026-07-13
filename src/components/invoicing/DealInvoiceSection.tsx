@@ -22,6 +22,17 @@ interface Invoice {
   pdf_url: string | null
 }
 
+/** Coherencia entre el régimen elegido y cómo se compró el coche (origenCompra). */
+interface AvisoRegimen {
+  code: 'REGIMEN_INCOHERENTE' | 'ORIGEN_NO_VERIFICADO'
+  severidad: 'bloqueante' | 'aviso'
+  message: string
+  ivaGeneral: number
+  ivaRebu: number | null
+  diferencia: number | null
+  precioCompra: number | null
+}
+
 interface PreviewData {
   invoiceType: string
   series: string
@@ -34,6 +45,7 @@ interface PreviewData {
     vat_amount: number | null
     taxable_base: number | null
   }
+  avisoRegimen: AvisoRegimen | null
 }
 
 interface Props {
@@ -106,6 +118,14 @@ export default function DealInvoiceSection({
   const [dupConflict, setDupConflict] = useState<{
     message: string
     type: 'VAT' | 'REBU'
+  } | null>(null)
+  /** Coche comprado a un particular al que se le quiere emitir IVA: mensaje del
+   *  servidor con el coste real del error + tipo pendiente, para poder forzar
+   *  con allowRegimen tras confirmación explícita. */
+  const [regimenConflict, setRegimenConflict] = useState<{
+    message: string
+    type: 'VAT' | 'REBU'
+    diferencia: number | null
   } | null>(null)
 
   const handleDownload = useCallback(
@@ -181,12 +201,12 @@ export default function DealInvoiceSection({
 
   const handleIssue = async (
     type: 'VAT' | 'REBU',
-    opts: { allowDuplicate?: boolean } = {}
+    opts: { allowDuplicate?: boolean; allowRegimen?: boolean } = {}
   ) => {
     if (issuing) return
     if (hasActiveInvoice) return // ya facturado: no se re-emite, se rectifica
 
-    if (!opts.allowDuplicate) {
+    if (!opts.allowDuplicate && !opts.allowRegimen) {
       const confirmation = window.confirm(
         `¿Emitir factura ${type === 'VAT' ? 'con IVA' : 'REBU'}?\n\n` +
           'Esta acción consume el siguiente número fiscal del CRM y crea una factura ' +
@@ -198,6 +218,7 @@ export default function DealInvoiceSection({
 
     setIssuing(true)
     setDupConflict(null)
+    setRegimenConflict(null)
     const idempotencyKey = uuidv4()
     try {
       const res = await fetch(`/api/sales/${saleId}/invoice/issue`, {
@@ -209,6 +230,7 @@ export default function DealInvoiceSection({
         body: JSON.stringify({
           invoiceType: type,
           ...(opts.allowDuplicate ? { allowDuplicate: true } : {}),
+          ...(opts.allowRegimen ? { allowRegimen: true } : {}),
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -217,13 +239,29 @@ export default function DealInvoiceSection({
         // servidor tal cual y ofrecemos forzar (duplicación fiscal consciente).
         if (data?.code === 'VEHICLE_ALREADY_INVOICED') {
           setDupConflict({
-            message: data.error ?? 'Este coche ya está facturado en otra venta.',
+            message:
+              data.error ?? 'Este coche ya está facturado en otra venta.',
             type,
+          })
+          return
+        }
+        // Comprado a un particular (contrato, sin factura) y se pidió IVA: el
+        // servidor bloqueó y nos dice cuánto IVA de más costaría.
+        if (data?.code === 'REGIMEN_INCOHERENTE') {
+          setRegimenConflict({
+            message:
+              data.error ??
+              'El régimen no coincide con el origen de la compra.',
+            type,
+            diferencia: data?.regimen?.diferencia ?? null,
           })
           return
         }
         showToast(data?.error ?? 'Error al emitir factura.', 'error')
         return
+      }
+      if (data.avisoRegimen) {
+        showToast(data.avisoRegimen.message, 'info')
       }
       if (data.alreadyExisted) {
         showToast(
@@ -250,6 +288,7 @@ export default function DealInvoiceSection({
       setPreview(null)
       setPreviewType(null)
       setDupConflict(null)
+      setRegimenConflict(null)
       if (onInvoiceIssued) {
         await onInvoiceIssued()
       }
@@ -301,7 +340,8 @@ export default function DealInvoiceSection({
                 />
               </svg>
               <span className="text-sm font-medium">
-                ✓ Factura {justIssued.full_invoice_number} generada correctamente.
+                ✓ Factura {justIssued.full_invoice_number} generada
+                correctamente.
               </span>
             </div>
             <button
@@ -344,7 +384,9 @@ export default function DealInvoiceSection({
                     disabled={downloadingId === inv.id}
                     className="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    {downloadingId === inv.id ? 'Descargando…' : 'Descargar PDF'}
+                    {downloadingId === inv.id
+                      ? 'Descargando…'
+                      : 'Descargar PDF'}
                   </button>
                 ) : null}
                 <DealRectificarButton
@@ -386,10 +428,10 @@ export default function DealInvoiceSection({
           </div>
           <p className="text-xs text-gray-500">
             Esta venta <strong>ya está facturada</strong>
-            {activeInvoice ? ` (${activeInvoice.full_invoice_number})` : ''}. No se
-            puede volver a emitir: para cambiarla hay que rectificarla con el botón
-            de arriba, que emite una factura rectificativa (serie FR) y deja la
-            original anulada conservando su número.
+            {activeInvoice ? ` (${activeInvoice.full_invoice_number})` : ''}. No
+            se puede volver a emitir: para cambiarla hay que rectificarla con el
+            botón de arriba, que emite una factura rectificativa (serie FR) y
+            deja la original anulada conservando su número.
           </p>
         </div>
       </div>
@@ -417,8 +459,8 @@ export default function DealInvoiceSection({
             />
           </svg>
           <span className="text-sm font-medium">
-            Emitiendo… (puede tardar unos segundos). Se está generando la factura
-            y el PDF, no cierres la página.
+            Emitiendo… (puede tardar unos segundos). Se está generando la
+            factura y el PDF, no cierres la página.
           </span>
         </div>
       )}
@@ -446,11 +488,10 @@ export default function DealInvoiceSection({
 
         {listedInvoices.length > 0 && (
           <div className="bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded p-3">
-            Esta venta tuvo factura ({listedInvoices
-              .map((i) => i.full_invoice_number)
-              .join(', ')}
-            ), rectificada o anulada. Podés emitir una nueva: consumirá un número
-            fiscal nuevo.
+            Esta venta tuvo factura (
+            {listedInvoices.map((i) => i.full_invoice_number).join(', ')}
+            ), rectificada o anulada. Podés emitir una nueva: consumirá un
+            número fiscal nuevo.
           </div>
         )}
 
@@ -469,15 +510,66 @@ export default function DealInvoiceSection({
                       'venta activas (duplicación fiscal). Solo seguí si es una reventa ' +
                       'real del mismo vehículo.\n\n¿Emitir igualmente?'
                   )
-                  if (ok) handleIssue(dupConflict.type, { allowDuplicate: true })
+                  if (ok)
+                    handleIssue(dupConflict.type, { allowDuplicate: true })
                 }}
                 disabled={issuing}
                 className="px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded hover:bg-red-700 disabled:opacity-50"
               >
-                {issuing ? 'Emitiendo…' : 'Emitir igualmente (duplicación fiscal)'}
+                {issuing
+                  ? 'Emitiendo…'
+                  : 'Emitir igualmente (duplicación fiscal)'}
               </button>
               <button
                 onClick={() => setDupConflict(null)}
+                disabled={issuing}
+                className="px-3 py-1.5 bg-white text-gray-700 text-xs font-medium rounded border border-gray-300 hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {regimenConflict && (
+          <div className="bg-red-50 border-2 border-red-400 rounded p-3 space-y-2">
+            <p className="text-sm font-semibold text-red-900">
+              Régimen incorrecto — este coche se compró a un particular
+              {regimenConflict.diferencia != null
+                ? ` (${formatEUR(regimenConflict.diferencia)} de IVA de más)`
+                : ''}
+            </p>
+            <p className="text-xs text-red-800">{regimenConflict.message}</p>
+            <div className="flex flex-wrap gap-2 pt-1">
+              <button
+                onClick={() => handleIssue('REBU')}
+                disabled={issuing}
+                className="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700 disabled:opacity-50"
+              >
+                {issuing ? 'Emitiendo…' : 'Emitir REBU (lo correcto)'}
+              </button>
+              <button
+                onClick={() => {
+                  const ok = window.confirm(
+                    `${regimenConflict.message}\n\n` +
+                      'Si emitís con IVA igual, vas a ingresar IVA sobre el precio TOTAL ' +
+                      'del coche' +
+                      (regimenConflict.diferencia != null
+                        ? ` (${formatEUR(regimenConflict.diferencia)} de más)`
+                        : '') +
+                      '. Solo seguí si la operación va en régimen general a conciencia.' +
+                      '\n\n¿Emitir con IVA igualmente?'
+                  )
+                  if (ok)
+                    handleIssue(regimenConflict.type, { allowRegimen: true })
+                }}
+                disabled={issuing}
+                className="px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded hover:bg-red-700 disabled:opacity-50"
+              >
+                Emitir con IVA igualmente (pagás IVA de más)
+              </button>
+              <button
+                onClick={() => setRegimenConflict(null)}
                 disabled={issuing}
                 className="px-3 py-1.5 bg-white text-gray-700 text-xs font-medium rounded border border-gray-300 hover:bg-gray-50"
               >
@@ -517,6 +609,22 @@ export default function DealInvoiceSection({
                 </>
               )}
             </div>
+            {preview.avisoRegimen && (
+              <div
+                className={`rounded p-2 text-xs ${
+                  preview.avisoRegimen.severidad === 'bloqueante'
+                    ? 'bg-red-50 border-2 border-red-400 text-red-900'
+                    : 'bg-orange-50 border border-orange-300 text-orange-900'
+                }`}
+              >
+                <strong>
+                  {preview.avisoRegimen.severidad === 'bloqueante'
+                    ? 'Régimen incorrecto: '
+                    : 'Origen de la compra sin verificar: '}
+                </strong>
+                {preview.avisoRegimen.message}
+              </div>
+            )}
             <div className="flex space-x-2 pt-1">
               <button
                 onClick={() => handleIssue(previewType)}
@@ -593,9 +701,10 @@ export default function DealInvoiceSection({
         )}
 
         <p className="text-xs text-gray-500">
-          <strong>Vista previa</strong> no consume número fiscal. <strong>Emitir</strong>{' '}
-          consume el siguiente número de la serie correspondiente
-          (R-2026-XXX para REBU, F-2026-XXXX para IVA) y crea una factura definitiva.
+          <strong>Vista previa</strong> no consume número fiscal.{' '}
+          <strong>Emitir</strong> consume el siguiente número de la serie
+          correspondiente (R-2026-XXX para REBU, F-2026-XXXX para IVA) y crea
+          una factura definitiva.
         </p>
       </div>
     </div>

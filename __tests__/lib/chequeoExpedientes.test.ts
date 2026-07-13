@@ -74,8 +74,12 @@ describe('chequearExpedientes', () => {
   it('detecta bandaIncorrecta: factura de abril en la banda MARZO de CB', () => {
     const res = chequearExpedientes({
       ...base,
-      facturas: [{ numero: 'F-2026-020', matricula: '8061KRN', fecha: '2026-04-05' }],
-      carpetas: [carpeta('abril', '74-Opel-Astra-8061KRN', '8061KRN', DOCS_COMPLETOS)],
+      facturas: [
+        { numero: 'F-2026-020', matricula: '8061KRN', fecha: '2026-04-05' },
+      ],
+      carpetas: [
+        carpeta('abril', '74-Opel-Astra-8061KRN', '8061KRN', DOCS_COMPLETOS),
+      ],
       cb: [{ banda: 'MARZO', matricula: '8061KRN', fila: 12 }],
     })
     const abril = res.meses.find((m) => m.mes === 'ABRIL')!
@@ -90,23 +94,38 @@ describe('chequearExpedientes', () => {
   it('detecta factura sin carpeta y carpeta sin factura', () => {
     const res = chequearExpedientes({
       ...base,
-      facturas: [{ numero: 'F-2026-021', matricula: '6935KYC', fecha: '2026-05-10' }],
-      carpetas: [carpeta('mayo', '79- Hyundai Kona-0000XXX', '0000XXX', DOCS_COMPLETOS)],
+      facturas: [
+        { numero: 'F-2026-021', matricula: '6935KYC', fecha: '2026-05-10' },
+      ],
+      carpetas: [
+        carpeta('mayo', '79- Hyundai Kona-0000XXX', '0000XXX', DOCS_COMPLETOS),
+      ],
       cb: [{ banda: 'MAYO', matricula: '6935KYC', fila: 20 }],
     })
     const mayo = res.meses.find((m) => m.mes === 'MAYO')!
     expect(mayo.descuadres.facturasSinCarpeta).toEqual([
       { numero: 'F-2026-021', matricula: '6935KYC' },
     ])
-    expect(mayo.descuadres.carpetasSinFactura).toEqual(['79- Hyundai Kona-0000XXX'])
+    expect(mayo.descuadres.carpetasSinFactura).toEqual([
+      '79- Hyundai Kona-0000XXX',
+    ])
     expect(mayo.ok).toBe(false)
   })
 
   it('detecta cbSinFactura y facturaSinCb', () => {
     const res = chequearExpedientes({
       ...base,
-      facturas: [{ numero: 'F-2026-022', matricula: '1187MGT', fecha: '2026-06-01' }],
-      carpetas: [carpeta('junio', 'D-4-Audi-A4-Avant-1187MGT', '1187MGT', DOCS_COMPLETOS)],
+      facturas: [
+        { numero: 'F-2026-022', matricula: '1187MGT', fecha: '2026-06-01' },
+      ],
+      carpetas: [
+        carpeta(
+          'junio',
+          'D-4-Audi-A4-Avant-1187MGT',
+          '1187MGT',
+          DOCS_COMPLETOS
+        ),
+      ],
       cb: [{ banda: 'JUNIO', matricula: '9999ZZZ', fila: 30 }],
     })
     const junio = res.meses.find((m) => m.mes === 'JUNIO')!
@@ -123,7 +142,9 @@ describe('chequearExpedientes', () => {
         { numero: 'F-2026-023', matricula: '8700GKW', fecha: '2026-04-02' },
         { numero: 'F-2026-024', matricula: '8700-GKW', fecha: '2026-04-02' },
       ],
-      carpetas: [carpeta('abril', 'R-24-VW-Eos-8700GKW', '8700GKW', DOCS_COMPLETOS)],
+      carpetas: [
+        carpeta('abril', 'R-24-VW-Eos-8700GKW', '8700GKW', DOCS_COMPLETOS),
+      ],
       cb: [{ banda: 'ABRIL', matricula: '8700GKW', fila: 15 }],
     })
     const abril = res.meses.find((m) => m.mes === 'ABRIL')!
@@ -138,11 +159,15 @@ describe('chequearExpedientes', () => {
       year: 2026,
       quarter: 2,
       tipos: new Map<string, TipoOperacion>([['7487MGV', 'deposito']]),
-      facturas: [{ numero: 'F-2026-025', matricula: '7487MGV', fecha: '2026-04-20' }],
+      facturas: [
+        { numero: 'F-2026-025', matricula: '7487MGV', fecha: '2026-04-20' },
+      ],
       carpetas: [
         // depósito sin contrato de venta: eso SÍ bloquea. El contrato de
         // depósito no se pide (acuerdo interno con el propietario).
-        carpeta('abril', 'D-28-Fiat-500-7487MGV', '7487MGV', ['factura-iva-F-2026-4221.pdf']),
+        carpeta('abril', 'D-28-Fiat-500-7487MGV', '7487MGV', [
+          'factura-iva-F-2026-4221.pdf',
+        ]),
       ],
       cb: [{ banda: 'ABRIL', matricula: '7487MGV', fila: 9 }],
     })
@@ -150,7 +175,10 @@ describe('chequearExpedientes', () => {
     expect(res.expedientesDocs[0].tipoOperacion).toBe('deposito')
     expect(res.expedientesDocs[0].faltantes).toEqual(['contrato-venta'])
     expect(res.resumen.ok).toBe(false)
-    expect(res.resumen.bloqueantes.join(' ')).toContain('contrato-venta')
+    // el bloqueante se reporta con la etiqueta legible del documento
+    expect(res.resumen.bloqueantes.join(' ')).toContain(
+      'falta Contrato de venta'
+    )
   })
 
   it('carpeta sin expediente → tipo desconocido con exigencia mínima', () => {
@@ -158,7 +186,9 @@ describe('chequearExpedientes', () => {
       year: 2026,
       quarter: 2,
       tipos: new Map(),
-      facturas: [{ numero: 'F-2026-026', matricula: 'E9961BDJ', fecha: '2026-06-15' }],
+      facturas: [
+        { numero: 'F-2026-026', matricula: 'E9961BDJ', fecha: '2026-06-15' },
+      ],
       carpetas: [
         carpeta('junio', 'Yamaha Raptor quad-E9961BDJ', 'E9961BDJ', [
           'Factura-Venta-F-2026-026.pdf',
@@ -175,7 +205,9 @@ describe('chequearExpedientes', () => {
   it('sin snapshot: carpetas verificable:false, sin descuadres de carpetas y con nota', () => {
     const res = chequearExpedientes({
       ...base,
-      facturas: [{ numero: 'F-2026-020', matricula: '8061KRN', fecha: '2026-04-05' }],
+      facturas: [
+        { numero: 'F-2026-020', matricula: '8061KRN', fecha: '2026-04-05' },
+      ],
       carpetas: null,
       cb: [{ banda: 'ABRIL', matricula: '8061KRN', fila: 12 }],
     })
@@ -190,8 +222,12 @@ describe('chequearExpedientes', () => {
   it('hoja CB no legible: cbBanda verificable:false y nota', () => {
     const res = chequearExpedientes({
       ...base,
-      facturas: [{ numero: 'F-2026-020', matricula: '8061KRN', fecha: '2026-04-05' }],
-      carpetas: [carpeta('abril', '74-Opel-Astra-8061KRN', '8061KRN', DOCS_COMPLETOS)],
+      facturas: [
+        { numero: 'F-2026-020', matricula: '8061KRN', fecha: '2026-04-05' },
+      ],
+      carpetas: [
+        carpeta('abril', '74-Opel-Astra-8061KRN', '8061KRN', DOCS_COMPLETOS),
+      ],
       cb: null,
     })
     const abril = res.meses.find((m) => m.mes === 'ABRIL')!
@@ -207,7 +243,9 @@ describe('chequearExpedientes', () => {
  * hoy el coche tiene la DEFINITIVA 5439NNW.
  */
 describe('chequearExpedientes con alias de matrícula', () => {
-  const alias = construirAliasIndex([{ vehiculoId: 398, matriculas: ['5439NNW', '5732BDR'] }])
+  const alias = construirAliasIndex([
+    { vehiculoId: 398, matriculas: ['5439NNW', '5732BDR'] },
+  ])
   const tipos = new Map<string, TipoOperacion>([['5439NNW', 'retail-vat']])
 
   it('factura con la provisional + carpeta con la definitiva: sin descuadre', () => {
@@ -216,8 +254,12 @@ describe('chequearExpedientes con alias de matrícula', () => {
       quarter: 2,
       tipos,
       alias,
-      facturas: [{ numero: 'R-2026-027', matricula: '5732BDR', fecha: '2026-06-10' }],
-      carpetas: [carpeta('junio', '83-Bmw-M2-5439NNW', '5439NNW', DOCS_COMPLETOS)],
+      facturas: [
+        { numero: 'R-2026-027', matricula: '5732BDR', fecha: '2026-06-10' },
+      ],
+      carpetas: [
+        carpeta('junio', '83-Bmw-M2-5439NNW', '5439NNW', DOCS_COMPLETOS),
+      ],
       cb: [{ banda: 'JUNIO', matricula: '5732BDR', fila: 40 }],
     })
     const junio = res.meses.find((m) => m.mes === 'JUNIO')!
@@ -240,8 +282,12 @@ describe('chequearExpedientes con alias de matrícula', () => {
       quarter: 2,
       tipos,
       alias,
-      facturas: [{ numero: 'R-2026-027', matricula: '5732BDR', fecha: '2026-06-10' }],
-      carpetas: [carpeta('junio', '83-Bmw-M2-5732BDR', '5732BDR', DOCS_COMPLETOS)],
+      facturas: [
+        { numero: 'R-2026-027', matricula: '5732BDR', fecha: '2026-06-10' },
+      ],
+      carpetas: [
+        carpeta('junio', '83-Bmw-M2-5732BDR', '5732BDR', DOCS_COMPLETOS),
+      ],
       cb: [{ banda: 'JUNIO', matricula: '5732BDR', fila: 40 }],
     })
     expect(res.resumen.ok).toBe(true)
@@ -252,8 +298,12 @@ describe('chequearExpedientes con alias de matrícula', () => {
       year: 2026,
       quarter: 2,
       tipos,
-      facturas: [{ numero: 'R-2026-027', matricula: '5732BDR', fecha: '2026-06-10' }],
-      carpetas: [carpeta('junio', '83-Bmw-M2-5439NNW', '5439NNW', DOCS_COMPLETOS)],
+      facturas: [
+        { numero: 'R-2026-027', matricula: '5732BDR', fecha: '2026-06-10' },
+      ],
+      carpetas: [
+        carpeta('junio', '83-Bmw-M2-5439NNW', '5439NNW', DOCS_COMPLETOS),
+      ],
       cb: [{ banda: 'JUNIO', matricula: '5732BDR', fila: 40 }],
     })
     const junio = res.meses.find((m) => m.mes === 'JUNIO')!
@@ -267,14 +317,20 @@ describe('chequearExpedientes con alias de matrícula', () => {
       quarter: 2,
       tipos,
       alias,
-      facturas: [{ numero: 'R-2026-027', matricula: '5732BDR', fecha: '2026-06-10' }],
-      carpetas: [carpeta('junio', '84-Kia-Xceed-0608NLF', '0608NLF', DOCS_COMPLETOS)],
+      facturas: [
+        { numero: 'R-2026-027', matricula: '5732BDR', fecha: '2026-06-10' },
+      ],
+      carpetas: [
+        carpeta('junio', '84-Kia-Xceed-0608NLF', '0608NLF', DOCS_COMPLETOS),
+      ],
       cb: [{ banda: 'JUNIO', matricula: '5732BDR', fila: 40 }],
     })
     const junio = res.meses.find((m) => m.mes === 'JUNIO')!
     expect(junio.descuadres.facturasSinCarpeta).toEqual([
       { numero: 'R-2026-027', matricula: '5732BDR' },
     ])
-    expect(junio.descuadres.carpetasSinFactura).toEqual(['84-Kia-Xceed-0608NLF'])
+    expect(junio.descuadres.carpetasSinFactura).toEqual([
+      '84-Kia-Xceed-0608NLF',
+    ])
   })
 })

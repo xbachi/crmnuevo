@@ -44,6 +44,7 @@ export async function POST(
       invoiceType,
       idempotencyKey,
       allowDuplicate: body?.allowDuplicate === true,
+      allowRegimen: body?.allowRegimen === true,
     })
     return NextResponse.json(result, {
       status: result.alreadyExisted ? 200 : 201,
@@ -53,6 +54,12 @@ export async function POST(
       if (err.code === 'VEHICLE_ALREADY_INVOICED') {
         return NextResponse.json(
           { error: err.message, code: err.code, existing: err.details },
+          { status: 409 }
+        )
+      }
+      if (err.code === 'REGIMEN_INCOHERENTE') {
+        return NextResponse.json(
+          { error: err.message, code: err.code, regimen: err.details },
           { status: 409 }
         )
       }
