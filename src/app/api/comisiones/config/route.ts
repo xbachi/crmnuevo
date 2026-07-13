@@ -2,9 +2,9 @@
  * PATCH /api/comisiones/config — SOLO admin (requireAdminSession).
  *
  * Actualiza la fila única (id=1) de comision_config. Valida la forma completa
- * del JSON (3 formas de pago × con/sin garantía premium + pctMontoFinanciado,
- * todos números ≥ 0). Si la migración create-comision-config.sql no está
- * aplicada → 503 con hint.
+ * del JSON (umbral + tarifas de los 3 tramos + escalones de bono, todos ≥ 0).
+ * Los porcentajes viajan como número humano (1 = 1%). Si la migración
+ * create-comision-config.sql no está aplicada → 503 con hint.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -32,9 +32,10 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json(
       {
         error:
-          'config inválida: se espera { base: { contado|financiado|mixto: ' +
-          '{ conGarantiaPremium, sinGarantiaPremium } }, pctMontoFinanciado } ' +
-          'con todos los valores numéricos ≥ 0',
+          'config inválida: se espera { umbralFinanciado (0-1), ' +
+          'contado: { standard, premium }, financiadoBajo: { standard, premium }, ' +
+          'financiadoAlto: { pctStandard, pctPremium } (% humano: 1 = 1%), ' +
+          'bonos: [{ minVentas, importe }] } con todos los valores numéricos ≥ 0',
       },
       { status: 400 }
     )

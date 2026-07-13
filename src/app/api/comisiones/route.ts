@@ -3,9 +3,16 @@
  *
  * Ventas del mes (facturas emitidas activas — mismo criterio ISSUED/IMPORTED/
  * PDF_PENDING que el chequeo de expedientes; invoice_date = fecha de venta)
- * con sus condiciones de pago (LEFT JOIN venta_condiciones_pago) y la
- * comisión calculada por fila + totales. Las ventas anteriores a la captura
- * de condiciones (o B2B sin deal) salen con sinDatos=true y comisión null.
+ * con sus condiciones de pago (LEFT JOIN venta_condiciones_pago), la comisión
+ * calculada por fila (con el tramo aplicado, para poder auditar el porqué) y,
+ * a nivel mes, subtotal + bono por cantidad de ventas + total.
+ *
+ * El precio de venta que manda el ratio es Deal."importeTotal" (el mismo con
+ * el que se validó contado + financiado al capturar las condiciones); si el
+ * deal no lo tiene cargado se cae al total de la factura.
+ *
+ * Las ventas sin condiciones registradas (anteriores a la feature, o B2B sin
+ * deal) salen con sinDatos=true y comisión null: no se inventa un tramo.
  * Sesión normal (middleware + requireApiSession).
  */
 
@@ -13,9 +20,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/direct-database'
 import { requireApiSession } from '@/lib/apiAuth'
 import {
+  calcularBonoMensual,
   calcularComision,
-  configVacia,
-  esConfigPendiente,
+  configPorDefecto,
   normalizarConfig,
   type ComisionConfig,
   type FormaPago,
@@ -32,6 +39,7 @@ interface VentaRow {
   vehicle_plate: string | null
   marca: string | null
   modelo: string | null
+  importe_total: string | null
   forma_pago: FormaPago | null
   banco: string | null
   interes: string | null
@@ -41,6 +49,11 @@ interface VentaRow {
   garantia_premium: boolean | null
 }
 
+/**
+ * Config vigente. Si la tabla no existe o la fila está corrupta se cae a la
+ * tabla por defecto (la real) y se marca configDisponible=false para avisar
+ * en la UI: nunca se calcula con ceros silenciosos.
+ */
 async function cargarConfig(): Promise<{
   config: ComisionConfig
   configDisponible: boolean
@@ -49,12 +62,13 @@ async function cargarConfig(): Promise<{
     `SELECT to_regclass('public.comision_config') AS reg`
   )
   if (!reg.rows[0]?.reg) {
-    return { config: configVacia(), configDisponible: false }
+    return { config: configPorDefecto(), configDisponible: false }
   }
   const res = await pool.query<{ config: unknown }>(
     `SELECT config FROM comision_config WHERE id = 1`
   )
-  const config = normalizarConfig(res.rows[0]?.config) ?? configVacia()
+  const config = normalizarConfig(res.rows[0]?.config)
+  if (!config) return { config: configPorDefecto(), configDisponible: false }
   return { config, configDisponible: true }
 }
 
@@ -87,7 +101,6 @@ export async function GET(request: NextRequest) {
 
   try {
     const { config, configDisponible } = await cargarConfig()
-    const pendienteConfig = esConfigPendiente(config)
 
     const vcpReg = await pool.query<{ reg: string | null }>(
       `SELECT to_regclass('public.venta_condiciones_pago') AS reg`
@@ -107,10 +120,11 @@ export async function GET(request: NextRequest) {
     const ventasDb = await pool.query<VentaRow>(
       `SELECT i.id AS invoice_id, i.deal_id, i.full_invoice_number,
               i.invoice_date::text, i.total_amount, i.vehicle_plate,
-              v.marca, v.modelo,
+              v.marca, v.modelo, d."importeTotal" AS importe_total,
               ${colsCondiciones}
          FROM invoices i
          LEFT JOIN "Vehiculo" v ON v.id = i.vehiculo_id
+         LEFT JOIN "Deal" d ON d.id = i.deal_id
          ${joinCondiciones}
         WHERE i.status = ANY($1)
           AND i.invoice_type <> 'RECTIFYING'
@@ -119,72 +133,87 @@ export async function GET(request: NextRequest) {
       [ACTIVE_STATUSES, from, to]
     )
 
-    let totalBase = 0
-    let totalExtra = 0
-    let totalComision = 0
+    let subtotalVentas = 0
     let sinDatos = 0
 
     const ventas = ventasDb.rows.map((r) => {
+      const importeFactura = Number(r.total_amount)
+      const precioVenta =
+        r.importe_total != null && Number(r.importe_total) > 0
+          ? Number(r.importe_total)
+          : importeFactura
+      const montoFinanciado =
+        r.monto_financiado != null ? Number(r.monto_financiado) : null
+
       const tieneCondiciones = r.forma_pago !== null
-      let comision = null
-      if (tieneCondiciones) {
-        comision = calcularComision(
-          {
-            formaPago: r.forma_pago as FormaPago,
-            garantiaPremium: Boolean(r.garantia_premium),
-            montoFinanciado:
-              r.monto_financiado != null ? Number(r.monto_financiado) : null,
-          },
-          config
-        )
-        totalBase += comision.base
-        totalExtra += comision.extraFinanciacion
-        totalComision += comision.total
-      } else {
-        sinDatos += 1
-      }
+      // Sin precio de venta no hay ratio → no se puede ubicar el tramo.
+      const calculable = tieneCondiciones && precioVenta > 0
+
+      const comision = calculable
+        ? calcularComision(
+            {
+              formaPago: r.forma_pago as FormaPago,
+              garantiaPremium: Boolean(r.garantia_premium),
+              montoFinanciado,
+              precioVenta,
+            },
+            config
+          )
+        : null
+
+      if (comision) subtotalVentas += comision.total
+      else sinDatos += 1
+
       return {
         invoiceId: r.invoice_id,
         dealId: r.deal_id,
         numeroFactura: r.full_invoice_number,
         fecha: r.invoice_date,
-        importe: Number(r.total_amount),
+        importe: importeFactura,
+        precioVenta,
         matricula: r.vehicle_plate,
-        vehiculo:
-          [r.marca, r.modelo].filter(Boolean).join(' ') || null,
+        vehiculo: [r.marca, r.modelo].filter(Boolean).join(' ') || null,
         condiciones: tieneCondiciones
           ? {
               formaPago: r.forma_pago,
               banco: r.banco,
               interes: r.interes != null ? Number(r.interes) : null,
               cuotas: r.cuotas,
-              montoFinanciado:
-                r.monto_financiado != null ? Number(r.monto_financiado) : null,
+              montoFinanciado,
               montoContado:
                 r.monto_contado != null ? Number(r.monto_contado) : null,
               garantiaPremium: Boolean(r.garantia_premium),
             }
           : null,
         comision,
-        sinDatos: !tieneCondiciones,
+        sinDatos: !calculable,
       }
     })
 
+    // El bono cuenta los coches vendidos del mes (todas las facturas activas),
+    // tengan o no condiciones cargadas: el coche se vendió igual.
+    const ventasContadas = ventas.length
+    const bono = calcularBonoMensual(ventasContadas, config)
+
     const round2 = (n: number) => Math.round(n * 100) / 100
+    const subtotal = round2(subtotalVentas)
+
     return NextResponse.json({
       year,
       month,
       config,
       configDisponible,
-      pendienteConfig,
       condicionesDisponibles: conCondiciones,
       ventas,
       totales: {
-        ventas: ventas.length,
+        ventasContadas,
         sinDatos,
-        base: round2(totalBase),
-        extraFinanciacion: round2(totalExtra),
-        comision: round2(totalComision),
+        subtotalVentas: subtotal,
+        escalonBono: bono.escalon,
+        importeBono: bono.importe,
+        siguienteEscalon: bono.siguienteEscalon,
+        faltanParaSiguiente: bono.faltanParaSiguiente,
+        total: round2(subtotal + bono.importe),
       },
     })
   } catch (err) {
