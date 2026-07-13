@@ -70,3 +70,6 @@ public/documents/**
 !public/documents/.gitkeep
 
 /src/generated/prisma
+
+# worktrees de agentes (temporales)
+.claude/worktrees/
