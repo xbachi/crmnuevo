@@ -334,6 +334,12 @@ export default function Navigation() {
       roles: ['admin', 'asesor'],
     },
     {
+      href: '/comisiones',
+      label: 'Comisiones',
+      icon: InversoresIcon,
+      roles: ['admin', 'asesor'],
+    },
+    {
       href: '/revision',
       label: 'Revisión',
       icon: AutomatizacionesIcon,
