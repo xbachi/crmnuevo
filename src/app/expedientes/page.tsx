@@ -66,6 +66,12 @@ interface ReparacionFacturaVenta {
 interface NormalizacionNombres {
   ok: boolean
   dryRun: boolean
+  /** false = quedó trabajo pendiente (la función corta antes de los 60s) */
+  completado: boolean
+  total: number
+  procesados: number
+  restantes: number
+  siguienteLote: string | null
   year: number
   quarter: number
   carpetas: number
@@ -75,6 +81,7 @@ interface NormalizacionNombres {
   yaCanonicos: { carpeta: string; nombre: string }[]
   fallidos: { carpeta: string; nombre: string; motivo: string }[]
   nota?: string
+  error?: string
 }
 
 const ESTADO_BADGE: Record<EstadoExpediente, string> = {
@@ -101,13 +108,12 @@ export default function ExpedientesPage() {
   const [reparando, setReparando] = useState(false)
   const [nombres, setNombres] = useState<NormalizacionNombres | null>(null)
   const [normalizando, setNormalizando] = useState(false)
+  const [progreso, setProgreso] = useState<{ hechos: number; total: number } | null>(null)
   const { showToast } = useToast()
   const { isAdmin } = useAuth()
 
-  const runNormalizacion = async (dryRun: boolean) => {
-    if (quarter === 'todos') return
-    setNormalizando(true)
-    try {
+  const pedirNormalizacion = useCallback(
+    async (dryRun: boolean): Promise<NormalizacionNombres> => {
       const res = await fetch('/api/expedientes/normalizar-nombres', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -115,14 +121,64 @@ export default function ExpedientesPage() {
       })
       const body = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(body.nota || body.error || 'Error al normalizar los nombres')
-      setNombres(body as NormalizacionNombres)
-      if (!dryRun) {
-        const n = (body as NormalizacionNombres).renombrados.length
-        showToast(
-          n > 0 ? `${n} archivo(s) renombrados en OneDrive` : 'No había nada que renombrar',
-          n > 0 ? 'success' : 'info'
-        )
+      return body as NormalizacionNombres
+    },
+    [year, quarter]
+  )
+
+  /**
+   * Aplicar va POR LOTES: el endpoint corta antes del límite de la función y
+   * devuelve completado:false + restantes. Se sigue llamando hasta terminar; si
+   * se corta a la mitad, volver a apretar continúa donde quedó (lo ya renombrado
+   * sale como canónico, no se vuelve a tocar).
+   */
+  const runNormalizacion = async (dryRun: boolean) => {
+    if (quarter === 'todos') return
+    setNormalizando(true)
+    setProgreso(null)
+    try {
+      if (dryRun) {
+        setNombres(await pedirNormalizacion(true))
+        return
       }
+
+      const renombrados: NormalizacionNombres['renombrados'] = []
+      const duplicados: NormalizacionNombres['duplicados'] = []
+      const fallidos: NormalizacionNombres['fallidos'] = []
+      let hechos = 0
+      let total = 0
+      let ultimo: NormalizacionNombres | null = null
+
+      for (let tanda = 0; tanda < 50; tanda++) {
+        const body = await pedirNormalizacion(false)
+        ultimo = body
+        if (tanda === 0) total = body.total
+        hechos += body.procesados
+        renombrados.push(...body.renombrados)
+        duplicados.push(...body.duplicados)
+        fallidos.push(...body.fallidos)
+        setProgreso({ hechos, total: Math.max(total, hechos + body.restantes) })
+        setNombres({ ...body, procesados: hechos, renombrados, duplicados, fallidos })
+        if (body.completado) break
+        if (body.error) throw new Error(body.error)
+        // Sin avance no tiene sentido seguir golpeando: algo lo bloquea.
+        if (body.procesados === 0) {
+          throw new Error(
+            `El renombrado no avanza (${body.restantes} pendiente(s)) — revisá los fallidos.`
+          )
+        }
+      }
+
+      const n = renombrados.length
+      const incompleto = ultimo && !ultimo.completado
+      showToast(
+        incompleto
+          ? `Quedaron ${ultimo!.restantes} operación(es) pendientes — volvé a aplicar para continuar`
+          : n > 0
+            ? `${n} archivo(s) renombrados en OneDrive`
+            : 'No había nada que renombrar',
+        incompleto ? 'info' : n > 0 ? 'success' : 'info'
+      )
     } catch (err) {
       console.error(err)
       showToast(err instanceof Error ? err.message : 'Error al normalizar', 'error')
@@ -133,6 +189,11 @@ export default function ExpedientesPage() {
 
   const aplicarNormalizacion = async () => {
     if (!nombres) return
+    // Continuar una corrida que se cortó: ya se confirmó al empezarla.
+    if (!nombres.dryRun) {
+      if (nombres.restantes > 0) await runNormalizacion(false)
+      return
+    }
     const total = nombres.renombrados.length + nombres.duplicados.length
     if (total === 0) return
     const ok = window.confirm(
@@ -403,6 +464,7 @@ export default function ExpedientesPage() {
               nom={nombres}
               onAplicar={aplicarNormalizacion}
               aplicando={normalizando}
+              progreso={progreso}
             />
           )}
 
@@ -626,12 +688,16 @@ function NombresPanel({
   nom,
   onAplicar,
   aplicando,
+  progreso,
 }: {
   nom: NormalizacionNombres
   onAplicar: () => void
   aplicando: boolean
+  progreso: { hechos: number; total: number } | null
 }) {
   const pendientes = nom.renombrados.length + nom.duplicados.length
+  // Se cortó a mitad (o falló un lote): volver a aplicar CONTINÚA donde quedó.
+  const reanudable = !nom.dryRun && !nom.completado
 
   return (
     <div className="bg-white rounded-xl shadow-md border border-teal-200 p-4 space-y-4">
@@ -644,7 +710,12 @@ function NombresPanel({
           {nom.dryRun ? 'a renombrar' : 'renombrados'} · {nom.duplicados.length} duplicado(s) ·{' '}
           {nom.omitidos.length} sin tocar · {nom.yaCanonicos.length} ya correctos
         </span>
-        {nom.dryRun && pendientes > 0 && (
+        {aplicando && progreso && (
+          <span className="text-xs font-medium text-teal-700">
+            {progreso.hechos} de {progreso.total}…
+          </span>
+        )}
+        {(nom.dryRun || reanudable) && (pendientes > 0 || reanudable) && (
           <button
             onClick={onAplicar}
             disabled={aplicando}
@@ -654,10 +725,30 @@ function NombresPanel({
                 : 'bg-teal-600 text-white hover:bg-teal-700'
             }`}
           >
-            {aplicando ? 'Aplicando…' : `Aplicar (${pendientes})`}
+            {aplicando
+              ? progreso
+                ? `Aplicando ${progreso.hechos}/${progreso.total}…`
+                : 'Aplicando…'
+              : reanudable
+                ? `Continuar (${nom.restantes})`
+                : `Aplicar (${pendientes})`}
           </button>
         )}
       </div>
+
+      {reanudable && (
+        <div className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+          Quedaron {nom.restantes} operación(es) sin hacer
+          {nom.siguienteLote ? ` (sigue por ${nom.siguienteLote})` : ''}. Volvé a aplicar: continúa
+          donde quedó, lo ya renombrado no se vuelve a tocar.
+        </div>
+      )}
+
+      {nom.error && (
+        <div className="text-xs text-red-800 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+          {nom.error}
+        </div>
+      )}
 
       {nom.nota && <div className="text-xs text-gray-500">{nom.nota}</div>}
 
