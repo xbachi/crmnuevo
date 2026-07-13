@@ -28,6 +28,7 @@ import { quarterRange } from '@/lib/facturasMonitor'
 import { postGestoriaWebhook, type GestoriaInvoicePayload } from '@/lib/gestoriaWebhook'
 import { insertOutboxPending, markOutboxEnviado, markOutboxFallo } from '@/lib/webhookOutbox'
 import { detectarDocs } from '@/lib/expedienteDocs'
+import { nombreFacturaVenta } from '@/lib/nombreCanonico'
 import { normPlate } from '@/lib/costoBeneficioSheet'
 
 // Descarga de PDF + webhook por factura, con pool de 1 conexión: el default
@@ -36,9 +37,19 @@ export const maxDuration = 60
 
 const ACTIVE_STATUSES = ['ISSUED', 'IMPORTED', 'PDF_PENDING']
 
-/** Nombre canónico con el que n8n archiva la factura en el expediente.
+/** Nombre con el que se archiva la factura en el expediente: el MISMO que manda
+ *  el webhook de gestoría (payload.nombreArchivo, convención canónica).
  *  (no se exporta: Next sólo admite handlers + config en un route.ts) */
-const nombreCanonico = (numero: string) => `Factura-Venta-${numero}.pdf`
+const nombreCanonico = (f: {
+  full_invoice_number: string
+  vehicle_make?: string | null
+  vehicle_model?: string | null
+  vehicle_plate?: string | null
+}) =>
+  nombreFacturaVenta(
+    { marca: f.vehicle_make, modelo: f.vehicle_model, matricula: f.vehicle_plate },
+    f.full_invoice_number
+  )
 
 interface InvoiceRow {
   full_invoice_number: string
@@ -204,7 +215,7 @@ export async function POST(request: NextRequest) {
         matricula: f.vehicle_plate,
         fecha: f.invoice_date,
         carpeta: carpeta?.carpeta ?? null,
-        archivo: nombreCanonico(numero),
+        archivo: nombreCanonico(f),
         aplicado: false,
       }
 
@@ -261,7 +272,7 @@ export async function POST(request: NextRequest) {
         : undefined,
       notaSinPdf:
         sinPdfEnCrm.length > 0
-          ? `${sinPdfEnCrm.length} factura(s) no se pueden reparar automáticamente: el CRM no tiene el PDF (facturas importadas/legacy). Hay que subir el PDF a la carpeta del expediente a mano, como ${nombreCanonico('<NUMERO>')}.`
+          ? `${sinPdfEnCrm.length} factura(s) no se pueden reparar automáticamente: el CRM no tiene el PDF (facturas importadas/legacy). Hay que subir el PDF a la carpeta del expediente a mano, con el nombre canónico Factura-Venta-{Marca}-{Modelo}-{Matricula}.pdf.`
           : undefined,
     })
   } catch (err) {

@@ -7,6 +7,7 @@ import {
   InvoiceStatusBadge,
   InvoiceTypeBadge,
 } from '@/components/invoicing/InvoiceStatusBadge'
+import DealRectificarButton from '@/components/invoicing/DealRectificarButton'
 import { downloadPdf } from '@/lib/pdf/download'
 
 interface Invoice {
@@ -346,6 +347,14 @@ export default function DealInvoiceSection({
                     {downloadingId === inv.id ? 'Descargando…' : 'Descargar PDF'}
                   </button>
                 ) : null}
+                <DealRectificarButton
+                  invoiceId={inv.id}
+                  invoiceNumber={inv.full_invoice_number}
+                  invoiceType={inv.invoice_type}
+                  status={inv.status}
+                  totalAmount={inv.total_amount}
+                  onRectificada={load}
+                />
                 <Link
                   href={`/facturacion/${inv.id}`}
                   className="px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded hover:bg-gray-200"
@@ -378,8 +387,9 @@ export default function DealInvoiceSection({
           <p className="text-xs text-gray-500">
             Esta venta <strong>ya está facturada</strong>
             {activeInvoice ? ` (${activeInvoice.full_invoice_number})` : ''}. No se
-            puede volver a emitir: para cambiarla hay que emitir una factura
-            rectificativa (o anularla) desde el detalle.
+            puede volver a emitir: para cambiarla hay que rectificarla con el botón
+            de arriba, que emite una factura rectificativa (serie FR) y deja la
+            original anulada conservando su número.
           </p>
         </div>
       </div>
