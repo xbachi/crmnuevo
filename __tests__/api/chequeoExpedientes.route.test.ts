@@ -40,7 +40,8 @@ function makeRequest(qs: string, secret?: string) {
 }
 
 /** Mockea la secuencia de queries del route: invoices → to_regclass carpetas →
- *  [snapshot] → to_regclass expedientes → [tipos]. */
+ *  [snapshot] → to_regclass expedientes → [tipos] → to_regclass facturas_registro
+ *  → [hashes de facturas_registro]. */
 function mockDbFeliz() {
   mockQuery
     .mockResolvedValueOnce({
@@ -72,6 +73,8 @@ function mockDbFeliz() {
     .mockResolvedValueOnce({
       rows: [{ matricula: '8061KRN', tipo_operacion: 'retail-vat' }],
     })
+    .mockResolvedValueOnce({ rows: [{ reg: 'facturas_registro' }] })
+    .mockResolvedValueOnce({ rows: [] }) // facturas_registro (hashes)
 }
 
 const CB_ROWS = [
@@ -150,12 +153,59 @@ describe('GET /api/gestoria/chequeo-expedientes — resultado', () => {
       .mockResolvedValueOnce({ rows: [] }) // invoices
       .mockResolvedValueOnce({ rows: [{ reg: null }] }) // to_regclass carpetas
       .mockResolvedValueOnce({ rows: [{ reg: null }] }) // to_regclass expedientes
+      .mockResolvedValueOnce({ rows: [{ reg: null }] }) // to_regclass facturas_registro
     const res = await GET(makeRequest('?quarter=2&year=2026', ADMIN_SECRET))
     const body = await res.json()
 
     expect(body.ok).toBe(true)
     expect(body.meses[0].carpetas.verificable).toBe(false)
     expect(body.resumen.notas.join(' ')).toContain('sin snapshot')
+  })
+
+  it('el hash de facturas_registro identifica una "factura.pdf" sin nombre útil', async () => {
+    const md5 = 'c'.repeat(32)
+    mockQuery
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            full_invoice_number: 'F-2026-020',
+            invoice_date: '2026-04-05',
+            vehicle_plate: '8061KRN',
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [{ reg: 'expedientes_carpetas' }] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            mes: 'abril',
+            carpeta: '74-Opel-Astra-8061KRN',
+            matricula_norm: '8061KRN',
+            archivos: [
+              { nombre: 'Factura-Venta-F-2026-020.pdf', bytes: 10, hash: 'd'.repeat(32) },
+              { nombre: 'factura.pdf', bytes: 20, hash: md5 }, // nombre inútil
+              { nombre: 'Contrato comprador.jpeg', bytes: 30, hash: null },
+            ],
+            scanned_at: '2026-07-13 21:15:00+00',
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [{ reg: 'expedientes' }] })
+      .mockResolvedValueOnce({ rows: [{ matricula: '8061KRN', tipo_operacion: 'retail-vat' }] })
+      .mockResolvedValueOnce({ rows: [{ reg: 'facturas_registro' }] })
+      .mockResolvedValueOnce({
+        rows: [{ hash_contenido: md5, categoria: 'coche-compra', matricula: '8061KRN' }],
+      })
+
+    const res = await GET(makeRequest('?quarter=2&year=2026', ADMIN_SECRET))
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.expedientesDocs[0]).toMatchObject({
+      docs: { facturaVenta: true, facturaCompra: true, contratoVenta: true },
+      faltantes: [],
+      ambiguos: [],
+    })
   })
 
   it('hoja CB ilegible → cbBanda verificable:false, no revienta', async () => {

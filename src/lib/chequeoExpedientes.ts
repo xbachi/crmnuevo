@@ -14,7 +14,17 @@
  */
 
 import { MESES, normPlate, isBand, isSubtotal } from '@/lib/costoBeneficioSheet'
-import { detectarDocs, docsFaltantes, type DocsDetectados } from '@/lib/expedienteDocs'
+import {
+  analizarCarpeta,
+  docsFaltantes,
+  indexarRegistros,
+  type AlertaConflicto,
+  type AlertaDuplicado,
+  type ArchivoAmbiguo,
+  type ArchivoExpediente,
+  type DocsDetectados,
+  type RegistroHash,
+} from '@/lib/expedienteDocs'
 import type { TipoOperacion } from '@/lib/expedienteChecklist'
 
 export interface FacturaActiva {
@@ -27,7 +37,7 @@ export interface CarpetaSnapshot {
   mes: string
   carpeta: string
   matricula: string | null // matricula_norm del snapshot
-  archivos: { nombre: string }[]
+  archivos: ArchivoExpediente[] // {nombre, bytes?, hash?} — hash falta en snapshots viejos
   scannedAt?: string | null
 }
 
@@ -104,6 +114,9 @@ export interface ExpedienteDocsCarpeta {
   tipoOperacion: TipoOperacion | 'desconocido'
   docs: DocsDetectados
   faltantes: string[]
+  duplicados: AlertaDuplicado[]
+  mismoArchivoDosNombres: AlertaConflicto[]
+  ambiguos: ArchivoAmbiguo[]
 }
 
 export interface ResultadoChequeo {
@@ -121,6 +134,7 @@ export interface ChequeoArgs {
   carpetas: CarpetaSnapshot[] | null // null = sin snapshot / tabla ausente
   cb: CbCocheBanda[] | null // null = hoja CB no legible; TODA la hoja
   tipos: Map<string, TipoOperacion> // matrícula normalizada → tipo_operacion
+  registros?: RegistroHash[] | null // facturas_registro (hash de contenido) — opcional
 }
 
 const SIN_SNAPSHOT = 'sin snapshot de OneDrive para el trimestre'
@@ -254,16 +268,44 @@ export function chequearExpedientes(args: ChequeoArgs): ResultadoChequeo {
     })
   }
 
-  // Documentos por carpeta del snapshot.
+  // Documentos por carpeta del snapshot: hash contra facturas_registro primero,
+  // nombre como respaldo, y alertas de duplicados / mala clasificación / ambiguos.
+  const hashes = indexarRegistros(args.registros)
+  let carpetasConDuplicados = 0
+  let archivosAmbiguos = 0
   const expedientesDocs: ExpedienteDocsCarpeta[] = (carpetas ?? []).map((c) => {
     const plate = c.matricula ? normPlate(c.matricula) : null
     const tipoOperacion = (plate && tipos.get(plate)) || 'desconocido'
-    const docs = detectarDocs(c.archivos ?? [])
+    const { docs, duplicados, mismoArchivoDosNombres, ambiguos } = analizarCarpeta(
+      c.archivos ?? [],
+      { hashes, matricula: plate }
+    )
     const faltantes = docsFaltantes(tipoOperacion, docs)
     if (faltantes.length > 0)
       bloqueantes.push(`carpeta ${c.carpeta}: falta ${faltantes.join(', ')}`)
-    return { mes: c.mes, carpeta: c.carpeta, matricula: plate, tipoOperacion, docs, faltantes }
+    // Mal clasificado = uno de los dos documentos NO existe → bloqueante.
+    for (const m of mismoArchivoDosNombres)
+      bloqueantes.push(
+        `carpeta ${c.carpeta}: mismo archivo con dos nombres (${m.nombres.join(' = ')}) — uno de esos documentos no existe`
+      )
+    if (duplicados.length > 0) carpetasConDuplicados++
+    archivosAmbiguos += ambiguos.length
+    return {
+      mes: c.mes,
+      carpeta: c.carpeta,
+      matricula: plate,
+      tipoOperacion,
+      docs,
+      faltantes,
+      duplicados,
+      mismoArchivoDosNombres,
+      ambiguos,
+    }
   })
+  if (carpetasConDuplicados > 0)
+    notas.push(`${carpetasConDuplicados} carpeta(s) con archivos duplicados (mismo contenido guardado dos veces)`)
+  if (archivosAmbiguos > 0)
+    notas.push(`${archivosAmbiguos} archivo(s) sin clasificar — revisar a mano`)
 
   return {
     year,

@@ -447,6 +447,9 @@ function ChequeoPanel({ chequeo }: { chequeo: ResultadoChequeo }) {
   const { resumen, meses, expedientesDocs } = chequeo
   const sinSnapshot = meses.some((m) => !m.carpetas.verificable)
   const conFaltantes = expedientesDocs.filter((e) => e.faltantes.length > 0)
+  const conConflicto = expedientesDocs.filter((e) => e.mismoArchivoDosNombres.length > 0)
+  const conDuplicados = expedientesDocs.filter((e) => e.duplicados.length > 0)
+  const conAmbiguos = expedientesDocs.filter((e) => e.ambiguos.length > 0)
 
   return (
     <div className="space-y-4">
@@ -554,6 +557,72 @@ function ChequeoPanel({ chequeo }: { chequeo: ResultadoChequeo }) {
                   falta {f}
                 </span>
               ))}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Mismo archivo con dos nombres: uno de los dos documentos NO existe */}
+      {conConflicto.length > 0 && (
+        <div className="bg-white rounded-xl shadow-md border border-red-300 p-4 space-y-3">
+          <h3 className="text-sm font-bold text-red-800">
+            Mismo archivo con dos nombres ({conConflicto.length}) — error de clasificación
+          </h3>
+          {conConflicto.map((e) =>
+            e.mismoArchivoDosNombres.map((m) => (
+              <div
+                key={`${e.carpeta}-${m.hash}`}
+                className="border border-red-100 rounded-lg px-3 py-2"
+              >
+                <div className="text-sm font-medium text-gray-900">{e.carpeta}</div>
+                <div className="text-xs text-red-700">
+                  {m.nombres.join(' = ')} — contenido idéntico: uno de esos documentos no existe
+                  realmente
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* Archivos duplicados (mismo contenido guardado dos veces) */}
+      {conDuplicados.length > 0 && (
+        <div className="bg-white rounded-xl shadow-md border border-yellow-300 p-4 space-y-3">
+          <h3 className="text-sm font-bold text-yellow-800">
+            Archivos duplicados ({conDuplicados.length} carpeta
+            {conDuplicados.length === 1 ? '' : 's'})
+          </h3>
+          {conDuplicados.map((e) =>
+            e.duplicados.map((d) => (
+              <div
+                key={`${e.carpeta}-${d.hash}`}
+                className="border border-yellow-100 rounded-lg px-3 py-2"
+              >
+                <div className="text-sm font-medium text-gray-900">{e.carpeta}</div>
+                <div className="text-xs text-yellow-800">{d.nombres.join(' = ')}</div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* Archivos sin clasificar → revisar a mano */}
+      {conAmbiguos.length > 0 && (
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 space-y-3">
+          <h3 className="text-sm font-bold text-gray-800">
+            Archivos sin clasificar — revisar a mano (
+            {conAmbiguos.reduce((n, e) => n + e.ambiguos.length, 0)})
+          </h3>
+          {conAmbiguos.map((e) => (
+            <div key={`amb-${e.mes}-${e.carpeta}`} className="border border-gray-100 rounded-lg px-3 py-2">
+              <div className="text-sm font-medium text-gray-900">{e.carpeta}</div>
+              <ul className="mt-1 text-xs text-gray-600 list-disc list-inside">
+                {e.ambiguos.map((a) => (
+                  <li key={a.nombre}>
+                    {a.nombre} <span className="text-gray-400">({a.motivo})</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           ))}
         </div>

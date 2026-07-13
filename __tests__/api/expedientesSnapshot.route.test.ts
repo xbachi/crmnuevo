@@ -114,12 +114,45 @@ describe('POST /api/gestoria/expedientes-snapshot', () => {
       'abril',
       '68-Kia-Xceed-0608NLF',
       '0608NLF',
-      JSON.stringify([{ nombre: 'Factura-Venta-F-2026-020.pdf', bytes: 1234 }]),
+      // snapshot viejo sin hash → hash null, se sigue aceptando
+      JSON.stringify([{ nombre: 'Factura-Venta-F-2026-020.pdf', bytes: 1234, hash: null }]),
     ])
     expect(calls[3][1][3]).toBe('Yamaha Raptor quad-E9961BDJ')
     expect(calls[3][1][4]).toBe('E9961BDJ')
     expect(calls[4][0]).toBe('COMMIT')
     expect(mockRelease).toHaveBeenCalled()
+  })
+
+  it('guarda el hash md5 y descarta hashes con formato inválido', async () => {
+    const md5 = 'A'.repeat(32) // se normaliza a minúscula
+    mockQuery.mockResolvedValueOnce({ rows: [{ reg: 'expedientes_carpetas' }] })
+    mockClientQuery.mockResolvedValue({ rows: [], rowCount: 1 })
+
+    const res = await POST(
+      makeRequest({
+        anio: 2026,
+        trimestre: 2,
+        carpetas: [
+          {
+            mes: 'abril',
+            carpeta: '68-Kia-Xceed-0608NLF',
+            archivos: [
+              { nombre: 'FRA.pdf', bytes: 311878, hash: md5 },
+              { nombre: 'roto.pdf', bytes: 10, hash: 'no-es-un-hash' },
+              { nombre: 'sin-hash.pdf', bytes: 10 },
+            ],
+          },
+        ],
+      })
+    )
+    expect(res.status).toBe(200)
+
+    const insert = mockClientQuery.mock.calls.find((c) => String(c[0]).includes('INSERT'))!
+    expect(JSON.parse(insert[1][5])).toEqual([
+      { nombre: 'FRA.pdf', bytes: 311878, hash: 'a'.repeat(32) },
+      { nombre: 'roto.pdf', bytes: 10, hash: null },
+      { nombre: 'sin-hash.pdf', bytes: 10, hash: null },
+    ])
   })
 
   it('hace ROLLBACK si un INSERT falla', async () => {
