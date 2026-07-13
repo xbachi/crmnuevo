@@ -14,6 +14,7 @@
  */
 
 import { MESES, normPlate, isBand, isSubtotal } from '@/lib/costoBeneficioSheet'
+import { canonPlate, type AliasIndex } from '@/lib/aliasMatriculas'
 import {
   analizarCarpeta,
   docsFaltantes,
@@ -135,18 +136,25 @@ export interface ChequeoArgs {
   cb: CbCocheBanda[] | null // null = hoja CB no legible; TODA la hoja
   tipos: Map<string, TipoOperacion> // matrícula normalizada → tipo_operacion
   registros?: RegistroHash[] | null // facturas_registro (hash de contenido) — opcional
+  /** Historial de matrículas: la vieja y la nueva son el mismo coche. */
+  alias?: AliasIndex | null
 }
 
 const SIN_SNAPSHOT = 'sin snapshot de OneDrive para el trimestre'
 
 export function chequearExpedientes(args: ChequeoArgs): ResultadoChequeo {
-  const { year, quarter, facturas, carpetas, cb, tipos } = args
+  const { year, quarter, facturas, carpetas, cb, tipos, alias } = args
+  // Toda comparación de matrícula pasa por la clave canónica del coche: si la
+  // factura dice la provisional y la carpeta la definitiva, es el mismo coche.
+  const canon = (p: string) => canonPlate(alias, p)
+  const tiposCanon = new Map<string, TipoOperacion>()
+  for (const [plate, tipo] of tipos) tiposCanon.set(canon(plate), tipo)
 
-  // Índices globales del trimestre (matching por matrícula normalizada).
+  // Índices globales del trimestre (matching por matrícula canónica).
   const mesesFactura = new Map<string, Set<string>>() // plate → bandas de sus facturas
   for (const f of facturas) {
     if (!f.matricula) continue
-    const plate = normPlate(f.matricula)
+    const plate = canon(f.matricula)
     const idx = parseInt(String(f.fecha).slice(5, 7), 10) - 1
     if (idx < 0 || idx > 11) continue
     if (!mesesFactura.has(plate)) mesesFactura.set(plate, new Set())
@@ -154,8 +162,9 @@ export function chequearExpedientes(args: ChequeoArgs): ResultadoChequeo {
   }
   const cbPorPlate = new Map<string, string[]>() // plate → bandas donde figura
   for (const c of cb ?? []) {
-    if (!cbPorPlate.has(c.matricula)) cbPorPlate.set(c.matricula, [])
-    cbPorPlate.get(c.matricula)!.push(c.banda)
+    const plate = canon(c.matricula)
+    if (!cbPorPlate.has(plate)) cbPorPlate.set(plate, [])
+    cbPorPlate.get(plate)!.push(c.banda)
   }
 
   const bloqueantes: string[] = []
@@ -171,11 +180,11 @@ export function chequearExpedientes(args: ChequeoArgs): ResultadoChequeo {
       (f) => parseInt(String(f.fecha).slice(5, 7), 10) === numero
     )
     const platesFact = new Set(
-      factsMes.filter((f) => f.matricula).map((f) => normPlate(f.matricula!))
+      factsMes.filter((f) => f.matricula).map((f) => canon(f.matricula!))
     )
     const carpMes = (carpetas ?? []).filter((c) => mesBanda(c.mes) === nombre)
     const carpPlates = new Set(
-      carpMes.filter((c) => c.matricula).map((c) => normPlate(c.matricula!))
+      carpMes.filter((c) => c.matricula).map((c) => canon(c.matricula!))
     )
     const cbMes = (cb ?? []).filter((c) => c.banda === nombre)
 
@@ -189,34 +198,36 @@ export function chequearExpedientes(args: ChequeoArgs): ResultadoChequeo {
 
     if (carpetas !== null) {
       descuadres.facturasSinCarpeta = factsMes
-        .filter((f) => !f.matricula || !carpPlates.has(normPlate(f.matricula)))
+        .filter((f) => !f.matricula || !carpPlates.has(canon(f.matricula)))
         .map((f) => ({ numero: f.numero, matricula: f.matricula }))
       descuadres.carpetasSinFactura = carpMes
-        .filter((c) => !c.matricula || !platesFact.has(normPlate(c.matricula)))
+        .filter((c) => !c.matricula || !platesFact.has(canon(c.matricula)))
         .map((c) => c.carpeta)
     }
 
     if (cb !== null) {
       // En la banda del mes pero sin factura activa en TODO el trimestre.
       descuadres.cbSinFactura = [
-        ...new Set(cbMes.filter((c) => !mesesFactura.has(c.matricula)).map((c) => c.matricula)),
+        ...new Set(
+          cbMes.filter((c) => !mesesFactura.has(canon(c.matricula))).map((c) => c.matricula)
+        ),
       ]
       // Facturado este mes pero ausente en TODA la hoja.
       descuadres.facturaSinCb = factsMes
-        .filter((f) => !f.matricula || !cbPorPlate.has(normPlate(f.matricula)))
+        .filter((f) => !f.matricula || !cbPorPlate.has(canon(f.matricula)))
         .map((f) => ({ numero: f.numero, matricula: f.matricula }))
       // Facturado este mes, presente en CB pero en OTRA banda (el detector
       // del error histórico marzo/abril).
       const vistos = new Set<string>()
       for (const f of factsMes) {
         if (!f.matricula) continue
-        const plate = normPlate(f.matricula)
+        const plate = canon(f.matricula)
         if (vistos.has(plate)) continue // facturas duplicadas del mismo coche
         vistos.add(plate)
         const bandas = cbPorPlate.get(plate)
         if (bandas && !bandas.includes(nombre)) {
           descuadres.bandaIncorrecta.push({
-            matricula: plate,
+            matricula: normPlate(f.matricula),
             bandaCb: [...new Set(bandas)].join('/'),
             mesFactura: nombre,
           })
@@ -275,10 +286,10 @@ export function chequearExpedientes(args: ChequeoArgs): ResultadoChequeo {
   let archivosAmbiguos = 0
   const expedientesDocs: ExpedienteDocsCarpeta[] = (carpetas ?? []).map((c) => {
     const plate = c.matricula ? normPlate(c.matricula) : null
-    const tipoOperacion = (plate && tipos.get(plate)) || 'desconocido'
+    const tipoOperacion = (plate && tiposCanon.get(canon(plate))) || 'desconocido'
     const { docs, duplicados, mismoArchivoDosNombres, ambiguos } = analizarCarpeta(
       c.archivos ?? [],
-      { hashes, matricula: plate }
+      { hashes, matricula: plate, alias }
     )
     const faltantes = docsFaltantes(tipoOperacion, docs)
     if (faltantes.length > 0)

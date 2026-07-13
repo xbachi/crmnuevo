@@ -237,6 +237,15 @@ export default function VehiculoDetailPage() {
   })
   const [showAddRecordatorioForm, setShowAddRecordatorioForm] = useState(false)
 
+  // Cambio de matrícula (historial: la factura/carpeta viejas se quedan con la
+  // anterior, el coche pasa a la nueva)
+  const [matriculaAnterior, setMatriculaAnterior] = useState<string | null>(null)
+  const [showMatriculaModal, setShowMatriculaModal] = useState(false)
+  const [nuevaMatricula, setNuevaMatricula] = useState('')
+  const [motivoMatricula, setMotivoMatricula] = useState('')
+  const [guardandoMatricula, setGuardandoMatricula] = useState(false)
+  const [errorMatricula, setErrorMatricula] = useState<string | null>(null)
+
   // Estados para el modal de contrato de Coches R
   const [showContratoModal, setShowContratoModal] = useState(false)
   const [selectedCliente, setSelectedCliente] = useState<any>(null)
@@ -502,6 +511,48 @@ export default function VehiculoDetailPage() {
     }
   }
 
+  const fetchMatriculaHistorial = async () => {
+    try {
+      const res = await fetch(`/api/vehiculos/${vehiculoId}/matricula`)
+      if (!res.ok) return
+      const data = await res.json()
+      setMatriculaAnterior(data.anterior ?? null)
+    } catch {
+      // el historial es informativo: si falla, la ficha se muestra igual
+    }
+  }
+
+  const guardarCambioMatricula = async () => {
+    setErrorMatricula(null)
+    setGuardandoMatricula(true)
+    try {
+      const res = await fetch(`/api/vehiculos/${vehiculoId}/matricula`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          matricula: nuevaMatricula,
+          motivo: motivoMatricula || null,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setErrorMatricula(data.error || 'No se pudo cambiar la matrícula')
+        return
+      }
+      setShowMatriculaModal(false)
+      setNuevaMatricula('')
+      setMotivoMatricula('')
+      await fetchVehiculo()
+      await fetchMatriculaHistorial()
+    } catch (error) {
+      setErrorMatricula(
+        error instanceof Error ? error.message : 'Error desconocido'
+      )
+    } finally {
+      setGuardandoMatricula(false)
+    }
+  }
+
   useEffect(() => {
     const fetchVehiculoEffect = async () => {
       await fetchVehiculo()
@@ -516,6 +567,7 @@ export default function VehiculoDetailPage() {
       fetchNotas()
       fetchRecordatorios()
       fetchEstadoCompra()
+      fetchMatriculaHistorial()
     } else {
       console.log(`⚠️ [VEHICULO PAGE] No hay ID para buscar`)
     }
@@ -885,8 +937,8 @@ export default function VehiculoDetailPage() {
         camposAGuardar.marca = editingData.marca
       if (editingData.modelo !== undefined)
         camposAGuardar.modelo = editingData.modelo
-      if (editingData.matricula !== undefined)
-        camposAGuardar.matricula = editingData.matricula
+      // matricula: NO se manda acá — va por POST /api/vehiculos/[id]/matricula
+      // (deja historial; el PUT rechaza el cambio con 409).
       if (editingData.bastidor !== undefined)
         camposAGuardar.bastidor = editingData.bastidor
       if (editingData.kms !== undefined) camposAGuardar.kms = editingData.kms
@@ -2082,23 +2134,26 @@ export default function VehiculoDetailPage() {
                             <div className="flex flex-col gap-2">
                               <span className="text-green-700 font-medium">
                                 Matrícula:{' '}
-                                {isEditingGeneral ? (
-                                  <input
-                                    type="text"
-                                    value={editingData.matricula}
-                                    onChange={(e) =>
-                                      setEditingData((prev) => ({
-                                        ...prev,
-                                        matricula: e.target.value,
-                                      }))
-                                    }
-                                    className="ml-1 text-green-900 bg-white border border-green-300 rounded px-2 py-1 text-sm font-medium font-mono w-32"
-                                  />
-                                ) : (
-                                  <span className="text-green-900 font-mono font-semibold ml-1 uppercase">
-                                    {vehiculo.matricula}
+                                <span className="text-green-900 font-mono font-semibold ml-1 uppercase">
+                                  {vehiculo.matricula}
+                                </span>
+                                {matriculaAnterior && (
+                                  <span className="ml-2 text-xs text-gray-500 font-mono">
+                                    (antes: {matriculaAnterior})
                                   </span>
                                 )}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setErrorMatricula(null)
+                                    setNuevaMatricula('')
+                                    setMotivoMatricula('')
+                                    setShowMatriculaModal(true)
+                                  }}
+                                  className="ml-2 text-xs text-blue-600 hover:text-blue-800 underline"
+                                >
+                                  Cambiar
+                                </button>
                               </span>
                               <span className="text-green-700 font-medium">
                                 Bastidor:{' '}
@@ -5004,6 +5059,61 @@ export default function VehiculoDetailPage() {
                     </button>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showMatriculaModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                Cambiar matrícula
+              </h3>
+              <p className="text-xs text-gray-500 mb-4">
+                Las facturas, carpetas y filas de CB ya emitidas se quedan con la
+                matrícula anterior ({vehiculo.matricula}); el CRM las sigue
+                cruzando con este coche.
+              </p>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Matrícula nueva
+              </label>
+              <input
+                type="text"
+                value={nuevaMatricula}
+                onChange={(e) => setNuevaMatricula(e.target.value)}
+                placeholder="5439NNW"
+                className="w-full border border-gray-300 rounded px-3 py-2 font-mono uppercase mb-3"
+              />
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Motivo
+              </label>
+              <textarea
+                value={motivoMatricula}
+                onChange={(e) => setMotivoMatricula(e.target.value)}
+                rows={2}
+                placeholder="matrícula provisional sustituida por definitiva"
+                className="w-full border border-gray-300 rounded px-3 py-2 text-sm mb-3"
+              />
+              {errorMatricula && (
+                <p className="text-sm text-red-600 mb-3">{errorMatricula}</p>
+              )}
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowMatriculaModal(false)}
+                  className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={!nuevaMatricula.trim() || guardandoMatricula}
+                  onClick={guardarCambioMatricula}
+                  className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {guardandoMatricula ? 'Guardando...' : 'Guardar cambio'}
+                </button>
               </div>
             </div>
           </div>

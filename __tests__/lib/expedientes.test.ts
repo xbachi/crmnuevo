@@ -223,3 +223,45 @@ describe('crearExpedienteAlEmitir', () => {
     expect(r).toBeNull()
   })
 })
+
+describe('recalcularExpediente con alias de matrícula', () => {
+  it('encuentra la factura de compra archivada bajo la matrícula vieja', async () => {
+    const { db, query } = makeDb([
+      [
+        'FROM expedientes',
+        {
+          rows: [
+            {
+              id: 9,
+              numero_factura: 'R-2026-027',
+              matricula: '5439NNW', // definitiva (el coche ya cambió)
+              estado: 'incompleto',
+              tipo_operacion: 'retail-vat',
+              checklist: checklistVat({ 'factura-venta': true }),
+            },
+          ],
+        },
+      ],
+      ["to_regclass('public.vehiculo_matriculas')", { rows: [{ reg: 'vehiculo_matriculas' }] }],
+      [
+        'JOIN vehiculo_matriculas m2',
+        {
+          rows: [
+            { matricula_norm: '5439NNW', vehiculo_id: 398 },
+            { matricula_norm: '5732BDR', vehiculo_id: 398 },
+          ],
+        },
+      ],
+      ['FROM automation_logs', { rows: [] }],
+      // la factura de compra quedó registrada con la PROVISIONAL
+      ['FROM facturas_registro', { rows: [{ '?column?': 1 }] }],
+    ])
+
+    const r = await recalcularExpediente(db, 9)
+
+    const registro = query.mock.calls.find((c) => String(c[0]).includes('FROM facturas_registro'))!
+    expect(registro[1]).toEqual([['5439NNW', '5732BDR']])
+    expect(r?.itemsActualizados).toContain('factura-compra')
+    expect(r?.estadoDespues).toBe('completo')
+  })
+})

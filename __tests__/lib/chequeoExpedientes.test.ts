@@ -10,6 +10,7 @@ import {
   mesBanda,
   type CarpetaSnapshot,
 } from '@/lib/chequeoExpedientes'
+import { construirAliasIndex } from '@/lib/aliasMatriculas'
 import type { TipoOperacion } from '@/lib/expedienteChecklist'
 
 const carpeta = (
@@ -197,5 +198,83 @@ describe('chequearExpedientes', () => {
     expect(abril.cbBanda.verificable).toBe(false)
     expect(abril.descuadres.bandaIncorrecta).toEqual([])
     expect(res.resumen.notas.join(' ')).toContain('CB no legible')
+  })
+})
+
+/**
+ * Caso BMW M2 (vehículo 398): vendido con la matrícula PROVISIONAL 5732BDR
+ * (factura R-2026-027, carpeta de OneDrive y fila de CB con la provisional) y
+ * hoy el coche tiene la DEFINITIVA 5439NNW.
+ */
+describe('chequearExpedientes con alias de matrícula', () => {
+  const alias = construirAliasIndex([{ vehiculoId: 398, matriculas: ['5439NNW', '5732BDR'] }])
+  const tipos = new Map<string, TipoOperacion>([['5439NNW', 'retail-vat']])
+
+  it('factura con la provisional + carpeta con la definitiva: sin descuadre', () => {
+    const res = chequearExpedientes({
+      year: 2026,
+      quarter: 2,
+      tipos,
+      alias,
+      facturas: [{ numero: 'R-2026-027', matricula: '5732BDR', fecha: '2026-06-10' }],
+      carpetas: [carpeta('junio', '83-Bmw-M2-5439NNW', '5439NNW', DOCS_COMPLETOS)],
+      cb: [{ banda: 'JUNIO', matricula: '5732BDR', fila: 40 }],
+    })
+    const junio = res.meses.find((m) => m.mes === 'JUNIO')!
+    expect(junio.descuadres).toEqual({
+      facturasSinCarpeta: [],
+      carpetasSinFactura: [],
+      cbSinFactura: [],
+      facturaSinCb: [],
+      bandaIncorrecta: [],
+    })
+    expect(junio.ok).toBe(true)
+    expect(res.resumen.ok).toBe(true)
+    // el tipo de operación se resuelve aunque el expediente use la otra matrícula
+    expect(res.expedientesDocs[0].tipoOperacion).toBe('retail-vat')
+  })
+
+  it('carpeta y CB con la provisional (el caso real: no se renombra nada)', () => {
+    const res = chequearExpedientes({
+      year: 2026,
+      quarter: 2,
+      tipos,
+      alias,
+      facturas: [{ numero: 'R-2026-027', matricula: '5732BDR', fecha: '2026-06-10' }],
+      carpetas: [carpeta('junio', '83-Bmw-M2-5732BDR', '5732BDR', DOCS_COMPLETOS)],
+      cb: [{ banda: 'JUNIO', matricula: '5732BDR', fila: 40 }],
+    })
+    expect(res.resumen.ok).toBe(true)
+  })
+
+  it('sin alias, el mismo cruce SÍ descuadra (regresión del bug)', () => {
+    const res = chequearExpedientes({
+      year: 2026,
+      quarter: 2,
+      tipos,
+      facturas: [{ numero: 'R-2026-027', matricula: '5732BDR', fecha: '2026-06-10' }],
+      carpetas: [carpeta('junio', '83-Bmw-M2-5439NNW', '5439NNW', DOCS_COMPLETOS)],
+      cb: [{ banda: 'JUNIO', matricula: '5732BDR', fila: 40 }],
+    })
+    const junio = res.meses.find((m) => m.mes === 'JUNIO')!
+    expect(junio.descuadres.facturasSinCarpeta).toHaveLength(1)
+    expect(junio.descuadres.carpetasSinFactura).toHaveLength(1)
+  })
+
+  it('no une dos coches distintos', () => {
+    const res = chequearExpedientes({
+      year: 2026,
+      quarter: 2,
+      tipos,
+      alias,
+      facturas: [{ numero: 'R-2026-027', matricula: '5732BDR', fecha: '2026-06-10' }],
+      carpetas: [carpeta('junio', '84-Kia-Xceed-0608NLF', '0608NLF', DOCS_COMPLETOS)],
+      cb: [{ banda: 'JUNIO', matricula: '5732BDR', fila: 40 }],
+    })
+    const junio = res.meses.find((m) => m.mes === 'JUNIO')!
+    expect(junio.descuadres.facturasSinCarpeta).toEqual([
+      { numero: 'R-2026-027', matricula: '5732BDR' },
+    ])
+    expect(junio.descuadres.carpetasSinFactura).toEqual(['84-Kia-Xceed-0608NLF'])
   })
 })

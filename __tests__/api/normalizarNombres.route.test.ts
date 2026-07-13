@@ -90,6 +90,8 @@ function mockLecturas(
 ) {
   const { trazaExiste = true, tieneEstado = true, traza = [], snapshot = SNAPSHOT_ROWS } = opts
   mockQuery
+    // to_regclass vehiculo_matriculas (historial de matrículas): sin tabla → sin alias
+    .mockResolvedValueOnce({ rows: [{ reg: null }] })
     .mockResolvedValueOnce({ rows: [{ reg: 'expedientes_carpetas' }] })
     .mockResolvedValueOnce({ rows: snapshot })
     .mockResolvedValueOnce({ rows: [{ reg: 'facturas_registro' }] })
@@ -130,6 +132,8 @@ beforeEach(() => {
   jest.clearAllMocks()
   mockSession.mockReturnValue({ uid: 1, user: 'seb', role: 'admin' })
   process.env.N8N_RENAME_WEBHOOK_URL = 'https://n8n.example.com/webhook/rename'
+  // Tablas opcionales fuera de la secuencia (vehiculo_matriculas): sin fila.
+  mockQuery.mockResolvedValue({ rows: [] })
 })
 
 afterEach(() => {

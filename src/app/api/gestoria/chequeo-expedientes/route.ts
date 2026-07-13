@@ -23,6 +23,7 @@ import {
   type CbCocheBanda,
 } from '@/lib/chequeoExpedientes'
 import { normPlate } from '@/lib/costoBeneficioSheet'
+import { cargarAliasIndex } from '@/lib/aliasMatriculas'
 import type { RegistroHash } from '@/lib/expedienteDocs'
 import type { TipoOperacion } from '@/lib/expedienteChecklist'
 
@@ -161,6 +162,10 @@ export async function GET(request: NextRequest) {
     // 5. Hoja CB entera (la banda equivocada puede ser de otro trimestre).
     const cb = await leerCbBandas(year)
 
+    // 6. Alias de matrícula (vehiculo_matriculas): la factura/carpeta/CB pueden
+    //    tener la matrícula vieja del coche. Tabla opcional → índice vacío.
+    const alias = await cargarAliasIndex(pool)
+
     const resultado = chequearExpedientes({
       year,
       quarter,
@@ -169,6 +174,7 @@ export async function GET(request: NextRequest) {
       cb,
       tipos,
       registros,
+      alias,
     })
     return NextResponse.json({ ok: resultado.resumen.ok, ...resultado })
   } catch (err) {

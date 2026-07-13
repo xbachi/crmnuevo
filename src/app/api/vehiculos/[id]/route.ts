@@ -113,14 +113,25 @@ export async function PUT(
       if (estadoNorm) updateData.estado = estadoNorm
     }
 
-    // Matrícula: normalizar espacios al guardar y exponer matriculaNorm
+    // Matrícula: normalizar espacios al guardar y exponer matriculaNorm.
+    // Un CAMBIO real de matrícula no pasa por acá: pisaría el historial y
+    // dejaría las facturas/carpetas/CB ya emitidas colgadas de la vieja.
     if (typeof updateData.matricula === 'string') {
       const matriculaLimpia = updateData.matricula
         .trim()
         .replace(/\s+/g, ' ')
         .toUpperCase()
-      updateData.matricula = matriculaLimpia
       matriculaNorm = normPlate(matriculaLimpia)
+      if (matriculaNorm !== normPlate(vehiculoExistente.matricula ?? '')) {
+        return NextResponse.json(
+          {
+            error: 'La matrícula no se cambia por este endpoint',
+            hint: `usá POST /api/vehiculos/${id}/matricula { matricula, motivo } — deja historial y mantiene los cruces por la matrícula anterior`,
+          },
+          { status: 409 }
+        )
+      }
+      updateData.matricula = matriculaLimpia
     }
 
     // Si el tipo es 'I' (Inversor), gestionar inversorId y esCocheInversor

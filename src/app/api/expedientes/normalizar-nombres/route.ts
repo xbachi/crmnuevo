@@ -35,6 +35,7 @@ import { pool } from '@/lib/direct-database'
 import { requireAdminSession } from '@/lib/apiAuth'
 import { quarterRange } from '@/lib/facturasMonitor'
 import { normPlate } from '@/lib/costoBeneficioSheet'
+import { cargarAliasIndex, canonPlate } from '@/lib/aliasMatriculas'
 import {
   analizarCarpeta,
   indexarRegistros,
@@ -104,6 +105,11 @@ export async function POST(request: NextRequest) {
   const restaPresupuesto = () => PRESUPUESTO_MS - (Date.now() - inicio)
 
   try {
+    // 0. Alias de matrícula: la carpeta puede tener la matrícula vieja del coche
+    //    y la factura/registro la nueva (o al revés) — es el mismo coche.
+    const alias = await cargarAliasIndex(pool)
+    const canon = (p: string) => canonPlate(alias, p)
+
     // 1. Snapshot de OneDrive (con hash por archivo): sin él no se sabe qué es
     //    cada archivo y renombrar sería adivinar.
     const reg = await pool.query<{ reg: string | null }>(
@@ -221,6 +227,9 @@ export async function POST(request: NextRequest) {
       if (t.estado === 'pendiente') pendientes.set(claveOp(t.carpeta, t.nombre_original), t.id)
     }
 
+    const cochesCanon = new Map<string, { marca: string | null; modelo: string | null }>()
+    for (const [plate, datos] of coches) cochesCanon.set(canon(plate), datos)
+
     // 5. Plan por carpeta, sobre el estado REAL (snapshot + traza aplicada).
     const ops: Op[] = []
     const omitidos: Omitido[] = []
@@ -234,7 +243,7 @@ export async function POST(request: NextRequest) {
         Array.isArray(c.archivos) ? c.archivos : [],
         trazaPorCarpeta.get(c.carpeta) ?? []
       )
-      const analisis = analizarCarpeta(archivos, { hashes, matricula: plate })
+      const analisis = analizarCarpeta(archivos, { hashes, matricula: plate, alias })
 
       const seguros: ArchivoParaRenombrar[] = []
       for (const a of analisis.archivos) {
@@ -253,7 +262,7 @@ export async function POST(request: NextRequest) {
         })
       }
 
-      const coche = coches.get(plate ?? '') ?? { marca: null, modelo: null }
+      const coche = cochesCanon.get(plate ? canon(plate) : '') ?? { marca: null, modelo: null }
       const plan = planNombresCarpeta(seguros, {
         marca: coche.marca,
         modelo: coche.modelo,
