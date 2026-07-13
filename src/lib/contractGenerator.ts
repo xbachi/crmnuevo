@@ -1703,13 +1703,16 @@ export async function generarFactura(
     if (tipoFactura === 'REBU') {
       // Mención legal REBU envuelta (Art. 135-139 Ley 37/1992) — obligatoria
       // y debe destacarse visualmente en TODAS las facturas REBU.
+      // OJO: splitTextToSize mide con la fuente ACTIVA — fijar tamaño y estilo
+      // ANTES de partir, o las líneas se calculan con otra métrica y el texto
+      // se sale del margen derecho (pasaba: la mención salía cortada).
+      doc.setFontSize(8)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(4, 120, 87)
       const rebuLines = doc.splitTextToSize(
         INVOICE_CONFIG.rebu.legalNote,
         contentWidth
       )
-      doc.setFontSize(8)
-      doc.setFont('helvetica', 'bold')
-      doc.setTextColor(4, 120, 87)
       rebuLines.forEach((line: string, i: number) => {
         doc.text(line, margin, yPosition + i * 3.5)
       })
