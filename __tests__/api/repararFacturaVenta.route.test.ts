@@ -89,9 +89,10 @@ const INVOICE_REPARABLE = {
   pdf_storage_key: 'invoices/f-2026-030.pdf',
 }
 
-/** to_regclass → snapshot → invoices */
+/** to_regclass vehiculo_matriculas → to_regclass carpetas → snapshot → invoices */
 function mockDb(invoices: Record<string, unknown>[]) {
   mockQuery
+    .mockResolvedValueOnce({ rows: [{ reg: null }] }) // sin historial de matrículas
     .mockResolvedValueOnce({ rows: [{ reg: 'expedientes_carpetas' }] })
     .mockResolvedValueOnce({ rows: SNAPSHOT_ROWS })
     .mockResolvedValueOnce({ rows: invoices })
@@ -100,6 +101,8 @@ function mockDb(invoices: Record<string, unknown>[]) {
 beforeEach(() => {
   jest.clearAllMocks()
   mockSession.mockReturnValue({ user: 'seb', role: 'admin' })
+  // Tablas opcionales fuera de la secuencia (vehiculo_matriculas): sin fila.
+  mockQuery.mockResolvedValue({ rows: [] })
 })
 
 describe('POST /api/expedientes/reparar-factura-venta — auth', () => {
@@ -133,9 +136,9 @@ describe('POST /api/expedientes/reparar-factura-venta — dryRun (por defecto)',
     expect(res.status).toBe(200)
     expect(body.dryRun).toBe(true)
 
-    // Ningún efecto: sólo las 3 lecturas (regclass, snapshot, invoices).
+    // Ningún efecto: sólo las 4 lecturas (alias, regclass, snapshot, invoices).
     expect(global.fetch).not.toHaveBeenCalled()
-    expect(mockQuery).toHaveBeenCalledTimes(3)
+    expect(mockQuery).toHaveBeenCalledTimes(4)
     expect(
       mockQuery.mock.calls.some((c: unknown[]) => /INSERT INTO webhook_outbox/.test(String(c[0])))
     ).toBe(false)
@@ -177,6 +180,7 @@ describe('POST /api/expedientes/reparar-factura-venta — dryRun (por defecto)',
 
   it('409 si no hay snapshot de OneDrive del trimestre (no repara a ciegas)', async () => {
     mockQuery
+      .mockResolvedValueOnce({ rows: [{ reg: null }] }) // sin historial de matrículas
       .mockResolvedValueOnce({ rows: [{ reg: 'expedientes_carpetas' }] })
       .mockResolvedValueOnce({ rows: [] })
 
@@ -231,8 +235,8 @@ describe('POST /api/expedientes/reparar-factura-venta — dryRun:false', () => {
     expect(Buffer.from(payload.pdfBase64, 'base64').toString()).toBe('%PDF-fake')
 
     // Traza en el outbox: pendiente → enviado.
-    expect(mockQuery.mock.calls[3][0]).toMatch(/INSERT INTO webhook_outbox/)
-    expect(mockQuery.mock.calls[4][0]).toMatch(/estado = 'enviado'/)
+    expect(mockQuery.mock.calls[4][0]).toMatch(/INSERT INTO webhook_outbox/)
+    expect(mockQuery.mock.calls[5][0]).toMatch(/estado = 'enviado'/)
   })
 
   it('webhook caído → la factura cae en fallidas y el outbox queda con el error', async () => {
@@ -256,6 +260,6 @@ describe('POST /api/expedientes/reparar-factura-venta — dryRun:false', () => {
     expect(body.ok).toBe(false)
     expect(body.reparadas).toEqual([])
     expect(body.fallidas[0]).toMatchObject({ numero: 'F-2026-030' })
-    expect(mockQuery.mock.calls[4][0]).toMatch(/intentos = intentos \+ 1/)
+    expect(mockQuery.mock.calls[5][0]).toMatch(/intentos = intentos \+ 1/)
   })
 })

@@ -29,7 +29,7 @@ import { postGestoriaWebhook, type GestoriaInvoicePayload } from '@/lib/gestoria
 import { insertOutboxPending, markOutboxEnviado, markOutboxFallo } from '@/lib/webhookOutbox'
 import { detectarDocs } from '@/lib/expedienteDocs'
 import { nombreFacturaVenta } from '@/lib/nombreCanonico'
-import { normPlate } from '@/lib/costoBeneficioSheet'
+import { cargarAliasIndex, canonPlate } from '@/lib/aliasMatriculas'
 
 // Descarga de PDF + webhook por factura, con pool de 1 conexión: el default
 // de 10s no alcanza para un trimestre entero.
@@ -94,6 +94,11 @@ export async function POST(request: NextRequest) {
   const { from, to } = quarterRange(year, quarter)
 
   try {
+    // 0. Alias de matrícula: la factura puede llevar la matrícula vieja del
+    //    coche y la carpeta la nueva (o al revés) — es el mismo expediente.
+    const alias = await cargarAliasIndex(pool)
+    const canon = (p: string) => canonPlate(alias, p)
+
     // 1. Snapshot de carpetas de OneDrive: sin él no se puede saber a qué
     //    expediente le falta la factura, y reparar a ciegas duplicaría copias.
     const reg = await pool.query<{ reg: string | null }>(
@@ -127,22 +132,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // matrícula normalizada → { carpeta, tieneFacturaVenta }
-    const porMatricula = new Map<string, { carpeta: string; tieneFacturaVenta: boolean }>()
-    for (const c of snap.rows) {
-      if (!c.matricula_norm) continue
-      const archivos = Array.isArray(c.archivos) ? c.archivos : []
-      const tiene = detectarDocs(archivos).facturaVenta
-      const key = normPlate(c.matricula_norm)
-      const prev = porMatricula.get(key)
-      // Si hay más de una carpeta para la misma matrícula, basta con que una
-      // tenga la factura de venta.
-      porMatricula.set(key, {
-        carpeta: prev?.carpeta ?? c.carpeta,
-        tieneFacturaVenta: (prev?.tieneFacturaVenta ?? false) || tiene,
-      })
-    }
-
     // 2. Facturas activas del trimestre.
     const inv = await pool.query<InvoiceRow>(
       `SELECT full_invoice_number, invoice_date::text, vehicle_plate,
@@ -153,6 +142,22 @@ export async function POST(request: NextRequest) {
         ORDER BY invoice_date`,
       [ACTIVE_STATUSES, from, to]
     )
+
+    // matrícula canónica → { carpeta, tieneFacturaVenta }
+    const porMatricula = new Map<string, { carpeta: string; tieneFacturaVenta: boolean }>()
+    for (const c of snap.rows) {
+      if (!c.matricula_norm) continue
+      const archivos = Array.isArray(c.archivos) ? c.archivos : []
+      const tiene = detectarDocs(archivos).facturaVenta
+      const key = canon(c.matricula_norm)
+      const prev = porMatricula.get(key)
+      // Si hay más de una carpeta para la misma matrícula, basta con que una
+      // tenga la factura de venta.
+      porMatricula.set(key, {
+        carpeta: prev?.carpeta ?? c.carpeta,
+        tieneFacturaVenta: (prev?.tieneFacturaVenta ?? false) || tiene,
+      })
+    }
 
     const yaEstaban: { numero: string; matricula: string | null; fecha: string; carpeta: string }[] =
       []
@@ -175,7 +180,7 @@ export async function POST(request: NextRequest) {
 
     for (const f of inv.rows) {
       const numero = f.full_invoice_number
-      const plate = f.vehicle_plate ? normPlate(f.vehicle_plate) : null
+      const plate = f.vehicle_plate ? canon(f.vehicle_plate) : null
       const carpeta = plate ? porMatricula.get(plate) : undefined
 
       if (carpeta?.tieneFacturaVenta) {

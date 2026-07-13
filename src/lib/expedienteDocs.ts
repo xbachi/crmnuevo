@@ -16,6 +16,7 @@
 
 import { checklistRequerida, type TipoOperacion } from '@/lib/expedienteChecklist'
 import { normPlate } from '@/lib/facturasRegistro'
+import { canonPlate, type AliasIndex } from '@/lib/aliasMatriculas'
 
 export interface DocsDetectados {
   facturaVenta: boolean
@@ -179,6 +180,8 @@ export interface AnalisisCarpeta {
 export interface CtxDeteccion {
   hashes?: IndiceHash // índice de facturas_registro
   matricula?: string | null // matrícula de la carpeta (valida el cruce por hash)
+  /** Historial de matrículas: el registro puede estar bajo la matrícula vieja. */
+  alias?: AliasIndex | null
 }
 
 const vacio = (): DocsDetectados => ({
@@ -238,7 +241,12 @@ export function analizarCarpeta(
     const reg = h ? ctx.hashes?.get(h) : undefined
     // El hash sólo vale si es del mismo coche (o si alguno de los dos lados no
     // tiene matrícula): un PDF de otro coche en esta carpeta no la completa.
-    if (reg && (!reg.matricula || !plate || reg.matricula === plate)) {
+    // "Mismo coche" incluye las matrículas anteriores (alias).
+    const mismoCoche =
+      !reg?.matricula ||
+      !plate ||
+      canonPlate(ctx.alias, reg.matricula) === canonPlate(ctx.alias, plate)
+    if (reg && mismoCoche) {
       docs[reg.doc] = true
       // Identificado por contenido, pero si además está en un grupo en conflicto
       // no se puede tocar: renombrarlo consolidaría un documento que no existe.

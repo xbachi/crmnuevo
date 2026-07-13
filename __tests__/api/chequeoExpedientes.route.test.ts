@@ -87,6 +87,9 @@ beforeEach(() => {
   jest.clearAllMocks()
   process.env.ADMIN_SECRET = ADMIN_SECRET
   mockValuesGet.mockResolvedValue({ data: { values: CB_ROWS } })
+  // Fallback para las tablas opcionales que se consultan después de la
+  // secuencia (vehiculo_matriculas): to_regclass sin fila → sin alias.
+  mockQuery.mockResolvedValue({ rows: [] })
 })
 
 afterEach(() => {

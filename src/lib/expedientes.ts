@@ -23,6 +23,7 @@ import {
   type EstadoExpediente,
 } from '@/lib/expedienteChecklist'
 import { normPlate } from '@/lib/facturasRegistro'
+import { aliasDeMatricula } from '@/lib/aliasMatriculas'
 import { detectarDocs, CLAVE_A_DOC } from '@/lib/expedienteDocs'
 
 type Db = Pool | PoolClient
@@ -136,8 +137,13 @@ export async function recalcularExpediente(
   const exp = expRes.rows[0]
   if (!exp) return null
 
-  const evidencia = await buscarEvidencia(db, exp.numero_factura, exp.matricula)
-  const carpeta = await buscarEvidenciaCarpeta(db, exp.matricula)
+  // El expediente guarda la matrícula del día de la factura; el coche puede
+  // haber cambiado de matrícula después (provisional → definitiva). La
+  // evidencia (registro de compra, carpeta de OneDrive) puede estar bajo
+  // cualquiera de las dos.
+  const plates = exp.matricula ? await aliasDeMatricula(db, exp.matricula) : []
+  const evidencia = await buscarEvidencia(db, exp.numero_factura, plates)
+  const carpeta = await buscarEvidenciaCarpeta(db, plates)
 
   // La checklist guardada se reconcilia con la DEFINICIÓN VIGENTE del tipo:
   // si cambia una regla (p.ej. contrato-venta dejó de ser requerido en
@@ -187,11 +193,12 @@ export async function recalcularExpediente(
   }
 }
 
-/** Evidencia por clave de item. Ausencia de clave = no verificable. */
+/** Evidencia por clave de item. Ausencia de clave = no verificable.
+ *  `matriculas` = la del expediente + sus alias (matrículas anteriores). */
 async function buscarEvidencia(
   db: Db,
   numeroFactura: string | null,
-  matricula: string | null
+  matriculas: string[]
 ): Promise<Record<string, boolean>> {
   let ventaGuardada = false
   let compraAdjunta = false
@@ -214,12 +221,12 @@ async function buscarEvidencia(
   }
 
   let registroCompra = false
-  if (matricula) {
+  if (matriculas.length > 0) {
     const reg = await db.query(
       `SELECT 1 FROM facturas_registro
-        WHERE categoria = 'coche-compra' AND matricula = $1
+        WHERE categoria = 'coche-compra' AND matricula = ANY($1)
         LIMIT 1`,
-      [normPlate(matricula)]
+      [matriculas]
     )
     registroCompra = reg.rows.length > 0
   }
@@ -239,16 +246,16 @@ async function buscarEvidencia(
  */
 async function buscarEvidenciaCarpeta(
   db: Db,
-  matricula: string | null
+  matriculas: string[]
 ): Promise<Record<string, boolean>> {
-  if (!matricula) return {}
+  if (matriculas.length === 0) return {}
   const reg = await db.query<{ reg: string | null }>(
     `SELECT to_regclass('public.expedientes_carpetas') AS reg`
   )
   if (!reg.rows[0]?.reg) return {}
   const res = await db.query<{ archivos: { nombre: string }[] }>(
-    `SELECT archivos FROM expedientes_carpetas WHERE matricula_norm = $1`,
-    [normPlate(matricula)]
+    `SELECT archivos FROM expedientes_carpetas WHERE matricula_norm = ANY($1)`,
+    [matriculas]
   )
   if (res.rows.length === 0) return {}
   const archivos = res.rows.flatMap((r) => (Array.isArray(r.archivos) ? r.archivos : []))
