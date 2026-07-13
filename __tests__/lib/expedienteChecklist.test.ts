@@ -43,11 +43,11 @@ describe('checklistRequerida', () => {
     ])
   })
 
-  it('deposito: exige contrato de depósito además de factura y contrato de venta', () => {
+  it('deposito: el contrato de depósito NO es requerido (la gestoría no lo pide)', () => {
     expect(claves('deposito')).toEqual([
       ['factura-venta', true],
       ['contrato-venta', true],
-      ['contrato-deposito', true],
+      ['contrato-deposito', false],
     ])
   })
 

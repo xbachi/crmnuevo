@@ -115,12 +115,17 @@ describe('docsFaltantes por tipo de operación', () => {
     expect(docsFaltantes('retail-rebu', docs)).toEqual([])
   })
 
-  it('deposito sin contrato de depósito → falta contrato-deposito', () => {
+  it('deposito sin contrato de depósito → NO falta nada (la gestoría no lo pide)', () => {
     const docs = detectarDocs([
       { nombre: 'factura-iva-F-2026-4221.pdf' },
       { nombre: 'Contrato comprador.jpeg' },
     ])
-    expect(docsFaltantes('deposito', docs)).toEqual(['contrato-deposito'])
+    expect(docsFaltantes('deposito', docs)).toEqual([])
+  })
+
+  it('deposito sin contrato de venta → sí falta el contrato de venta', () => {
+    const docs = detectarDocs([{ nombre: 'factura-iva-F-2026-4221.pdf' }])
+    expect(docsFaltantes('deposito', docs)).toEqual(['contrato-venta'])
   })
 
   it('b2b: contrato-compra es opcional, no cuenta como faltante', () => {

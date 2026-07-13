@@ -139,19 +139,17 @@ describe('chequearExpedientes', () => {
       tipos: new Map<string, TipoOperacion>([['7487MGV', 'deposito']]),
       facturas: [{ numero: 'F-2026-025', matricula: '7487MGV', fecha: '2026-04-20' }],
       carpetas: [
-        carpeta('abril', 'D-28-Fiat-500-7487MGV', '7487MGV', [
-          'factura-iva-F-2026-4221.pdf',
-          'Contrato comprador.jpeg',
-          // sin Contrato-Deposito
-        ]),
+        // depósito sin contrato de venta: eso SÍ bloquea. El contrato de
+        // depósito no se pide (acuerdo interno con el propietario).
+        carpeta('abril', 'D-28-Fiat-500-7487MGV', '7487MGV', ['factura-iva-F-2026-4221.pdf']),
       ],
       cb: [{ banda: 'ABRIL', matricula: '7487MGV', fila: 9 }],
     })
     expect(res.expedientesDocs).toHaveLength(1)
     expect(res.expedientesDocs[0].tipoOperacion).toBe('deposito')
-    expect(res.expedientesDocs[0].faltantes).toEqual(['contrato-deposito'])
+    expect(res.expedientesDocs[0].faltantes).toEqual(['contrato-venta'])
     expect(res.resumen.ok).toBe(false)
-    expect(res.resumen.bloqueantes.join(' ')).toContain('contrato-deposito')
+    expect(res.resumen.bloqueantes.join(' ')).toContain('contrato-venta')
   })
 
   it('carpeta sin expediente → tipo desconocido con exigencia mínima', () => {

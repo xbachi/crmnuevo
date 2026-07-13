@@ -78,7 +78,9 @@ export function checklistRequerida(tipo: TipoOperacion): ChecklistItemDef[] {
     case 'b2b':
       return [item('factura-venta', true), item('contrato-venta', false), item('factura-compra', true), item('contrato-compra', false)]
     case 'deposito':
-      return [item('factura-venta', true), item('contrato-venta', true), item('contrato-deposito', true)]
+      // El contrato de depósito es un acuerdo interno con el propietario: la
+      // gestoría no lo necesita en el expediente (regla del negocio).
+      return [item('factura-venta', true), item('contrato-venta', true), item('contrato-deposito', false)]
   }
 }
 
