@@ -253,9 +253,12 @@ export async function convertirRegimen(
       target === 'VAT' ? amounts.vat_amount ?? 0 : amounts.rebu_vat_amount ?? 0
 
     await client.query(
+      // action='STATUS_CHANGED': es el valor permitido por el CHECK de
+      // invoice_audit_logs. El detalle (VAT↔REBU, importes viejos/nuevos) va
+      // en old/new_values_json y en reason, así que la traza no pierde nada.
       `INSERT INTO invoice_audit_logs
          (invoice_id, action, old_values_json, new_values_json, reason, user_id, user_role)
-       VALUES ($1, 'REGIME_CONVERTED', $2, $3, $4, $5, $6)`,
+       VALUES ($1, 'STATUS_CHANGED', $2, $3, $4, $5, $6)`,
       [
         inv.id,
         JSON.stringify({
@@ -320,9 +323,11 @@ export async function convertirRegimen(
       )
       await auditar(
         ctx.updated.id,
-        'CHAIN_ALERT',
-        { roturas },
-        `Cadena Verifactu con roturas tras convertir ${ctx.updated.full_invoice_number} (preexistentes; la conversión no toca la cadena).`,
+        // 'STATUS_CHANGED' = valor permitido por el CHECK; el reason marca que
+        // es una alerta de cadena para poder grepearla.
+        'STATUS_CHANGED',
+        { chainAlert: true, roturas },
+        `ALERTA cadena Verifactu: roturas tras convertir ${ctx.updated.full_invoice_number} (preexistentes; la conversión no toca la cadena).`,
         opts.userId ?? null
       )
     }
