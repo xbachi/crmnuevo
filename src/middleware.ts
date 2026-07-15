@@ -42,6 +42,8 @@ const PUBLIC_API_PREFIXES = [
   '/api/admin/rectificar-factura',
   // Reparación del PDF de rectificativas en PDF_PENDING (X-Admin-Secret).
   '/api/admin/rectificativas-pdf',
+  // Conversión de régimen (VAT↔REBU) en el lugar, sin rectificativa (X-Admin-Secret).
+  '/api/admin/convertir-regimen',
   // Stock aging / recon tracking (X-Admin-Secret).
   '/api/admin/stock-aging',
   // Reconciliación pre-cierre de trimestre y reintento de outbox (X-Admin-Secret).
