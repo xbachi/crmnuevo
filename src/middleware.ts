@@ -63,6 +63,10 @@ const PUBLIC_API_PREFIXES = [
   // Webhook de firma digital (Signaturit). Valida SIGNATURIT_WEBHOOK_SECRET
   // dentro del handler si está seteado.
   '/api/firma/webhook',
+  // Scan de duplicados difusos del registro fiscal: X-Admin-Secret O sesión
+  // admin, validado en el handler (patrón /api/gestoria/chequeo-expedientes).
+  // SOLO este sub-path: el resto de /api/fiscal/* va por sesión y NO se whitelistea.
+  '/api/fiscal/duplicados/scan',
 ]
 
 export async function middleware(request: NextRequest) {

@@ -346,6 +346,12 @@ export default function Navigation() {
       roles: ['admin', 'asesor'],
     },
     {
+      href: '/fiscal',
+      label: 'Fiscal',
+      icon: FacturasIcon,
+      roles: ['admin'],
+    },
+    {
       href: '/generador-facturas',
       label: 'Generador Facturas',
       icon: FacturasIcon,
