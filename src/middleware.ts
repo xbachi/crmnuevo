@@ -18,6 +18,8 @@ const PUBLIC_API_PREFIXES = [
   '/api/vehiculos/gasto',
   // n8n registra facturas en el registro unificado (X-Webhook-Secret).
   '/api/gestoria/factura',
+  // El enriquecedor del server pide las facturas sin datos fiscales (X-Webhook-Secret).
+  '/api/gestoria/pendientes-fiscal',
   // Revisión del registro para entrega a gestoría (X-Admin-Secret).
   '/api/gestoria/audit',
   // Snapshot del inventario de carpetas de expedientes en OneDrive; lo POSTea
