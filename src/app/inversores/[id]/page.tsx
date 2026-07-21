@@ -74,6 +74,15 @@ export default function InvestorDashboardPage() {
   const [isEditingVehiculo, setIsEditingVehiculo] = useState(false)
   const [notas, setNotas] = useState<Nota[]>([])
 
+  // Estados para asignar un activo existente al inversor
+  const [showAssignModal, setShowAssignModal] = useState(false)
+  const [assignSearch, setAssignSearch] = useState('')
+  const [assignVehiculos, setAssignVehiculos] = useState<
+    Array<Vehiculo & { inversorNombre?: string }>
+  >([])
+  const [isLoadingAssign, setIsLoadingAssign] = useState(false)
+  const [assigningId, setAssigningId] = useState<number | null>(null)
+
   // Estados para documentos
   const [documentos, setDocumentos] = useState<
     Array<{
@@ -163,6 +172,116 @@ export default function InvestorDashboardPage() {
       fetchDocumentos()
     }
   }, [inversorData?.id])
+
+  const refreshVehiculosYMetrics = async () => {
+    try {
+      const [vehiculosResponse, metricsResponse] = await Promise.all([
+        fetch(`/api/inversores/${inversorId}/vehiculos`),
+        fetch(`/api/inversores/${inversorId}/metrics`),
+      ])
+      if (vehiculosResponse.ok) setVehiculos(await vehiculosResponse.json())
+      if (metricsResponse.ok) setMetrics(await metricsResponse.json())
+    } catch (error) {
+      console.error('Error al refrescar vehículos/métricas:', error)
+    }
+  }
+
+  const tipoLabel = (tipo?: string) => {
+    switch (tipo) {
+      case 'C':
+      case 'Compra':
+        return 'Compra'
+      case 'I':
+      case 'Inversor':
+        return 'Inversor'
+      case 'D':
+      case 'Depósito':
+      case 'Deposito Venta':
+        return 'Depósito'
+      case 'R':
+        return 'Coche R'
+      default:
+        return tipo || '-'
+    }
+  }
+
+  const openAssignModal = async () => {
+    setShowAssignModal(true)
+    setAssignSearch('')
+    setIsLoadingAssign(true)
+    try {
+      const response = await fetch('/api/vehiculos?page=1&limit=1000')
+      if (!response.ok) throw new Error('Error al cargar vehículos')
+      const data = await response.json()
+      setAssignVehiculos(data.vehiculos || [])
+    } catch (error) {
+      console.error('Error al cargar vehículos:', error)
+      showToast('Error al cargar vehículos', 'error')
+      setAssignVehiculos([])
+    } finally {
+      setIsLoadingAssign(false)
+    }
+  }
+
+  const closeAssignModal = () => {
+    setShowAssignModal(false)
+    setAssignSearch('')
+    setAssignVehiculos([])
+  }
+
+  const handleAssignVehiculo = async (
+    vehiculo: Vehiculo & { inversorNombre?: string }
+  ) => {
+    if (
+      vehiculo.inversorId &&
+      vehiculo.inversorId !== parseInt(inversorId) &&
+      !window.confirm(
+        `Este vehículo ya está asignado a ${vehiculo.inversorNombre || 'otro inversor'}. ¿Reasignarlo a ${inversorData?.nombre}?`
+      )
+    ) {
+      return
+    }
+
+    try {
+      setAssigningId(vehiculo.id)
+      const response = await fetch(`/api/vehiculos/${vehiculo.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tipo: 'I', inversorId: parseInt(inversorId) }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Error al asignar el vehículo')
+      }
+
+      showToast('Vehículo asignado correctamente', 'success')
+      closeAssignModal()
+      await refreshVehiculosYMetrics()
+    } catch (error) {
+      console.error('Error al asignar vehículo:', error)
+      showToast(
+        error instanceof Error ? error.message : 'Error al asignar el vehículo',
+        'error'
+      )
+    } finally {
+      setAssigningId(null)
+    }
+  }
+
+  const assignVehiculosFiltrados = assignVehiculos.filter((vehiculo) => {
+    if ((vehiculo.estado || '').toLowerCase().trim() === 'vendido') return false
+    if (vehiculo.inversorId === parseInt(inversorId)) return false
+
+    const searchLower = assignSearch.toLowerCase().trim()
+    if (!searchLower) return true
+    return (
+      vehiculo.matricula?.toLowerCase().includes(searchLower) ||
+      vehiculo.marca?.toLowerCase().includes(searchLower) ||
+      vehiculo.modelo?.toLowerCase().includes(searchLower) ||
+      vehiculo.referencia?.toLowerCase().includes(searchLower)
+    )
+  })
 
   const handleViewVehicle = (id: number) => {
     // Por ahora redirigir a la página de vehículos con filtro
@@ -598,33 +717,56 @@ export default function InvestorDashboardPage() {
         <main className="w-[90%] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
           {/* Header */}
           <div className="mb-6">
-            <div className="flex items-center space-x-3 sm:space-x-4 mb-4">
-              <button
-                onClick={() => router.push('/inversores')}
-                className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <svg
-                  className="w-5 h-5 sm:w-6 sm:h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3 sm:space-x-4">
+                <button
+                  onClick={() => router.push('/inversores')}
+                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
-              </button>
-              <div>
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-800">
-                  {inversorData?.nombre}
-                </h1>
-                <p className="text-sm sm:text-base text-slate-600">
-                  Dashboard del inversor
-                </p>
+                  <svg
+                    className="w-5 h-5 sm:w-6 sm:h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 19l-7-7 7-7"
+                    />
+                  </svg>
+                </button>
+                <div>
+                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-800">
+                    {inversorData?.nombre}
+                  </h1>
+                  <p className="text-sm sm:text-base text-slate-600">
+                    Dashboard del inversor
+                  </p>
+                </div>
               </div>
+              {canEdit && (
+                <button
+                  onClick={openAssignModal}
+                  className="px-3 sm:px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors flex items-center space-x-2 text-sm sm:text-base whitespace-nowrap"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
+                  </svg>
+                  <span>Asignar activo</span>
+                </button>
+              )}
             </div>
 
             {/* Información del inversor */}
@@ -2188,6 +2330,99 @@ export default function InvestorDashboardPage() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal para asignar un activo existente */}
+        {showAssignModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Asignar activo a {inversorData?.nombre}
+                </h2>
+                <button
+                  onClick={closeAssignModal}
+                  className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="p-6 border-b border-gray-200">
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="Buscar por matrícula, marca, modelo o referencia..."
+                  value={assignSearch}
+                  onChange={(e) => setAssignSearch(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4">
+                {isLoadingAssign ? (
+                  <p className="text-center text-gray-500 py-8">
+                    Cargando vehículos...
+                  </p>
+                ) : assignVehiculosFiltrados.length === 0 ? (
+                  <p className="text-center text-gray-500 py-8">
+                    No se encontraron vehículos disponibles
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {assignVehiculosFiltrados.map((vehiculo) => (
+                      <div
+                        key={vehiculo.id}
+                        className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center flex-wrap gap-x-2">
+                            <span className="font-semibold text-gray-900">
+                              {vehiculo.matricula || 'Sin matrícula'}
+                            </span>
+                            <span className="text-gray-700">
+                              {vehiculo.marca} {vehiculo.modelo}
+                            </span>
+                          </div>
+                          <div className="flex items-center flex-wrap gap-x-2 text-xs text-gray-500 mt-1">
+                            <span>Ref: {vehiculo.referencia || '-'}</span>
+                            <span>•</span>
+                            <span>Tipo: {tipoLabel(vehiculo.tipo)}</span>
+                            {vehiculo.inversorId &&
+                              vehiculo.inversorId !== parseInt(inversorId) && (
+                                <span className="text-amber-600 font-medium">
+                                  Asignado a{' '}
+                                  {vehiculo.inversorNombre || 'otro inversor'}
+                                </span>
+                              )}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleAssignVehiculo(vehiculo)}
+                          disabled={assigningId === vehiculo.id}
+                          className="ml-3 px-3 py-1.5 bg-primary-500 text-white rounded-md text-sm hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                        >
+                          {assigningId === vehiculo.id ? 'Asignando...' : 'Asignar'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}

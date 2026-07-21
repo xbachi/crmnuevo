@@ -14,7 +14,7 @@ interface InvestorSummary {
   vehiculosVendidos: number
   vehiculosEnStock: number
   beneficioAcumulado: number
-  capitalInvertidoActual: number
+  capitalInvertido: number
   roi: number
 }
 
@@ -53,7 +53,7 @@ export default function DashboardInversoresPage() {
               vehiculosVendidos: metrics.totalVendidos,
               vehiculosEnStock: metrics.totalEnStock,
               beneficioAcumulado: metrics.beneficioAcumulado,
-              capitalInvertidoActual: metrics.capitalInvertidoActual,
+              capitalInvertido: metrics.capitalInvertido,
               roi: metrics.roi
             }
           } catch (error) {
@@ -65,7 +65,7 @@ export default function DashboardInversoresPage() {
               vehiculosVendidos: 0,
               vehiculosEnStock: 0,
               beneficioAcumulado: 0,
-              capitalInvertidoActual: 0,
+              capitalInvertido: 0,
               roi: 0
             }
           }
@@ -94,7 +94,7 @@ export default function DashboardInversoresPage() {
   )
 
   const totalBeneficio = summaries.reduce((sum, s) => sum + s.beneficioAcumulado, 0)
-  const totalCapital = summaries.reduce((sum, s) => sum + s.capitalInvertidoActual, 0)
+  const totalCapital = summaries.reduce((sum, s) => sum + s.capitalInvertido, 0)
   const totalVehiculos = summaries.reduce((sum, s) => sum + s.totalVehiculos, 0)
   const totalVendidos = summaries.reduce((sum, s) => sum + s.vehiculosVendidos, 0)
 
