@@ -467,22 +467,19 @@ export default function ListaVehiculos() {
 
     // Aplicar filtro de búsqueda (siempre en todos los campos)
     if (searchTerm.trim()) {
-      filtered = filtered.filter((vehiculo) => {
-        return (
-          vehiculo.referencia
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          vehiculo.marca.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          vehiculo.modelo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          vehiculo.matricula.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          vehiculo.bastidor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          vehiculo.tipo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (vehiculo.inversorNombre &&
-            vehiculo.inversorNombre
-              .toLowerCase()
-              .includes(searchTerm.toLowerCase()))
-        )
-      })
+      // bastidor y matricula pueden ser null (fix-bastidor-nullable.sql)
+      const q = searchTerm.toLowerCase()
+      filtered = filtered.filter((vehiculo) =>
+        [
+          vehiculo.referencia,
+          vehiculo.marca,
+          vehiculo.modelo,
+          vehiculo.matricula,
+          vehiculo.bastidor,
+          vehiculo.tipo,
+          vehiculo.inversorNombre,
+        ].some((campo) => (campo ?? '').toLowerCase().includes(q))
+      )
     }
 
     // Aplicar ordenamiento por referencia

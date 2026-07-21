@@ -125,15 +125,15 @@ export default function CochesRPage() {
     // Filtrar por término de búsqueda
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase()
-      filtered = filtered.filter((vehiculo) => {
-        return (
-          capitalizeText(vehiculo.marca).toLowerCase().includes(searchLower) ||
-          capitalizeText(vehiculo.modelo).toLowerCase().includes(searchLower) ||
-          vehiculo.referencia.toLowerCase().includes(searchLower) ||
-          vehiculo.matricula.toLowerCase().includes(searchLower) ||
-          vehiculo.bastidor.toLowerCase().includes(searchLower)
-        )
-      })
+      filtered = filtered.filter((vehiculo) =>
+        [
+          capitalizeText(vehiculo.marca ?? ''),
+          capitalizeText(vehiculo.modelo ?? ''),
+          vehiculo.referencia,
+          vehiculo.matricula,
+          vehiculo.bastidor,
+        ].some((campo) => (campo ?? '').toLowerCase().includes(searchLower))
+      )
     }
 
     // Filtrar por estado

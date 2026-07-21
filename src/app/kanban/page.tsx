@@ -97,18 +97,17 @@ export default function KanbanPage() {
 
     const filtered = vehiculosEnProceso.filter((vehiculo) => {
       if (searchField === 'todos') {
-        return (
-          vehiculo.referencia
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          vehiculo.marca.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          vehiculo.modelo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          vehiculo.matricula.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          vehiculo.bastidor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          vehiculo.tipo.toLowerCase().includes(searchTerm.toLowerCase())
-        )
+        const q = searchTerm.toLowerCase()
+        return [
+          vehiculo.referencia,
+          vehiculo.marca,
+          vehiculo.modelo,
+          vehiculo.matricula,
+          vehiculo.bastidor,
+          vehiculo.tipo,
+        ].some((campo) => (campo ?? '').toLowerCase().includes(q))
       } else {
-        const fieldValue = vehiculo[searchField].toString().toLowerCase()
+        const fieldValue = (vehiculo[searchField] ?? '').toString().toLowerCase()
         return fieldValue.includes(searchTerm.toLowerCase())
       }
     })
