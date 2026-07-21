@@ -9,6 +9,7 @@ import { handleDeleteError } from '@/lib/api-errors'
 import {
   filtrarCamposEditables,
   normalizarEstado,
+  normalizarTipo,
   transicionValida,
 } from '@/lib/vehiculoEstado'
 import { normPlate } from '@/lib/gastoMapping'
@@ -80,6 +81,20 @@ export async function PUT(
       )
     }
 
+    // Tipo: sanear cualquier variante (palabra/letra, con/sin tilde) a la
+    // letra canónica ANTES de la whitelist y de la lógica de inversor. Un
+    // cliente viejo que mande 'Compra'/'Inversor' queda saneado en un solo punto.
+    if (body.tipo !== undefined && body.tipo !== null && body.tipo !== '') {
+      const tipoNorm = normalizarTipo(body.tipo)
+      if (!tipoNorm) {
+        return NextResponse.json(
+          { error: `Tipo de vehículo no reconocido: '${body.tipo}'` },
+          { status: 400 }
+        )
+      }
+      body.tipo = tipoNorm
+    }
+
     // Whitelist: solo campos que la UI edita; lo demás se ignora (id, force,
     // campos internos como dealActivoId/orden, o cualquier cosa inesperada).
     const { data: updateData, ignorados } = filtrarCamposEditables(body)
@@ -134,32 +149,35 @@ export async function PUT(
       updateData.matricula = matriculaLimpia
     }
 
-    // Si el tipo es 'I' (Inversor), gestionar inversorId y esCocheInversor
-    if (body.tipo === 'I' || body.tipo === 'Inversor') {
-      // Si viene inversorId explícitamente en el body, usarlo (puede ser null o un número)
-      if ('inversorId' in body) {
-        updateData.inversorId =
-          body.inversorId !== undefined &&
-          body.inversorId !== null &&
-          body.inversorId !== ''
-            ? typeof body.inversorId === 'string'
-              ? parseInt(body.inversorId)
-              : body.inversorId
-            : null
-        updateData.esCocheInversor =
-          updateData.inversorId !== null &&
-          updateData.inversorId !== undefined &&
-          (updateData.inversorId as number) > 0
-      } else {
-        // Si no viene inversorId en el body, mantener el existente o establecer null si no existe
-        updateData.inversorId = vehiculoExistente.inversorId || null
-        updateData.esCocheInversor = vehiculoExistente.inversorId ? true : false
+    // Si el tipo es 'I' (Inversor), gestionar inversorId y esCocheInversor.
+    // body.tipo ya está normalizado a letra en este punto.
+    if (body.tipo === 'I') {
+      // Resolver el inversorId efectivo: el del body si viene, si no el existente.
+      const inversorIdRaw =
+        'inversorId' in body ? body.inversorId : vehiculoExistente.inversorId
+      const inversorIdNum =
+        inversorIdRaw !== undefined &&
+        inversorIdRaw !== null &&
+        inversorIdRaw !== ''
+          ? typeof inversorIdRaw === 'string'
+            ? parseInt(inversorIdRaw)
+            : (inversorIdRaw as number)
+          : null
+
+      // Un vehículo de tipo Inversor DEBE tener un inversor asignado (>0).
+      if (!inversorIdNum || inversorIdNum <= 0 || Number.isNaN(inversorIdNum)) {
+        return NextResponse.json(
+          {
+            error: 'Un vehículo de tipo Inversor requiere un inversor asignado',
+            hint: 'enviá inversorId (> 0) junto con tipo: "I"',
+          },
+          { status: 400 }
+        )
       }
-    } else if (
-      body.tipo !== undefined &&
-      body.tipo !== 'I' &&
-      body.tipo !== 'Inversor'
-    ) {
+
+      updateData.inversorId = inversorIdNum
+      updateData.esCocheInversor = true
+    } else if (body.tipo !== undefined) {
       // Si el tipo cambia a algo que no sea Inversor, limpiar esCocheInversor e inversorId
       updateData.esCocheInversor = false
       updateData.inversorId = null

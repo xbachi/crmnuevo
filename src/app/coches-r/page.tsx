@@ -245,7 +245,7 @@ export default function CochesRPage() {
       matricula: vehiculo.matricula,
       bastidor: vehiculo.bastidor,
       kms: vehiculo.kms.toString(),
-      tipo: vehiculo.tipo,
+      tipo: 'R',
       estado: vehiculo.estado || 'SIN_ESTADO',
       color: vehiculo.color || '',
       fechaMatriculacion: vehiculo.fechaMatriculacion || '',
@@ -779,7 +779,7 @@ export default function CochesRPage() {
                         required
                         className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent bg-white/80 backdrop-blur-sm transition-all duration-300"
                       >
-                        <option value="Coche R">Coche R</option>
+                        <option value="R">Coche R</option>
                       </select>
                     </div>
                     <div className="space-y-2">

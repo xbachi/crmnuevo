@@ -522,6 +522,17 @@ export default function VehiculoDetailPage() {
     }
   }
 
+  const fetchInversores = async () => {
+    try {
+      const res = await fetch('/api/inversores')
+      if (!res.ok) return
+      const data = await res.json()
+      if (Array.isArray(data)) setInversores(data)
+    } catch {
+      // la lista de inversores es auxiliar del modo edición: si falla, se ignora
+    }
+  }
+
   const guardarCambioMatricula = async () => {
     setErrorMatricula(null)
     setGuardandoMatricula(true)
@@ -568,6 +579,7 @@ export default function VehiculoDetailPage() {
       fetchRecordatorios()
       fetchEstadoCompra()
       fetchMatriculaHistorial()
+      fetchInversores()
     } else {
       console.log(`⚠️ [VEHICULO PAGE] No hay ID para buscar`)
     }
@@ -952,26 +964,25 @@ export default function VehiculoDetailPage() {
       if (editingData.inversorId !== undefined) {
         camposAGuardar.inversorId = editingData.inversorId
       }
-      // Si el tipo es "I" (Inversor) y hay inversorId, establecer esCocheInversor
+      // Si el tipo es "I" (Inversor) exigir un inversor asignado (>0).
       if (editingData.tipo === 'I' || camposAGuardar.tipo === 'I') {
         if (
-          editingData.inversorId !== undefined &&
-          editingData.inversorId > 0
+          editingData.inversorId === undefined ||
+          editingData.inversorId === null ||
+          editingData.inversorId <= 0
         ) {
-          camposAGuardar.esCocheInversor = true
-        } else if (
-          editingData.inversorId === 0 ||
-          editingData.inversorId === null
-        ) {
-          // Si se quita el inversor, también quitar esCocheInversor
-          camposAGuardar.esCocheInversor = false
+          showToast(
+            'Seleccioná un inversor para el vehículo de tipo Inversor',
+            'error'
+          )
+          return
         }
+        camposAGuardar.inversorId = editingData.inversorId
+        camposAGuardar.esCocheInversor = true
       } else if (editingData.tipo !== undefined && editingData.tipo !== 'I') {
         // Si el tipo cambia a algo que no sea Inversor, limpiar inversorId y esCocheInversor
         camposAGuardar.esCocheInversor = false
-        if (editingData.inversorId === undefined && vehiculo.inversorId) {
-          camposAGuardar.inversorId = null
-        }
+        camposAGuardar.inversorId = null
       }
     }
 
@@ -2009,18 +2020,39 @@ export default function VehiculoDetailPage() {
                                 {isEditingGeneral ? (
                                   <select
                                     value={editingData.tipo}
-                                    onChange={(e) =>
+                                    onChange={(e) => {
+                                      const nuevoTipo = e.target.value
+                                      // Al salir de Inversor con un inversor
+                                      // asignado, confirmar la desasignación.
+                                      if (
+                                        editingData.tipo === 'I' &&
+                                        nuevoTipo !== 'I' &&
+                                        editingData.inversorId &&
+                                        editingData.inversorId > 0
+                                      ) {
+                                        const ok = window.confirm(
+                                          'Este vehículo tiene un inversor asignado. Al cambiar el tipo se desasignará el inversor. ¿Continuar?'
+                                        )
+                                        if (!ok) return
+                                        setEditingData((prev) => ({
+                                          ...prev,
+                                          tipo: nuevoTipo,
+                                          inversorId: 0,
+                                        }))
+                                        return
+                                      }
                                       setEditingData((prev) => ({
                                         ...prev,
-                                        tipo: e.target.value,
+                                        tipo: nuevoTipo,
                                       }))
-                                    }
+                                    }}
                                     className="ml-1 text-blue-900 bg-white border border-blue-300 rounded px-2 py-1 text-sm font-medium"
                                   >
                                     <option value="C">COMPRA</option>
                                     <option value="I">INVERSOR</option>
                                     <option value="D">DEPÓSITO</option>
                                     <option value="R">RENTING</option>
+                                    <option value="M">VENTA MANUAL</option>
                                   </select>
                                 ) : (
                                   <span className="text-blue-900 font-semibold ml-1">
@@ -2037,6 +2069,32 @@ export default function VehiculoDetailPage() {
                                 )}
                               </span>
                             </div>
+                            {isEditingGeneral && editingData.tipo === 'I' && (
+                              <div className="flex flex-col 2xl:flex-row 2xl:items-center gap-2 mt-2">
+                                <span className="text-blue-700 font-medium">
+                                  Inversor:{' '}
+                                  <select
+                                    value={editingData.inversorId || 0}
+                                    onChange={(e) =>
+                                      setEditingData((prev) => ({
+                                        ...prev,
+                                        inversorId: parseInt(e.target.value),
+                                      }))
+                                    }
+                                    className="ml-1 text-blue-900 bg-white border border-blue-300 rounded px-2 py-1 text-sm font-medium"
+                                  >
+                                    <option value={0}>
+                                      Seleccionar inversor…
+                                    </option>
+                                    {inversores.map((inv) => (
+                                      <option key={inv.id} value={inv.id}>
+                                        {inv.nombre}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </span>
+                              </div>
+                            )}
                             <div className="flex flex-col 2xl:flex-row 2xl:items-center gap-2 mt-2">
                               <span className="text-blue-700 font-medium">
                                 Marca:{' '}

@@ -12,6 +12,7 @@ import {
 import { promises as fs } from 'fs'
 import { generateFolderName, getFolderPathsByTipo } from '@/config/folders'
 import { writeVehiculoToSheets } from '@/lib/googleSheets'
+import { normalizarTipo } from '@/lib/vehiculoEstado'
 
 export async function POST(request: NextRequest) {
   try {
@@ -56,17 +57,6 @@ export async function POST(request: NextRequest) {
       tipo,
     })
 
-    // Mapear tipo a letra correspondiente
-    const tipoMapping: { [key: string]: string } = {
-      Compra: 'C',
-      'Coche R': 'R',
-      'Deposito Venta': 'D',
-      Inversor: 'I',
-    }
-
-    const tipoLetra = tipoMapping[tipo] || tipo
-    console.log('🔄 Tipo mapeado:', { original: tipo, mapeado: tipoLetra })
-
     // Validar datos requeridos
     if (
       !referencia ||
@@ -83,6 +73,16 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    // Mapear tipo a la letra canónica (único punto de traducción palabra→letra)
+    const tipoLetra = normalizarTipo(tipo)
+    if (!tipoLetra) {
+      return NextResponse.json(
+        { error: `Tipo de vehículo no reconocido: '${tipo}'` },
+        { status: 400 }
+      )
+    }
+    console.log('🔄 Tipo mapeado:', { original: tipo, mapeado: tipoLetra })
 
     // Verificar campos únicos
     const uniqueCheck = await checkUniqueFields(referencia, matricula, bastidor)

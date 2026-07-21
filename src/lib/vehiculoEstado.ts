@@ -48,6 +48,56 @@ export function normalizarEstado(
   return ALIAS_ESTADO[up] ?? null
 }
 
+/**
+ * Tipo canónico del vehículo (LETRAS). El backend filtra por letra y la DB
+ * debe guardar solo letras; los modales viejos guardaban PALABRAS y corrompían
+ * el dato. `normalizarTipo` es el único punto que traduce cualquier variante.
+ */
+export type TipoVehiculo = 'C' | 'I' | 'D' | 'R' | 'M'
+
+/** Letra canónica → label para UI. */
+export const TIPO_LABEL: Record<TipoVehiculo, string> = {
+  C: 'Compra',
+  I: 'Inversor',
+  D: 'Depósito Venta',
+  R: 'Coche R',
+  M: 'Venta manual',
+}
+
+/** Variantes conocidas (ya normalizadas: trim + upper) → letra canónica. */
+const ALIAS_TIPO: Record<string, TipoVehiculo> = {
+  C: 'C',
+  COMPRA: 'C',
+  I: 'I',
+  INVERSOR: 'I',
+  D: 'D',
+  DEPOSITO: 'D',
+  DEPÓSITO: 'D',
+  'DEPOSITO VENTA': 'D',
+  'DEPÓSITO VENTA': 'D',
+  R: 'R',
+  'COCHE R': 'R',
+  // 'M' = venta manual sin stock (creado por api/sales/manual-issue)
+  M: 'M',
+  MANUAL: 'M',
+  'VENTA MANUAL': 'M',
+}
+
+/**
+ * Normaliza cualquier variante conocida del tipo a la letra canónica.
+ * Acepta letras y palabras (con/sin tilde, case-insensitive, con espacios
+ * internos colapsados). Devuelve null si el valor no es reconocible.
+ */
+export function normalizarTipo(
+  t: string | null | undefined
+): TipoVehiculo | null {
+  const up = String(t ?? '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toUpperCase()
+  return ALIAS_TIPO[up] ?? null
+}
+
 /** Estados de preparación: el kanban permite moverse libremente entre ellos. */
 export const ESTADOS_PREPARACION: EstadoVehiculo[] = [
   'SIN_ESTADO',

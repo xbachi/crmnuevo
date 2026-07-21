@@ -11,6 +11,7 @@ import {
   type VentaRowDb,
   type VentaTipo,
 } from './ventasUnificadas'
+import { normalizarTipo } from './vehiculoEstado'
 
 // Función para cargar .env.local
 function loadEnvFile() {
@@ -149,6 +150,10 @@ export async function getVehiculos(
   search?: string,
   tipo?: string
 ): Promise<Vehiculo[]> {
+  // La columna Vehiculo.tipo guarda solo letras (C/I/D/R). Si el filtro llega
+  // como palabra ('Compra'/'Inversor'…), traducirlo a letra antes de comparar.
+  const tipoFiltro =
+    tipo && tipo.trim() ? (normalizarTipo(tipo) ?? tipo.trim()) : undefined
   const client = await pool.connect()
   try {
     // Consulta optimizada: solo campos necesarios para la lista
@@ -181,14 +186,14 @@ export async function getVehiculos(
     if (search && search.trim()) {
       queryParams.push(`%${search}%`)
     }
-    if (tipo && tipo.trim()) {
-      queryParams.push(tipo)
+    if (tipoFiltro) {
+      queryParams.push(tipoFiltro)
     }
 
     const result = await client.query(
       `
-      SELECT 
-        v.id, v.referencia, v.marca, v.modelo, v.matricula, v.bastidor, 
+      SELECT
+        v.id, v.referencia, v.marca, v.modelo, v.matricula, v.bastidor,
         v.kms, v.tipo, v.estado, v.orden, v."createdAt", v."updatedAt",
         v.color, v."fechaMatriculacion", v.año, v."esCocheInversor", 
         v."inversorId", v."fechaCompra", v."precioCompra", v."gastosTransporte",
@@ -268,6 +273,9 @@ export async function getVehiculosCount(
   search?: string,
   tipo?: string
 ): Promise<number> {
+  // Igual que getVehiculos: normalizar el filtro de tipo a letra canónica.
+  const tipoFiltro =
+    tipo && tipo.trim() ? (normalizarTipo(tipo) ?? tipo.trim()) : undefined
   const client = await pool.connect()
   try {
     // Construir filtros de búsqueda
@@ -296,8 +304,8 @@ export async function getVehiculosCount(
     if (search && search.trim()) {
       queryParams.push(`%${search}%`)
     }
-    if (tipo && tipo.trim()) {
-      queryParams.push(tipo)
+    if (tipoFiltro) {
+      queryParams.push(tipoFiltro)
     }
 
     const result = await client.query(

@@ -5,10 +5,61 @@ import {
   ESTADOS_VEHICULO,
   TRANSICIONES,
   normalizarEstado,
+  normalizarTipo,
+  TIPO_LABEL,
   transicionValida,
   filtrarCamposEditables,
   CAMPOS_EDITABLES_VEHICULO,
 } from '@/lib/vehiculoEstado'
+
+describe('normalizarTipo', () => {
+  it('deja pasar las letras canónicas (case-insensitive)', () => {
+    expect(normalizarTipo('C')).toBe('C')
+    expect(normalizarTipo('I')).toBe('I')
+    expect(normalizarTipo('D')).toBe('D')
+    expect(normalizarTipo('R')).toBe('R')
+    expect(normalizarTipo('M')).toBe('M')
+    expect(normalizarTipo('manual')).toBe('M')
+    expect(normalizarTipo('c')).toBe('C')
+    expect(normalizarTipo(' r ')).toBe('R')
+  })
+
+  it('traduce las palabras de los modales viejos a letra', () => {
+    expect(normalizarTipo('Compra')).toBe('C')
+    expect(normalizarTipo('compra')).toBe('C')
+    expect(normalizarTipo('Inversor')).toBe('I')
+    expect(normalizarTipo('INVERSOR')).toBe('I')
+    expect(normalizarTipo('Coche R')).toBe('R')
+    expect(normalizarTipo('coche r')).toBe('R')
+  })
+
+  it('acepta depósito con/sin tilde, con/sin "Venta" y espacios raros', () => {
+    expect(normalizarTipo('Deposito')).toBe('D')
+    expect(normalizarTipo('Depósito')).toBe('D')
+    expect(normalizarTipo('Deposito Venta')).toBe('D')
+    expect(normalizarTipo('Depósito Venta')).toBe('D')
+    expect(normalizarTipo('  depósito   venta  ')).toBe('D')
+  })
+
+  it('devuelve null para valores desconocidos o vacíos', () => {
+    expect(normalizarTipo('X')).toBeNull()
+    expect(normalizarTipo('Renting')).toBeNull()
+    expect(normalizarTipo('cocheR')).toBeNull()
+    expect(normalizarTipo('')).toBeNull()
+    expect(normalizarTipo(null)).toBeNull()
+    expect(normalizarTipo(undefined)).toBeNull()
+  })
+
+  it('TIPO_LABEL cubre las cinco letras canónicas', () => {
+    expect(TIPO_LABEL).toEqual({
+      C: 'Compra',
+      I: 'Inversor',
+      D: 'Depósito Venta',
+      R: 'Coche R',
+      M: 'Venta manual',
+    })
+  })
+})
 
 describe('normalizarEstado', () => {
   it('normaliza casing y espacios', () => {

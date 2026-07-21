@@ -11,6 +11,7 @@ import {
   generateVehicleSlug,
   capitalizeText,
 } from '@/lib/utils'
+import { normalizarTipo, TIPO_LABEL } from '@/lib/vehiculoEstado'
 import ProtectedRoute from '@/components/ProtectedRoute'
 
 interface Vehiculo {
@@ -640,7 +641,9 @@ export default function ListaVehiculos() {
       matricula: vehiculo.matricula,
       bastidor: vehiculo.bastidor,
       kms: vehiculo.kms.toString(),
-      tipo: vehiculo.tipo,
+      // Precargar el tipo normalizado a letra (C/I/D/R) para que el <select>
+      // por valor-letra lo matchee, aunque en DB hubiera quedado una palabra.
+      tipo: normalizarTipo(vehiculo.tipo) ?? '',
       estado: vehiculo.estado,
       color: vehiculo.color || '',
       fechaMatriculacion: vehiculo.fechaMatriculacion || '',
@@ -724,13 +727,20 @@ export default function ListaVehiculos() {
         estado: editFormData.estado,
         color: editFormData.color,
         fechaMatriculacion: editFormData.fechaMatriculacion,
-        esCocheInversor: editFormData.tipo === 'Inversor',
+        esCocheInversor: editFormData.tipo === 'I',
         inversorId:
-          editFormData.tipo === 'Inversor'
+          editFormData.tipo === 'I'
             ? editFormData.inversorId && editFormData.inversorId !== ''
               ? parseInt(editFormData.inversorId)
               : null
             : null,
+      }
+
+      // Un vehículo de tipo Inversor necesita un inversor asignado.
+      if (updatedVehiculo.tipo === 'I' && !updatedVehiculo.inversorId) {
+        showToast('Seleccioná un inversor para el vehículo', 'error')
+        setIsUpdating(false)
+        return
       }
 
       // console.log('📤 Enviando a API:', updatedVehiculo)
@@ -1855,10 +1865,11 @@ export default function ListaVehiculos() {
                       className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white/80 backdrop-blur-sm transition-all duration-300"
                     >
                       <option value="">Seleccionar tipo...</option>
-                      <option value="Compra">Compra</option>
-                      <option value="Coche R">Coche R</option>
-                      <option value="Deposito Venta">Deposito Venta</option>
-                      <option value="Inversor">Inversor</option>
+                      <option value="C">{TIPO_LABEL.C}</option>
+                      <option value="R">{TIPO_LABEL.R}</option>
+                      <option value="D">{TIPO_LABEL.D}</option>
+                      <option value="I">{TIPO_LABEL.I}</option>
+                      <option value="M">{TIPO_LABEL.M}</option>
                     </select>
                   </div>
 
@@ -1922,8 +1933,8 @@ export default function ListaVehiculos() {
                     </div>
                   </div>
 
-                  {/* Campo de inversor - solo visible cuando tipo es "Inversor" */}
-                  {editFormData.tipo === 'Inversor' && (
+                  {/* Campo de inversor - solo visible cuando tipo es Inversor (I) */}
+                  {editFormData.tipo === 'I' && (
                     <div className="space-y-2">
                       <label
                         htmlFor="edit-inversor"
