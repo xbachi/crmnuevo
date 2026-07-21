@@ -242,12 +242,35 @@ export default function InvestorDashboardPage() {
       return
     }
 
+    // Sin precio de compra el coche no descuenta capital del inversor:
+    // pedirlo en el momento (opcional, se puede cargar después en la ficha).
+    let precioCompra: number | null = null
+    const sinPrecio = !vehiculo.precioCompra || vehiculo.precioCompra <= 0
+    if (sinPrecio) {
+      const input = window.prompt(
+        `${vehiculo.marca} ${vehiculo.modelo} no tiene precio de compra cargado.\n` +
+          `Sin precio, el capital invertido de ${inversorData?.nombre} no se descontará.\n\n` +
+          `Ingresá el precio de compra en € (o dejá vacío para asignar sin precio):`
+      )
+      if (input === null) return
+      const parsed = parseFloat(input.replace(/\./g, '').replace(',', '.'))
+      if (input.trim() !== '' && (isNaN(parsed) || parsed <= 0)) {
+        showToast('Precio de compra inválido', 'error')
+        return
+      }
+      if (input.trim() !== '') precioCompra = parsed
+    }
+
     try {
       setAssigningId(vehiculo.id)
       const response = await fetch(`/api/vehiculos/${vehiculo.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tipo: 'I', inversorId: parseInt(inversorId) }),
+        body: JSON.stringify({
+          tipo: 'I',
+          inversorId: parseInt(inversorId),
+          ...(precioCompra !== null ? { precioCompra } : {}),
+        }),
       })
 
       if (!response.ok) {
@@ -255,7 +278,14 @@ export default function InvestorDashboardPage() {
         throw new Error(errorData.error || 'Error al asignar el vehículo')
       }
 
-      showToast('Vehículo asignado correctamente', 'success')
+      if (sinPrecio && precioCompra === null) {
+        showToast(
+          'Asignado sin precio de compra: el capital no se descontará hasta cargarlo en la ficha del vehículo',
+          'error'
+        )
+      } else {
+        showToast('Vehículo asignado correctamente', 'success')
+      }
       closeAssignModal()
       await refreshVehiculosYMetrics()
     } catch (error) {
@@ -2402,6 +2432,17 @@ export default function InvestorDashboardPage() {
                             <span>Ref: {vehiculo.referencia || '-'}</span>
                             <span>•</span>
                             <span>Tipo: {tipoLabel(vehiculo.tipo)}</span>
+                            <span>•</span>
+                            {vehiculo.precioCompra && vehiculo.precioCompra > 0 ? (
+                              <span>
+                                Compra:{' '}
+                                {vehiculo.precioCompra.toLocaleString('es-ES')} €
+                              </span>
+                            ) : (
+                              <span className="text-amber-600 font-medium">
+                                Sin precio de compra
+                              </span>
+                            )}
                             {vehiculo.inversorId &&
                               vehiculo.inversorId !== parseInt(inversorId) && (
                                 <span className="text-amber-600 font-medium">
