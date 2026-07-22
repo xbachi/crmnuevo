@@ -38,7 +38,7 @@ export default function InvestorDashboardPage() {
   const router = useRouter()
   const params = useParams()
   const { showToast, ToastContainer } = useSimpleToast()
-  const { inversor, isLoading: authLoading } = useInversorAuth()
+  const { inversor, clearInversor, isLoading: authLoading } = useInversorAuth()
   const { isAdmin } = useAuth()
   const [isCrmUser, setIsCrmUser] = useState(false)
 
@@ -134,7 +134,9 @@ export default function InvestorDashboardPage() {
       // Obtener datos del inversor
       const inversorResponse = await fetch(`/api/inversores/${inversorId}`)
       if (inversorResponse.status === 401) {
-        // Sin sesión (ni admin ni inversor): mandar al login del portal
+        // Sin sesión válida (ni admin ni inversor): limpiar cualquier sesión
+        // muerta de localStorage (evita el loop /logininv ↔ ficha) y al login
+        clearInversor()
         router.push('/logininv')
         return
       }

@@ -19,6 +19,9 @@ interface InversorAuthContextType {
   inversor: InversorUser | null
   login: (usuario: string, contraseña: string) => Promise<boolean>
   logout: () => void
+  /** Limpia la sesión en memoria/localStorage SIN redirigir (para sesiones
+   *  muertas: localStorage presente pero cookie vencida/inexistente). */
+  clearInversor: () => void
   isLoading: boolean
 }
 
@@ -84,9 +87,13 @@ export function InversorAuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const logout = () => {
+  const clearInversor = () => {
     setInversor(null)
     localStorage.removeItem('inversor')
+  }
+
+  const logout = () => {
+    clearInversor()
     // Limpiar la cookie de sesión del inversor (best-effort) y redirigir
     fetch('/api/inversores/logout', { method: 'POST' })
       .catch(() => {})
@@ -97,7 +104,7 @@ export function InversorAuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <InversorAuthContext.Provider
-      value={{ inversor, login, logout, isLoading }}
+      value={{ inversor, login, logout, clearInversor, isLoading }}
     >
       {children}
     </InversorAuthContext.Provider>

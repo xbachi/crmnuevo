@@ -9,17 +9,38 @@ export default function InversorLoginPage() {
   const [usuario, setUsuario] = useState('')
   const [contraseña, setContraseña] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const { login, inversor, isLoading: authLoading } = useInversorAuth()
+  const {
+    login,
+    inversor,
+    clearInversor,
+    isLoading: authLoading,
+  } = useInversorAuth()
   const { showToast, ToastContainer } = useToast()
   const router = useRouter()
 
   useEffect(() => {
     if (!authLoading && inversor) {
-      // Redirigir a la página específica del inversor
-      router.push(
-        `/inversores/${inversor.id}-${inversor.nombre.toLowerCase().replace(/[^a-z0-9]/g, '')}`
-      )
+      // Antes de redirigir, verificar que la sesión (cookie) siga viva: si el
+      // localStorage quedó de una sesión vieja sin cookie, redirigir generaba
+      // un loop /logininv ↔ ficha (la ficha devuelve 401 y vuelve acá).
+      let cancelado = false
+      fetch(`/api/inversores/${inversor.id}/metrics`)
+        .then((r) => {
+          if (cancelado) return
+          if (r.ok) {
+            router.push(
+              `/inversores/${inversor.id}-${inversor.nombre.toLowerCase().replace(/[^a-z0-9]/g, '')}`
+            )
+          } else {
+            clearInversor() // sesión muerta: mostrar el formulario
+          }
+        })
+        .catch(() => {})
+      return () => {
+        cancelado = true
+      }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inversor, authLoading, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
