@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/direct-database'
+import { createSessionToken } from '@/lib/auth-server'
+import { INVERSOR_COOKIE } from '@/lib/auth-edge'
+
+const INVERSOR_SESSION_TTL = 60 * 60 * 24 * 30 // 30 días
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,13 +32,24 @@ export async function POST(request: NextRequest) {
 
       const inversor = result.rows[0]
 
-      // No devolver la contraseña en la respuesta
-      return NextResponse.json({
+      // Sesión propia del inversor (cookie httpOnly): el middleware le permite
+      // SOLO GET sobre /api/inversores/{su id}/**. Sin esto, la página del
+      // inversor recibía 401 en todos los fetch.
+      const token = createSessionToken(inversor.id, 'inversor')
+      const res = NextResponse.json({
         id: inversor.id,
         nombre: inversor.nombre,
         email: inversor.email,
         usuario: inversor.usuario,
       })
+      res.cookies.set(INVERSOR_COOKIE, token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: INVERSOR_SESSION_TTL,
+      })
+      return res
     } finally {
       client.release()
     }

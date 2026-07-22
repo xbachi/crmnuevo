@@ -9,10 +9,13 @@ const SESSION_SECRET =
   process.env.SESSION_SECRET || 'dev-only-INSECURE-set-SESSION_SECRET-in-prod'
 
 export const SESSION_COOKIE = 'sc_session'
+/** Sesión del portal de inversores: cookie separada, rol 'inversor', y el
+ *  middleware solo le permite GET sobre /api/inversores/{su id}/**. */
+export const INVERSOR_COOKIE = 'sc_inversor'
 
 export interface SessionPayload {
   uid: number
-  role: 'admin' | 'asesor'
+  role: 'admin' | 'asesor' | 'inversor'
   exp: number // unix seconds
 }
 

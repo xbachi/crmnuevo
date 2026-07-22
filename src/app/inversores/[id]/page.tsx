@@ -133,6 +133,11 @@ export default function InvestorDashboardPage() {
 
       // Obtener datos del inversor
       const inversorResponse = await fetch(`/api/inversores/${inversorId}`)
+      if (inversorResponse.status === 401) {
+        // Sin sesión (ni admin ni inversor): mandar al login del portal
+        router.push('/logininv')
+        return
+      }
       if (!inversorResponse.ok) throw new Error('Inversor no encontrado')
       const inversorData = await inversorResponse.json()
       setInversorData(inversorData)

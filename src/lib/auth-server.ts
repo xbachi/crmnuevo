@@ -49,7 +49,7 @@ export function verifyPassword(plain: string, stored: string): boolean {
 
 export interface SessionPayload {
   uid: number
-  role: 'admin' | 'asesor'
+  role: 'admin' | 'asesor' | 'inversor'
   exp: number // unix seconds
 }
 
@@ -73,7 +73,7 @@ function sign(payloadB64: string): string {
 
 export function createSessionToken(
   uid: number,
-  role: 'admin' | 'asesor'
+  role: 'admin' | 'asesor' | 'inversor'
 ): string {
   const payload: SessionPayload = {
     uid,
@@ -116,7 +116,7 @@ export interface DbUser {
   id: number
   email: string
   password_hash: string
-  role: 'admin' | 'asesor'
+  role: 'admin' | 'asesor' | 'inversor'
   display_name: string | null
   active: boolean
 }

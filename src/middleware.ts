@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { SESSION_COOKIE, verifySessionTokenEdge } from '@/lib/auth-edge'
+import {
+  INVERSOR_COOKIE,
+  SESSION_COOKIE,
+  verifySessionTokenEdge,
+} from '@/lib/auth-edge'
 
 /**
  * Whitelist de rutas API que NO requieren autenticación.
@@ -11,6 +15,9 @@ const PUBLIC_API_PREFIXES = [
   '/api/auth/login',
   '/api/auth/logout',
   '/api/auth/me',
+  // Login/logout del portal de inversores (crean/limpian su propia cookie).
+  '/api/inversores/login',
+  '/api/inversores/logout',
   // El receptor de n8n reporta acá con X-Webhook-Secret (sin sesión). El GET
   // valida la sesión dentro del handler.
   '/api/automation-log',
@@ -95,6 +102,16 @@ export async function middleware(request: NextRequest) {
   const token = request.cookies.get(SESSION_COOKIE)?.value
   const session = await verifySessionTokenEdge(token)
   if (!session) {
+    // Portal de inversores: cookie propia, SOLO lectura y SOLO sus datos
+    // (GET /api/inversores/{su id} y subrutas). Todo lo demás → 401.
+    const invToken = request.cookies.get(INVERSOR_COOKIE)?.value
+    const inv = await verifySessionTokenEdge(invToken)
+    if (inv?.role === 'inversor' && request.method === 'GET') {
+      const m = path.match(/^\/api\/inversores\/(\d+)(\/|$)/)
+      if (m && Number(m[1]) === inv.uid) {
+        return NextResponse.next()
+      }
+    }
     return NextResponse.json(
       { error: 'No autenticado', code: 'UNAUTHENTICATED' },
       { status: 401 }

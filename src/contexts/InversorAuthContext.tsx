@@ -87,8 +87,12 @@ export function InversorAuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     setInversor(null)
     localStorage.removeItem('inversor')
-    // Redirigir a la página de login de inversores
-    window.location.href = '/logininv'
+    // Limpiar la cookie de sesión del inversor (best-effort) y redirigir
+    fetch('/api/inversores/logout', { method: 'POST' })
+      .catch(() => {})
+      .finally(() => {
+        window.location.href = '/logininv'
+      })
   }
 
   return (
