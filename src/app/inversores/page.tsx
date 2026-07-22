@@ -40,7 +40,21 @@ export default function InversoresPage() {
       const response = await fetch('/api/inversores')
       if (!response.ok) throw new Error('Error al cargar inversores')
       const data = await response.json()
-      setInversores(data)
+      // La columna capitalInvertido es manual y suele estar desactualizada:
+      // usar el calculado desde los vehículos asignados (misma fuente que la ficha)
+      const conMetrics = await Promise.all(
+        data.map(async (inv: { id: number; capitalInvertido?: number }) => {
+          try {
+            const m = await fetch(`/api/inversores/${inv.id}/metrics`)
+            if (!m.ok) return inv
+            const metrics = await m.json()
+            return { ...inv, capitalInvertido: metrics.capitalInvertido ?? 0 }
+          } catch {
+            return inv
+          }
+        })
+      )
+      setInversores(conMetrics)
     } catch (error) {
       console.error('Error:', error)
       showToast('Error al cargar inversores', 'error')
