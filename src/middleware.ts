@@ -37,6 +37,8 @@ const PUBLIC_API_PREFIXES = [
   '/api/admin/repair-costobeneficio',
   '/api/admin/resync-costobeneficio',
   '/api/admin/anomalias-costos',
+  // Reparación del doble conteo baseline SHEET2026 + facturas reales (X-Admin-Secret).
+  '/api/admin/repair-gastos-dup',
   // Verificación de la cadena de integridad de facturación (X-Admin-Secret).
   '/api/admin/verifactu',
   // Rectificativa por secreto de admin (la UI usa /api/invoices/[id]/rectificar
