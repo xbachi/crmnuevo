@@ -138,18 +138,6 @@ export default function LoginPage() {
               )}
             </button>
           </form>
-
-          {/* Información de usuario de prueba */}
-          <div className="mt-8 p-4 bg-blue-50 rounded-xl border border-blue-200">
-            <h3 className="text-sm font-semibold text-blue-800 mb-2">
-              Usuario de prueba:
-            </h3>
-            <div className="space-y-1 text-xs text-blue-700">
-              <div>
-                <strong>Asesor:</strong> asesor / Sevencars2025
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
