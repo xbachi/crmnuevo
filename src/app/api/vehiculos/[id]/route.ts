@@ -207,6 +207,28 @@ export async function PUT(
       '✅ Vehículo actualizado - inversorId guardado:',
       vehiculoActualizado?.inversorId
     )
+
+    // Aviso automático al inversor si el estado pasó a RESERVADO/VENDIDO por
+    // edición manual (el flujo de deals tiene su propio hook en updateDeal).
+    const estadoNuevoNorm = updateData.estado
+      ? normalizarEstado(String(updateData.estado))
+      : null
+    const estadoPrevioNorm = normalizarEstado(vehiculoExistente.estado)
+    if (
+      estadoNuevoNorm &&
+      estadoNuevoNorm !== estadoPrevioNorm &&
+      (estadoNuevoNorm === 'RESERVADO' || estadoNuevoNorm === 'VENDIDO')
+    ) {
+      try {
+        const { notifyInversorVehiculoEvento } = await import('@/lib/inversorNotify')
+        await notifyInversorVehiculoEvento(
+          id,
+          estadoNuevoNorm === 'RESERVADO' ? 'reservado' : 'vendido'
+        )
+      } catch (err) {
+        console.error('notify inversor:', (err as Error)?.message ?? err)
+      }
+    }
     // console.log('✅ Vehículo actualizado.color:', vehiculoActualizado?.color)
     // console.log('✅ Vehículo actualizado.fechaMatriculacion:', vehiculoActualizado?.fechaMatriculacion)
 

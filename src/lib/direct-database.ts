@@ -780,6 +780,16 @@ export async function updateDeal(
         'UPDATE "Vehiculo" SET estado = $1, "dealActivoId" = $2, "updatedAt" = NOW() WHERE id = $3',
         [vehiculoEstado, dealActivoId, vehiculoId]
       )
+
+      // Aviso automático al inversor si el coche es suyo (best-effort, dedup interno)
+      if (vehiculoEstado === 'reservado' || vehiculoEstado === 'vendido') {
+        try {
+          const { notifyInversorVehiculoEvento } = await import('./inversorNotify')
+          await notifyInversorVehiculoEvento(vehiculoId, vehiculoEstado)
+        } catch (err) {
+          console.error('[updateDeal] notify inversor:', (err as Error)?.message ?? err)
+        }
+      }
     }
 
     return await getDealById(id)

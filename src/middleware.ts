@@ -39,6 +39,8 @@ const PUBLIC_API_PREFIXES = [
   '/api/admin/anomalias-costos',
   // Reparación del doble conteo baseline SHEET2026 + facturas reales (X-Admin-Secret).
   '/api/admin/repair-gastos-dup',
+  // Prueba del SMTP de avisos a inversores (X-Admin-Secret).
+  '/api/admin/test-inversor-mail',
   // Verificación de la cadena de integridad de facturación (X-Admin-Secret).
   '/api/admin/verifactu',
   // Rectificativa por secreto de admin (la UI usa /api/invoices/[id]/rectificar
