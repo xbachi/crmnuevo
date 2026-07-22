@@ -242,14 +242,28 @@ export default function InvestorDashboardPage() {
       return
     }
 
-    // Sin precio de compra el coche no descuenta capital del inversor:
-    // pedirlo en el momento (opcional, se puede cargar después en la ficha).
+    const vendido = (vehiculo.estado || '').toLowerCase().trim() === 'vendido'
+    if (
+      vendido &&
+      !window.confirm(
+        `${vehiculo.marca} ${vehiculo.modelo} está VENDIDO.\n` +
+          `Se asignará a ${inversorData?.nombre} y contará en su beneficio acumulado ` +
+          `(no en el capital invertido). ¿Asignar igual?`
+      )
+    ) {
+      return
+    }
+
+    // Sin precio de compra el coche no descuenta capital del inversor
+    // (y en vendidos el beneficio sale mal): pedirlo en el momento.
     let precioCompra: number | null = null
     const sinPrecio = !vehiculo.precioCompra || vehiculo.precioCompra <= 0
     if (sinPrecio) {
       const input = window.prompt(
         `${vehiculo.marca} ${vehiculo.modelo} no tiene precio de compra cargado.\n` +
-          `Sin precio, el capital invertido de ${inversorData?.nombre} no se descontará.\n\n` +
+          (vendido
+            ? `Sin precio, el beneficio de esta venta se calculará mal.\n\n`
+            : `Sin precio, el capital invertido de ${inversorData?.nombre} no se descontará.\n\n`) +
           `Ingresá el precio de compra en € (o dejá vacío para asignar sin precio):`
       )
       if (input === null) return
@@ -299,19 +313,24 @@ export default function InvestorDashboardPage() {
     }
   }
 
-  const assignVehiculosFiltrados = assignVehiculos.filter((vehiculo) => {
-    if ((vehiculo.estado || '').toLowerCase().trim() === 'vendido') return false
-    if (vehiculo.inversorId === parseInt(inversorId)) return false
+  const esVendido = (v: Vehiculo) =>
+    (v.estado || '').toLowerCase().trim() === 'vendido'
 
-    const searchLower = assignSearch.toLowerCase().trim()
-    if (!searchLower) return true
-    return (
-      vehiculo.matricula?.toLowerCase().includes(searchLower) ||
-      vehiculo.marca?.toLowerCase().includes(searchLower) ||
-      vehiculo.modelo?.toLowerCase().includes(searchLower) ||
-      vehiculo.referencia?.toLowerCase().includes(searchLower)
-    )
-  })
+  const assignVehiculosFiltrados = assignVehiculos
+    .filter((vehiculo) => {
+      if (vehiculo.inversorId === parseInt(inversorId)) return false
+
+      const searchLower = assignSearch.toLowerCase().trim()
+      if (!searchLower) return true
+      return (
+        vehiculo.matricula?.toLowerCase().includes(searchLower) ||
+        vehiculo.marca?.toLowerCase().includes(searchLower) ||
+        vehiculo.modelo?.toLowerCase().includes(searchLower) ||
+        vehiculo.referencia?.toLowerCase().includes(searchLower)
+      )
+    })
+    // Activos primero; los vendidos al final (se asignan para imputar beneficio)
+    .sort((a, b) => Number(esVendido(a)) - Number(esVendido(b)))
 
   const handleViewVehicle = (id: number) => {
     // Por ahora redirigir a la página de vehículos con filtro
@@ -2427,6 +2446,16 @@ export default function InvestorDashboardPage() {
                             <span className="text-gray-700">
                               {vehiculo.marca} {vehiculo.modelo}
                             </span>
+                            {esVendido(vehiculo) ? (
+                              <span className="px-1.5 py-0.5 text-xs font-semibold rounded bg-red-100 text-red-700">
+                                VENDIDO
+                              </span>
+                            ) : (vehiculo.estado || '').toLowerCase().trim() ===
+                              'reservado' ? (
+                              <span className="px-1.5 py-0.5 text-xs font-semibold rounded bg-amber-100 text-amber-700">
+                                RESERVADO
+                              </span>
+                            ) : null}
                           </div>
                           <div className="flex items-center flex-wrap gap-x-2 text-xs text-gray-500 mt-1">
                             <span>Ref: {vehiculo.referencia || '-'}</span>
