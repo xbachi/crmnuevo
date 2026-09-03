@@ -6,10 +6,7 @@ import Link from 'next/link'
 import { useToast } from '@/hooks/useToast'
 import { useConfirmModal } from '@/components/ConfirmModal'
 import ProtectedRoute from '@/components/ProtectedRoute'
-import {
-  generarContratoDeposito,
-  generarContratoCompraventa,
-} from '@/lib/contractGenerator'
+import { useAuth } from '@/contexts/AuthContext'
 import {
   generateVehicleSlug,
   generateClienteSlug,
@@ -79,6 +76,7 @@ export default function DepositoDetail() {
   const router = useRouter()
   const { showToast, ToastContainer } = useToast()
   const { showConfirm, ConfirmModalComponent } = useConfirmModal()
+  const { user } = useAuth()
 
   const [deposito, setDeposito] = useState<Deposito | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -191,7 +189,7 @@ export default function DepositoDetail() {
           contenido: nuevaNota.trim(),
           tipo: 'general',
           titulo: 'Nota general',
-          usuario: 'Usuario', // TODO: Obtener usuario actual del sistema de auth
+          usuario: user?.name || 'Usuario',
         }),
       })
 
@@ -236,7 +234,7 @@ export default function DepositoDetail() {
           contenido: editingContent.trim(),
           tipo: 'general',
           titulo: 'Nota general',
-          usuario: 'Usuario',
+          usuario: user?.name || 'Usuario',
         }),
       })
 
@@ -450,6 +448,9 @@ export default function DepositoDetail() {
       }
 
       // Generar el contrato de depósito en PDF
+      const { generarContratoDeposito } = await import(
+        '@/lib/contractGenerator'
+      )
       const pdfBuffer = await generarContratoDeposito(contratoData)
 
       // Crear URL temporal para el PDF
@@ -593,6 +594,9 @@ export default function DepositoDetail() {
       }
 
       // Generar y descargar el contrato de compraventa
+      const { generarContratoCompraventa } = await import(
+        '@/lib/contractGenerator'
+      )
       const pdfBuffer = await generarContratoCompraventa(contratoData)
 
       // Crear y descargar el PDF
@@ -661,6 +665,9 @@ export default function DepositoDetail() {
       }
 
       // Generar el contrato de compraventa en PDF
+      const { generarContratoCompraventa } = await import(
+        '@/lib/contractGenerator'
+      )
       const pdfBuffer = await generarContratoCompraventa(contratoData)
 
       // Crear y descargar el PDF
@@ -913,7 +920,8 @@ export default function DepositoDetail() {
                   <button
                     onClick={handleGenerarContratoDeposito}
                     disabled={
-                      isGeneratingContrato || Boolean(deposito.contrato_deposito)
+                      isGeneratingContrato ||
+                      Boolean(deposito.contrato_deposito)
                     }
                     className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-colors ${
                       deposito.contrato_deposito

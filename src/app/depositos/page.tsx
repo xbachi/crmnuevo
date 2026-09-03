@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/Toast'
 import { formatCurrency, capitalizeText } from '@/lib/utils'
-import { generarContratoCompraventa } from '@/lib/contractGenerator'
 import Link from 'next/link'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal'
@@ -133,9 +132,7 @@ export default function DepositosPage() {
         showToast(data?.error || 'Error al eliminar el depósito', 'error')
         return
       }
-      setDepositos((prev) =>
-        prev.filter((d) => d.id !== depositoToDelete.id)
-      )
+      setDepositos((prev) => prev.filter((d) => d.id !== depositoToDelete.id))
       showToast('Depósito eliminado correctamente', 'success')
       setDepositoToDelete(null)
     } catch (error) {
@@ -177,6 +174,9 @@ export default function DepositosPage() {
       }
 
       // Generar el contrato en PDF
+      const { generarContratoCompraventa } = await import(
+        '@/lib/contractGenerator'
+      )
       await generarContratoCompraventa(contratoData)
 
       // Mostrar mensaje de éxito
