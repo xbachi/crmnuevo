@@ -7,22 +7,11 @@ import { useToast } from '@/components/Toast'
 import { useConfirmModal } from '@/components/ConfirmModal'
 import { useAuth } from '@/contexts/AuthContext'
 import ProtectedRoute from '@/components/ProtectedRoute'
-import {
-  generarContratoReserva,
-  generarContratoVenta,
-  generarFactura,
-} from '@/lib/contractGenerator'
 import { addReminder, createDocumentacionReminder } from '@/lib/reminders'
-import {
-  formatCurrency,
-  formatVehicleReference,
-  generateClienteSlug,
-  capitalizeText,
-} from '@/lib/utils'
+import { formatCurrency, generateClienteSlug } from '@/lib/utils'
 import DealVentaInfo from '@/components/DealVentaInfo'
 import CondicionesPagoModal from '@/components/CondicionesPagoModal'
 import type { CondicionesPago } from '@/lib/ventaCondicionesPago'
-import FacturaTypeModal from '@/components/FacturaTypeModal'
 import DealInvoiceSection from '@/components/invoicing/DealInvoiceSection'
 import NotasSection from '@/components/NotasSection'
 
@@ -220,7 +209,6 @@ export default function DealDetail() {
   const [isUpdating, setIsUpdating] = useState(false)
   const [isGeneratingReserva, setIsGeneratingReserva] = useState(false)
   const [isGeneratingVenta, setIsGeneratingVenta] = useState(false)
-  const [isGeneratingFactura, setIsGeneratingFactura] = useState(false)
   const [notas, setNotas] = useState<Nota[]>([])
   const [recordatorios, setRecordatorios] = useState<Recordatorio[]>([])
   const [documentacionFiles, setDocumentacionFiles] = useState<any[]>([])
@@ -237,7 +225,6 @@ export default function DealDetail() {
 
   // Estado para el modal de confirmación
   const [showCancelModal, setShowCancelModal] = useState(false)
-  const [showFacturaModal, setShowFacturaModal] = useState(false)
   const [showCondicionesPago, setShowCondicionesPago] = useState(false)
 
   useEffect(() => {
@@ -281,11 +268,8 @@ export default function DealDetail() {
 
         setDeal(dealWithDefaults)
 
-        // Cargar notas desde la API
-        await fetchNotas()
-
-        // Cargar recordatorios desde la API
-        await fetchRecordatorios()
+        // Cargar notas y recordatorios desde la API (independientes)
+        await Promise.all([fetchNotas(), fetchRecordatorios()])
       } else {
         showToast('Error al cargar el deal', 'error')
         router.push('/deals')
@@ -686,10 +670,6 @@ export default function DealDetail() {
     }
   }
 
-  const handleGenerarFactura = () => {
-    setShowFacturaModal(true)
-  }
-
   // Funciones de descarga para el bloque Documentación
   const handleDescargarContratoReserva = async () => {
     if (!deal?.contratoReserva) return
@@ -744,7 +724,7 @@ export default function DealDetail() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contratoReserva: null,
-          estado: deal.contratoVenta ? 'vendido' : 'activo', // Si tiene contrato de venta, mantener vendido
+          estado: deal.contratoVenta ? 'vendido' : 'nuevo', // Si tiene contrato de venta, mantener vendido
         }),
       })
 
@@ -790,230 +770,6 @@ export default function DealDetail() {
     } catch (error) {
       console.error('Error anulando contrato de venta:', error)
       showToast('Error al anular el contrato de venta', 'error')
-    }
-  }
-
-
-  const handleConfirmFactura = async (
-    tipoFactura: 'IVA' | 'REBU',
-    numeroFactura?: string
-  ) => {
-    try {
-      setIsGeneratingFactura(true)
-
-      if (!deal) {
-        showToast('No hay datos del deal disponibles', 'error')
-        return
-      }
-
-      // Si no se proporciona número personalizado, obtener el siguiente número secuencial
-      let numeroFacturaFinal = numeroFactura
-      if (!numeroFactura) {
-        try {
-          const response = await fetch('/api/facturas/next-number')
-          if (response.ok) {
-            const data = await response.json()
-            numeroFacturaFinal = data.nextNumber
-          } else {
-            // Fallback si falla la API
-            numeroFacturaFinal = `F-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`
-          }
-        } catch (error) {
-          console.error('Error obteniendo número de factura:', error)
-          // Fallback si falla la API
-          numeroFacturaFinal = `F-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`
-        }
-      }
-
-      console.log('🔍 [FRONTEND] Generando factura con parámetros:', {
-        tipoFactura,
-        numeroFactura: numeroFacturaFinal,
-        dealId: deal?.id,
-      })
-
-      // Siempre generar una nueva factura (no usar caché)
-      // Generar la factura
-      console.log('🔍 [FRONTEND] Enviando request a /api/documents/generate...')
-      const response = await fetch('/api/documents/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          dealId: deal.id,
-          documentType: 'factura',
-          dealNumber: deal.numero,
-          dealData: {
-            numero: deal.numero,
-            fechaCreacion: deal.fechaCreacion,
-            cliente: deal.cliente,
-            vehiculo: deal.vehiculo,
-            importeTotal: deal.importeTotal,
-            importeSena: deal.importeSena,
-            formaPagoSena: deal.formaPagoSena,
-            fechaReservaDesde: deal.fechaReservaDesde,
-            fechaReservaExpira: deal.fechaReservaExpira,
-          },
-          tipoFactura,
-          numeroFactura: numeroFacturaFinal,
-        }),
-      })
-
-      console.log('🔍 [FRONTEND] Respuesta recibida:', {
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries()),
-      })
-
-      if (response.ok) {
-        // Detectar si la respuesta es PDF directo o JSON
-        const contentType = response.headers.get('content-type')
-        console.log('🔍 [FRONTEND] Content-Type detectado:', contentType)
-
-        // Siempre intentar detectar PDF primero por seguridad
-        let isPdfResponse = false
-
-        try {
-          // Clonar la respuesta para verificar el contenido
-          const responseClone = response.clone()
-          const text = await responseClone.text()
-
-          isPdfResponse = text.startsWith('%PDF-')
-          console.log('🔍 [FRONTEND] Verificando contenido PDF:', {
-            startsWithPDF: text.startsWith('%PDF-'),
-            firstChars: text.substring(0, 10),
-            contentType: contentType,
-            isPdfByContentType: contentType?.includes('application/pdf'),
-            finalDecision: isPdfResponse,
-          })
-        } catch (error) {
-          console.error('❌ [FRONTEND] Error verificando contenido:', error)
-          // Fallback: usar content-type si no podemos verificar contenido
-          isPdfResponse = contentType?.includes('application/pdf') || false
-        }
-
-        if (isPdfResponse) {
-          // Respuesta directa de PDF (Vercel)
-          console.log('📄 [FACTURA] Recibiendo PDF directo de Vercel')
-
-          // Crear blob y descargar directamente
-          const pdfBlob = await response.blob()
-          const url = window.URL.createObjectURL(pdfBlob)
-          const link = document.createElement('a')
-          link.href = url
-          link.download = `factura-${tipoFactura.toLowerCase()}-${numeroFacturaFinal}.pdf`
-          document.body.appendChild(link)
-          link.click()
-          document.body.removeChild(link)
-          window.URL.revokeObjectURL(url)
-
-          showToast(
-            `Factura ${tipoFactura} generada y descargada exitosamente`,
-            'success'
-          )
-        } else {
-          // Respuesta JSON (desarrollo local)
-          console.log('📄 [FACTURA] Intentando parsear como JSON...')
-          const result = await response.json()
-
-          showToast(`Factura ${tipoFactura} generada exitosamente`, 'success')
-
-          // Descargar el documento
-          window.open(result.url, '_blank')
-        }
-
-        // Actualizar el deal y base de datos (común para ambos casos)
-        const updatedDeal = {
-          ...deal,
-          factura: `factura-${tipoFactura.toLowerCase()}-${numeroFacturaFinal}.pdf`,
-          estado: 'facturado',
-          fechaFacturada: new Date(),
-        }
-        setDeal(updatedDeal)
-
-        // Actualizar en la base de datos
-        try {
-          await fetch(`/api/deals/${deal.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              estado: 'facturado',
-              factura: `factura-${tipoFactura.toLowerCase()}-${numeroFacturaFinal}.pdf`,
-              fechaFacturada: new Date().toISOString(),
-            }),
-          })
-
-          // Recargar el deal para actualizar el estado
-          await loadDeal()
-        } catch (error) {
-          console.error('Error actualizando estado:', error)
-          showToast(
-            'Factura generada pero error actualizando estado',
-            'error'
-          )
-        }
-
-        // Crear recordatorio para documentación de cambio de nombre en la base de datos
-        if (deal.cliente && deal.vehiculo) {
-          try {
-            const response = await fetch(
-              `/api/clientes/${deal.clienteId}/recordatorios`,
-              {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  clienteId: deal.clienteId,
-                  titulo: 'Solicitar cambio de nombre',
-                  descripcion: `Solicitar documentación para cambio de nombre del vehículo ${formatVehicleReference(deal.vehiculo.referencia, deal.vehiculo.tipo ?? '')} al cliente ${capitalizeText(deal.cliente.nombre)} ${capitalizeText(deal.cliente.apellidos)}`,
-                  tipo: 'otro',
-                  prioridad: 'alta',
-                  fechaRecordatorio: new Date(
-                    new Date().getTime() + 7 * 24 * 60 * 60 * 1000
-                  ).toISOString(), // 7 días desde ahora
-                  dealId: deal.id,
-                }),
-              }
-            )
-
-            if (response.ok) {
-              console.log(
-                '📝 Recordatorio de cambio de nombre creado en la base de datos'
-              )
-            } else {
-              console.error(
-                'Error creando recordatorio:',
-                await response.text()
-              )
-            }
-          } catch (error) {
-            console.error('Error creando recordatorio:', error)
-          }
-        }
-      } else {
-        console.error('❌ [FRONTEND] Error en la respuesta:', {
-          status: response.status,
-          statusText: response.statusText,
-        })
-
-        try {
-          const error = await response.json()
-          console.error('❌ [FRONTEND] Error JSON:', error)
-          showToast(error.error || 'Error generando factura', 'error')
-        } catch (jsonError) {
-          console.error('❌ [FRONTEND] Error parseando JSON:', jsonError)
-          const errorText = await response.text()
-          console.error(
-            '❌ [FRONTEND] Respuesta como texto:',
-            errorText.substring(0, 200)
-          )
-          showToast('Error generando factura', 'error')
-        }
-      }
-    } catch (error) {
-      console.error('Error generando factura:', error)
-      showToast('Error al generar la factura', 'error')
-    } finally {
-      setIsGeneratingFactura(false)
     }
   }
 
@@ -1458,7 +1214,7 @@ export default function DealDetail() {
                   Documentos
                 </h2>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Generar Contrato de Reserva */}
                   <div className="text-center">
                     <button
@@ -1594,45 +1350,6 @@ export default function DealDetail() {
                             />
                           </svg>
                           <span>Generar Contrato de Venta</span>
-                        </div>
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Legacy invoice flow — kept disabled in favour of the new
-                      Facturación module section below. The button is left as a
-                      visual indicator when Deal.factura is populated. */}
-                  <div className="text-center">
-                    <button
-                      onClick={handleGenerarFactura}
-                      disabled={true}
-                      className={`w-full px-4 py-3 rounded-lg font-medium transition-colors ${
-                        deal.factura
-                          ? 'bg-green-100 text-green-700 cursor-not-allowed'
-                          : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      }`}
-                      title="El nuevo flujo está abajo en la sección Facturación."
-                    >
-                      {deal.factura ? (
-                        <div className="flex items-center justify-center space-x-2">
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
-                          </svg>
-                          <span>Factura legacy: {deal.factura}</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center space-x-2 opacity-60">
-                          <span>Usar nueva sección Facturación abajo ↓</span>
                         </div>
                       )}
                     </button>
@@ -2236,65 +1953,43 @@ export default function DealDetail() {
                     )}
                   </div>
 
-                  {/* Factura */}
-                  <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          deal.factura ? 'bg-green-100' : 'bg-gray-100'
-                        }`}
+                  {/* Factura emitida por el sistema anterior (solo deals antiguos) */}
+                  {deal.factura && (
+                    <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center bg-green-100">
+                          <svg
+                            className="w-4 h-4 text-green-600"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                            />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            Factura del sistema anterior
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {deal.factura}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleDescargarFactura}
+                        disabled={isUpdating}
+                        className="px-3 py-1 bg-blue-100 text-blue-700 rounded-md text-sm font-medium hover:bg-blue-200 transition-colors"
                       >
-                        <svg
-                          className={`w-4 h-4 ${deal.factura ? 'text-green-600' : 'text-gray-400'}`}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                          />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          Factura legacy
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {deal.factura
-                            ? `${deal.factura} — del sistema anterior`
-                            : 'No generada'}
-                        </p>
-                      </div>
+                        Descargar
+                      </button>
                     </div>
-                    {deal.factura ? (
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={handleDescargarFactura}
-                          disabled={isUpdating}
-                          className="px-3 py-1 bg-blue-100 text-blue-700 rounded-md text-sm font-medium hover:bg-blue-200 transition-colors"
-                        >
-                          Descargar
-                        </button>
-                        {/* El viejo "Anular" solo borraba el PDF y limpiaba
-                            Deal.factura: la factura fiscal seguía emitida y con
-                            su número consumido. Anular de verdad = rectificativa
-                            (sección Facturación). */}
-                        <span
-                          className="px-3 py-1 bg-gray-100 text-gray-500 rounded-md text-xs"
-                          title="Para anular una factura fiscal hay que emitir una rectificativa desde la sección Facturación."
-                        >
-                          Para anular: rectificar en Facturación ↓
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="px-3 py-1 bg-gray-100 text-gray-400 rounded-md text-sm font-medium cursor-not-allowed">
-                        No generada
-                      </span>
-                    )}
-                  </div>
+                  )}
 
                   {/* Mandato Gestoría */}
                   <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
@@ -2798,11 +2493,6 @@ export default function DealDetail() {
           </div>
         )}
 
-        <FacturaTypeModal
-          isOpen={showFacturaModal}
-          onClose={() => setShowFacturaModal(false)}
-          onConfirm={handleConfirmFactura}
-        />
         <ConfirmModalComponent />
       </div>
     </ProtectedRoute>
