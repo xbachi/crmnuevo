@@ -5,15 +5,14 @@
  * Tokens: formato "<base64url(payload)>.<base64url(hmac)>", el payload es
  * un JSON con { uid, role, exp }. Validación = recompute HMAC + verificar exp.
  *
- * SESSION_SECRET viene de env var. En dev usa un default fijo (no prod-safe);
- * el deploy real DEBE setearla.
+ * SESSION_SECRET viene de env var (ver sessionSecret.ts): en producción es
+ * obligatoria, en dev cae a un default fijo.
  */
 
 import crypto from 'crypto'
 import { pool } from '@/lib/direct-database'
+import { getSessionSecret } from '@/lib/sessionSecret'
 
-const SESSION_SECRET =
-  process.env.SESSION_SECRET || 'dev-only-INSECURE-set-SESSION_SECRET-in-prod'
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30 // 30 días
 export const SESSION_COOKIE = 'sc_session'
 
@@ -67,7 +66,7 @@ function b64urlDecode(s: string): Buffer {
 }
 function sign(payloadB64: string): string {
   return b64urlEncode(
-    crypto.createHmac('sha256', SESSION_SECRET).update(payloadB64).digest()
+    crypto.createHmac('sha256', getSessionSecret()).update(payloadB64).digest()
   )
 }
 

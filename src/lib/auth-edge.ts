@@ -5,8 +5,7 @@
  * `auth-server.ts` reusa estas mismas primitivas via import.
  */
 
-const SESSION_SECRET =
-  process.env.SESSION_SECRET || 'dev-only-INSECURE-set-SESSION_SECRET-in-prod'
+import { getSessionSecret } from '@/lib/sessionSecret'
 
 export const SESSION_COOKIE = 'sc_session'
 /** Sesión del portal de inversores: cookie separada, rol 'inversor', y el
@@ -37,13 +36,20 @@ async function hmacSha256(key: string, data: string): Promise<string> {
       false,
       ['sign']
     )
-    const sig = await globalThis.crypto.subtle.sign('HMAC', cryptoKey, enc.encode(data))
+    const sig = await globalThis.crypto.subtle.sign(
+      'HMAC',
+      cryptoKey,
+      enc.encode(data)
+    )
     const bytes = new Uint8Array(sig)
     let bin = ''
     for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i])
     // base64url
     if (typeof btoa !== 'undefined') {
-      return btoa(bin).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')
+      return btoa(bin)
+        .replace(/=+$/, '')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
     }
     return Buffer.from(bin, 'binary')
       .toString('base64')
@@ -69,9 +75,11 @@ export async function verifySessionTokenEdge(
   if (!token || !token.includes('.')) return null
   const [p, sig] = token.split('.', 2)
   if (!p || !sig) return null
+  // Fuera del try: si falta SESSION_SECRET en prod debe fallar fuerte, no como "token inválido".
+  const secret = getSessionSecret()
   let expected: string
   try {
-    expected = await hmacSha256(SESSION_SECRET, p)
+    expected = await hmacSha256(secret, p)
   } catch {
     return null
   }

@@ -6,11 +6,18 @@ import {
   recordLogin,
   SESSION_COOKIE,
 } from '@/lib/auth-server'
+import {
+  claveLogin,
+  estaBloqueado,
+  limpiar,
+  registrarFallo,
+} from '@/lib/loginRateLimit'
 
 /**
  * POST /api/auth/login
  * Body: { email, password }
  * Devuelve { user: { id, email, role, name } } y setea cookie HttpOnly.
+ * Rate limit: 5 fallos por ip+email en 15 minutos → 429.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -25,6 +32,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Limitación conocida: el limitador vive en memoria, por instancia serverless.
+    const ip =
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+    const clave = claveLogin(ip, email)
+    if (estaBloqueado(clave)) {
+      return NextResponse.json(
+        { error: 'Demasiados intentos. Esperá 15 minutos.' },
+        { status: 429 }
+      )
+    }
+
     const user = await findUserByEmail(email)
     // Always do the verify even if user is null to mitigate timing attacks.
     const ok = user
@@ -32,12 +50,14 @@ export async function POST(request: NextRequest) {
       : (verifyPassword(password, 'scrypt:00:00'), false)
 
     if (!user || !ok) {
+      registrarFallo(clave)
       return NextResponse.json(
         { error: 'Credenciales inválidas' },
         { status: 401 }
       )
     }
 
+    limpiar(clave)
     recordLogin(user.id).catch((e) => console.warn('[login] recordLogin:', e))
 
     const token = createSessionToken(user.id, user.role)
