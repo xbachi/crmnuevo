@@ -48,6 +48,34 @@ export function normalizarEstado(
   return ALIAS_ESTADO[up] ?? null
 }
 
+/** Buckets de la lista de vehículos (filtros de estado y contadores). */
+export type BucketEstado =
+  | 'publicados'
+  | 'enProceso'
+  | 'vendidos'
+  | 'reservados'
+
+/**
+ * Clasifica un estado en su bucket de la lista. Todo lo que no es
+ * PUBLICADO / RESERVADO / VENDIDO (preparación, DISPONIBLE, vacío/null,
+ * aliases y valores no reconocibles) cae en enProceso para que ningún coche
+ * desaparezca de todos los filtros.
+ */
+export function bucketDeEstado(
+  estado: string | null | undefined
+): BucketEstado {
+  switch (normalizarEstado(estado)) {
+    case 'PUBLICADO':
+      return 'publicados'
+    case 'RESERVADO':
+      return 'reservados'
+    case 'VENDIDO':
+      return 'vendidos'
+    default:
+      return 'enProceso'
+  }
+}
+
 /**
  * Tipo canónico del vehículo (LETRAS). El backend filtra por letra y la DB
  * debe guardar solo letras; los modales viejos guardaban PALABRAS y corrompían
@@ -98,6 +126,12 @@ export function normalizarTipo(
   return ALIAS_TIPO[up] ?? null
 }
 
+/** Label de UI para cualquier variante de tipo; valor crudo si no se reconoce. */
+export function labelTipo(t: string | null | undefined): string {
+  const n = normalizarTipo(t)
+  return n ? TIPO_LABEL[n] : String(t ?? '')
+}
+
 /** Estados de preparación: el kanban permite moverse libremente entre ellos. */
 export const ESTADOS_PREPARACION: EstadoVehiculo[] = [
   'SIN_ESTADO',
@@ -120,12 +154,42 @@ const VENTA_DIRECTA: EstadoVehiculo[] = ['RESERVADO', 'VENDIDO']
  * la UI lo hace hoy (venta sin publicar). VENDIDO es terminal salvo anulación.
  */
 export const TRANSICIONES: Record<EstadoVehiculo, EstadoVehiculo[]> = {
-  SIN_ESTADO: [...ESTADOS_PREPARACION, 'PUBLICADO', 'DISPONIBLE', ...VENTA_DIRECTA],
-  REVI_INIC: [...ESTADOS_PREPARACION, 'PUBLICADO', 'DISPONIBLE', ...VENTA_DIRECTA],
-  MECAUTO: [...ESTADOS_PREPARACION, 'PUBLICADO', 'DISPONIBLE', ...VENTA_DIRECTA],
-  REVI_PINTURA: [...ESTADOS_PREPARACION, 'PUBLICADO', 'DISPONIBLE', ...VENTA_DIRECTA],
-  PINTURA: [...ESTADOS_PREPARACION, 'PUBLICADO', 'DISPONIBLE', ...VENTA_DIRECTA],
-  LIMPIEZA: [...ESTADOS_PREPARACION, 'PUBLICADO', 'DISPONIBLE', ...VENTA_DIRECTA],
+  SIN_ESTADO: [
+    ...ESTADOS_PREPARACION,
+    'PUBLICADO',
+    'DISPONIBLE',
+    ...VENTA_DIRECTA,
+  ],
+  REVI_INIC: [
+    ...ESTADOS_PREPARACION,
+    'PUBLICADO',
+    'DISPONIBLE',
+    ...VENTA_DIRECTA,
+  ],
+  MECAUTO: [
+    ...ESTADOS_PREPARACION,
+    'PUBLICADO',
+    'DISPONIBLE',
+    ...VENTA_DIRECTA,
+  ],
+  REVI_PINTURA: [
+    ...ESTADOS_PREPARACION,
+    'PUBLICADO',
+    'DISPONIBLE',
+    ...VENTA_DIRECTA,
+  ],
+  PINTURA: [
+    ...ESTADOS_PREPARACION,
+    'PUBLICADO',
+    'DISPONIBLE',
+    ...VENTA_DIRECTA,
+  ],
+  LIMPIEZA: [
+    ...ESTADOS_PREPARACION,
+    'PUBLICADO',
+    'DISPONIBLE',
+    ...VENTA_DIRECTA,
+  ],
   FOTOS: [...ESTADOS_PREPARACION, 'PUBLICADO', 'DISPONIBLE', ...VENTA_DIRECTA],
   PUBLICADO: [...ESTADOS_PREPARACION, 'RESERVADO', 'VENDIDO', 'DISPONIBLE'],
   RESERVADO: ['PUBLICADO', 'VENDIDO', 'DISPONIBLE'],

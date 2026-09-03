@@ -12,6 +12,7 @@ import {
   generateVehicleSlug,
   capitalizeText,
 } from '@/lib/utils'
+import { labelTipo, TIPO_LABEL } from '@/lib/vehiculoEstado'
 import NotasSection from '@/components/NotasSection'
 import { useAuth } from '@/contexts/AuthContext'
 import ProtectedRoute from '@/components/ProtectedRoute'
@@ -239,7 +240,9 @@ export default function VehiculoDetailPage() {
 
   // Cambio de matrícula (historial: la factura/carpeta viejas se quedan con la
   // anterior, el coche pasa a la nueva)
-  const [matriculaAnterior, setMatriculaAnterior] = useState<string | null>(null)
+  const [matriculaAnterior, setMatriculaAnterior] = useState<string | null>(
+    null
+  )
   const [showMatriculaModal, setShowMatriculaModal] = useState(false)
   const [nuevaMatricula, setNuevaMatricula] = useState('')
   const [motivoMatricula, setMotivoMatricula] = useState('')
@@ -1628,7 +1631,6 @@ export default function VehiculoDetailPage() {
   }
 
   if (isLoading) {
-    console.log(`⏳ [VEHICULO PAGE] Mostrando pantalla de carga...`)
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
@@ -1654,10 +1656,6 @@ export default function VehiculoDetailPage() {
       </div>
     )
   }
-
-  console.log(
-    `🎯 [VEHICULO PAGE] Renderizando página del vehículo: ${capitalizeText(vehiculo.marca)} ${capitalizeText(vehiculo.modelo)} (${vehiculo.referencia})`
-  )
 
   return (
     <ProtectedRoute>
@@ -1708,15 +1706,7 @@ export default function VehiculoDetailPage() {
                 <span
                   className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium border ${getTipoColor(vehiculo.tipo)}`}
                 >
-                  {vehiculo.tipo === 'C'
-                    ? 'COMPRA'
-                    : vehiculo.tipo === 'I'
-                      ? 'INVERSOR'
-                      : vehiculo.tipo === 'D'
-                        ? 'DEPÓSITO'
-                        : vehiculo.tipo === 'R'
-                          ? 'RENTING'
-                          : vehiculo.tipo}
+                  {labelTipo(vehiculo.tipo)}
                 </span>
               </div>
             </div>
@@ -2048,23 +2038,15 @@ export default function VehiculoDetailPage() {
                                     }}
                                     className="ml-1 text-blue-900 bg-white border border-blue-300 rounded px-2 py-1 text-sm font-medium"
                                   >
-                                    <option value="C">COMPRA</option>
-                                    <option value="I">INVERSOR</option>
-                                    <option value="D">DEPÓSITO</option>
-                                    <option value="R">RENTING</option>
-                                    <option value="M">VENTA MANUAL</option>
+                                    <option value="C">{TIPO_LABEL.C}</option>
+                                    <option value="I">{TIPO_LABEL.I}</option>
+                                    <option value="D">{TIPO_LABEL.D}</option>
+                                    <option value="R">{TIPO_LABEL.R}</option>
+                                    <option value="M">{TIPO_LABEL.M}</option>
                                   </select>
                                 ) : (
                                   <span className="text-blue-900 font-semibold ml-1">
-                                    {vehiculo.tipo === 'C'
-                                      ? 'COMPRA'
-                                      : vehiculo.tipo === 'I'
-                                        ? 'INVERSOR'
-                                        : vehiculo.tipo === 'D'
-                                          ? 'DEPÓSITO'
-                                          : vehiculo.tipo === 'R'
-                                            ? 'RENTING'
-                                            : vehiculo.tipo}
+                                    {labelTipo(vehiculo.tipo)}
                                   </span>
                                 )}
                               </span>
@@ -5129,8 +5111,8 @@ export default function VehiculoDetailPage() {
                 Cambiar matrícula
               </h3>
               <p className="text-xs text-gray-500 mb-4">
-                Las facturas, carpetas y filas de CB ya emitidas se quedan con la
-                matrícula anterior ({vehiculo.matricula}); el CRM las sigue
+                Las facturas, carpetas y filas de CB ya emitidas se quedan con
+                la matrícula anterior ({vehiculo.matricula}); el CRM las sigue
                 cruzando con este coche.
               </p>
               <label className="block text-sm font-medium text-gray-700 mb-1">

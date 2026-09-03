@@ -11,7 +11,11 @@ import {
   generateVehicleSlug,
   capitalizeText,
 } from '@/lib/utils'
-import { normalizarTipo, TIPO_LABEL } from '@/lib/vehiculoEstado'
+import {
+  bucketDeEstado,
+  normalizarTipo,
+  TIPO_LABEL,
+} from '@/lib/vehiculoEstado'
 import ProtectedRoute from '@/components/ProtectedRoute'
 
 interface Vehiculo {
@@ -399,54 +403,9 @@ export default function ListaVehiculos() {
 
     // Aplicar filtro de estado primero
     if (statusFilter !== 'todos') {
-      filtered = filtered.filter((vehiculo) => {
-        const isVendido = (estado: string | null | undefined): boolean => {
-          if (!estado) return false
-          const normalized = estado.toString().toLowerCase().trim()
-          return normalized === 'vendido'
-        }
-
-        const isReservado = (estado: string | null | undefined): boolean => {
-          if (!estado) return false
-          const normalized = estado.toString().toLowerCase().trim()
-          return normalized === 'reservado'
-        }
-
-        const isPublicado = (estado: string | null | undefined): boolean => {
-          if (!estado) return false
-          const normalized = estado.toString().toLowerCase().trim()
-          return normalized === 'publicado'
-        }
-
-        const isEnProceso = (estado: string | null | undefined): boolean => {
-          // Incluir vehículos sin estado (null, undefined, vacío) como "inicial"
-          if (!estado || estado.trim() === '') return true
-          const normalized = estado.toString().toLowerCase().trim()
-          // Estados del proceso de venta que no sean vendido, reservado ni publicado
-          const estadosProceso = [
-            'sin_estado',
-            'inicial',
-            'revi_inic',
-            'mecauto',
-            'revi_pintura',
-            'pintura',
-            'limpieza',
-            'fotos',
-          ]
-          return estadosProceso.includes(normalized)
-        }
-
-        if (statusFilter === 'publicados') {
-          return isPublicado(vehiculo.estado)
-        } else if (statusFilter === 'enProceso') {
-          return isEnProceso(vehiculo.estado)
-        } else if (statusFilter === 'vendidos') {
-          return isVendido(vehiculo.estado)
-        } else if (statusFilter === 'reservados') {
-          return isReservado(vehiculo.estado)
-        }
-        return true
-      })
+      filtered = filtered.filter(
+        (vehiculo) => bucketDeEstado(vehiculo.estado) === statusFilter
+      )
     }
 
     // Aplicar filtro de tipo
@@ -527,51 +486,10 @@ export default function ListaVehiculos() {
       })
     }
 
-    const isVendido = (estado: string | null | undefined): boolean => {
-      if (!estado) return false
-      const normalized = estado.toString().toLowerCase().trim()
-      return normalized === 'vendido'
-    }
+    const counts = { publicados: 0, enProceso: 0, vendidos: 0, reservados: 0 }
+    for (const v of vehiculosFiltrados) counts[bucketDeEstado(v.estado)]++
 
-    const isReservado = (estado: string | null | undefined): boolean => {
-      if (!estado) return false
-      const normalized = estado.toString().toLowerCase().trim()
-      return normalized === 'reservado'
-    }
-
-    const isPublicado = (estado: string | null | undefined): boolean => {
-      if (!estado) return false
-      const normalized = estado.toString().toLowerCase().trim()
-      return normalized === 'publicado'
-    }
-
-    const isEnProceso = (estado: string | null | undefined): boolean => {
-      // Incluir vehículos sin estado (null, undefined, vacío) como "inicial"
-      if (!estado || estado.trim() === '') return true
-      const normalized = estado.toString().toLowerCase().trim()
-      // Estados del proceso de venta que no sean vendido, reservado ni publicado
-      const estadosProceso = [
-        'sin_estado',
-        'inicial',
-        'revi_inic',
-        'mecauto',
-        'revi_pintura',
-        'pintura',
-        'limpieza',
-        'fotos',
-      ]
-      return estadosProceso.includes(normalized)
-    }
-
-    return {
-      publicados: vehiculosFiltrados.filter((v) => isPublicado(v.estado))
-        .length,
-      enProceso: vehiculosFiltrados.filter((v) => isEnProceso(v.estado)).length,
-      vendidos: vehiculosFiltrados.filter((v) => isVendido(v.estado)).length,
-      reservados: vehiculosFiltrados.filter((v) => isReservado(v.estado))
-        .length,
-      todos: vehiculosFiltrados.length,
-    }
+    return { ...counts, todos: vehiculosFiltrados.length }
   }
 
   const fetchVehiculos = async (page = 1, forceRefresh = false) => {
