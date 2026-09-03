@@ -24,7 +24,9 @@ const nextConfig: NextConfig = {
     removeConsole: process.env.NODE_ENV === 'production',
   },
   
-  // Configuración de headers para cache
+  // Configuración de headers para cache.
+  // La API sirve datos autenticados y mutables: sin caché en navegador ni CDN
+  // (con max-age la ficha seguía mostrando "sin factura" tras emitirla).
   async headers() {
     return [
       {
@@ -32,7 +34,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=60, s-maxage=60',
+            value: 'private, no-store',
           },
         ],
       },

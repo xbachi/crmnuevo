@@ -145,7 +145,9 @@ export default function DealInvoiceSection({
     async (silent = false) => {
       if (!silent) setIsLoading(true)
       try {
-        const res = await fetch(`/api/invoices?dealId=${saleId}&pageSize=10`)
+        const res = await fetch(`/api/invoices?dealId=${saleId}&pageSize=10`, {
+          cache: 'no-store',
+        })
         if (res.ok) {
           const data = await res.json()
           setInvoices(data.rows ?? [])

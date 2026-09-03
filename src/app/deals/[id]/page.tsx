@@ -263,9 +263,9 @@ export default function DealDetail() {
     return documentacionFiles.find((file) => file.type === type)
   }
 
-  const fetchDeal = async () => {
+  const fetchDeal = async (opts: { silent?: boolean } = {}) => {
     try {
-      setIsLoading(true)
+      if (!opts.silent) setIsLoading(true)
       const response = await fetch(`/api/deals/${params.id}`)
       if (response.ok) {
         const dealData = await response.json()
@@ -1649,7 +1649,9 @@ export default function DealDetail() {
                     ? new Date(deal.fechaFacturada).toISOString()
                     : null
                 }
-                onInvoiceIssued={loadDeal}
+                // Refresco silencioso: el spinner de página desmonta la sección y
+                // perdería la factura recién emitida (y su toast).
+                onInvoiceIssued={() => fetchDeal({ silent: true })}
               />
 
               {/* Información de Reserva */}
