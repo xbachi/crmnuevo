@@ -20,9 +20,8 @@ export interface DashboardReminder {
 
 // Obtener vehículos con ITV vencida
 export async function getVehiculosItvVencida(): Promise<DashboardReminder> {
-  const client = await pool.connect()
   try {
-    const result = await client.query(`
+    const result = await pool.query(`
       SELECT id, referencia, marca, modelo, matricula, itv
       FROM "Vehiculo"
       WHERE itv IS NOT NULL 
@@ -60,16 +59,13 @@ export async function getVehiculosItvVencida(): Promise<DashboardReminder> {
       priority: 'low',
       items: [],
     }
-  } finally {
-    client.release()
   }
 }
 
 // Obtener vehículos con documentación pendiente
 export async function getVehiculosDocumentacionPendiente(): Promise<DashboardReminder> {
-  const client = await pool.connect()
   try {
-    const result = await client.query(`
+    const result = await pool.query(`
       SELECT id, referencia, marca, modelo, matricula, documentacion
       FROM "Vehiculo"
       WHERE (documentacion IS NULL OR documentacion = 'No' OR documentacion = 'NO' OR documentacion = '')
@@ -109,16 +105,13 @@ export async function getVehiculosDocumentacionPendiente(): Promise<DashboardRem
       priority: 'low',
       items: [],
     }
-  } finally {
-    client.release()
   }
 }
 
 // Obtener vehículos facturados que necesitan cambio de nombre
 export async function getVehiculosCambioNombrePendiente(): Promise<DashboardReminder> {
-  const client = await pool.connect()
   try {
-    const result = await client.query(`
+    const result = await pool.query(`
       SELECT 
         d.id as "dealId",
         d.numero as "dealNumero",
@@ -174,21 +167,17 @@ export async function getVehiculosCambioNombrePendiente(): Promise<DashboardRemi
       priority: 'low',
       items: [],
     }
-  } finally {
-    client.release()
   }
 }
 
 // Obtener todos los recordatorios del dashboard
 export async function getDashboardReminders(): Promise<DashboardReminder[]> {
   try {
-    const [itvReminder, docsReminder, cambioNombreReminder] = await Promise.all(
-      [
-        getVehiculosItvVencida(),
-        getVehiculosDocumentacionPendiente(),
-        getVehiculosCambioNombrePendiente(),
-      ]
-    )
+    // Secuencial a propósito: el pool compartido tiene max 3; en paralelo una sola
+    // request ocupaba los 3 slots y bloqueaba cualquier otra query concurrente.
+    const itvReminder = await getVehiculosItvVencida()
+    const docsReminder = await getVehiculosDocumentacionPendiente()
+    const cambioNombreReminder = await getVehiculosCambioNombrePendiente()
 
     // Solo devolver recordatorios que tengan elementos
     return [itvReminder, docsReminder, cambioNombreReminder].filter(
