@@ -1,13 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Pool } from 'pg'
-
-// Crear pool de conexiones PostgreSQL
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false,
-  },
-})
+import { pool } from '@/lib/direct-database'
 
 export async function DELETE(request: NextRequest) {
   try {
@@ -34,8 +26,6 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    const client = await pool.connect()
-
     let result
     let message
 
@@ -45,7 +35,7 @@ export async function DELETE(request: NextRequest) {
           `🔧 [DASHBOARD REMINDERS DELETE] Procesando ITV vencida para vehículo ${vehiculoId}`
         )
         // Marcar ITV como "ignorada" o actualizar fecha para que no aparezca más
-        result = await client.query(
+        result = await pool.query(
           `UPDATE "Vehiculo" 
            SET itv_vencimiento = itv_vencimiento + INTERVAL '1 year'
            WHERE id = $1`,
@@ -57,7 +47,7 @@ export async function DELETE(request: NextRequest) {
           `🔧 [DASHBOARD REMINDERS DELETE] Procesando documentación pendiente para vehículo ${vehiculoId}`
         )
         // Marcar como que tiene documentación (agregar un campo o actualizar estado)
-        result = await client.query(
+        result = await pool.query(
           `UPDATE "Vehiculo" 
            SET estado = 'PUBLICADO'
            WHERE id = $1`,
@@ -70,7 +60,7 @@ export async function DELETE(request: NextRequest) {
         )
         // Marcar el deal como que ya se procesó el cambio de nombre
         // Primero verificar si el campo existe, si no, crear un recordatorio manual
-        result = await client.query(
+        result = await pool.query(
           `UPDATE "Deal" 
            SET estado = 'vendido'
            WHERE id = $1`,
@@ -81,7 +71,6 @@ export async function DELETE(request: NextRequest) {
         console.error(
           `❌ [DASHBOARD REMINDERS DELETE] Parámetros inválidos: tipo=${tipo}, vehiculoId=${vehiculoId}, dealId=${dealId}`
         )
-        client.release()
         return NextResponse.json(
           {
             error: `Tipo de recordatorio no válido o faltan parámetros. Tipo: ${tipo}, VehiculoId: ${vehiculoId}, DealId: ${dealId}`,
@@ -95,7 +84,6 @@ export async function DELETE(request: NextRequest) {
       })
 
       if (result.rowCount === 0) {
-        client.release()
         return NextResponse.json(
           { error: 'Registro no encontrado' },
           { status: 404 }
@@ -109,15 +97,12 @@ export async function DELETE(request: NextRequest) {
         '❌ [DASHBOARD REMINDERS DELETE] Error en query:',
         queryError
       )
-      client.release()
       return NextResponse.json(
         {
           error: `Error en la consulta: ${queryError instanceof Error ? queryError.message : String(queryError)}`,
         },
         { status: 500 }
       )
-    } finally {
-      client.release()
     }
   } catch (error) {
     console.error('❌ [DASHBOARD REMINDERS DELETE] Error general:', error)

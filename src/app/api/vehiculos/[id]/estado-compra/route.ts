@@ -1,13 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Pool } from 'pg'
-
-// Crear pool de conexiones PostgreSQL
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false,
-  },
-})
+import { pool } from '@/lib/direct-database'
 
 // GET - Obtener estado de compra del vehículo
 export async function GET(
@@ -29,16 +21,12 @@ export async function GET(
     }
 
     console.log('🔍 [API GET] Buscando vehículo en base de datos...')
-    const client = await pool.connect()
-
-    const result = await client.query(
+    const result = await pool.query(
       `SELECT id, pagado, "transporteSolicitado", recibido 
        FROM "Vehiculo" 
        WHERE id = $1`,
       [vehiculoId]
     )
-
-    client.release()
 
     console.log('🔍 [API GET] Resultado de búsqueda:', result.rows[0])
 
@@ -114,17 +102,13 @@ export async function PUT(
       )
     }
 
-    const client = await pool.connect()
-
-    const result = await client.query(
+    const result = await pool.query(
       `UPDATE "Vehiculo" 
        SET pagado = $1, "transporteSolicitado" = $2, recibido = $3, "updatedAt" = NOW()
        WHERE id = $4
        RETURNING id, pagado, "transporteSolicitado", recibido`,
       [pagado, transporteSolicitado, recibido, vehiculoId]
     )
-
-    client.release()
 
     console.log('✅ [API] Vehículo actualizado:', result.rows[0])
 

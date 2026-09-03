@@ -1,13 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Pool } from 'pg'
-
-// Crear pool de conexiones PostgreSQL
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false,
-  },
-})
+import { pool } from '@/lib/direct-database'
 
 export async function GET(
   request: NextRequest,
@@ -21,10 +13,7 @@ export async function GET(
       !!process.env.DATABASE_URL
     )
 
-    const client = await pool.connect()
-    console.log(`🚗 [COCHE R API] Conexión establecida`)
-
-    const result = await client.query(
+    const result = await pool.query(
       `SELECT 
         id, referencia, marca, modelo, matricula, bastidor, color, año, 
         kms, "precioCompra", "precioVenta", estado, tipo, tipo_vehiculo,
@@ -41,8 +30,6 @@ export async function GET(
     if (result.rows.length > 0) {
       console.log(`🚗 [COCHE R API] Vehículo encontrado:`, result.rows[0])
     }
-
-    client.release()
 
     if (result.rows.length === 0) {
       return NextResponse.json(

@@ -1,13 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Pool } from 'pg'
-
-// Crear pool de conexiones PostgreSQL
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false,
-  },
-})
+import { pool } from '@/lib/direct-database'
 
 export async function GET(
   request: NextRequest,
@@ -19,16 +11,12 @@ export async function GET(
       `📅 [VEHICULO RECORDATORIOS] Obteniendo recordatorios para vehículo ${vehiculoId}`
     )
 
-    const client = await pool.connect()
-
-    const result = await client.query(
+    const result = await pool.query(
       `SELECT * FROM "VehiculoRecordatorios" 
        WHERE vehiculo_id = $1 
        ORDER BY fecha_recordatorio ASC, created_at DESC`,
       [parseInt(vehiculoId)]
     )
-
-    client.release()
 
     console.log(
       `📅 [VEHICULO RECORDATORIOS] Encontrados ${result.rows.length} recordatorios`
@@ -81,9 +69,7 @@ export async function POST(
       )
     }
 
-    const client = await pool.connect()
-
-    const result = await client.query(
+    const result = await pool.query(
       `INSERT INTO "VehiculoRecordatorios" (vehiculo_id, titulo, descripcion, tipo, prioridad, fecha_recordatorio, completado, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
        RETURNING *`,
@@ -97,8 +83,6 @@ export async function POST(
         false,
       ]
     )
-
-    client.release()
 
     console.log(
       `✅ [VEHICULO RECORDATORIOS] Recordatorio creado exitosamente:`,
@@ -146,9 +130,7 @@ export async function PUT(
       )
     }
 
-    const client = await pool.connect()
-
-    const result = await client.query(
+    const result = await pool.query(
       `UPDATE "VehiculoRecordatorios" 
        SET titulo = COALESCE($1, titulo),
            descripcion = COALESCE($2, descripcion),
@@ -170,8 +152,6 @@ export async function PUT(
         parseInt(vehiculoId),
       ]
     )
-
-    client.release()
 
     if (result.rows.length === 0) {
       return NextResponse.json(
@@ -217,16 +197,12 @@ export async function DELETE(
       )
     }
 
-    const client = await pool.connect()
-
-    const result = await client.query(
+    const result = await pool.query(
       `DELETE FROM "VehiculoRecordatorios" 
        WHERE id = $1 AND vehiculo_id = $2
        RETURNING id`,
       [parseInt(recordatorioId), parseInt(vehiculoId)]
     )
-
-    client.release()
 
     if (result.rows.length === 0) {
       return NextResponse.json(

@@ -10,7 +10,7 @@ Senior-dev workflow. Surgical, reversible changes. Quality before commit.
 - **Husky** pre-commit / pre-push (lint-staged + Prettier)
 
 ## Critical project rules
-- **pg.Pool MUST be capped at 1 connection per Vercel function instance** (see recent commit `ceaef29`). Do not raise without explicit approval.
+- **One shared pg.Pool only:** it lives in `src/lib/direct-database.ts` with `max: 3` (rationale in that file's comment: EMAXCONN incident on the Supabase pooler + self-deadlock at `max: 1`). NEVER do `new Pool()` in routes or elsewhere; always `import { pool } from '@/lib/direct-database'`. Do not raise `max` without explicit approval.
 - **Never skip git hooks** (`--no-verify`, `--no-gpg-sign`). If a hook fails, fix the cause.
 - **Never read or commit:** `.env*`, `secrets/**`, `public/documents/**` (real customer PDFs/contracts).
 - **SQL migrations** live at repo root as `add-*.sql` / `create-*.sql` / `fix-*.sql`. Add new ones following the same naming; don't reorder existing files.
