@@ -82,6 +82,7 @@ export async function POST(request: NextRequest) {
           file,
           {
             access: 'public',
+            addRandomSuffix: true,
             contentType: file.type,
           }
         )
@@ -93,7 +94,7 @@ export async function POST(request: NextRequest) {
         const newFileMetadata = {
           id: timestamp.toString(),
           name: file.name,
-          fileName: uniqueFileName,
+          fileName: blob.pathname.split('/').pop() ?? uniqueFileName,
           size: file.size,
           type: file.type,
           uploadDate: new Date().toISOString(),
