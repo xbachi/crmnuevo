@@ -144,20 +144,18 @@ export default function InvestorDashboardPage() {
       const inversorData = await inversorResponse.json()
       setInversorData(inversorData)
 
-      // Obtener vehículos del inversor
-      const vehiculosResponse = await fetch(
-        `/api/inversores/${inversorId}/vehiculos`
-      )
+      // Vehículos y métricas en paralelo (independientes entre sí)
+      const [vehiculosResponse, metricsResponse] = await Promise.all([
+        fetch(`/api/inversores/${inversorId}/vehiculos`),
+        fetch(`/api/inversores/${inversorId}/metrics`),
+      ])
       if (!vehiculosResponse.ok) throw new Error('Error al cargar vehículos')
-      const vehiculosData = await vehiculosResponse.json()
-      setVehiculos(vehiculosData)
-
-      // Obtener métricas
-      const metricsResponse = await fetch(
-        `/api/inversores/${inversorId}/metrics`
-      )
       if (!metricsResponse.ok) throw new Error('Error al cargar métricas')
-      const metricsData = await metricsResponse.json()
+      const [vehiculosData, metricsData] = await Promise.all([
+        vehiculosResponse.json(),
+        metricsResponse.json(),
+      ])
+      setVehiculos(vehiculosData)
       setMetrics(metricsData)
     } catch (error) {
       console.error('Error:', error)
@@ -2469,10 +2467,12 @@ export default function InvestorDashboardPage() {
                             <span>•</span>
                             <span>Tipo: {tipoLabel(vehiculo.tipo)}</span>
                             <span>•</span>
-                            {vehiculo.precioCompra && vehiculo.precioCompra > 0 ? (
+                            {vehiculo.precioCompra &&
+                            vehiculo.precioCompra > 0 ? (
                               <span>
                                 Compra:{' '}
-                                {vehiculo.precioCompra.toLocaleString('es-ES')} €
+                                {vehiculo.precioCompra.toLocaleString('es-ES')}{' '}
+                                €
                               </span>
                             ) : (
                               <span className="text-amber-600 font-medium">
@@ -2493,7 +2493,9 @@ export default function InvestorDashboardPage() {
                           disabled={assigningId === vehiculo.id}
                           className="ml-3 px-3 py-1.5 bg-primary-500 text-white rounded-md text-sm hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                         >
-                          {assigningId === vehiculo.id ? 'Asignando...' : 'Asignar'}
+                          {assigningId === vehiculo.id
+                            ? 'Asignando...'
+                            : 'Asignar'}
                         </button>
                       </div>
                     ))}
