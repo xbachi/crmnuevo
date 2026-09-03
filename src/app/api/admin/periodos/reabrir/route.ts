@@ -10,10 +10,12 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/direct-database'
+import { safeEqual } from '@/lib/secrets'
 
 export async function POST(request: NextRequest) {
-  const secret = process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
-  if (!secret || (request.headers.get('x-admin-secret') ?? '') !== secret) {
+  const secret =
+    process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
+  if (!secret || !safeEqual(request.headers.get('x-admin-secret'), secret)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
@@ -30,7 +32,8 @@ export async function POST(request: NextRequest) {
   if (!motivo) {
     return NextResponse.json(
       {
-        error: 'motivo obligatorio para reabrir un período (queda registrado en la fila)',
+        error:
+          'motivo obligatorio para reabrir un período (queda registrado en la fila)',
         code: 'MOTIVO_REQUERIDO',
       },
       { status: 400 }
@@ -60,10 +63,16 @@ export async function POST(request: NextRequest) {
     const e = err as { code?: string; message?: string }
     if (e.code === '42P01') {
       return NextResponse.json(
-        { error: 'tabla periodos_contables no existe; correr create-periodos-contables.sql primero' },
+        {
+          error:
+            'tabla periodos_contables no existe; correr create-periodos-contables.sql primero',
+        },
         { status: 503 }
       )
     }
-    return NextResponse.json({ ok: false, error: e.message ?? String(err) }, { status: 500 })
+    return NextResponse.json(
+      { ok: false, error: e.message ?? String(err) },
+      { status: 500 }
+    )
   }
 }

@@ -22,7 +22,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/direct-database'
 import { campoParaTipo, tiposCanonicos } from '@/lib/gastoMapping'
 import { resyncVehiculoRowToCB } from '@/lib/costoBeneficio'
-import { AdminParamError, assertKnownParams, parseStrictBool } from '@/lib/adminParams'
+import {
+  AdminParamError,
+  assertKnownParams,
+  parseStrictBool,
+} from '@/lib/adminParams'
+import { safeEqual } from '@/lib/secrets'
 
 const MIGRACION = 'migracion-2026'
 
@@ -40,8 +45,9 @@ interface Par {
 }
 
 export async function POST(request: NextRequest) {
-  const secret = process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
-  if (!secret || (request.headers.get('x-admin-secret') ?? '') !== secret) {
+  const secret =
+    process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
+  if (!secret || !safeEqual(request.headers.get('x-admin-secret'), secret)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
@@ -143,9 +149,18 @@ export async function POST(request: NextRequest) {
   // CB: overwrite de las celdas de costo de cada coche afectado (best-effort)
   const cbResync: Record<string, string> = {}
   for (const vehiculoId of [...new Set(afectados.map((p) => p.vehiculoId))]) {
-    const r = await resyncVehiculoRowToCB(vehiculoId, 'CB 2026', 'repair-gastos-dup')
+    const r = await resyncVehiculoRowToCB(
+      vehiculoId,
+      'CB 2026',
+      'repair-gastos-dup'
+    )
     cbResync[String(vehiculoId)] = `${r.action}: ${r.detail}`
   }
 
-  return NextResponse.json({ dryRun: false, afectados: informe, sobreconteo, cbResync })
+  return NextResponse.json({
+    dryRun: false,
+    afectados: informe,
+    sobreconteo,
+    cbResync,
+  })
 }

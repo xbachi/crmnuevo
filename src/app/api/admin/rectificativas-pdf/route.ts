@@ -24,6 +24,7 @@ import {
 } from '@/lib/invoiceService'
 import { getInvoiceById, type Invoice } from '@/lib/invoiceRepository'
 import { notifyGestoriaInvoice } from '@/lib/gestoriaWebhook'
+import { safeEqual } from '@/lib/secrets'
 
 export const maxDuration = 60
 
@@ -41,13 +42,15 @@ export async function POST(request: NextRequest) {
   const secret =
     process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
   const got = request.headers.get('x-admin-secret') ?? ''
-  if (!secret || got !== secret) {
+  if (!secret || !safeEqual(got, secret)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 
   const body = await request.json().catch(() => ({}))
   const ids: number[] = Array.isArray(body?.ids)
-    ? body.ids.map((v: unknown) => parseInt(String(v), 10)).filter(Number.isInteger)
+    ? body.ids
+        .map((v: unknown) => parseInt(String(v), 10))
+        .filter(Number.isInteger)
     : []
   const dryRun = body?.dryRun === true
   const archivarGestoria = body?.archivarGestoria === true
@@ -160,7 +163,7 @@ export async function GET(request: NextRequest) {
   const secret =
     process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
   const got = request.headers.get('x-admin-secret') ?? ''
-  if (!secret || got !== secret) {
+  if (!secret || !safeEqual(got, secret)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 
@@ -170,7 +173,10 @@ export async function GET(request: NextRequest) {
   }
   const invoice = await getInvoiceById(id)
   if (!invoice) {
-    return NextResponse.json({ error: 'Factura no encontrada' }, { status: 404 })
+    return NextResponse.json(
+      { error: 'Factura no encontrada' },
+      { status: 404 }
+    )
   }
 
   const pdf = await buildInvoicePdf(invoice)

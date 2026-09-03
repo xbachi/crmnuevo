@@ -25,6 +25,7 @@ import crypto from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/direct-database'
 import { requireApiSession } from '@/lib/apiAuth'
+import { safeEqual } from '@/lib/secrets'
 
 const ORIGENES = [
   'verificacion-manual',
@@ -38,7 +39,7 @@ const ESTADOS = ['pendiente', 'aprobado', 'descartado'] as const
 
 export async function POST(request: NextRequest) {
   const secret = process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
-  if (!secret || (request.headers.get('x-webhook-secret') ?? '') !== secret) {
+  if (!secret || !safeEqual(request.headers.get('x-webhook-secret'), secret)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
@@ -47,7 +48,9 @@ export async function POST(request: NextRequest) {
   const titulo = String(b.titulo ?? '').trim()
   if (!(ORIGENES as readonly string[]).includes(origen)) {
     return NextResponse.json(
-      { error: `origen inválido: "${origen}". Válidos: ${ORIGENES.join(', ')}` },
+      {
+        error: `origen inválido: "${origen}". Válidos: ${ORIGENES.join(', ')}`,
+      },
       { status: 400 }
     )
   }
@@ -75,13 +78,21 @@ export async function POST(request: NextRequest) {
       [origen, titulo, JSON.stringify(payload), dedupKey]
     )
     if (ins.rows.length > 0) {
-      return NextResponse.json({ ok: true, duplicado: false, id: ins.rows[0].id })
+      return NextResponse.json({
+        ok: true,
+        duplicado: false,
+        id: ins.rows[0].id,
+      })
     }
     const dup = await pool.query(
       `SELECT id, estado FROM revision_items WHERE dedup_key = $1 LIMIT 1`,
       [dedupKey]
     )
-    return NextResponse.json({ ok: true, duplicado: true, existente: dup.rows[0] ?? null })
+    return NextResponse.json({
+      ok: true,
+      duplicado: true,
+      existente: dup.rows[0] ?? null,
+    })
   } catch (err) {
     return NextResponse.json(
       { ok: false, error: (err as Error).message ?? String(err) },
@@ -98,12 +109,17 @@ export async function GET(request: NextRequest) {
   const estadoRaw = searchParams.get('estado') ?? 'pendiente'
   if (!(ESTADOS as readonly string[]).includes(estadoRaw)) {
     return NextResponse.json(
-      { error: `estado inválido: "${estadoRaw}". Válidos: ${ESTADOS.join(', ')}` },
+      {
+        error: `estado inválido: "${estadoRaw}". Válidos: ${ESTADOS.join(', ')}`,
+      },
       { status: 400 }
     )
   }
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10) || 1)
-  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') ?? '50', 10) || 50))
+  const limit = Math.min(
+    100,
+    Math.max(1, parseInt(searchParams.get('limit') ?? '50', 10) || 50)
+  )
   const offset = (page - 1) * limit
 
   try {
@@ -117,8 +133,13 @@ export async function GET(request: NextRequest) {
           LIMIT $2 OFFSET $3`,
         [estadoRaw, limit, offset]
       ),
-      pool.query(`SELECT count(*)::int n FROM revision_items WHERE estado = $1`, [estadoRaw]),
-      pool.query(`SELECT count(*)::int n FROM revision_items WHERE estado = 'pendiente'`),
+      pool.query(
+        `SELECT count(*)::int n FROM revision_items WHERE estado = $1`,
+        [estadoRaw]
+      ),
+      pool.query(
+        `SELECT count(*)::int n FROM revision_items WHERE estado = 'pendiente'`
+      ),
     ])
     return NextResponse.json({
       items: items.rows,

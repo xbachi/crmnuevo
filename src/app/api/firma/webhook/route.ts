@@ -2,11 +2,10 @@
  * POST /api/firma/webhook — eventos del proveedor de firma (Signaturit).
  * En la whitelist del middleware (el proveedor no tiene sesión).
  *
- * Validación: Signaturit v3 no firma sus webhooks, así que si
- * SIGNATURIT_WEBHOOK_SECRET está seteado se exige como shared secret en el
- * header X-Firma-Secret o en el query param ?secret= (configurable en la URL
- * del webhook del panel de Signaturit). Si NO está seteado, se acepta el
- * evento y se loguea un warning — setearlo en prod.
+ * Validación: Signaturit v3 no firma sus webhooks, así que se exige
+ * SIGNATURIT_WEBHOOK_SECRET como shared secret en el header X-Firma-Secret o
+ * en el query param ?secret= (configurable en la URL del webhook del panel de
+ * Signaturit). Si NO está seteado, se responde 503 y no se procesa nada.
  *
  * Body (Signaturit manda variantes según evento): {
  *   type | event_type: 'document_completed' | 'audit_trail_completed' |
@@ -23,24 +22,34 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/direct-database'
+import { safeEqual } from '@/lib/secrets'
 
-const EVENTOS_COMPLETADO = ['document_completed', 'audit_trail_completed', 'signature_completed']
-const EVENTOS_CANCELADO = ['document_canceled', 'document_declined', 'document_expired', 'signature_canceled']
+const EVENTOS_COMPLETADO = [
+  'document_completed',
+  'audit_trail_completed',
+  'signature_completed',
+]
+const EVENTOS_CANCELADO = [
+  'document_canceled',
+  'document_declined',
+  'document_expired',
+  'signature_canceled',
+]
 
 export async function POST(request: NextRequest) {
   const secret = process.env.SIGNATURIT_WEBHOOK_SECRET ?? ''
-  if (secret) {
-    const got =
-      request.headers.get('x-firma-secret') ??
-      new URL(request.url).searchParams.get('secret') ??
-      ''
-    if (got !== secret) {
-      return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
-    }
-  } else {
-    console.warn(
-      '[firma/webhook] SIGNATURIT_WEBHOOK_SECRET no seteado: aceptando evento sin validar'
+  if (!secret) {
+    return NextResponse.json(
+      { error: 'Webhook de firma no configurado' },
+      { status: 503 }
     )
+  }
+  const got =
+    request.headers.get('x-firma-secret') ??
+    new URL(request.url).searchParams.get('secret') ??
+    ''
+  if (!safeEqual(got, secret)) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
   const b = (await request.json().catch(() => ({}))) as Record<string, unknown>
@@ -50,7 +59,10 @@ export async function POST(request: NextRequest) {
   const evento = String(b.type ?? b.event_type ?? '').trim()
 
   if (!solicitudId) {
-    return NextResponse.json({ error: 'evento sin id de solicitud' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'evento sin id de solicitud' },
+      { status: 400 }
+    )
   }
 
   let estado: string | null = null
@@ -78,7 +90,9 @@ export async function POST(request: NextRequest) {
     if (upd.rows.length === 0) {
       // Evento de una solicitud que no registramos: 200 igual para que el
       // proveedor no reintente infinito, pero avisamos.
-      console.warn(`[firma/webhook] solicitud desconocida: ${solicitudId} (${evento})`)
+      console.warn(
+        `[firma/webhook] solicitud desconocida: ${solicitudId} (${evento})`
+      )
       return NextResponse.json({ ok: true, conocida: false })
     }
     return NextResponse.json({ ok: true, conocida: true, ...upd.rows[0] })

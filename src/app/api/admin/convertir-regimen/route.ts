@@ -14,10 +14,8 @@
  */
 
 import { NextRequest, NextResponse, after } from 'next/server'
-import {
-  convertirRegimen,
-  ConvertirError,
-} from '@/lib/invoiceConvertRegimen'
+import { convertirRegimen, ConvertirError } from '@/lib/invoiceConvertRegimen'
+import { safeEqual } from '@/lib/secrets'
 
 export const maxDuration = 60
 
@@ -25,7 +23,7 @@ export async function POST(request: NextRequest) {
   const secret =
     process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
   const got = request.headers.get('x-admin-secret') ?? ''
-  if (!secret || got !== secret) {
+  if (!secret || !safeEqual(got, secret)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 

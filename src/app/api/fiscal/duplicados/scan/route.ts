@@ -32,6 +32,7 @@ import { pool } from '@/lib/direct-database'
 import { requireAdminSession } from '@/lib/apiAuth'
 import { registrarCambio } from '@/lib/fiscalAudit'
 import { fecha as fmtFecha, num } from '@/lib/fiscalApi'
+import { safeEqual } from '@/lib/secrets'
 
 export const maxDuration = 30
 
@@ -56,10 +57,11 @@ const eur = (n: number | null): string =>
 
 export async function POST(request: NextRequest) {
   // Auth dual: secret para curl/cron, sesión admin para la UI.
-  const secret = process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
+  const secret =
+    process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
   const gotSecret = request.headers.get('x-admin-secret') ?? ''
   let actor = 'sistema'
-  if (!secret || gotSecret !== secret) {
+  if (!secret || !safeEqual(gotSecret, secret)) {
     const auth = requireAdminSession(request)
     if (auth.response) return auth.response
     actor = `uid:${auth.session.uid}`
@@ -72,7 +74,10 @@ export async function POST(request: NextRequest) {
   if (anioRaw != null && anioRaw.trim() !== '') {
     anio = parseInt(anioRaw, 10)
     if (!Number.isInteger(anio) || anio < 2000 || anio > 2100) {
-      return NextResponse.json({ error: `anio inválido: "${anioRaw}"` }, { status: 400 })
+      return NextResponse.json(
+        { error: `anio inválido: "${anioRaw}"` },
+        { status: 400 }
+      )
     }
   }
 
@@ -258,7 +263,13 @@ export async function POST(request: NextRequest) {
       client.release()
     }
   } catch (err) {
-    console.error('[fiscal/duplicados/scan] POST:', (err as Error)?.message ?? err)
-    return NextResponse.json({ error: 'No se pudo escanear duplicados' }, { status: 500 })
+    console.error(
+      '[fiscal/duplicados/scan] POST:',
+      (err as Error)?.message ?? err
+    )
+    return NextResponse.json(
+      { error: 'No se pudo escanear duplicados' },
+      { status: 500 }
+    )
   }
 }

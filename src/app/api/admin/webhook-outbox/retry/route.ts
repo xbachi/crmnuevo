@@ -2,16 +2,20 @@
  * POST /api/admin/webhook-outbox/retry
  *
  * Reintenta el envío del webhook de gestoría para filas 'pendiente' de
- * webhook_outbox con intentos < max_intentos (C-23). No hay cron automático
- * todavía: lo dispara un humano o un cron externo.
+ * webhook_outbox con intentos < max_intentos (C-23). Lo dispara el cron
+ * diario /api/cron/costobeneficio (paso 3) o un humano.
  *
  * Protegido por X-Admin-Secret.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/direct-database'
-import { postGestoriaWebhook, type GestoriaInvoicePayload } from '@/lib/gestoriaWebhook'
+import {
+  postGestoriaWebhook,
+  type GestoriaInvoicePayload,
+} from '@/lib/gestoriaWebhook'
 import { markOutboxEnviado, markOutboxFallo } from '@/lib/webhookOutbox'
+import { safeEqual } from '@/lib/secrets'
 
 interface PendingRow {
   id: number
@@ -20,8 +24,9 @@ interface PendingRow {
 }
 
 export async function POST(request: NextRequest) {
-  const secret = process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
-  if (!secret || (request.headers.get('x-admin-secret') ?? '') !== secret) {
+  const secret =
+    process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
+  if (!secret || !safeEqual(request.headers.get('x-admin-secret'), secret)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
@@ -35,7 +40,12 @@ export async function POST(request: NextRequest) {
 
     let exitosas = 0
     let fallidas = 0
-    const detalle: { id: number; numeroFactura: string | null; ok: boolean; error: string | null }[] = []
+    const detalle: {
+      id: number
+      numeroFactura: string | null
+      ok: boolean
+      error: string | null
+    }[] = []
 
     for (const row of pending.rows) {
       const result = await postGestoriaWebhook(row.payload)
@@ -62,6 +72,9 @@ export async function POST(request: NextRequest) {
       detalle,
     })
   } catch (err) {
-    return NextResponse.json({ ok: false, error: (err as Error).message }, { status: 500 })
+    return NextResponse.json(
+      { ok: false, error: (err as Error).message },
+      { status: 500 }
+    )
   }
 }

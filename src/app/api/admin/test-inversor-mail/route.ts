@@ -9,10 +9,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { sendMail } from '@/lib/mailer'
 import { buildInversorEmail } from '@/lib/inversorNotify'
 import { AdminParamError, assertKnownParams } from '@/lib/adminParams'
+import { safeEqual } from '@/lib/secrets'
 
 export async function POST(request: NextRequest) {
-  const secret = process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
-  if (!secret || (request.headers.get('x-admin-secret') ?? '') !== secret) {
+  const secret =
+    process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
+  if (!secret || !safeEqual(request.headers.get('x-admin-secret'), secret)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
   let to: string
@@ -27,7 +29,10 @@ export async function POST(request: NextRequest) {
     throw err
   }
   if (!to || !to.includes('@')) {
-    return NextResponse.json({ error: 'parámetro to requerido (email)' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'parámetro to requerido (email)' },
+      { status: 400 }
+    )
   }
 
   const mail = buildInversorEmail({
@@ -37,7 +42,9 @@ export async function POST(request: NextRequest) {
     matricula: '0000XXX',
     referencia: 'I-#0000',
     evento: 'vendido',
-    fecha: new Date().toLocaleDateString('es-ES', { timeZone: 'Europe/Madrid' }),
+    fecha: new Date().toLocaleDateString('es-ES', {
+      timeZone: 'Europe/Madrid',
+    }),
   })
   const r = await sendMail({ to, ...mail, subject: `[PRUEBA] ${mail.subject}` })
   return NextResponse.json(r, { status: r.sent ? 200 : 502 })

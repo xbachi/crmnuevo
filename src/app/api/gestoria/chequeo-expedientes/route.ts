@@ -26,9 +26,11 @@ import { normPlate } from '@/lib/costoBeneficioSheet'
 import { cargarAliasIndex } from '@/lib/aliasMatriculas'
 import type { RegistroHash } from '@/lib/expedienteDocs'
 import type { TipoOperacion } from '@/lib/expedienteChecklist'
+import { safeEqual } from '@/lib/secrets'
 
 const SHEET_ID =
-  process.env.COSTOBENEFICIO_SPREADSHEET_ID || '1o0GRJKvzjiDl7dQSdRzxy6jWIT1Ll7fAIKx4yGjYhwM'
+  process.env.COSTOBENEFICIO_SPREADSHEET_ID ||
+  '1o0GRJKvzjiDl7dQSdRzxy6jWIT1Ll7fAIKx4yGjYhwM'
 
 // Estados de factura que cuentan como activas (emitidas de verdad). Excluye
 // RECTIFIED (la original anulada por una rectificativa); las RECTIFYING se
@@ -46,25 +48,35 @@ async function leerCbBandas(year: number): Promise<CbCocheBanda[] | null> {
     })
     return parseCbBandas((vr.data.values ?? []) as string[][])
   } catch (err) {
-    console.error('[chequeo-expedientes] hoja CB no legible:', (err as Error)?.message ?? err)
+    console.error(
+      '[chequeo-expedientes] hoja CB no legible:',
+      (err as Error)?.message ?? err
+    )
     return null
   }
 }
 
 export async function GET(request: NextRequest) {
   // Auth dual: admin secret (para curl/n8n) o sesión de usuario (UI).
-  const secret = process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
+  const secret =
+    process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
   const gotSecret = request.headers.get('x-admin-secret') ?? ''
-  if (!secret || gotSecret !== secret) {
+  if (!secret || !safeEqual(gotSecret, secret)) {
     const auth = requireApiSession(request)
     if (auth.response) return auth.response
   }
 
   const { searchParams } = new URL(request.url)
-  const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()), 10)
+  const year = parseInt(
+    searchParams.get('year') || String(new Date().getFullYear()),
+    10
+  )
   const quarter = parseInt(searchParams.get('quarter') || '', 10)
   if (![1, 2, 3, 4].includes(quarter)) {
-    return NextResponse.json({ error: 'quarter debe ser 1, 2, 3 o 4' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'quarter debe ser 1, 2, 3 o 4' },
+      { status: 400 }
+    )
   }
   const { from, to } = quarterRange(year, quarter)
 
@@ -98,7 +110,11 @@ export async function GET(request: NextRequest) {
         mes: string
         carpeta: string
         matricula_norm: string | null
-        archivos: { nombre: string; bytes?: number | null; hash?: string | null }[]
+        archivos: {
+          nombre: string
+          bytes?: number | null
+          hash?: string | null
+        }[]
         scanned_at: string
       }>(
         `SELECT mes, carpeta, matricula_norm, archivos, scanned_at::text
@@ -124,7 +140,10 @@ export async function GET(request: NextRequest) {
       `SELECT to_regclass('public.expedientes') AS reg`
     )
     if (regExp.rows[0]?.reg) {
-      const exps = await pool.query<{ matricula: string | null; tipo_operacion: TipoOperacion }>(
+      const exps = await pool.query<{
+        matricula: string | null
+        tipo_operacion: TipoOperacion
+      }>(
         `SELECT matricula, tipo_operacion
            FROM expedientes
           WHERE invoice_date >= $1 AND invoice_date < $2 AND matricula IS NOT NULL`,
@@ -178,6 +197,9 @@ export async function GET(request: NextRequest) {
     })
     return NextResponse.json({ ok: resultado.resumen.ok, ...resultado })
   } catch (err) {
-    return NextResponse.json({ ok: false, error: (err as Error).message }, { status: 500 })
+    return NextResponse.json(
+      { ok: false, error: (err as Error).message },
+      { status: 500 }
+    )
   }
 }

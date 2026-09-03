@@ -19,12 +19,13 @@ import {
   verifyChainRows,
   type FacturacionRegistroRow,
 } from '@/lib/facturacionRegistro'
+import { safeEqual } from '@/lib/secrets'
 
 export async function GET(request: NextRequest) {
   const secret =
     process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
   const got = request.headers.get('x-admin-secret') ?? ''
-  if (!secret || got !== secret) {
+  if (!secret || !safeEqual(got, secret)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 

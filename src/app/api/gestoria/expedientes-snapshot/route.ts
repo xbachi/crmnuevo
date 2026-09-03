@@ -19,6 +19,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/direct-database'
 import { matriculaFromCarpeta } from '@/lib/expedienteDocs'
+import { safeEqual } from '@/lib/secrets'
 
 interface CarpetaBody {
   mes: string
@@ -31,7 +32,7 @@ const HASH_RE = /^[0-9a-f]{32}$|^[0-9a-f]{64}$/
 
 export async function POST(request: NextRequest) {
   const secret = process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
-  if (!secret || (request.headers.get('x-webhook-secret') ?? '') !== secret) {
+  if (!secret || !safeEqual(request.headers.get('x-webhook-secret'), secret)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
@@ -42,21 +43,32 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'anio inválido' }, { status: 400 })
   }
   if (![1, 2, 3, 4].includes(trimestre)) {
-    return NextResponse.json({ error: 'trimestre debe ser 1, 2, 3 o 4' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'trimestre debe ser 1, 2, 3 o 4' },
+      { status: 400 }
+    )
   }
   if (!Array.isArray(b.carpetas)) {
-    return NextResponse.json({ error: 'carpetas debe ser un array' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'carpetas debe ser un array' },
+      { status: 400 }
+    )
   }
   const carpetas: CarpetaBody[] = []
   for (const c of b.carpetas as Record<string, unknown>[]) {
     const mes = String(c?.mes ?? '').trim()
     const carpeta = String(c?.carpeta ?? '').trim()
     if (!mes || !carpeta) {
-      return NextResponse.json({ error: 'cada carpeta requiere mes y carpeta' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'cada carpeta requiere mes y carpeta' },
+        { status: 400 }
+      )
     }
     const archivos = (Array.isArray(c.archivos) ? c.archivos : [])
       .map((a: Record<string, unknown>) => {
-        const hash = String(a?.hash ?? '').trim().toLowerCase()
+        const hash = String(a?.hash ?? '')
+          .trim()
+          .toLowerCase()
         return {
           nombre: String(a?.nombre ?? '').trim(),
           bytes: typeof a?.bytes === 'number' ? a.bytes : null,
@@ -73,7 +85,10 @@ export async function POST(request: NextRequest) {
     )
     if (!reg.rows[0]?.reg) {
       return NextResponse.json(
-        { error: 'tabla expedientes_carpetas no existe — aplicar create-expedientes-carpetas.sql' },
+        {
+          error:
+            'tabla expedientes_carpetas no existe — aplicar create-expedientes-carpetas.sql',
+        },
         { status: 503 }
       )
     }
@@ -94,7 +109,14 @@ export async function POST(request: NextRequest) {
           `INSERT INTO expedientes_carpetas
              (anio, trimestre, mes, carpeta, matricula_norm, archivos, scanned_at)
            VALUES ($1, $2, $3, $4, $5, $6::jsonb, NOW())`,
-          [anio, trimestre, c.mes, c.carpeta, matriculaFromCarpeta(c.carpeta), JSON.stringify(c.archivos)]
+          [
+            anio,
+            trimestre,
+            c.mes,
+            c.carpeta,
+            matriculaFromCarpeta(c.carpeta),
+            JSON.stringify(c.archivos),
+          ]
         )
       }
       await client.query('COMMIT')
@@ -114,6 +136,9 @@ export async function POST(request: NextRequest) {
       reemplazadas: borradas,
     })
   } catch (err) {
-    return NextResponse.json({ ok: false, error: (err as Error).message }, { status: 500 })
+    return NextResponse.json(
+      { ok: false, error: (err as Error).message },
+      { status: 500 }
+    )
   }
 }

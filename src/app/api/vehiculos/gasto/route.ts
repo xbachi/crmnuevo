@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/direct-database'
 import { parseImporte } from '@/lib/gastoImporte'
-import { TIPO_A_CAMPO, normPlate, campoParaTipo, tiposCanonicos } from '@/lib/gastoMapping'
+import {
+  TIPO_A_CAMPO,
+  normPlate,
+  campoParaTipo,
+  tiposCanonicos,
+} from '@/lib/gastoMapping'
 import { validarImporte } from '@/lib/gastoRangos'
 import { extraerNumeroCanonico } from '@/lib/facturaNumero'
 import { esPeriodoCerrado } from '@/lib/periodoLock'
+import { safeEqual } from '@/lib/secrets'
 
 /**
  * POST /api/vehiculos/gasto
@@ -32,28 +38,41 @@ import { esPeriodoCerrado } from '@/lib/periodoLock'
 export async function POST(request: NextRequest) {
   const secret = process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
   const got = request.headers.get('x-webhook-secret') ?? ''
-  if (!secret || got !== secret) {
+  if (!secret || !safeEqual(got, secret)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
   const b = (await request.json().catch(() => ({}))) as Record<string, unknown>
-  const tipoRaw = String(b.tipo ?? '').toLowerCase().trim()
+  const tipoRaw = String(b.tipo ?? '')
+    .toLowerCase()
+    .trim()
   const campo = campoParaTipo(tipoRaw)
   if (!campo) {
     return NextResponse.json(
-      { error: `tipo inválido: "${tipoRaw}". Válidos: ${Object.keys(TIPO_A_CAMPO).join(', ')}` },
+      {
+        error: `tipo inválido: "${tipoRaw}". Válidos: ${Object.keys(TIPO_A_CAMPO).join(', ')}`,
+      },
       { status: 400 }
     )
   }
   const importe = parseImporte(b.importe)
   if (importe == null) {
-    return NextResponse.json({ error: `importe inválido: ${JSON.stringify(b.importe)}` }, { status: 400 })
+    return NextResponse.json(
+      { error: `importe inválido: ${JSON.stringify(b.importe)}` },
+      { status: 400 }
+    )
   }
   // Abonos: un importe negativo solo se acepta con esAbono: true explícito.
-  const esAbono = b.esAbono === true || String(b.esAbono ?? '') === '1' || String(b.esAbono ?? '').toLowerCase() === 'true'
+  const esAbono =
+    b.esAbono === true ||
+    String(b.esAbono ?? '') === '1' ||
+    String(b.esAbono ?? '').toLowerCase() === 'true'
   if (importe < 0 && !esAbono) {
     return NextResponse.json(
-      { error: 'importe negativo sin esAbono', hint: 'si es un abono/nota de crédito reenviá con esAbono: true' },
+      {
+        error: 'importe negativo sin esAbono',
+        hint: 'si es un abono/nota de crédito reenviá con esAbono: true',
+      },
       { status: 422 }
     )
   }
@@ -61,21 +80,33 @@ export async function POST(request: NextRequest) {
   // valores absurdos por errores de extracción). `force=1` permite saltearla.
   // Para abonos se valida el valor absoluto (el rango está definido en positivo).
   const rango = validarImporte(campo, Math.abs(importe))
-  const force = String(b.force ?? '') === '1' || new URL(request.url).searchParams.get('force') === '1'
+  const force =
+    String(b.force ?? '') === '1' ||
+    new URL(request.url).searchParams.get('force') === '1'
   if (!rango.ok && !force) {
     return NextResponse.json(
-      { error: 'importe fuera de rango', detalle: rango.reason, hint: 'verificá el valor; si es correcto reenviá con force=1' },
+      {
+        error: 'importe fuera de rango',
+        detalle: rango.reason,
+        hint: 'verificá el valor; si es correcto reenviá con force=1',
+      },
       { status: 422 }
     )
   }
   const numeroFactura = b.numeroFactura ? String(b.numeroFactura).trim() : null
   if (!numeroFactura) {
-    return NextResponse.json({ error: 'numeroFactura requerido (idempotencia)' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'numeroFactura requerido (idempotencia)' },
+      { status: 400 }
+    )
   }
   const matricula = b.matricula ? String(b.matricula).trim() : null
   const referencia = b.referencia ? String(b.referencia).trim() : null
   if (!matricula && !referencia) {
-    return NextResponse.json({ error: 'matricula o referencia requerida' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'matricula o referencia requerida' },
+      { status: 400 }
+    )
   }
   const proveedor = b.proveedor ? String(b.proveedor).trim() : tipoRaw
 
@@ -102,7 +133,10 @@ export async function POST(request: NextRequest) {
           LIMIT 1`,
         [normPlate(matricula)]
       )
-    : await pool.query(`SELECT id, matricula FROM "Vehiculo" WHERE referencia = $1 LIMIT 1`, [referencia])
+    : await pool.query(
+        `SELECT id, matricula FROM "Vehiculo" WHERE referencia = $1 LIMIT 1`,
+        [referencia]
+      )
   const vehiculo = vres.rows[0]
   if (!vehiculo) {
     return NextResponse.json(
@@ -121,7 +155,9 @@ export async function POST(request: NextRequest) {
   const canonTipos = tiposCanonicos(campo)
   const numeroCanonico = extraerNumeroCanonico(numeroFactura, proveedor)
   const allowDuplicado =
-    b.allowDuplicado === true || String(b.allowDuplicado ?? '') === '1' || String(b.allowDuplicado ?? '').toLowerCase() === 'true'
+    b.allowDuplicado === true ||
+    String(b.allowDuplicado ?? '') === '1' ||
+    String(b.allowDuplicado ?? '').toLowerCase() === 'true'
   if (numeroCanonico && !allowDuplicado) {
     const dupRes = await pool.query(
       `SELECT id, numero_factura, importe, matricula, tipo, created_at
@@ -160,7 +196,15 @@ export async function POST(request: NextRequest) {
        DO UPDATE SET importe = EXCLUDED.importe, vehiculo_id = EXCLUDED.vehiculo_id,
                      matricula = EXCLUDED.matricula, proveedor = EXCLUDED.proveedor,
                      numero_canonico = EXCLUDED.numero_canonico, updated_at = NOW()`,
-    [vehiculo.id, vehiculo.matricula, tipoRaw, numeroFactura, numeroCanonico, importe, proveedor]
+    [
+      vehiculo.id,
+      vehiculo.matricula,
+      tipoRaw,
+      numeroFactura,
+      numeroCanonico,
+      importe,
+      proveedor,
+    ]
   )
 
   // 4) recomputar el campo del Vehiculo = SUMA de facturas de ese tipo
@@ -171,7 +215,10 @@ export async function POST(request: NextRequest) {
   )
   const total = Number(sumRes.rows[0].total)
   // campo viene de una whitelist (TIPO_A_CAMPO) → seguro interpolarlo
-  await pool.query(`UPDATE "Vehiculo" SET "${campo}" = $1 WHERE id = $2`, [total, vehiculo.id])
+  await pool.query(`UPDATE "Vehiculo" SET "${campo}" = $1 WHERE id = $2`, [
+    total,
+    vehiculo.id,
+  ])
 
   // Reflejar el costo en CB 2026 si el coche ya tiene fila (venta emitida).
   // Best-effort + timeout: no bloquea ni falla la respuesta a n8n.

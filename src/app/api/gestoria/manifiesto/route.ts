@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/direct-database'
 import { quarterRange } from '@/lib/facturasMonitor'
 import { buildCsvDocument, csvNum, csvResponse } from '@/lib/gestoriaCsv'
+import { safeEqual } from '@/lib/secrets'
 
 interface DocumentoRow {
   fecha_factura: string | null
@@ -40,16 +41,23 @@ interface EmitidaRow {
 }
 
 export async function GET(request: NextRequest) {
-  const secret = process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
-  if (!secret || (request.headers.get('x-admin-secret') ?? '') !== secret) {
+  const secret =
+    process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
+  if (!secret || !safeEqual(request.headers.get('x-admin-secret'), secret)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
   const { searchParams } = new URL(request.url)
-  const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()), 10)
+  const year = parseInt(
+    searchParams.get('year') || String(new Date().getFullYear()),
+    10
+  )
   const quarter = parseInt(searchParams.get('quarter') || '', 10)
   if (![1, 2, 3, 4].includes(quarter)) {
-    return NextResponse.json({ error: 'quarter debe ser 1, 2, 3 o 4' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'quarter debe ser 1, 2, 3 o 4' },
+      { status: 400 }
+    )
   }
   const format = searchParams.get('format') === 'csv' ? 'csv' : 'json'
   const { from, to } = quarterRange(year, quarter)
@@ -129,7 +137,10 @@ export async function GET(request: NextRequest) {
       documentos: {
         count: docs.rows.length,
         suma: round2(
-          docs.rows.reduce((acc, d) => acc + (d.importe != null ? Number(d.importe) : 0), 0)
+          docs.rows.reduce(
+            (acc, d) => acc + (d.importe != null ? Number(d.importe) : 0),
+            0
+          )
         ),
         por_categoria: [...porCategoria.entries()].map(([categoria, v]) => ({
           categoria,
@@ -159,20 +170,40 @@ export async function GET(request: NextRequest) {
         {
           titulo: `MANIFIESTO DE ENTREGA ${year} T${quarter} — DOCUMENTOS (facturas_registro)`,
           headers: [
-            'fecha', 'proveedor', 'numero_factura', 'importe', 'categoria',
-            'mes', 'matricula', 'hash_md5', 'nombre_archivo', 'ruta',
+            'fecha',
+            'proveedor',
+            'numero_factura',
+            'importe',
+            'categoria',
+            'mes',
+            'matricula',
+            'hash_md5',
+            'nombre_archivo',
+            'ruta',
           ],
           rows: docs.rows.map((d) => [
-            d.fecha_factura, d.proveedor, d.numero_factura, csvNum(d.importe),
-            d.categoria, d.mes, d.matricula, d.hash_contenido, d.nombre_archivo, d.ruta,
+            d.fecha_factura,
+            d.proveedor,
+            d.numero_factura,
+            csvNum(d.importe),
+            d.categoria,
+            d.mes,
+            d.matricula,
+            d.hash_contenido,
+            d.nombre_archivo,
+            d.ruta,
           ]),
         },
         {
           titulo: `MANIFIESTO DE ENTREGA ${year} T${quarter} — FACTURAS EMITIDAS (CRM)`,
           headers: ['numero', 'fecha', 'tipo', 'estado', 'total', 'matricula'],
           rows: emitidas.rows.map((e) => [
-            e.full_invoice_number, e.invoice_date, e.invoice_type, e.status,
-            csvNum(e.total_amount), e.vehicle_plate,
+            e.full_invoice_number,
+            e.invoice_date,
+            e.invoice_type,
+            e.status,
+            csvNum(e.total_amount),
+            e.vehicle_plate,
           ]),
         },
       ])
@@ -192,6 +223,9 @@ export async function GET(request: NextRequest) {
       emitidas: emitidas.rows,
     })
   } catch (err) {
-    return NextResponse.json({ ok: false, error: (err as Error).message }, { status: 500 })
+    return NextResponse.json(
+      { ok: false, error: (err as Error).message },
+      { status: 500 }
+    )
   }
 }

@@ -28,6 +28,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/direct-database'
 import { quarterRange } from '@/lib/facturasMonitor'
 import { buildCsvDocument, csvNum, csvResponse } from '@/lib/gestoriaCsv'
+import { safeEqual } from '@/lib/secrets'
 
 const VAT_RATE = 21
 
@@ -96,7 +97,10 @@ function toLibroRow(r: EmitidaDbRow): EmitidaLibro {
       row.nota = 'sin precio de compra cargado'
       return row
     }
-    const venta = r.precio_venta != null && Number(r.precio_venta) !== 0 ? Number(r.precio_venta) : Math.abs(total)
+    const venta =
+      r.precio_venta != null && Number(r.precio_venta) !== 0
+        ? Number(r.precio_venta)
+        : Math.abs(total)
     const margen = round2(venta - compra)
     // La rectificativa anula el margen de la original: mismo importe con signo
     // opuesto → el par netea a cero también en el bloque REBU.
@@ -104,7 +108,8 @@ function toLibroRow(r: EmitidaDbRow): EmitidaLibro {
     row.margen = round2(margen * signo)
     row.cuota_rebu = round2((row.margen * VAT_RATE) / (100 + VAT_RATE))
     if (r.precio_venta == null || Number(r.precio_venta) === 0) {
-      row.nota = 'margen calculado con el total de la factura (precioVenta no cargado)'
+      row.nota =
+        'margen calculado con el total de la factura (precioVenta no cargado)'
     }
     return row
   }
@@ -112,27 +117,36 @@ function toLibroRow(r: EmitidaDbRow): EmitidaLibro {
   // VAT (y las RECTIFYING de una VAT, con base/cuota negativas).
   if (r.taxable_base != null) {
     row.base = Number(r.taxable_base)
-    row.cuota = r.vat_amount != null ? Number(r.vat_amount) : round2(total - row.base)
+    row.cuota =
+      r.vat_amount != null ? Number(r.vat_amount) : round2(total - row.base)
   } else {
     row.base = round2(total / (1 + VAT_RATE / 100))
     row.cuota = round2(total - row.base)
     row.base_derivada = true
-    row.nota = 'base/cuota derivadas del total (÷1,21); la fila no traía desglose'
+    row.nota =
+      'base/cuota derivadas del total (÷1,21); la fila no traía desglose'
   }
   return row
 }
 
 export async function GET(request: NextRequest) {
-  const secret = process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
-  if (!secret || (request.headers.get('x-admin-secret') ?? '') !== secret) {
+  const secret =
+    process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
+  if (!secret || !safeEqual(request.headers.get('x-admin-secret'), secret)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
   const { searchParams } = new URL(request.url)
-  const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()), 10)
+  const year = parseInt(
+    searchParams.get('year') || String(new Date().getFullYear()),
+    10
+  )
   const quarter = parseInt(searchParams.get('quarter') || '', 10)
   if (![1, 2, 3, 4].includes(quarter)) {
-    return NextResponse.json({ error: 'quarter debe ser 1, 2, 3 o 4' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'quarter debe ser 1, 2, 3 o 4' },
+      { status: 400 }
+    )
   }
   const format = searchParams.get('format') === 'csv' ? 'csv' : 'json'
   const { from, to } = quarterRange(year, quarter)
@@ -176,7 +190,8 @@ export async function GET(request: NextRequest) {
 
     const vat = emitidas.filter((e) => e.regimen === 'VAT')
     const rebu = emitidas.filter((e) => e.regimen === 'REBU')
-    const sum = (xs: (number | null)[]) => round2(xs.reduce<number>((a, x) => a + (x ?? 0), 0))
+    const sum = (xs: (number | null)[]) =>
+      round2(xs.reduce<number>((a, x) => a + (x ?? 0), 0))
     const totales = {
       emitidas_vat: {
         count: vat.length,
@@ -202,31 +217,94 @@ export async function GET(request: NextRequest) {
         {
           titulo: `LIBRO REGISTRO ${year} T${quarter} — FACTURAS EMITIDAS`,
           headers: [
-            'numero', 'fecha', 'tipo', 'regimen', 'estado', 'matricula', 'total',
-            'base', 'cuota', 'margen_rebu', 'cuota_rebu', 'nota',
+            'numero',
+            'fecha',
+            'tipo',
+            'regimen',
+            'estado',
+            'matricula',
+            'total',
+            'base',
+            'cuota',
+            'margen_rebu',
+            'cuota_rebu',
+            'nota',
           ],
           rows: emitidas.map((e) => [
-            e.numero, e.fecha, e.tipo, e.regimen, e.estado, e.matricula, csvNum(e.total),
-            csvNum(e.base), csvNum(e.cuota), csvNum(e.margen), csvNum(e.cuota_rebu), e.nota,
+            e.numero,
+            e.fecha,
+            e.tipo,
+            e.regimen,
+            e.estado,
+            e.matricula,
+            csvNum(e.total),
+            csvNum(e.base),
+            csvNum(e.cuota),
+            csvNum(e.margen),
+            csvNum(e.cuota_rebu),
+            e.nota,
           ]),
         },
         {
           titulo: `LIBRO REGISTRO ${year} T${quarter} — FACTURAS RECIBIDAS`,
-          headers: ['fecha', 'proveedor', 'numero', 'categoria', 'total', 'base', 'cuota'],
+          headers: [
+            'fecha',
+            'proveedor',
+            'numero',
+            'categoria',
+            'total',
+            'base',
+            'cuota',
+          ],
           rows: recibidas.map((r) => [
-            r.fecha, r.proveedor, r.numero, r.categoria, csvNum(r.total), '', '',
+            r.fecha,
+            r.proveedor,
+            r.numero,
+            r.categoria,
+            csvNum(r.total),
+            '',
+            '',
           ]),
         },
         {
           titulo: `LIBRO REGISTRO ${year} T${quarter} — TOTALES`,
-          headers: ['tipo', 'count', 'base', 'cuota', 'total', 'margen_rebu', 'cuota_rebu'],
+          headers: [
+            'tipo',
+            'count',
+            'base',
+            'cuota',
+            'total',
+            'margen_rebu',
+            'cuota_rebu',
+          ],
           rows: [
-            ['emitidas VAT', totales.emitidas_vat.count, csvNum(totales.emitidas_vat.base),
-              csvNum(totales.emitidas_vat.cuota), csvNum(totales.emitidas_vat.total), '', ''],
-            ['emitidas REBU', totales.emitidas_rebu.count, '', '',
-              csvNum(totales.emitidas_rebu.total), csvNum(totales.emitidas_rebu.margen),
-              csvNum(totales.emitidas_rebu.cuota_rebu)],
-            ['recibidas', totales.recibidas.count, '', '', csvNum(totales.recibidas.total), '', ''],
+            [
+              'emitidas VAT',
+              totales.emitidas_vat.count,
+              csvNum(totales.emitidas_vat.base),
+              csvNum(totales.emitidas_vat.cuota),
+              csvNum(totales.emitidas_vat.total),
+              '',
+              '',
+            ],
+            [
+              'emitidas REBU',
+              totales.emitidas_rebu.count,
+              '',
+              '',
+              csvNum(totales.emitidas_rebu.total),
+              csvNum(totales.emitidas_rebu.margen),
+              csvNum(totales.emitidas_rebu.cuota_rebu),
+            ],
+            [
+              'recibidas',
+              totales.recibidas.count,
+              '',
+              '',
+              csvNum(totales.recibidas.total),
+              '',
+              '',
+            ],
           ],
         },
       ])
@@ -249,6 +327,9 @@ export async function GET(request: NextRequest) {
       totales,
     })
   } catch (err) {
-    return NextResponse.json({ ok: false, error: (err as Error).message }, { status: 500 })
+    return NextResponse.json(
+      { ok: false, error: (err as Error).message },
+      { status: 500 }
+    )
   }
 }

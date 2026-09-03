@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/direct-database'
 import { quarterRange } from '@/lib/facturasMonitor'
+import { safeEqual } from '@/lib/secrets'
 
 interface FacturaRow {
   full_invoice_number: string
@@ -20,16 +21,23 @@ interface FacturaRow {
 }
 
 export async function GET(request: NextRequest) {
-  const secret = process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
-  if (!secret || (request.headers.get('x-admin-secret') ?? '') !== secret) {
+  const secret =
+    process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
+  if (!secret || !safeEqual(request.headers.get('x-admin-secret'), secret)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
   const { searchParams } = new URL(request.url)
-  const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()), 10)
+  const year = parseInt(
+    searchParams.get('year') || String(new Date().getFullYear()),
+    10
+  )
   const quarter = parseInt(searchParams.get('quarter') || '', 10)
   if (![1, 2, 3, 4].includes(quarter)) {
-    return NextResponse.json({ error: 'quarter debe ser 1, 2, 3 o 4' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'quarter debe ser 1, 2, 3 o 4' },
+      { status: 400 }
+    )
   }
   const { from, to } = quarterRange(year, quarter)
 
@@ -214,6 +222,9 @@ export async function GET(request: NextRequest) {
       expedientes,
     })
   } catch (err) {
-    return NextResponse.json({ ok: false, error: (err as Error).message }, { status: 500 })
+    return NextResponse.json(
+      { ok: false, error: (err as Error).message },
+      { status: 500 }
+    )
   }
 }

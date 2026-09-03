@@ -14,13 +14,15 @@
 
 import { NextRequest, NextResponse, after } from 'next/server'
 import { rectificarFactura, RectificarError } from '@/lib/invoiceRectificativa'
+import { safeEqual } from '@/lib/secrets'
 
 export const maxDuration = 60
 
 export async function POST(request: NextRequest) {
-  const secret = process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
+  const secret =
+    process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
   const got = request.headers.get('x-admin-secret') ?? ''
-  if (!secret || got !== secret) {
+  if (!secret || !safeEqual(got, secret)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 
@@ -37,13 +39,14 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { rectificativa, original, runNotifications } = await rectificarFactura({
-      invoiceId,
-      motivo: body?.motivo,
-      userId: 'admin-secret',
-      userRole: 'admin',
-      deferNotifications: true,
-    })
+    const { rectificativa, original, runNotifications } =
+      await rectificarFactura({
+        invoiceId,
+        motivo: body?.motivo,
+        userId: 'admin-secret',
+        userRole: 'admin',
+        deferNotifications: true,
+      })
     if (runNotifications) after(runNotifications)
     return NextResponse.json({
       ok: true,

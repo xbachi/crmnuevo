@@ -19,9 +19,16 @@ import { google } from 'googleapis'
 import { getGoogleSheetsAuth } from '@/lib/googleSheets'
 import { isInSheet } from '@/lib/facturasMonitor'
 import { getEmittedInvoices, type EmittedInvoice } from '@/lib/facturasQuery'
-import { AdminParamError, assertKnownParams, parseStrictBool } from '@/lib/adminParams'
+import {
+  AdminParamError,
+  assertKnownParams,
+  parseStrictBool,
+} from '@/lib/adminParams'
+import { safeEqual } from '@/lib/secrets'
 
-const SHEET_ID = process.env.COSTOBENEFICIO_SPREADSHEET_ID || '1o0GRJKvzjiDl7dQSdRzxy6jWIT1Ll7fAIKx4yGjYhwM'
+const SHEET_ID =
+  process.env.COSTOBENEFICIO_SPREADSHEET_ID ||
+  '1o0GRJKvzjiDl7dQSdRzxy6jWIT1Ll7fAIKx4yGjYhwM'
 // Pestaña canónica de costo/beneficio. NO leemos COSTOBENEFICIO_SHEET_NAME acá:
 // en prod está mal seteado a "2026" (otra hoja). Overridable por ?tab=.
 const DEFAULT_TAB = 'CB 2026'
@@ -42,7 +49,10 @@ async function syncInvoiceToSheet(
   dryRun: boolean
 ): Promise<{ ok: boolean; detail: string }> {
   if (dryRun) {
-    return { ok: true, detail: `[DRY-RUN] insertaría ${inv.full_invoice_number}` }
+    return {
+      ok: true,
+      detail: `[DRY-RUN] insertaría ${inv.full_invoice_number}`,
+    }
   }
   const { syncCostoBeneficio } = await import('@/lib/costoBeneficio')
   const result = await syncCostoBeneficio({
@@ -58,32 +68,44 @@ async function syncInvoiceToSheet(
 }
 
 export async function POST(request: NextRequest) {
-  const secret = process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
+  const secret =
+    process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
   const got = request.headers.get('x-admin-secret') ?? ''
-  if (!secret || got !== secret) {
+  if (!secret || !safeEqual(got, secret)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
   const { searchParams } = new URL(request.url)
   // Validación estricta de params (400 en vez de comportamiento silencioso).
-  let params: { year: number; month: number | undefined; tab: string; dryRun: boolean }
+  let params: {
+    year: number
+    month: number | undefined
+    tab: string
+    dryRun: boolean
+  }
   try {
     assertKnownParams(searchParams, ['year', 'month', 'tab', 'dryRun'])
     const monthRaw = searchParams.get('month')
     params = {
-      year: parseInt(searchParams.get('year') || String(new Date().getFullYear()), 10),
+      year: parseInt(
+        searchParams.get('year') || String(new Date().getFullYear()),
+        10
+      ),
       month: monthRaw ? parseInt(monthRaw, 10) : undefined,
       tab: searchParams.get('tab') || DEFAULT_TAB,
       dryRun: parseStrictBool(searchParams, 'dryRun', false),
     }
   } catch (e) {
-    if (e instanceof AdminParamError) return NextResponse.json({ error: e.message }, { status: 400 })
+    if (e instanceof AdminParamError)
+      return NextResponse.json({ error: e.message }, { status: 400 })
     throw e
   }
   const { year, month, tab, dryRun } = params
 
   const details: string[] = []
-  details.push(`Año: ${year}${month ? ` · Mes: ${month}` : ''}${dryRun ? ' (DRY-RUN)' : ''}`)
+  details.push(
+    `Año: ${year}${month ? ` · Mes: ${month}` : ''}${dryRun ? ' (DRY-RUN)' : ''}`
+  )
   details.push(`Hoja: ${tab}`)
 
   try {
@@ -116,7 +138,9 @@ export async function POST(request: NextRequest) {
       for (const m of Object.keys(byMonth).sort()) {
         details.push(`        ${m}: ${byMonth[m].length} facturas`)
         byMonth[m].forEach((inv) => {
-          details.push(`          - ${inv.invoice_date} ${inv.full_invoice_number} ${inv.referencia || inv.matricula}`)
+          details.push(
+            `          - ${inv.invoice_date} ${inv.full_invoice_number} ${inv.referencia || inv.matricula}`
+          )
         })
       }
     }
@@ -128,7 +152,9 @@ export async function POST(request: NextRequest) {
     const errors: string[] = []
     for (const inv of missing) {
       if (inv.deal_id == null) {
-        details.push(`      ⚠ ${inv.full_invoice_number}: sin deal asociado, no se puede reparar automáticamente`)
+        details.push(
+          `      ⚠ ${inv.full_invoice_number}: sin deal asociado, no se puede reparar automáticamente`
+        )
         errors.push(`${inv.full_invoice_number}: sin deal_id`)
         failed++
         continue
@@ -181,6 +207,9 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     const msg = (err as Error).message
     details.push(`\n❌ Error fatal: ${msg}`)
-    return NextResponse.json({ ok: false, error: msg, details: details.join('\n') }, { status: 500 })
+    return NextResponse.json(
+      { ok: false, error: msg, details: details.join('\n') },
+      { status: 500 }
+    )
   }
 }

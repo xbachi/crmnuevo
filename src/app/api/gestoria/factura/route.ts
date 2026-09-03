@@ -45,7 +45,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import type { PoolClient } from 'pg'
 import { pool } from '@/lib/direct-database'
 import { parseImporte } from '@/lib/gastoImporte'
-import { CATEGORIAS, periodoFromDate, carpetaDestino, normPlate, type Categoria } from '@/lib/facturasRegistro'
+import {
+  CATEGORIAS,
+  periodoFromDate,
+  carpetaDestino,
+  normPlate,
+  type Categoria,
+} from '@/lib/facturasRegistro'
 import { esPeriodoCerrado } from '@/lib/periodoLock'
 import { detectarEsquemaFiscal } from '@/lib/facturaEsquema'
 import { validarNif } from '@/lib/nifValidator'
@@ -58,6 +64,7 @@ import {
   DEDUCIBLES,
   type LineaFiscal,
 } from '@/lib/facturaFiscal'
+import { safeEqual } from '@/lib/secrets'
 
 interface ProveedorRow {
   id: number
@@ -79,7 +86,9 @@ function enDominio<T extends string>(
   if (valor == null || valor === '') return null
   const v = String(valor).toLowerCase().trim()
   if ((dominio as readonly string[]).includes(v)) return v as T
-  errores.push(`${campo} inválido "${v}" (válidos: ${dominio.join(', ')}); ignorado`)
+  errores.push(
+    `${campo} inválido "${v}" (válidos: ${dominio.join(', ')}); ignorado`
+  )
   return null
 }
 
@@ -102,32 +111,58 @@ async function resolverProveedor(nombre: string): Promise<ProveedorRow | null> {
   return r.rows[0] ?? null
 }
 
-async function insertarLineas(client: PoolClient, registroId: number, lineas: LineaFiscal[]): Promise<void> {
+async function insertarLineas(
+  client: PoolClient,
+  registroId: number,
+  lineas: LineaFiscal[]
+): Promise<void> {
   for (const l of lineas) {
     await client.query(
       `INSERT INTO facturas_registro_lineas
          (registro_id, orden, tipo_linea, tipo_iva, base, cuota, retencion_pct, concepto, deducible)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-      [registroId, l.orden, l.tipoLinea, l.tipoIva, l.base, l.cuota, l.retencionPct ?? null, l.concepto ?? null, l.deducible ?? null]
+      [
+        registroId,
+        l.orden,
+        l.tipoLinea,
+        l.tipoIva,
+        l.base,
+        l.cuota,
+        l.retencionPct ?? null,
+        l.concepto ?? null,
+        l.deducible ?? null,
+      ]
     )
   }
 }
 
 export async function POST(request: NextRequest) {
   const secret = process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
-  if (!secret || (request.headers.get('x-webhook-secret') ?? '') !== secret) {
+  if (!secret || !safeEqual(request.headers.get('x-webhook-secret'), secret)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
   const b = (await request.json().catch(() => ({}))) as Record<string, unknown>
-  const proveedor = String(b.proveedor ?? '').toLowerCase().trim()
+  const proveedor = String(b.proveedor ?? '')
+    .toLowerCase()
+    .trim()
   const categoria = String(b.categoria ?? '').trim() as Categoria
   const hash = String(b.hashContenido ?? '').trim()
-  if (!proveedor) return NextResponse.json({ error: 'proveedor requerido' }, { status: 400 })
+  if (!proveedor)
+    return NextResponse.json({ error: 'proveedor requerido' }, { status: 400 })
   if (!CATEGORIAS.includes(categoria)) {
-    return NextResponse.json({ error: `categoria inválida: "${categoria}". Válidas: ${CATEGORIAS.join(', ')}` }, { status: 400 })
+    return NextResponse.json(
+      {
+        error: `categoria inválida: "${categoria}". Válidas: ${CATEGORIAS.join(', ')}`,
+      },
+      { status: 400 }
+    )
   }
-  if (!hash) return NextResponse.json({ error: 'hashContenido requerido (dedup)' }, { status: 400 })
+  if (!hash)
+    return NextResponse.json(
+      { error: 'hashContenido requerido (dedup)' },
+      { status: 400 }
+    )
 
   const numero = b.numeroFactura ? String(b.numeroFactura).trim() : null
   const importeBody = b.importe != null ? parseImporte(b.importe) : null
@@ -159,29 +194,47 @@ export async function POST(request: NextRequest) {
   const esquema = await detectarEsquemaFiscal(pool)
   const errores: string[] = []
 
-  const prov = esquema.proveedores ? await resolverProveedor(proveedor).catch(() => null) : null
+  const prov = esquema.proveedores
+    ? await resolverProveedor(proveedor).catch(() => null)
+    : null
   const proveedorConocido = prov != null
 
   // Los *_defecto del proveedor son FALLBACK: lo que manda el body siempre gana.
   const tipoOperacion =
     enDominio(b.tipoOperacion, TIPOS_OPERACION, 'tipoOperacion', errores) ??
-    enDominio(prov?.tipo_operacion_defecto, TIPOS_OPERACION, 'tipo_operacion_defecto del proveedor', errores) ??
+    enDominio(
+      prov?.tipo_operacion_defecto,
+      TIPOS_OPERACION,
+      'tipo_operacion_defecto del proveedor',
+      errores
+    ) ??
     'interior'
   const deducible =
     enDominio(b.deducible, DEDUCIBLES, 'deducible', errores) ??
-    enDominio(prov?.deducible_defecto, DEDUCIBLES, 'deducible_defecto del proveedor', errores) ??
+    enDominio(
+      prov?.deducible_defecto,
+      DEDUCIBLES,
+      'deducible_defecto del proveedor',
+      errores
+    ) ??
     'duda'
   const subcategoria =
-    (b.subcategoria ? String(b.subcategoria).trim() : null) ?? prov?.subcategoria_defecto ?? null
-  const deduciblePct = b.deduciblePct != null ? parseImporte(b.deduciblePct) : null
+    (b.subcategoria ? String(b.subcategoria).trim() : null) ??
+    prov?.subcategoria_defecto ??
+    null
+  const deduciblePct =
+    b.deduciblePct != null ? parseImporte(b.deduciblePct) : null
 
   // NIF: body > ficha del proveedor. Sin NIF por ningún lado → null/null, porque
   // "no sé" NO es "inválido" (un false acá dispararía alarmas falsas en /revision).
-  const nifCrudo = b.nifProveedor ? String(b.nifProveedor).trim() : (prov?.nif ?? null)
+  const nifCrudo = b.nifProveedor
+    ? String(b.nifProveedor).trim()
+    : (prov?.nif ?? null)
   const nifRes = nifCrudo ? validarNif(nifCrudo, prov?.pais ?? 'ES') : null
   const nifProveedor = nifRes?.normalizado || null
   const nifValido: boolean | null = nifRes ? nifRes.valido : null
-  if (nifRes && !nifRes.valido) errores.push(`NIF ${nifRes.normalizado}: ${nifRes.motivo ?? 'inválido'}`)
+  if (nifRes && !nifRes.valido)
+    errores.push(`NIF ${nifRes.normalizado}: ${nifRes.motivo ?? 'inválido'}`)
 
   const { lineas, errores: erroresLineas } = parseLineas(b.lineas)
   errores.push(...erroresLineas)
@@ -197,9 +250,11 @@ export async function POST(request: NextRequest) {
 
   const extraccion = (b.extraccion ?? {}) as Record<string, unknown>
   const metodo = extraccion.metodo ? String(extraccion.metodo).trim() : null
-  const confianzaCruda = extraccion.confianza != null ? parseImporte(extraccion.confianza) : null
+  const confianzaCruda =
+    extraccion.confianza != null ? parseImporte(extraccion.confianza) : null
   // NUMERIC(3,2): fuera de 0..1 no entra.
-  const confianza = confianzaCruda != null ? Math.min(1, Math.max(0, confianzaCruda)) : null
+  const confianza =
+    confianzaCruda != null ? Math.min(1, Math.max(0, confianzaCruda)) : null
   const raw = extraccion.raw != null ? JSON.stringify(extraccion.raw) : null
 
   const { estado, datosIncompletos } = decidirEstado({
@@ -212,7 +267,9 @@ export async function POST(request: NextRequest) {
     deducible,
   })
 
-  const fechaOperacion = b.fechaOperacion ? String(b.fechaOperacion).trim() : null
+  const fechaOperacion = b.fechaOperacion
+    ? String(b.fechaOperacion).trim()
+    : null
   const baseTotal = tieneLineas ? chequeo.baseTotal : null
   const cuotaTotal = tieneLineas ? chequeo.cuotaTotal : null
 
@@ -255,14 +312,42 @@ export async function POST(request: NextRequest) {
          ON CONFLICT (hash_contenido) DO NOTHING
          RETURNING id`
 
-    const base = [proveedor, categoria, numero, hash, importe, fecha, anio, trimestre, mes, matricula, destino.ruta, nombre, fuente]
+    const base = [
+      proveedor,
+      categoria,
+      numero,
+      hash,
+      importe,
+      fecha,
+      anio,
+      trimestre,
+      mes,
+      matricula,
+      destino.ruta,
+      nombre,
+      fuente,
+    ]
     const params = esquema.fiscal
       ? [
           ...base,
-          prov?.id ?? null, nifProveedor, nifValido, fechaOperacion, baseTotal, cuotaTotal,
-          tipoOperacion, deducible, deduciblePct, subcategoria, estado, datosIncompletos,
+          prov?.id ?? null,
+          nifProveedor,
+          nifValido,
+          fechaOperacion,
+          baseTotal,
+          cuotaTotal,
+          tipoOperacion,
+          deducible,
+          deduciblePct,
+          subcategoria,
+          estado,
+          datosIncompletos,
           // Imputación = período natural. Las tardías son Fase 2.
-          anio, trimestre, metodo, confianza, raw,
+          anio,
+          trimestre,
+          metodo,
+          confianza,
+          raw,
         ]
       : base
 
@@ -306,7 +391,14 @@ export async function POST(request: NextRequest) {
     }
 
     if (insertedId != null) {
-      return NextResponse.json({ ok: true, duplicado: false, id: insertedId, destino, periodo: { anio, trimestre, mes }, fiscal })
+      return NextResponse.json({
+        ok: true,
+        duplicado: false,
+        id: insertedId,
+        destino,
+        periodo: { anio, trimestre, mes },
+        fiscal,
+      })
     }
 
     // conflicto por hash → duplicado exacto
@@ -325,8 +417,12 @@ export async function POST(request: NextRequest) {
     const enriquecido = existente ? await enriquecer(existente) : false
 
     return NextResponse.json({
-      ok: true, duplicado: true, motivo: 'hash',
-      existente, destino, periodo: { anio, trimestre, mes },
+      ok: true,
+      duplicado: true,
+      motivo: 'hash',
+      existente,
+      destino,
+      periodo: { anio, trimestre, mes },
       fiscal: { ...fiscal, enriquecido },
     })
   } catch (err) {
@@ -339,15 +435,26 @@ export async function POST(request: NextRequest) {
         [proveedor, numero]
       )
       return NextResponse.json({
-        ok: true, duplicado: true, motivo: 'numero',
-        existente: dup.rows[0] ?? null, destino, periodo: { anio, trimestre, mes }, fiscal,
+        ok: true,
+        duplicado: true,
+        motivo: 'numero',
+        existente: dup.rows[0] ?? null,
+        destino,
+        periodo: { anio, trimestre, mes },
+        fiscal,
       })
     }
-    return NextResponse.json({ ok: false, error: e.message ?? String(err) }, { status: 500 })
+    return NextResponse.json(
+      { ok: false, error: e.message ?? String(err) },
+      { status: 500 }
+    )
   }
 
   /** Completa una fila 'registrada' sin líneas con los datos fiscales recién extraídos. */
-  async function enriquecer(existente: { id: number; estado?: string | null }): Promise<boolean> {
+  async function enriquecer(existente: {
+    id: number
+    estado?: string | null
+  }): Promise<boolean> {
     if (!conLineas || !existente?.id) return false
     try {
       assertRegistroMutable(existente)
@@ -366,7 +473,11 @@ export async function POST(request: NextRequest) {
         [existente.id]
       )
       const row = cur.rows[0]
-      if (!row || String(row.estado) !== 'registrada' || row.base_total != null) {
+      if (
+        !row ||
+        String(row.estado) !== 'registrada' ||
+        row.base_total != null
+      ) {
         await client.query('ROLLBACK')
         return false
       }
@@ -392,9 +503,23 @@ export async function POST(request: NextRequest) {
            extraccion_raw = COALESCE($17::jsonb, extraccion_raw)
          WHERE id = $1`,
         [
-          existente.id, importe, prov?.id ?? null, nifProveedor, nifValido, fechaOperacion,
-          baseTotal, cuotaTotal, tipoOperacion, deducible, deduciblePct, subcategoria,
-          estado, datosIncompletos, metodo, confianza, raw,
+          existente.id,
+          importe,
+          prov?.id ?? null,
+          nifProveedor,
+          nifValido,
+          fechaOperacion,
+          baseTotal,
+          cuotaTotal,
+          tipoOperacion,
+          deducible,
+          deduciblePct,
+          subcategoria,
+          estado,
+          datosIncompletos,
+          metodo,
+          confianza,
+          raw,
         ]
       )
       await insertarLineas(client, existente.id, lineas)
@@ -409,7 +534,8 @@ export async function POST(request: NextRequest) {
           lineas: { antes: 0, despues: lineas.length },
         },
         actor: 'n8n',
-        motivo: 'reproceso de un documento ya archivado: se completan los datos fiscales extraídos',
+        motivo:
+          'reproceso de un documento ya archivado: se completan los datos fiscales extraídos',
       })
       await client.query('COMMIT')
       return true

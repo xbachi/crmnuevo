@@ -14,10 +14,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/direct-database'
 import { monthRange } from '@/lib/facturasMonitor'
+import { safeEqual } from '@/lib/secrets'
 
 export async function POST(request: NextRequest) {
-  const secret = process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
-  if (!secret || (request.headers.get('x-admin-secret') ?? '') !== secret) {
+  const secret =
+    process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
+  if (!secret || !safeEqual(request.headers.get('x-admin-secret'), secret)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
@@ -33,7 +35,8 @@ export async function POST(request: NextRequest) {
   if (b.confirm !== true) {
     return NextResponse.json(
       {
-        error: 'cerrar un período es irreversible sin reapertura explícita; falta confirm: true',
+        error:
+          'cerrar un período es irreversible sin reapertura explícita; falta confirm: true',
         code: 'CONFIRM_REQUERIDO',
       },
       { status: 400 }
@@ -47,7 +50,10 @@ export async function POST(request: NextRequest) {
     )
     if (!reg.rows[0]?.t) {
       return NextResponse.json(
-        { error: 'tabla periodos_contables no existe; correr create-periodos-contables.sql primero' },
+        {
+          error:
+            'tabla periodos_contables no existe; correr create-periodos-contables.sql primero',
+        },
         { status: 503 }
       )
     }
@@ -58,7 +64,9 @@ export async function POST(request: NextRequest) {
     )
     if (existing.rows[0]?.estado === 'cerrado') {
       return NextResponse.json(
-        { error: `el período ${anio}-${String(mes).padStart(2, '0')} ya está cerrado` },
+        {
+          error: `el período ${anio}-${String(mes).padStart(2, '0')} ya está cerrado`,
+        },
         { status: 409 }
       )
     }
@@ -72,7 +80,11 @@ export async function POST(request: NextRequest) {
           AND status IN ('ISSUED', 'PDF_PENDING', 'IMPORTED')`,
       [from, to]
     )
-    const registro = await pool.query<{ categoria: string; n: number; suma: string }>(
+    const registro = await pool.query<{
+      categoria: string
+      n: number
+      suma: string
+    }>(
       `SELECT categoria, COUNT(*)::int AS n, COALESCE(SUM(importe), 0) AS suma
          FROM facturas_registro
         WHERE anio = $1 AND mes = $2
@@ -115,6 +127,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true, periodo: res.rows[0] })
   } catch (err) {
-    return NextResponse.json({ ok: false, error: (err as Error).message }, { status: 500 })
+    return NextResponse.json(
+      { ok: false, error: (err as Error).message },
+      { status: 500 }
+    )
   }
 }

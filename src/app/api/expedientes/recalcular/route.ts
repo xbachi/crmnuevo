@@ -13,15 +13,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/direct-database'
 import { quarterRange } from '@/lib/facturasMonitor'
-import { recalcularExpediente, type ResultadoRecalculo } from '@/lib/expedientes'
+import {
+  recalcularExpediente,
+  type ResultadoRecalculo,
+} from '@/lib/expedientes'
+import { safeEqual } from '@/lib/secrets'
 
 // ~4 queries por expediente con pool de 1 conexión: el default de 10s no
 // alcanza para un trimestre entero (timeout real observado en prod).
 export const maxDuration = 60
 
 export async function POST(request: NextRequest) {
-  const secret = process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
-  if (!secret || (request.headers.get('x-admin-secret') ?? '') !== secret) {
+  const secret =
+    process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
+  if (!secret || !safeEqual(request.headers.get('x-admin-secret'), secret)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
@@ -30,7 +35,10 @@ export async function POST(request: NextRequest) {
   const quarterRaw = sp.get('quarter')
   const quarter = quarterRaw ? parseInt(quarterRaw, 10) : null
   if (quarter !== null && ![1, 2, 3, 4].includes(quarter)) {
-    return NextResponse.json({ error: 'quarter debe ser 1, 2, 3 o 4' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'quarter debe ser 1, 2, 3 o 4' },
+      { status: 400 }
+    )
   }
 
   try {
@@ -58,7 +66,9 @@ export async function POST(request: NextRequest) {
         [from, to]
       )
     } else {
-      ids = await pool.query<{ id: number }>(`SELECT id FROM expedientes ORDER BY id`)
+      ids = await pool.query<{ id: number }>(
+        `SELECT id FROM expedientes ORDER BY id`
+      )
     }
 
     const cambios: ResultadoRecalculo[] = []
@@ -83,6 +93,9 @@ export async function POST(request: NextRequest) {
       cambios,
     })
   } catch (err) {
-    return NextResponse.json({ ok: false, error: (err as Error).message }, { status: 500 })
+    return NextResponse.json(
+      { ok: false, error: (err as Error).message },
+      { status: 500 }
+    )
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/direct-database'
 import { readSessionFromRequest } from '@/lib/auth-server'
+import { safeEqual } from '@/lib/secrets'
 
 /**
  * Registro de automatizaciones.
@@ -15,7 +16,7 @@ import { readSessionFromRequest } from '@/lib/auth-server'
 export async function POST(request: NextRequest) {
   const secret = process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
   const got = request.headers.get('x-webhook-secret') ?? ''
-  if (!secret || got !== secret) {
+  if (!secret || !safeEqual(got, secret)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 

@@ -14,6 +14,7 @@ import { pool } from '@/lib/direct-database'
 import { EMITTED_STATUSES, monthRange } from '@/lib/facturasMonitor'
 import { validarImporte, RANGO_GASTO } from '@/lib/gastoRangos'
 import { CN_INFORME } from '@/lib/costoBeneficioSheet'
+import { safeEqual } from '@/lib/secrets'
 
 interface Row {
   ref: string | null
@@ -28,11 +29,16 @@ interface Row {
 }
 
 export async function GET(request: NextRequest) {
-  const secret = process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
-  if (!secret || (request.headers.get('x-admin-secret') ?? '') !== secret) {
+  const secret =
+    process.env.ADMIN_SECRET ?? process.env.N8N_INVOICE_WEBHOOK_SECRET ?? ''
+  if (!secret || !safeEqual(request.headers.get('x-admin-secret'), secret)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
-  const year = parseInt(new URL(request.url).searchParams.get('year') || String(new Date().getFullYear()), 10)
+  const year = parseInt(
+    new URL(request.url).searchParams.get('year') ||
+      String(new Date().getFullYear()),
+    10
+  )
   const { from, to } = monthRange(year)
 
   try {
@@ -51,9 +57,12 @@ export async function GET(request: NextRequest) {
 
     const num = (x: number | null) => (x != null ? Number(x) : 0)
     const campos: [keyof Row, string][] = [
-      ['precioCompra', 'precioCompra'], ['gastosTransporte', 'gastosTransporte'],
-      ['gastosMecanica', 'gastosMecanica'], ['gastosPintura', 'gastosPintura'],
-      ['gastosLimpieza', 'gastosLimpieza'], ['gastosOtros', 'gastosOtros'],
+      ['precioCompra', 'precioCompra'],
+      ['gastosTransporte', 'gastosTransporte'],
+      ['gastosMecanica', 'gastosMecanica'],
+      ['gastosPintura', 'gastosPintura'],
+      ['gastosLimpieza', 'gastosLimpieza'],
+      ['gastosOtros', 'gastosOtros'],
     ]
 
     const anomalias: Record<string, unknown>[] = []
@@ -62,7 +71,8 @@ export async function GET(request: NextRequest) {
       // 1. sin compra
       if (!r.precioCompra || r.precioCompra <= 0) flags.push('sin-compra')
       // 2. compra > venta (pérdida sospechosa / posible error)
-      else if (r.precioCompra > r.venta) flags.push(`compra (${r.precioCompra}) > venta (${r.venta})`)
+      else if (r.precioCompra > r.venta)
+        flags.push(`compra (${r.precioCompra}) > venta (${r.venta})`)
       // 3. cada costo fuera de rango DURO o en banda de aviso
       for (const [k, campo] of campos) {
         const val = r[k] as number | null
@@ -72,10 +82,26 @@ export async function GET(request: NextRequest) {
         else if (v.warn) flags.push(v.warn)
       }
       // 4. margen negativo (coste estimado > venta)
-      const coste = num(r.precioCompra) + CN_INFORME + num(r.gastosMecanica) + num(r.gastosPintura) + num(r.gastosLimpieza) + num(r.gastosOtros)
-      if (r.precioCompra && coste > r.venta) flags.push(`margen negativo (coste≈${coste.toFixed(0)} > venta ${r.venta})`)
+      const coste =
+        num(r.precioCompra) +
+        CN_INFORME +
+        num(r.gastosMecanica) +
+        num(r.gastosPintura) +
+        num(r.gastosLimpieza) +
+        num(r.gastosOtros)
+      if (r.precioCompra && coste > r.venta)
+        flags.push(
+          `margen negativo (coste≈${coste.toFixed(0)} > venta ${r.venta})`
+        )
 
-      if (flags.length) anomalias.push({ ref: r.ref, matricula: r.matricula, venta: r.venta, compra: r.precioCompra, flags })
+      if (flags.length)
+        anomalias.push({
+          ref: r.ref,
+          matricula: r.matricula,
+          venta: r.venta,
+          compra: r.precioCompra,
+          flags,
+        })
     }
 
     return NextResponse.json({
@@ -87,6 +113,9 @@ export async function GET(request: NextRequest) {
       detalle: anomalias,
     })
   } catch (err) {
-    return NextResponse.json({ ok: false, error: (err as Error).message }, { status: 500 })
+    return NextResponse.json(
+      { ok: false, error: (err as Error).message },
+      { status: 500 }
+    )
   }
 }
