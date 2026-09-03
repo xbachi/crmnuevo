@@ -68,7 +68,6 @@ export default function CochesRPage() {
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>([])
   const [filteredVehiculos, setFilteredVehiculos] = useState<Vehiculo[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [viewMode, setViewMode] = useState<'lista' | 'cartas'>('cartas')
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<
     'todos' | 'publicados' | 'enProceso' | 'vendidos' | 'reservados'
@@ -463,48 +462,6 @@ export default function CochesRPage() {
                       />
                     </div>
                   </div>
-
-                  {/* Botones de vista */}
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => setViewMode('cartas')}
-                      className={`p-2 rounded-lg transition-colors ${
-                        viewMode === 'cartas'
-                          ? 'bg-red-100 text-red-700'
-                          : 'text-gray-400 hover:text-gray-600'
-                      }`}
-                      title="Vista de tarjetas"
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => setViewMode('lista')}
-                      className={`p-2 rounded-lg transition-colors ${
-                        viewMode === 'lista'
-                          ? 'bg-red-100 text-red-700'
-                          : 'text-gray-400 hover:text-gray-600'
-                      }`}
-                      title="Vista de lista"
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </button>
-                  </div>
                 </div>
 
                 {/* Filtros de estado */}
@@ -675,7 +632,7 @@ export default function CochesRPage() {
                 </button>
               </div>
             </div>
-          ) : viewMode === 'cartas' ? (
+          ) : (
             /* Vista de Tarjetas */
             <div
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6"
@@ -697,18 +654,6 @@ export default function CochesRPage() {
                   }}
                 />
               ))}
-            </div>
-          ) : (
-            /* Vista de Lista - Implementar si es necesario */
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-2xl border border-slate-200/60 overflow-hidden max-w-[1400px] mx-auto">
-              <div className="p-8 text-center">
-                <h3 className="text-xl font-semibold text-slate-800 mb-2">
-                  Vista de Lista
-                </h3>
-                <p className="text-slate-600">
-                  La vista de lista para Coches R estará disponible próximamente
-                </p>
-              </div>
             </div>
           )}
 
