@@ -4,6 +4,7 @@
  * Sin datos sensibles: pensado para un monitor externo (UptimeRobot, n8n).
  */
 
+import { getSessionSecretSource } from '@/lib/sessionSecret'
 import { NextResponse } from 'next/server'
 import { pool } from '@/lib/direct-database'
 import pkg from '../../../../package.json'
