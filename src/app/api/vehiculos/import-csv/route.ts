@@ -1,13 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { clearVehiculos, saveVehiculo } from '@/lib/direct-database'
+import { requireAdminSession } from '@/lib/apiAuth'
 
 export async function POST(request: NextRequest) {
+  const auth = requireAdminSession(request)
+  if (auth.response) return auth.response
+
   try {
-    const { data } = await request.json()
+    const { data, confirmarBorrado } = await request.json()
 
     if (!data || !Array.isArray(data)) {
       return NextResponse.json(
         { error: 'Datos CSV inválidos' },
+        { status: 400 }
+      )
+    }
+
+    // La importación hace clearVehiculos(): exigimos confirmación explícita.
+    if (confirmarBorrado !== true) {
+      return NextResponse.json(
+        {
+          error:
+            'Debes confirmar que se borrará todo el stock actual (confirmarBorrado)',
+        },
         { status: 400 }
       )
     }

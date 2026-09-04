@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react'
 import KanbanBoard from '@/components/KanbanBoard'
 import { useToast } from '@/components/Toast'
 import { useConfirmModal } from '@/components/ConfirmModal'
-import { useAutoSync } from '@/hooks/useAutoSync'
 import { KanbanLoadingSkeleton } from '@/components/LoadingSkeleton'
 import { formatVehicleReference, capitalizeText } from '@/lib/utils'
 import ProtectedRoute from '@/components/ProtectedRoute'
@@ -107,48 +106,14 @@ export default function KanbanPage() {
           vehiculo.tipo,
         ].some((campo) => (campo ?? '').toLowerCase().includes(q))
       } else {
-        const fieldValue = (vehiculo[searchField] ?? '').toString().toLowerCase()
+        const fieldValue = (vehiculo[searchField] ?? '')
+          .toString()
+          .toLowerCase()
         return fieldValue.includes(searchTerm.toLowerCase())
       }
     })
 
     setFilteredVehiculos(filtered)
-  }
-
-  const handleSyncSheets = async () => {
-    try {
-      const response = await fetch('/api/vehiculos/sync-sheets', {
-        method: 'POST',
-      })
-
-      if (response.ok) {
-        const result = await response.json()
-        setVehiculos(result.vehiculos)
-        if (result.warning) {
-          showToast(result.warning, 'info')
-        } else {
-          showToast('Datos actualizados correctamente', 'success')
-        }
-      } else {
-        const error = await response.json()
-        showToast(`Error: ${error.error}`, 'error')
-      }
-    } catch (error) {
-      console.error('Error sincronizando con Google Sheets:', error)
-      showToast('Error al sincronizar con Google Sheets', 'error')
-    }
-  }
-
-  // Sincronización automática cada 12 horas
-  useAutoSync(handleSyncSheets)
-
-  const handleManualSync = async () => {
-    try {
-      setIsLoading(true)
-      await handleSyncSheets()
-    } finally {
-      setIsLoading(false)
-    }
   }
 
   const fetchVehiculos = async () => {
@@ -339,7 +304,7 @@ export default function KanbanPage() {
                   </p>
                 </div>
                 <button
-                  onClick={handleManualSync}
+                  onClick={() => fetchVehiculos()}
                   disabled={isLoading}
                   className="bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                 >

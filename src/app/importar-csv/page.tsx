@@ -9,6 +9,7 @@ export default function ImportarCSV() {
   const [uploadProgress, setUploadProgress] = useState(0)
   const [csvData, setCsvData] = useState<any[]>([])
   const [showPreview, setShowPreview] = useState(false)
+  const [confirmarBorrado, setConfirmarBorrado] = useState(false)
   const { showToast, ToastContainer } = useToast()
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -83,6 +84,14 @@ export default function ImportarCSV() {
       return
     }
 
+    if (!confirmarBorrado) {
+      showToast(
+        'Debes confirmar que se borrará todo el stock actual antes de importar',
+        'error'
+      )
+      return
+    }
+
     setIsUploading(true)
 
     try {
@@ -91,7 +100,7 @@ export default function ImportarCSV() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ data: csvData }),
+        body: JSON.stringify({ data: csvData, confirmarBorrado }),
       })
 
       if (response.ok) {
@@ -102,6 +111,7 @@ export default function ImportarCSV() {
         )
         setCsvData([])
         setShowPreview(false)
+        setConfirmarBorrado(false)
       } else {
         const error = await response.json()
         showToast(`❌ Error: ${error.error}`, 'error')
@@ -117,6 +127,7 @@ export default function ImportarCSV() {
   const clearData = () => {
     setCsvData([])
     setShowPreview(false)
+    setConfirmarBorrado(false)
     setUploadProgress(0)
   }
 
@@ -264,10 +275,24 @@ export default function ImportarCSV() {
                 reemplazará todos los vehículos existentes.
               </p>
 
+              <label className="flex items-start gap-3 mb-4 p-3 bg-red-50 border border-red-200 rounded-lg cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={confirmarBorrado}
+                  onChange={(e) => setConfirmarBorrado(e.target.checked)}
+                  disabled={isUploading}
+                  className="mt-1 h-4 w-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                />
+                <span className="text-sm text-red-800">
+                  Entiendo que esta importación <strong>BORRA</strong> todo el
+                  stock actual antes de cargar el CSV
+                </span>
+              </label>
+
               <div className="flex space-x-4">
                 <button
                   onClick={handleImport}
-                  disabled={isUploading}
+                  disabled={isUploading || !confirmarBorrado}
                   className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {isUploading
