@@ -14,6 +14,7 @@ import {
 } from '@/lib/utils'
 import { labelTipo, normalizarEstado, TIPO_LABEL } from '@/lib/vehiculoEstado'
 import NotasSection from '@/components/NotasSection'
+import EstadoBadge from '@/components/EstadoBadge'
 import { useAuth } from '@/contexts/AuthContext'
 import ProtectedRoute from '@/components/ProtectedRoute'
 
@@ -280,7 +281,9 @@ export default function VehiculoDetailPage() {
         return null
       }
 
-      setIsLoading(true)
+      // Spinner de página solo en la primera carga: los refetch posteriores
+      // no desmontan la ficha.
+      if (!vehiculo) setIsLoading(true)
       setError(null)
       const apiUrl = `/api/vehiculos/${vehiculoId}`
       console.log(`📞 [FETCH] Llamando API: ${apiUrl}`)
@@ -1526,22 +1529,6 @@ export default function VehiculoDetailPage() {
     }
   }
 
-  const getEstadoColor = (estado: string) => {
-    switch (estado.toLowerCase()) {
-      case 'activo':
-      case 'disponible':
-        return 'bg-green-100 text-green-800'
-      case 'reservado':
-        return 'bg-yellow-100 text-yellow-800'
-      case 'vendido':
-        return 'bg-red-100 text-red-800'
-      case 'facturado':
-        return 'bg-indigo-100 text-indigo-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
-  }
-
   const getDescripcionEstado = (estado: string) => {
     switch (estado.toLowerCase()) {
       case 'disponible':
@@ -1698,11 +1685,11 @@ export default function VehiculoDetailPage() {
                 </div>
               </div>
               <div className="flex items-center space-x-2 sm:space-x-3">
-                <span
-                  className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${getEstadoColor(vehiculo.estado || 'inicial')}`}
-                >
-                  {(vehiculo.estado || 'inicial').toUpperCase()}
-                </span>
+                <EstadoBadge
+                  entidad="vehiculo"
+                  valor={vehiculo.estado}
+                  size="md"
+                />
                 <span
                   className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium border ${getTipoColor(vehiculo.tipo)}`}
                 >
@@ -1764,11 +1751,10 @@ export default function VehiculoDetailPage() {
                         <label className="block text-xs font-medium text-gray-700 mb-1">
                           Estado Actual
                         </label>
-                        <span
-                          className={`px-2 py-1 rounded-lg text-xs font-medium ${getEstadoColor(vehiculo?.estado || 'inicial')}`}
-                        >
-                          {(vehiculo?.estado || 'inicial').toUpperCase()}
-                        </span>
+                        <EstadoBadge
+                          entidad="vehiculo"
+                          valor={vehiculo?.estado}
+                        />
                       </div>
 
                       <div>
@@ -4076,11 +4062,11 @@ export default function VehiculoDetailPage() {
                       Estado Actual
                     </label>
                     <div className="flex items-center justify-between">
-                      <span
-                        className={`px-3 py-2 rounded-lg text-sm font-medium ${getEstadoColor(vehiculo.estado || 'inicial')}`}
-                      >
-                        {(vehiculo.estado || 'inicial').toUpperCase()}
-                      </span>
+                      <EstadoBadge
+                        entidad="vehiculo"
+                        valor={vehiculo.estado}
+                        size="md"
+                      />
 
                       {/* Botones de cambio de condición (Solo Admin) */}
                       {isAdmin && (

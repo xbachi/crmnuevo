@@ -14,6 +14,13 @@ import CondicionesPagoModal from '@/components/CondicionesPagoModal'
 import type { CondicionesPago } from '@/lib/ventaCondicionesPago'
 import DealInvoiceSection from '@/components/invoicing/DealInvoiceSection'
 import NotasSection from '@/components/NotasSection'
+import EstadoBadge from '@/components/EstadoBadge'
+import DealNextStep, {
+  DEAL_ANCHOR_CAMBIO_NOMBRE,
+  DEAL_ANCHOR_DOCUMENTOS,
+  DEAL_ANCHOR_FACTURACION,
+} from '@/components/DealNextStep'
+import { normalizarDealEstado } from '@/lib/dealEstado'
 
 interface Deal {
   id: number
@@ -252,7 +259,9 @@ export default function DealDetail() {
 
   const fetchDeal = async (opts: { silent?: boolean } = {}) => {
     try {
-      if (!opts.silent) setIsLoading(true)
+      // Spinner de página solo en la primera carga: los refetch posteriores
+      // (contratos, anulaciones, checkboxes) no desmontan la ficha.
+      if (!opts.silent && !deal) setIsLoading(true)
       const response = await fetch(`/api/deals/${params.id}`)
       if (response.ok) {
         const dealData = await response.json()
@@ -707,70 +716,90 @@ export default function DealDetail() {
   }
 
   // Funciones para anular documentos
-  const handleAnularContratoReserva = async () => {
+  const handleAnularContratoReserva = () => {
     if (!deal?.contratoReserva) return
 
-    try {
-      // Eliminar archivo físico del servidor
-      await fetch(`/api/documents/${deal.id}/contrato-reserva`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dealNumber: deal.numero }),
-      })
+    showConfirm(
+      'Anular contrato de reserva',
+      `Se eliminará el PDF del contrato de reserva del deal ${deal.numero}. Esta acción no se puede deshacer.`,
+      async () => {
+        setIsUpdating(true)
+        try {
+          // Eliminar archivo físico del servidor
+          await fetch(`/api/documents/${deal.id}/contrato-reserva`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dealNumber: deal.numero }),
+          })
 
-      // Actualizar base de datos
-      const response = await fetch(`/api/deals/${deal.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contratoReserva: null,
-          estado: deal.contratoVenta ? 'vendido' : 'nuevo', // Si tiene contrato de venta, mantener vendido
-        }),
-      })
+          // Actualizar base de datos
+          const response = await fetch(`/api/deals/${deal.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contratoReserva: null,
+              estado: deal.contratoVenta ? 'vendido' : 'nuevo', // Si tiene contrato de venta, mantener vendido
+            }),
+          })
 
-      if (response.ok) {
-        showToast('Contrato de reserva anulado exitosamente', 'success')
-        await loadDeal()
-      } else {
-        showToast('Error al anular el contrato de reserva', 'error')
-      }
-    } catch (error) {
-      console.error('Error anulando contrato de reserva:', error)
-      showToast('Error al anular el contrato de reserva', 'error')
-    }
+          if (response.ok) {
+            showToast('Contrato de reserva anulado exitosamente', 'success')
+            await loadDeal()
+          } else {
+            showToast('Error al anular el contrato de reserva', 'error')
+          }
+        } catch (error) {
+          console.error('Error anulando contrato de reserva:', error)
+          showToast('Error al anular el contrato de reserva', 'error')
+        } finally {
+          setIsUpdating(false)
+        }
+      },
+      'danger'
+    )
   }
 
-  const handleAnularContratoVenta = async () => {
+  const handleAnularContratoVenta = () => {
     if (!deal?.contratoVenta) return
 
-    try {
-      // Eliminar archivo físico del servidor
-      await fetch(`/api/documents/${deal.id}/contrato-venta`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dealNumber: deal.numero }),
-      })
+    showConfirm(
+      'Anular contrato de venta',
+      `Se eliminará el PDF del contrato de venta del deal ${deal.numero} y el deal volverá a estado reservado. Esta acción no se puede deshacer.`,
+      async () => {
+        setIsUpdating(true)
+        try {
+          // Eliminar archivo físico del servidor
+          await fetch(`/api/documents/${deal.id}/contrato-venta`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dealNumber: deal.numero }),
+          })
 
-      // Actualizar base de datos
-      const response = await fetch(`/api/deals/${deal.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contratoVenta: null,
-          estado: deal.factura ? 'facturado' : 'reservado', // Si tiene factura, mantener facturado
-        }),
-      })
+          // Actualizar base de datos
+          const response = await fetch(`/api/deals/${deal.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contratoVenta: null,
+              estado: deal.factura ? 'facturado' : 'reservado', // Si tiene factura, mantener facturado
+            }),
+          })
 
-      if (response.ok) {
-        showToast('Contrato de venta anulado exitosamente', 'success')
-        await loadDeal()
-      } else {
-        showToast('Error al anular el contrato de venta', 'error')
-      }
-    } catch (error) {
-      console.error('Error anulando contrato de venta:', error)
-      showToast('Error al anular el contrato de venta', 'error')
-    }
+          if (response.ok) {
+            showToast('Contrato de venta anulado exitosamente', 'success')
+            await loadDeal()
+          } else {
+            showToast('Error al anular el contrato de venta', 'error')
+          }
+        } catch (error) {
+          console.error('Error anulando contrato de venta:', error)
+          showToast('Error al anular el contrato de venta', 'error')
+        } finally {
+          setIsUpdating(false)
+        }
+      },
+      'danger'
+    )
   }
 
   const handleCambioNombreChange = async (
@@ -1129,21 +1158,6 @@ export default function DealDetail() {
     )
   }
 
-  const getEstadoColor = (estado: string) => {
-    switch (estado) {
-      case 'nuevo':
-        return 'bg-blue-100 text-blue-800'
-      case 'reservado':
-        return 'bg-yellow-100 text-yellow-800'
-      case 'vendido':
-        return 'bg-green-100 text-green-800'
-      case 'facturado':
-        return 'bg-purple-100 text-purple-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
-  }
-
   const canGenerateContratoVenta =
     deal.contratoReserva && deal.estado === 'reservado'
   const canGenerateFactura = deal.contratoVenta && deal.estado === 'vendido'
@@ -1195,13 +1209,30 @@ export default function DealDetail() {
                   </p>
                 </div>
               </div>
-              <div
-                className={`px-3 py-1 rounded-full text-sm font-medium ${getEstadoColor(deal.estado)}`}
-              >
-                {deal.estado.toUpperCase()}
-              </div>
+              <EstadoBadge entidad="deal" valor={deal.estado} size="md" />
             </div>
           </div>
+        </div>
+
+        {/* Siguiente paso del flujo de venta */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+          <DealNextStep
+            estado={deal.estado}
+            tieneContratoReserva={Boolean(deal.contratoReserva)}
+            tieneContratoVenta={Boolean(deal.contratoVenta)}
+            // El backend pone estado=facturado al emitir y lo devuelve a vendido
+            // al rectificar: el estado es la única señal fiable de factura activa.
+            tieneFacturaActiva={
+              normalizarDealEstado(deal.estado) === 'facturado'
+            }
+            fechaReservaExpira={deal.fechaReservaExpira ?? null}
+            cambioNombre={{
+              solicitado: deal.cambioNombreSolicitado,
+              documentacionRecibida: deal.documentacionRecibida,
+              clienteAvisado: deal.clienteAvisado,
+              documentacionRetirada: deal.documentacionRetirada,
+            }}
+          />
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -1209,7 +1240,10 @@ export default function DealDetail() {
             {/* Panel Principal */}
             <div className="lg:col-span-2 space-y-6">
               {/* Documentos */}
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+              <div
+                id={DEAL_ANCHOR_DOCUMENTOS}
+                className="scroll-mt-4 bg-white rounded-xl shadow-sm border border-slate-200 p-6"
+              >
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">
                   Documentos
                 </h2>
@@ -1358,18 +1392,20 @@ export default function DealDetail() {
               </div>
 
               {/* New invoicing module — fiscal sequence, audit, history */}
-              <DealInvoiceSection
-                saleId={deal.id}
-                legacyFacturaName={deal.factura ?? null}
-                legacyFacturaDate={
-                  deal.fechaFacturada
-                    ? new Date(deal.fechaFacturada).toISOString()
-                    : null
-                }
-                // Refresco silencioso: el spinner de página desmonta la sección y
-                // perdería la factura recién emitida (y su toast).
-                onInvoiceIssued={() => fetchDeal({ silent: true })}
-              />
+              <div id={DEAL_ANCHOR_FACTURACION} className="scroll-mt-4">
+                <DealInvoiceSection
+                  saleId={deal.id}
+                  legacyFacturaName={deal.factura ?? null}
+                  legacyFacturaDate={
+                    deal.fechaFacturada
+                      ? new Date(deal.fechaFacturada).toISOString()
+                      : null
+                  }
+                  // Refresco silencioso: el spinner de página desmonta la sección y
+                  // perdería la factura recién emitida (y su toast).
+                  onInvoiceIssued={() => fetchDeal({ silent: true })}
+                />
+              </div>
 
               {/* Información de Reserva */}
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
@@ -1615,20 +1651,11 @@ export default function DealDetail() {
                         <span className="font-medium text-gray-700">
                           Estado:
                         </span>
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            deal.estado === 'nuevo'
-                              ? 'bg-blue-100 text-blue-800'
-                              : deal.estado === 'reservado'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : deal.estado === 'vendido'
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'bg-gray-100 text-gray-800'
-                          }`}
-                        >
-                          {deal.estado?.charAt(0).toUpperCase() +
-                            deal.estado?.slice(1) || 'Nuevo'}
-                        </span>
+                        <EstadoBadge
+                          entidad="deal"
+                          valor={deal.estado}
+                          className="ml-2"
+                        />
                       </div>
                     </div>
                   </div>
@@ -1656,7 +1683,8 @@ export default function DealDetail() {
 
               {/* Cambio de Nombre */}
               <div
-                className={`rounded-xl shadow-sm border p-6 ${
+                id={DEAL_ANCHOR_CAMBIO_NOMBRE}
+                className={`scroll-mt-4 rounded-xl shadow-sm border p-6 ${
                   deal.estado === 'facturado'
                     ? 'bg-white border-slate-200'
                     : 'bg-gray-100 border-gray-300'
