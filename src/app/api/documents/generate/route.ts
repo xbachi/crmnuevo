@@ -4,7 +4,23 @@ import {
   generarContratoVenta,
   generarFactura,
 } from '@/lib/contractGenerator'
-import { documentExists, saveDocument } from '@/lib/documentStorage'
+import {
+  isDocumentType,
+  saveDocument,
+  type DocumentType,
+} from '@/lib/documentStorage'
+import {
+  setDealDocumentRef,
+  type DealDocumentColumn,
+} from '@/lib/direct-database'
+
+// Columna del deal donde se persiste la referencia (URL de Blob) del PDF.
+// `factura` no entra: deal.factura guarda el número de factura y el PDF lo
+// gestiona el módulo de facturación (invoices.pdf_url).
+const PERSIST_COLUMN: Partial<Record<DocumentType, DealDocumentColumn>> = {
+  'contrato-reserva': 'contratoReserva',
+  'contrato-venta': 'contratoVenta',
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,8 +52,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validar tipo de documento
-    const validTypes = ['contrato-reserva', 'contrato-venta', 'factura']
-    if (!validTypes.includes(documentType)) {
+    if (!isDocumentType(documentType)) {
       return NextResponse.json(
         { error: 'Tipo de documento inválido' },
         { status: 400 }
@@ -144,52 +159,46 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // En Vercel, devolver el PDF directamente sin guardarlo
-    if (process.env.VERCEL) {
-      console.log('🌐 [API GENERATE] Devolviendo PDF directamente (Vercel)')
-
-      return new NextResponse(new Uint8Array(pdfBuffer), {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/pdf',
-          'Content-Disposition': `attachment; filename="${documentType}-${dealNumber}.pdf"`,
-          'Content-Length': pdfBuffer.length.toString(),
-        },
-      })
+    // Contratos de deal: subir a Vercel Blob y persistir la URL en el deal.
+    // El filesystem de Vercel es efímero, así que ya no se guarda en disco.
+    // Documentos sueltos (dealId 0, generador de reservas) solo se devuelven.
+    const column = PERSIST_COLUMN[documentType]
+    if (dealIdNum > 0 && column) {
+      try {
+        const saved = await saveDocument(
+          { dealId: dealIdNum, documentType, dealNumber: String(dealNumber) },
+          pdfBuffer
+        )
+        await setDealDocumentRef(dealIdNum, column, saved.url)
+        console.log(
+          '✅ [API GENERATE] Documento guardado en Blob:',
+          saved.pathname
+        )
+      } catch (saveError) {
+        console.error('❌ [API GENERATE] Error guardando documento:', saveError)
+        return NextResponse.json(
+          {
+            error:
+              'Error guardando el documento en el almacenamiento persistente',
+            details: (saveError as Error).message,
+            type: 'save_error',
+          },
+          { status: 500 }
+        )
+      }
     }
 
-    // Guardar el documento solo en desarrollo local
-    try {
-      // Usar timestamp para contratos de reserva para evitar caché del navegador
-      const useTimestamp = documentType === 'contrato-reserva'
-      const documentUrl = await saveDocument(
-        dealIdNum,
-        documentType as any,
-        dealNumber,
-        Buffer.from(pdfBuffer),
-        useTimestamp
-      )
-
-      console.log(
-        '✅ [API GENERATE] Documento guardado exitosamente:',
-        documentUrl
-      )
-
-      return NextResponse.json({
-        message: 'Documento generado exitosamente',
-        url: documentUrl,
-      })
-    } catch (saveError) {
-      console.error('❌ [API GENERATE] Error guardando documento:', saveError)
-      return NextResponse.json(
-        {
-          error: 'Error guardando documento',
-          details: (saveError as Error).message,
-          type: 'save_error',
-        },
-        { status: 500 }
-      )
-    }
+    // Se devuelve el PDF directamente: la ficha lo descarga al instante y la
+    // descarga posterior pasa por /api/documents/[dealId]/[documentType].
+    return new NextResponse(new Uint8Array(pdfBuffer), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${documentType}-${dealNumber}.pdf"`,
+        'Content-Length': pdfBuffer.length.toString(),
+        'Cache-Control': 'private, no-store',
+      },
+    })
   } catch (error) {
     console.error('❌ [API GENERATE] Error general:', error)
     console.error('❌ [API GENERATE] Stack trace:', (error as Error).stack)

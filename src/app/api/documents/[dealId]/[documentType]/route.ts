@@ -1,12 +1,92 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { promises as fs } from 'fs'
-import path from 'path'
 import {
-  documentExists,
-  getDocumentPath,
+  DocumentNotAvailableError,
   deleteDocument,
+  isDocumentType,
+  readDocument,
+  type DocumentLocator,
+  type DocumentType,
 } from '@/lib/documentStorage'
 import { pool } from '@/lib/direct-database'
+
+interface DealDocRow {
+  numero: string
+  contratoReserva: string | null
+  contratoVenta: string | null
+}
+
+interface ResolvedDocument {
+  dealIdNum: number
+  documentType: DocumentType
+  /** Lo persistido en el deal: URL de Blob, nombre legacy o null. */
+  ref: string | null
+  locator: DocumentLocator
+}
+
+/**
+ * Valida params y localiza el documento en el deal. `factura` no tiene
+ * referencia de archivo en el deal (deal.factura es el número de factura):
+ * solo se prueba el nombre legacy canónico.
+ */
+async function resolveDocument(
+  dealId: string,
+  documentType: string,
+  dealNumberHint: string | null
+): Promise<ResolvedDocument | NextResponse> {
+  if (!dealId || !documentType) {
+    return NextResponse.json({ error: 'Parámetros faltantes' }, { status: 400 })
+  }
+  if (!isDocumentType(documentType)) {
+    return NextResponse.json(
+      { error: 'Tipo de documento inválido' },
+      { status: 400 }
+    )
+  }
+  const dealIdNum = parseInt(dealId)
+  if (isNaN(dealIdNum)) {
+    return NextResponse.json({ error: 'ID de deal inválido' }, { status: 400 })
+  }
+
+  const { rows } = await pool.query<DealDocRow>(
+    `SELECT numero, "contratoReserva", "contratoVenta" FROM "Deal" WHERE id = $1`,
+    [dealIdNum]
+  )
+  const deal = rows[0]
+  if (!deal) {
+    return NextResponse.json({ error: 'Deal no encontrado' }, { status: 404 })
+  }
+
+  const ref =
+    documentType === 'contrato-reserva'
+      ? deal.contratoReserva
+      : documentType === 'contrato-venta'
+        ? deal.contratoVenta
+        : null
+
+  const dealNumber = deal.numero || dealNumberHint || String(dealIdNum)
+  return {
+    dealIdNum,
+    documentType,
+    ref,
+    locator: { dealId: dealIdNum, documentType, dealNumber },
+  }
+}
+
+function pdfResponse(
+  body: Buffer | ReadableStream<Uint8Array>,
+  fileName: string
+) {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/pdf',
+    'Content-Disposition': `attachment; filename="${fileName}"`,
+    'Cache-Control': 'private, no-store',
+  }
+  if (Buffer.isBuffer(body)) {
+    headers['Content-Length'] = body.length.toString()
+    return new NextResponse(new Uint8Array(body), { status: 200, headers })
+  }
+  return new NextResponse(body, { status: 200, headers })
+}
 
 export async function GET(
   request: NextRequest,
@@ -14,47 +94,19 @@ export async function GET(
 ) {
   try {
     const { dealId, documentType } = await params
-
-    // Validar parámetros
-    if (!dealId || !documentType) {
-      return NextResponse.json(
-        { error: 'Parámetros faltantes' },
-        { status: 400 }
-      )
-    }
-
-    // Validar tipo de documento
-    const validTypes = ['contrato-reserva', 'contrato-venta', 'factura']
-    if (!validTypes.includes(documentType)) {
-      return NextResponse.json(
-        { error: 'Tipo de documento inválido' },
-        { status: 400 }
-      )
-    }
-
-    // Obtener el número del deal desde la query string
     const { searchParams } = new URL(request.url)
-    const dealNumber = searchParams.get('dealNumber')
 
-    if (!dealNumber) {
-      return NextResponse.json(
-        { error: 'Número de deal requerido' },
-        { status: 400 }
-      )
-    }
+    const resolved = await resolveDocument(
+      dealId,
+      documentType,
+      searchParams.get('dealNumber')
+    )
+    if (resolved instanceof NextResponse) return resolved
+    const { dealIdNum, ref, locator } = resolved
 
-    const dealIdNum = parseInt(dealId)
-    if (isNaN(dealIdNum)) {
-      return NextResponse.json(
-        { error: 'ID de deal inválido' },
-        { status: 400 }
-      )
-    }
-
-    // Factura: el módulo nuevo guarda el PDF en Vercel Blob, no en el FS.
-    // Lo proxeamos con un Content-Disposition con nombre humano. Si no hay
-    // fila (deals pre-migración), caemos al lookup del filesystem como antes.
-    if (documentType === 'factura') {
+    // Factura: el módulo de facturación guarda el PDF en Blob (invoices.pdf_url).
+    // Si no hay fila (deals pre-migración) caemos al lookup legacy de abajo.
+    if (locator.documentType === 'factura') {
       const { rows } = await pool.query<{
         id: number
         pdf_url: string | null
@@ -73,15 +125,10 @@ export async function GET(
             { status: 502 }
           )
         }
-        const filename = `factura-${rows[0].full_invoice_number}.pdf`
-        return new NextResponse(blobRes.body, {
-          status: 200,
-          headers: {
-            'Content-Type': 'application/pdf',
-            'Content-Disposition': `attachment; filename="${filename}"`,
-            'Cache-Control': 'private, no-store',
-          },
-        })
+        return pdfResponse(
+          blobRes.body,
+          `factura-${rows[0].full_invoice_number}.pdf`
+        )
       }
       if (rows[0] && !rows[0].pdf_url) {
         return NextResponse.json(
@@ -92,41 +139,23 @@ export async function GET(
           { status: 409 }
         )
       }
-      // sin fila en invoices → fallback al filesystem legacy
     }
 
-    // Verificar si el documento existe
-    const exists = await documentExists(
-      dealIdNum,
-      documentType as any,
-      dealNumber
-    )
-
-    if (!exists) {
-      return NextResponse.json(
-        { error: 'Documento no encontrado' },
-        { status: 404 }
+    try {
+      const buffer = await readDocument(ref, locator)
+      return pdfResponse(
+        buffer,
+        `${locator.documentType}-${locator.dealNumber}.pdf`
       )
+    } catch (error) {
+      if (error instanceof DocumentNotAvailableError) {
+        return NextResponse.json(
+          { error: error.message },
+          { status: error.legacy ? 404 : 502 }
+        )
+      }
+      throw error
     }
-
-    // Obtener la ruta del archivo
-    const filePath = getDocumentPath(dealIdNum, documentType as any, dealNumber)
-
-    // Leer el archivo
-    const fileBuffer = await fs.readFile(filePath)
-
-    // Determinar el nombre del archivo
-    const fileName = `${documentType}-${dealNumber}.pdf`
-
-    // Retornar el archivo
-    return new NextResponse(new Uint8Array(fileBuffer), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${fileName}"`,
-        'Content-Length': fileBuffer.length.toString(),
-      },
-    })
   } catch (error) {
     console.error('Error descargando documento:', error)
     return NextResponse.json(
@@ -142,45 +171,18 @@ export async function DELETE(
 ) {
   try {
     const { dealId, documentType } = await params
+    const body = await request.json().catch(() => ({}))
 
-    // Validar parámetros
-    if (!dealId || !documentType) {
-      return NextResponse.json(
-        { error: 'Parámetros faltantes' },
-        { status: 400 }
-      )
-    }
+    const resolved = await resolveDocument(
+      dealId,
+      documentType,
+      typeof body?.dealNumber === 'string' ? body.dealNumber : null
+    )
+    if (resolved instanceof NextResponse) return resolved
 
-    // Validar tipo de documento
-    const validTypes = ['contrato-reserva', 'contrato-venta', 'factura']
-    if (!validTypes.includes(documentType)) {
-      return NextResponse.json(
-        { error: 'Tipo de documento inválido' },
-        { status: 400 }
-      )
-    }
-
-    // Obtener el número del deal desde el body
-    const body = await request.json()
-    const dealNumber = body.dealNumber
-
-    if (!dealNumber) {
-      return NextResponse.json(
-        { error: 'Número de deal requerido' },
-        { status: 400 }
-      )
-    }
-
-    const dealIdNum = parseInt(dealId)
-    if (isNaN(dealIdNum)) {
-      return NextResponse.json(
-        { error: 'ID de deal inválido' },
-        { status: 400 }
-      )
-    }
-
-    // Eliminar el documento
-    await deleteDocument(dealIdNum, documentType as any, dealNumber)
+    // Solo borra el archivo (Blob o legacy); la referencia en el deal la
+    // limpia la ficha con su PUT `contratoX: null`, como hasta ahora.
+    await deleteDocument(resolved.ref, resolved.locator)
 
     return NextResponse.json({
       message: 'Documento eliminado exitosamente',

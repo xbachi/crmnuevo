@@ -733,6 +733,34 @@ export async function createDeal(dealData: DealCreateData) {
   }
 }
 
+export type DealDocumentColumn = 'contratoReserva' | 'contratoVenta'
+
+/**
+ * Persiste la referencia (URL de Vercel Blob) del PDF generado para un deal.
+ * La escribe /api/documents/generate; la ficha del deal sigue mandando después
+ * el nombre de archivo legacy y updateDeal lo ignora para no pisar la URL.
+ */
+export async function setDealDocumentRef(
+  id: number,
+  column: DealDocumentColumn,
+  ref: string | null
+): Promise<void> {
+  await pool.query(
+    `UPDATE "Deal" SET "${column}" = $1, "updatedAt" = NOW() WHERE id = $2`,
+    [ref, id]
+  )
+}
+
+function isDealDocumentColumn(key: string): key is DealDocumentColumn {
+  return key === 'contratoReserva' || key === 'contratoVenta'
+}
+
+// Mismo criterio que documentStorage.isBlobRef, duplicado a propósito: importar
+// esa capa aquí arrastraría @vercel/blob a todo lo que carga direct-database.
+function isBlobRef(value: unknown): value is string {
+  return typeof value === 'string' && /^https?:\/\//i.test(value)
+}
+
 export async function updateDeal(
   id: number,
   dealData: Partial<DealCreateData>
@@ -753,6 +781,18 @@ export async function updateDeal(
     let paramIndex = 1
 
     Object.entries(dealData).forEach(([key, value]) => {
+      // Un nombre de archivo legacy no pisa una URL de Blob ya persistida
+      // (la ficha manda `contrato-reserva-<numero>.pdf` tras generar). null
+      // sí pasa: es el "anular" explícito.
+      if (
+        isDealDocumentColumn(key) &&
+        typeof value === 'string' &&
+        value !== '' &&
+        !isBlobRef(value) &&
+        isBlobRef(currentDeal[key])
+      ) {
+        return
+      }
       if (value !== undefined) {
         fields.push(`"${key}" = $${paramIndex}`)
         values.push(value)

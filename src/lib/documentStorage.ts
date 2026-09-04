@@ -1,118 +1,183 @@
 import { promises as fs } from 'fs'
 import path from 'path'
+import { del, put } from '@vercel/blob'
 
-const DOCUMENTS_DIR = path.join(process.cwd(), 'public', 'documents')
+/**
+ * Capa de almacenamiento de los PDFs generados (contratos de reserva/venta…).
+ *
+ * Escritura: SIEMPRE a Vercel Blob. En Vercel el filesystem es efímero (cada
+ * instancia tiene su disco temporal y se pierde en el siguiente deploy o cold
+ * start), así que lo que se escribía en public/documents/ desaparecía. Mismo
+ * patrón que uploadPdfToBlob en invoiceService.ts: la URL pública lleva sufijo
+ * aleatorio (no adivinable) y la descarga real pasa por el endpoint
+ * autenticado /api/documents/[dealId]/[documentType].
+ *
+ * Lectura/borrado: soporta los dos formatos que puede haber persistidos en el
+ * deal:
+ *   - `https://…`      → referencia a Blob (se descarga en servidor).
+ *   - cualquier otro   → nombre de archivo legacy en public/documents/.
+ */
 
-// Crear directorio de documentos si no existe
-async function ensureDocumentsDir() {
-  try {
-    await fs.mkdir(DOCUMENTS_DIR, { recursive: true })
-  } catch (error) {
-    console.error('Error creando directorio de documentos:', error)
-  }
+export type DocumentType = 'contrato-reserva' | 'contrato-venta' | 'factura'
+
+export const DOCUMENT_TYPES: readonly DocumentType[] = [
+  'contrato-reserva',
+  'contrato-venta',
+  'factura',
+]
+
+export function isDocumentType(value: unknown): value is DocumentType {
+  return (
+    typeof value === 'string' &&
+    (DOCUMENT_TYPES as readonly string[]).includes(value)
+  )
 }
 
-// Crear directorio específico para un deal
-async function ensureDealDir(dealId: number) {
-  const dealDir = path.join(DOCUMENTS_DIR, `deal-${dealId}`)
-  try {
-    await fs.mkdir(dealDir, { recursive: true })
-    return dealDir
-  } catch (error) {
-    console.error(`Error creando directorio para deal ${dealId}:`, error)
-    throw error
-  }
-}
-
-// Obtener ruta de un documento específico
-export function getDocumentPath(
-  dealId: number,
-  documentType: 'contrato-reserva' | 'contrato-venta' | 'factura',
+export interface DocumentLocator {
+  /** 0 = documento suelto (generador de reservas), sin deal. */
+  dealId: number
+  documentType: DocumentType
   dealNumber: string
+}
+
+export interface SavedDocument {
+  url: string
+  pathname: string
+}
+
+export const LEGACY_NOT_AVAILABLE_MESSAGE =
+  'Documento no disponible: se generó antes de la migración a almacenamiento persistente; vuelve a generarlo'
+
+export const BLOB_NOT_AVAILABLE_MESSAGE =
+  'No se pudo recuperar el documento del almacenamiento persistente'
+
+export class DocumentNotAvailableError extends Error {
+  readonly code = 'DOCUMENT_NOT_AVAILABLE'
+
+  constructor(
+    message: string,
+    /** true → referencia legacy (disco) que ya no existe; false → fallo al leer el Blob. */
+    readonly legacy: boolean
+  ) {
+    super(message)
+    this.name = 'DocumentNotAvailableError'
+  }
+}
+
+const BLOB_PREFIX = 'documentos/'
+
+// Solo lectura: directorio donde escribía la versión anterior de esta capa.
+const LEGACY_DOCUMENTS_DIR = path.join(process.cwd(), 'public', 'documents')
+
+export function isBlobRef(ref: unknown): ref is string {
+  return typeof ref === 'string' && /^https?:\/\//i.test(ref)
+}
+
+function safeSegment(value: string): string {
+  const cleaned = value
+    .replace(/[^A-Za-z0-9._-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+  return cleaned || 'sin-numero'
+}
+
+export function buildBlobPath(
+  locator: DocumentLocator,
+  timestamp: number = Date.now()
 ): string {
-  const fileName = `${documentType}-${dealNumber}.pdf`
-  return path.join(DOCUMENTS_DIR, `deal-${dealId}`, fileName)
+  const folder = locator.dealId > 0 ? String(locator.dealId) : 'sueltos'
+  const name = `${locator.documentType}-${safeSegment(locator.dealNumber)}-${timestamp}.pdf`
+  return `${BLOB_PREFIX}${folder}/${name}`
 }
 
-// Verificar si un documento existe
-export async function documentExists(
-  dealId: number,
-  documentType: 'contrato-reserva' | 'contrato-venta' | 'factura',
-  dealNumber: string
-): Promise<boolean> {
-  try {
-    const filePath = getDocumentPath(dealId, documentType, dealNumber)
-    await fs.access(filePath)
-    return true
-  } catch {
-    return false
-  }
-}
-
-// Guardar un documento
 export async function saveDocument(
-  dealId: number,
-  documentType: 'contrato-reserva' | 'contrato-venta' | 'factura',
-  dealNumber: string,
-  pdfBuffer: Buffer,
-  useTimestamp: boolean = false
-): Promise<string> {
-  await ensureDocumentsDir()
+  locator: DocumentLocator,
+  pdf: Buffer | Uint8Array
+): Promise<SavedDocument> {
+  const blob = await put(buildBlobPath(locator), Buffer.from(pdf), {
+    access: 'public',
+    contentType: 'application/pdf',
+    addRandomSuffix: true,
+  })
+  return { url: blob.url, pathname: blob.pathname }
+}
 
-  let filePath: string
-  let url: string
+function legacyDir(dealId: number): string {
+  return dealId > 0
+    ? path.join(LEGACY_DOCUMENTS_DIR, `deal-${dealId}`)
+    : LEGACY_DOCUMENTS_DIR
+}
 
-  if (dealId === 0) {
-    // Factura independiente (sin deal)
-    const timestamp = useTimestamp ? `-${Date.now()}` : ''
-    const fileName = `${documentType}-${dealNumber}${timestamp}.pdf`
-    filePath = path.join(DOCUMENTS_DIR, fileName)
-    url = `/documents/${fileName}`
-  } else {
-    // Documento de deal
-    const dealDir = await ensureDealDir(dealId)
-    const timestamp = useTimestamp ? `-${Date.now()}` : ''
-    const fileName = `${documentType}-${dealNumber}${timestamp}.pdf`
-    filePath = path.join(dealDir, fileName)
-    url = `/documents/deal-${dealId}/${fileName}`
+/**
+ * Rutas legacy candidatas, en orden: el nombre persistido en el deal (si lo
+ * hay) y el nombre canónico `<tipo>-<numero>.pdf`. Siempre dentro del
+ * directorio del deal: los valores vienen de la DB / query string y no deben
+ * poder salir de él.
+ */
+function legacyCandidates(
+  ref: string | null | undefined,
+  locator: DocumentLocator
+): string[] {
+  const dir = legacyDir(locator.dealId)
+  const names: string[] = []
+  if (ref && !isBlobRef(ref)) {
+    const base = path.basename(ref)
+    if (base.toLowerCase().endsWith('.pdf')) names.push(base)
+  }
+  const canonical = path.basename(
+    `${locator.documentType}-${locator.dealNumber}.pdf`
+  )
+  if (!names.includes(canonical)) names.push(canonical)
+
+  return names
+    .map((name) => path.join(dir, name))
+    .filter((full) => full.startsWith(dir + path.sep))
+}
+
+function isEnoent(error: unknown): boolean {
+  return (error as NodeJS.ErrnoException | null)?.code === 'ENOENT'
+}
+
+/**
+ * Devuelve el contenido del PDF. `ref` es lo persistido en el deal (URL de
+ * Blob o nombre legacy; puede ser null → solo se prueba el nombre canónico).
+ */
+export async function readDocument(
+  ref: string | null | undefined,
+  locator: DocumentLocator
+): Promise<Buffer> {
+  if (isBlobRef(ref)) {
+    const res = await fetch(ref)
+    if (!res.ok) {
+      throw new DocumentNotAvailableError(BLOB_NOT_AVAILABLE_MESSAGE, false)
+    }
+    return Buffer.from(await res.arrayBuffer())
   }
 
-  await fs.writeFile(filePath, pdfBuffer)
-  return url
+  for (const candidate of legacyCandidates(ref, locator)) {
+    try {
+      return await fs.readFile(candidate)
+    } catch (error) {
+      if (!isEnoent(error)) throw error
+    }
+  }
+  throw new DocumentNotAvailableError(LEGACY_NOT_AVAILABLE_MESSAGE, true)
 }
 
-// Obtener URL de descarga de un documento
-export function getDocumentUrl(
-  dealId: number,
-  documentType: 'contrato-reserva' | 'contrato-venta' | 'factura',
-  dealNumber: string
-): string {
-  return `/documents/deal-${dealId}/${documentType}-${dealNumber}.pdf`
-}
-
-// Eliminar un documento
+/** Borra el PDF en Blob o en disco legacy. Un legacy inexistente no es error. */
 export async function deleteDocument(
-  dealId: number,
-  documentType: 'contrato-reserva' | 'contrato-venta' | 'factura',
-  dealNumber: string
+  ref: string | null | undefined,
+  locator: DocumentLocator
 ): Promise<void> {
-  try {
-    const filePath = getDocumentPath(dealId, documentType, dealNumber)
-    await fs.unlink(filePath)
-  } catch (error) {
-    console.error(
-      `Error eliminando documento ${documentType} para deal ${dealId}:`,
-      error
-    )
+  if (isBlobRef(ref)) {
+    await del(ref)
+    return
   }
-}
 
-// Eliminar todos los documentos de un deal
-export async function deleteDealDocuments(dealId: number): Promise<void> {
-  try {
-    const dealDir = path.join(DOCUMENTS_DIR, `deal-${dealId}`)
-    await fs.rmdir(dealDir, { recursive: true })
-  } catch (error) {
-    console.error(`Error eliminando documentos del deal ${dealId}:`, error)
+  for (const candidate of legacyCandidates(ref, locator)) {
+    try {
+      await fs.unlink(candidate)
+    } catch (error) {
+      if (!isEnoent(error)) throw error
+    }
   }
 }
