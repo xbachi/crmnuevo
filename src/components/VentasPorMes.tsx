@@ -2,18 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { useSimpleToast } from '@/hooks/useSimpleToast'
-
-interface VentasPorMes {
-  mes: string
-  año: number
-  cantidad: number
-}
-
-interface VentasStats {
-  añoActual: number
-  ultimoMes: number
-  mesActual: number
-}
+import {
+  derivarVentasStats,
+  type VentaMes,
+  type VentasStats,
+} from '@/lib/ventasPorMes'
 
 type PeriodoType =
   | 'año'
@@ -44,41 +37,12 @@ export default function VentasPorMes() {
     try {
       setIsLoading(true)
 
-      // Fetch año actual
-      const responseAño = await fetch('/api/ventas?periodo=año')
-      const dataAño = responseAño.ok ? await responseAño.json() : []
-      const añoActual = dataAño.reduce(
-        (sum: number, v: VentasPorMes) => sum + v.cantidad,
-        0
-      )
+      // Una sola serie (año en curso + mes anterior aunque cruce de año);
+      // año / mes anterior / mes actual se derivan en cliente.
+      const response = await fetch('/api/ventas?periodo=13_meses')
+      const serie: VentaMes[] = response.ok ? await response.json() : []
 
-      // Fetch mes anterior
-      const responseMesAnterior = await fetch(
-        '/api/ventas?periodo=mes_anterior'
-      )
-      const dataMesAnterior = responseMesAnterior.ok
-        ? await responseMesAnterior.json()
-        : []
-      const ultimoMes = dataMesAnterior.reduce(
-        (sum: number, v: VentasPorMes) => sum + v.cantidad,
-        0
-      )
-
-      // Fetch mes actual
-      const responseMesActual = await fetch('/api/ventas?periodo=mes_actual')
-      const dataMesActual = responseMesActual.ok
-        ? await responseMesActual.json()
-        : []
-      const mesActual = dataMesActual.reduce(
-        (sum: number, v: VentasPorMes) => sum + v.cantidad,
-        0
-      )
-
-      setStats({
-        añoActual,
-        ultimoMes,
-        mesActual,
-      })
+      setStats(derivarVentasStats(serie))
     } catch (error) {
       console.error('Error fetching ventas stats:', error)
       showToast('Error al cargar estadísticas de ventas', 'error')

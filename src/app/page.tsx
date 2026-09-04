@@ -21,6 +21,7 @@ interface DashboardStats {
   totalActivos: number
   publicados: number
   enProceso: number
+  vendidos: number
   vehiculosItvVencida: number
 }
 
@@ -46,6 +47,7 @@ export default function Home() {
     totalActivos: 0,
     publicados: 0,
     enProceso: 0,
+    vendidos: 0,
     vehiculosItvVencida: 0,
   })
   const [depositoStats, setDepositoStats] = useState<DepositoStats>({
@@ -72,53 +74,23 @@ export default function Home() {
 
   const fetchDashboardData = async () => {
     try {
-      // Cargar estadísticas reales de vehículos con caché
-      const vehiculoStatsResponse = await fetch('/api/vehiculos/stats', {
-        headers: {
-          'Cache-Control': 'max-age=300', // 5 minutos de caché
-        },
-      })
-      if (vehiculoStatsResponse.ok) {
-        const vehiculoStats = await vehiculoStatsResponse.json()
-        setStats({
-          totalActivos: vehiculoStats.totalActivos,
-          publicados: vehiculoStats.publicados,
-          enProceso: vehiculoStats.enProceso,
-          vehiculosItvVencida: 3, // Mantener por ahora, se puede implementar después
-        })
-      } else {
-        // Fallback a datos simulados si hay error
-        setStats({
-          totalActivos: 47,
-          publicados: 23,
-          enProceso: 24,
-          vehiculosItvVencida: 3,
-        })
+      // Un solo request: stats de vehículos + depósitos + últimas operaciones
+      // (antes 3 fetches en cadena).
+      const response = await fetch('/api/dashboard/summary?limit=5')
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
       }
+      const { vehiculos, depositos, ultimasVentas } = await response.json()
 
-      // Cargar estadísticas de depósitos con caché
-      const depositoStatsResponse = await fetch('/api/depositos/stats', {
-        headers: {
-          'Cache-Control': 'max-age=300', // 5 minutos de caché
-        },
+      setStats({
+        totalActivos: vehiculos.totalActivos,
+        publicados: vehiculos.publicados,
+        enProceso: vehiculos.enProceso,
+        vendidos: vehiculos.vendidos,
+        vehiculosItvVencida: 3, // Mantener por ahora, se puede implementar después
       })
-      if (depositoStatsResponse.ok) {
-        const depositoStats = await depositoStatsResponse.json()
-        setDepositoStats(depositoStats)
-      } else {
-        setDepositoStats({
-          totalDepositos: 0,
-          enProceso: 0,
-          publicados: 0,
-        })
-      }
-
-      // Cargar últimas operaciones
-      const operacionesResponse = await fetch('/api/deals/ultimas?limit=5')
-      if (operacionesResponse.ok) {
-        const operaciones = await operacionesResponse.json()
-        setUltimasOperaciones(operaciones)
-      }
+      setDepositoStats(depositos)
+      setUltimasOperaciones(Array.isArray(ultimasVentas) ? ultimasVentas : [])
 
       setIsLoading(false)
     } catch (error) {
@@ -128,6 +100,7 @@ export default function Home() {
         totalActivos: 47,
         publicados: 23,
         enProceso: 24,
+        vendidos: 0,
         vehiculosItvVencida: 3,
       })
       setDepositoStats({
@@ -403,10 +376,7 @@ export default function Home() {
                   >
                     <InteractiveMetricsChart
                       data={{
-                        vehiculosVendidos:
-                          stats.totalActivos -
-                          stats.enProceso -
-                          stats.publicados,
+                        vehiculosVendidos: stats.vendidos,
                         enStock: stats.totalActivos,
                         depositos: depositoStats.totalDepositos,
                         enProceso: stats.enProceso + depositoStats.enProceso,

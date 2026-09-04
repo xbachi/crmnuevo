@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -12,7 +12,6 @@ import {
   ArcElement,
 } from 'chart.js'
 import { Bar, Doughnut } from 'react-chartjs-2'
-import { useSimpleToast } from '@/hooks/useSimpleToast'
 
 ChartJS.register(
   CategoryScale,
@@ -52,40 +51,18 @@ interface InteractiveMetricsChartProps {
   data: MetricsData
 }
 
+/**
+ * Los datos llegan por props desde el home (/api/dashboard/summary): antes el
+ * componente volvía a pedir /api/metrics (10 queries) para pintar las mismas
+ * cifras. El selector de período se conserva, pero las stats son una foto del
+ * stock actual y nunca dependieron del período.
+ */
 export default function InteractiveMetricsChart({
-  data: initialData,
+  data,
 }: InteractiveMetricsChartProps) {
-  const { showToast, ToastContainer } = useSimpleToast()
-  const [data, setData] = useState<MetricsData>(initialData)
   const [periodoSeleccionado, setPeriodoSeleccionado] =
     useState<PeriodoType>('año')
-  const [isLoading, setIsLoading] = useState(false)
 
-  const fetchMetricsData = async (periodo: PeriodoType) => {
-    try {
-      setIsLoading(true)
-
-      // Fetch datos para el período seleccionado
-      const response = await fetch(`/api/metrics?periodo=${periodo}`)
-      if (response.ok) {
-        const newData = await response.json()
-        setData(newData)
-      } else {
-        // Si no hay API específica, usar los datos iniciales
-        setData(initialData)
-      }
-    } catch (error) {
-      console.error('Error fetching metrics data:', error)
-      showToast('Error al cargar métricas', 'error')
-      setData(initialData)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchMetricsData(periodoSeleccionado)
-  }, [periodoSeleccionado])
   // Datos para el gráfico de barras
   const barData = {
     labels: ['Vehículos Vendidos', 'En Stock', 'Depósitos', 'En Proceso'],
@@ -264,7 +241,6 @@ export default function InteractiveMetricsChart({
               setPeriodoSeleccionado(e.target.value as PeriodoType)
             }
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            disabled={isLoading}
           >
             {PERIODOS.map((periodo) => (
               <option key={periodo.value} value={periodo.value}>
@@ -274,12 +250,8 @@ export default function InteractiveMetricsChart({
           </select>
 
           <div className="flex items-center space-x-2">
-            <div
-              className={`w-3 h-3 rounded-full ${isLoading ? 'bg-yellow-500' : 'bg-green-500'}`}
-            ></div>
-            <span className="text-sm text-gray-600">
-              {isLoading ? 'Cargando...' : 'Tiempo real'}
-            </span>
+            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+            <span className="text-sm text-gray-600">Tiempo real</span>
           </div>
         </div>
       </div>
@@ -368,8 +340,6 @@ export default function InteractiveMetricsChart({
           </div>
         </div>
       </div>
-
-      <ToastContainer />
     </div>
   )
 }

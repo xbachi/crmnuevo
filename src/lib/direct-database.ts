@@ -2237,67 +2237,6 @@ export interface VehiculoStats {
   vendidos: number
 }
 
-export async function getVehiculoStats(): Promise<unknown> {
-  const client = await pool.connect()
-  try {
-    // Obtener estadísticas de TODOS los vehículos (incluyendo depósitos)
-    // Excluir vendidos del total, solo contar disponibles
-
-    // Total de vehículos activos (en proceso + reservados + publicados)
-    const totalActivosResult = await client.query(`
-      SELECT COUNT(*) as count
-      FROM "Vehiculo"
-      WHERE UPPER(TRIM(estado)) NOT IN ('VENDIDO')
-      AND (
-        estado IS NULL OR estado = '' OR 
-        UPPER(TRIM(estado)) IN ('SIN_ESTADO', 'INICIAL', 'REVI_INIC', 'MECAUTO', 'REVI_PINTURA', 'PINTURA', 'LIMPIEZA', 'FOTOS', 'PUBLICADO', 'RESERVADO')
-      )
-    `)
-
-    // Vehículos publicados (solo PUBLICADO, no incluir RESERVADO aquí)
-    const publicadosResult = await client.query(`
-      SELECT COUNT(*) as count
-      FROM "Vehiculo"
-      WHERE UPPER(TRIM(estado)) = 'PUBLICADO'
-    `)
-
-    // Vehículos en proceso (estados del proceso de venta excepto publicado, vendido y reservado)
-    // Incluir vehículos sin estado (NULL, vacío) como "inicial"
-    const enProcesoResult = await client.query(`
-      SELECT COUNT(*) as count
-      FROM "Vehiculo"
-      WHERE estado IS NULL OR estado = '' OR UPPER(TRIM(estado)) IN ('SIN_ESTADO', 'INICIAL', 'REVI_INIC', 'MECAUTO', 'REVI_PINTURA', 'PINTURA', 'LIMPIEZA', 'FOTOS')
-    `)
-
-    // Vehículos reservados
-    const reservadosResult = await client.query(`
-      SELECT COUNT(*) as count
-      FROM "Vehiculo"
-      WHERE UPPER(TRIM(estado)) = 'RESERVADO'
-    `)
-
-    // Vehículos vendidos
-    const vendidosResult = await client.query(`
-      SELECT COUNT(*) as count
-      FROM "Vehiculo"
-      WHERE UPPER(TRIM(estado)) = 'VENDIDO'
-    `)
-
-    return {
-      totalActivos: parseInt(totalActivosResult.rows[0].count),
-      publicados: parseInt(publicadosResult.rows[0].count),
-      enProceso: parseInt(enProcesoResult.rows[0].count),
-      reservados: parseInt(reservadosResult.rows[0].count),
-      vendidos: parseInt(vendidosResult.rows[0].count),
-    }
-  } catch (error) {
-    console.error('Error fetching vehiculo stats:', error)
-    throw error
-  } finally {
-    client.release()
-  }
-}
-
 export interface DepositoStats {
   totalDepositos: number
   enProceso: number
@@ -2306,68 +2245,80 @@ export interface DepositoStats {
   vendidos: number
 }
 
-export async function getDepositoStats(): Promise<DepositoStats> {
+export interface StockStats {
+  vehiculos: VehiculoStats
+  depositos: DepositoStats
+}
+
+// Criterios de estado de las stats del home. Se mantienen tal cual estaban en
+// las 10 COUNT originales (mismas cifras); la normalización de datos no entra.
+const SQL_ESTADOS_PROCESO = `'SIN_ESTADO', 'INICIAL', 'REVI_INIC', 'MECAUTO', 'REVI_PINTURA', 'PINTURA', 'LIMPIEZA', 'FOTOS'`
+// Sin estado (NULL / vacío) cuenta como "inicial".
+const SQL_EN_PROCESO = `(estado IS NULL OR estado = '' OR UPPER(TRIM(estado)) IN (${SQL_ESTADOS_PROCESO}))`
+// Activo = en proceso + publicado + reservado (excluye vendidos).
+const SQL_ACTIVO = `(UPPER(TRIM(estado)) NOT IN ('VENDIDO') AND (estado IS NULL OR estado = '' OR UPPER(TRIM(estado)) IN (${SQL_ESTADOS_PROCESO}, 'PUBLICADO', 'RESERVADO')))`
+const SQL_PUBLICADO = `UPPER(TRIM(estado)) = 'PUBLICADO'`
+const SQL_RESERVADO = `UPPER(TRIM(estado)) = 'RESERVADO'`
+const SQL_VENDIDO = `UPPER(TRIM(estado)) = 'VENDIDO'`
+// Depósito de venta: misma lógica que detectVehicleType() (referencia "D-").
+const SQL_DEPOSITO = `UPPER(TRIM(referencia)) LIKE 'D-%'`
+
+const SQL_STOCK_STATS = `
+  SELECT
+    COUNT(*) FILTER (WHERE ${SQL_ACTIVO}) AS total_activos,
+    COUNT(*) FILTER (WHERE ${SQL_PUBLICADO}) AS publicados,
+    COUNT(*) FILTER (WHERE ${SQL_EN_PROCESO}) AS en_proceso,
+    COUNT(*) FILTER (WHERE ${SQL_RESERVADO}) AS reservados,
+    COUNT(*) FILTER (WHERE ${SQL_VENDIDO}) AS vendidos,
+    COUNT(*) FILTER (WHERE ${SQL_DEPOSITO} AND UPPER(TRIM(estado)) != 'VENDIDO') AS dep_total,
+    COUNT(*) FILTER (WHERE ${SQL_DEPOSITO} AND ${SQL_EN_PROCESO}) AS dep_en_proceso,
+    COUNT(*) FILTER (WHERE ${SQL_DEPOSITO} AND ${SQL_PUBLICADO}) AS dep_publicados,
+    COUNT(*) FILTER (WHERE ${SQL_DEPOSITO} AND ${SQL_RESERVADO}) AS dep_reservados,
+    COUNT(*) FILTER (WHERE ${SQL_DEPOSITO} AND ${SQL_VENDIDO}) AS dep_vendidos
+  FROM "Vehiculo"
+`
+
+const toInt = (v: unknown) => parseInt(String(v ?? '0'), 10) || 0
+
+/**
+ * Stats de vehículos y depósitos del home en UNA sola pasada sobre "Vehiculo"
+ * (antes: 10 COUNT secuenciales, cada uno un seq scan).
+ */
+export async function getStockStats(): Promise<StockStats> {
   const client = await pool.connect()
   try {
-    // Obtener estadísticas de vehículos de depósito basándose en la referencia que empieza con "D-"
-    // Usar la misma lógica que detectVehicleType() en la página de vehículos
-    // Excluir vendidos del total, solo contar disponibles
-
-    // Total de vehículos en depósito de venta (referencia D-, solo en proceso + reservados + publicados)
-    // Excluir solo vendidos del total (case-insensitive)
-    const totalDepositosResult = await client.query(`
-      SELECT COUNT(*) as count
-      FROM "Vehiculo"
-      WHERE UPPER(TRIM(referencia)) LIKE 'D-%' 
-      AND UPPER(TRIM(estado)) != 'VENDIDO'
-    `)
-
-    // Vehículos en depósito en proceso (referencia D-, estados del proceso de venta excepto publicado, vendido y reservado)
-    // Incluir vehículos sin estado (NULL, vacío) como "inicial"
-    const enProcesoResult = await client.query(`
-      SELECT COUNT(*) as count
-      FROM "Vehiculo"
-      WHERE UPPER(TRIM(referencia)) LIKE 'D-%'
-      AND (estado IS NULL OR estado = '' OR UPPER(TRIM(estado)) IN ('SIN_ESTADO', 'INICIAL', 'REVI_INIC', 'MECAUTO', 'REVI_PINTURA', 'PINTURA', 'LIMPIEZA', 'FOTOS'))
-    `)
-
-    // Vehículos en depósito publicados (referencia D-)
-    const publicadosResult = await client.query(`
-      SELECT COUNT(*) as count
-      FROM "Vehiculo"
-      WHERE UPPER(TRIM(referencia)) LIKE 'D-%'
-      AND UPPER(TRIM(estado)) = 'PUBLICADO'
-    `)
-
-    // Vehículos en depósito reservados (referencia D-)
-    const reservadosResult = await client.query(`
-      SELECT COUNT(*) as count
-      FROM "Vehiculo"
-      WHERE UPPER(TRIM(referencia)) LIKE 'D-%'
-      AND UPPER(TRIM(estado)) = 'RESERVADO'
-    `)
-
-    // Vehículos en depósito vendidos (referencia D-)
-    const vendidosResult = await client.query(`
-      SELECT COUNT(*) as count
-      FROM "Vehiculo"
-      WHERE UPPER(TRIM(referencia)) LIKE 'D-%'
-      AND UPPER(TRIM(estado)) = 'VENDIDO'
-    `)
-
+    const result = await client.query(SQL_STOCK_STATS)
+    const r = result.rows[0] ?? {}
     return {
-      totalDepositos: parseInt(totalDepositosResult.rows[0].count),
-      enProceso: parseInt(enProcesoResult.rows[0].count),
-      publicados: parseInt(publicadosResult.rows[0].count),
-      reservados: parseInt(reservadosResult.rows[0].count),
-      vendidos: parseInt(vendidosResult.rows[0].count),
+      vehiculos: {
+        totalActivos: toInt(r.total_activos),
+        publicados: toInt(r.publicados),
+        enProceso: toInt(r.en_proceso),
+        reservados: toInt(r.reservados),
+        vendidos: toInt(r.vendidos),
+      },
+      depositos: {
+        totalDepositos: toInt(r.dep_total),
+        enProceso: toInt(r.dep_en_proceso),
+        publicados: toInt(r.dep_publicados),
+        reservados: toInt(r.dep_reservados),
+        vendidos: toInt(r.dep_vendidos),
+      },
     }
   } catch (error) {
-    console.error('Error fetching deposito stats:', error)
+    console.error('Error fetching stock stats:', error)
     throw error
   } finally {
     client.release()
   }
+}
+
+export async function getVehiculoStats(): Promise<VehiculoStats> {
+  return (await getStockStats()).vehiculos
+}
+
+export async function getDepositoStats(): Promise<DepositoStats> {
+  return (await getStockStats()).depositos
 }
 
 export interface UltimaOperacion {
@@ -2433,14 +2384,27 @@ export interface VentasPorMes {
   cantidad: number
 }
 
+export type PeriodoVentas =
+  | 'mes_actual'
+  | 'mes_anterior'
+  | '3_meses'
+  | '6_meses'
+  | 'año'
+  | '7_dias'
+  | '13_meses'
+
+export const PERIODOS_VENTAS: readonly PeriodoVentas[] = [
+  'mes_actual',
+  'mes_anterior',
+  '3_meses',
+  '6_meses',
+  'año',
+  '7_dias',
+  '13_meses',
+]
+
 export async function getVentasPorMes(
-  periodo:
-    | 'mes_actual'
-    | 'mes_anterior'
-    | '3_meses'
-    | '6_meses'
-    | 'año'
-    | '7_dias'
+  periodo: PeriodoVentas
 ): Promise<VentasPorMes[]> {
   const client = await pool.connect()
   try {
@@ -2466,6 +2430,11 @@ export async function getVentasPorMes(
         break
       case 'año':
         whereClause = `AND EXTRACT(YEAR FROM "updatedAt") = EXTRACT(YEAR FROM NOW())`
+        break
+      // Mes en curso + 12 anteriores completos: cubre el año actual entero y
+      // el mes anterior aunque cruce de año (el home deriva ambos en cliente).
+      case '13_meses':
+        whereClause = `AND "updatedAt" >= DATE_TRUNC('month', NOW() - INTERVAL '12 months')`
         break
     }
 

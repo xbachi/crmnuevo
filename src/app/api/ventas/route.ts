@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getVentasPorMes } from '@/lib/direct-database'
+import {
+  getVentasPorMes,
+  PERIODOS_VENTAS,
+  type PeriodoVentas,
+} from '@/lib/direct-database'
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const periodo =
-      (searchParams.get('periodo') as
-        | 'mes_actual'
-        | 'mes_anterior'
-        | '3_meses'
-        | '6_meses'
-        | 'año'
-        | '7_dias') || 'mes_actual'
+    const raw = searchParams.get('periodo')
+    const periodo: PeriodoVentas = PERIODOS_VENTAS.includes(
+      raw as PeriodoVentas
+    )
+      ? (raw as PeriodoVentas)
+      : 'mes_actual'
 
     const ventas = await getVentasPorMes(periodo)
     return NextResponse.json(ventas)
