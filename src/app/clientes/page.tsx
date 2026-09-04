@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
+import { useUrlState } from '@/hooks/useUrlState'
 import NotificationCenter from '@/components/NotificationCenter'
 import DataExporter from '@/components/DataExporter'
 import { Cliente } from '@/lib/database'
@@ -11,7 +12,21 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal'
 import { capitalizeText } from '@/lib/utils'
 
-export default function ClientesPage() {
+// Búsqueda, filtros y vista viven en la URL (se conservan al volver atrás)
+const FILTROS_DEFAULT = {
+  q: '',
+  estado: '',
+  prioridad: '',
+  precioMax: '',
+  km: '',
+  anioMin: '',
+  combustible: '',
+  cambio: '',
+  pago: '',
+  vista: 'list' as 'cards' | 'list',
+}
+
+function ClientesPageInner() {
   const router = useRouter()
   const { showToast, ToastContainer } = useSimpleToast()
 
@@ -19,17 +34,51 @@ export default function ClientesPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isDeleting, setIsDeleting] = useState(false)
   const [clienteToDelete, setClienteToDelete] = useState<Cliente | null>(null)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [estadoFilter, setEstadoFilter] = useState('')
-  const [prioridadFilter, setPrioridadFilter] = useState('')
-  const [precioMaxFilter, setPrecioMaxFilter] = useState('')
-  const [kilometrajeFilter, setKilometrajeFilter] = useState('')
-  const [añoMinFilter, setAñoMinFilter] = useState('')
-  const [combustibleFilter, setCombustibleFilter] = useState('')
-  const [cambioFilter, setCambioFilter] = useState('')
-  const [pagoFilter, setPagoFilter] = useState('')
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
-  const [viewMode, setViewMode] = useState<'cards' | 'list'>('list')
+  const [filtros, setFiltros] = useUrlState(FILTROS_DEFAULT)
+  const {
+    q: busqueda,
+    estado: estadoFilter,
+    prioridad: prioridadFilter,
+    precioMax: precioMaxFilter,
+    km: kilometrajeFilter,
+    anioMin: añoMinFilter,
+    combustible: combustibleFilter,
+    cambio: cambioFilter,
+    pago: pagoFilter,
+    vista: viewMode,
+  } = filtros
+  const setEstadoFilter = (estado: string) => setFiltros({ estado })
+  const setPrioridadFilter = (prioridad: string) => setFiltros({ prioridad })
+  const setPrecioMaxFilter = (precioMax: string) => setFiltros({ precioMax })
+  const setKilometrajeFilter = (km: string) => setFiltros({ km })
+  const setAñoMinFilter = (anioMin: string) => setFiltros({ anioMin })
+  const setCombustibleFilter = (combustible: string) =>
+    setFiltros({ combustible })
+  const setCambioFilter = (cambio: string) => setFiltros({ cambio })
+  const setPagoFilter = (pago: string) => setFiltros({ pago })
+  const setViewMode = (vista: 'cards' | 'list') => setFiltros({ vista })
+  const limpiarFiltrosAvanzados = () =>
+    setFiltros({
+      precioMax: '',
+      km: '',
+      anioMin: '',
+      combustible: '',
+      cambio: '',
+      pago: '',
+    })
+  // El input mantiene su propio valor; la URL (y el filtrado) va con 300 ms de debounce
+  const [searchTerm, setSearchTerm] = useState(busqueda)
+  // Si se llega con filtros avanzados en la URL, el panel arranca abierto
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(
+    Boolean(
+      precioMaxFilter ||
+        kilometrajeFilter ||
+        añoMinFilter ||
+        combustibleFilter ||
+        cambioFilter ||
+        pagoFilter
+    )
+  )
   const [showNotifications, setShowNotifications] = useState(false)
   const [showExporter, setShowExporter] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -37,6 +86,21 @@ export default function ClientesPage() {
     'fecha'
   )
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+
+  useEffect(() => {
+    setSearchTerm(busqueda)
+  }, [busqueda])
+
+  useEffect(() => {
+    if (searchTerm === busqueda) return
+    const t = setTimeout(() => setFiltros({ q: searchTerm }), 300)
+    return () => clearTimeout(t)
+  }, [searchTerm, busqueda, setFiltros])
+
+  const limpiarBusqueda = () => {
+    setSearchTerm('')
+    setFiltros({ q: '' })
+  }
 
   const fetchClientes = async () => {
     try {
@@ -191,12 +255,12 @@ export default function ClientesPage() {
 
   const filteredClientes = clientes
     .filter((cliente) => {
-      const term = searchTerm.toLowerCase()
+      const term = busqueda.toLowerCase()
       const matchesSearch =
-        !searchTerm ||
+        !busqueda ||
         cliente.nombre?.toLowerCase().includes(term) ||
         cliente.apellidos?.toLowerCase().includes(term) ||
-        cliente.telefono?.includes(searchTerm) ||
+        cliente.telefono?.includes(busqueda) ||
         cliente.email?.toLowerCase().includes(term) ||
         cliente.dni?.toLowerCase().includes(term) ||
         cliente.intereses?.vehiculosInteres?.some((vehiculo) =>
@@ -455,7 +519,7 @@ export default function ClientesPage() {
                     </svg>
                     {searchTerm && (
                       <button
-                        onClick={() => setSearchTerm('')}
+                        onClick={limpiarBusqueda}
                         className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600"
                       >
                         <svg
@@ -701,14 +765,7 @@ export default function ClientesPage() {
                       clientes
                     </div>
                     <button
-                      onClick={() => {
-                        setPrecioMaxFilter('')
-                        setKilometrajeFilter('')
-                        setAñoMinFilter('')
-                        setCombustibleFilter('')
-                        setCambioFilter('')
-                        setPagoFilter('')
-                      }}
+                      onClick={limpiarFiltrosAvanzados}
                       className="text-sm text-gray-600 hover:text-gray-800 underline"
                     >
                       Limpiar filtros
@@ -993,5 +1050,14 @@ export default function ClientesPage() {
         </main>
       </div>
     </ProtectedRoute>
+  )
+}
+
+// useSearchParams() exige un límite de Suspense en el App Router (build estático).
+export default function ClientesPage() {
+  return (
+    <Suspense fallback={null}>
+      <ClientesPageInner />
+    </Suspense>
   )
 }

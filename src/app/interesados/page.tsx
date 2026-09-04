@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
+import { useUrlState } from '@/hooks/useUrlState'
 import { useSimpleToast } from '@/hooks/useSimpleToast'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import ProtectedRoute from '@/components/ProtectedRoute'
@@ -24,7 +25,19 @@ interface Interesado {
   updatedAt?: string
 }
 
-export default function InteresadosPage() {
+// Búsqueda, filtros y vista viven en la URL (se conservan al volver atrás)
+const FILTROS_DEFAULT = {
+  q: '',
+  precioMax: '',
+  km: '',
+  anioMin: '',
+  combustible: '',
+  cambio: '',
+  pago: '',
+  vista: 'list' as 'cards' | 'list',
+}
+
+function InteresadosPageInner() {
   const router = useRouter()
   const { showToast, ToastContainer } = useSimpleToast()
 
@@ -33,15 +46,52 @@ export default function InteresadosPage() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [interesadoToDelete, setInteresadoToDelete] =
     useState<Interesado | null>(null)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [viewMode, setViewMode] = useState<'cards' | 'list'>('list')
+  const [filtros, setFiltros] = useUrlState(FILTROS_DEFAULT)
+  const {
+    q: busqueda,
+    precioMax: precioMaxFilter,
+    km: kilometrajeFilter,
+    anioMin: añoMinFilter,
+    combustible: combustibleFilter,
+    cambio: cambioFilter,
+    pago: pagoFilter,
+    vista: viewMode,
+  } = filtros
+  const setPrecioMaxFilter = (precioMax: string) => setFiltros({ precioMax })
+  const setKilometrajeFilter = (km: string) => setFiltros({ km })
+  const setAñoMinFilter = (anioMin: string) => setFiltros({ anioMin })
+  const setCombustibleFilter = (combustible: string) =>
+    setFiltros({ combustible })
+  const setCambioFilter = (cambio: string) => setFiltros({ cambio })
+  const setPagoFilter = (pago: string) => setFiltros({ pago })
+  const setViewMode = (vista: 'cards' | 'list') => setFiltros({ vista })
+  const limpiarFiltrosAvanzados = () =>
+    setFiltros({
+      precioMax: '',
+      km: '',
+      anioMin: '',
+      combustible: '',
+      cambio: '',
+      pago: '',
+    })
+  // El input mantiene su propio valor; la URL (y el filtrado) va con 300 ms de debounce
+  const [searchTerm, setSearchTerm] = useState(busqueda)
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(true)
-  const [precioMaxFilter, setPrecioMaxFilter] = useState('')
-  const [kilometrajeFilter, setKilometrajeFilter] = useState('')
-  const [añoMinFilter, setAñoMinFilter] = useState('')
-  const [combustibleFilter, setCombustibleFilter] = useState('')
-  const [cambioFilter, setCambioFilter] = useState('')
-  const [pagoFilter, setPagoFilter] = useState('')
+
+  useEffect(() => {
+    setSearchTerm(busqueda)
+  }, [busqueda])
+
+  useEffect(() => {
+    if (searchTerm === busqueda) return
+    const t = setTimeout(() => setFiltros({ q: searchTerm }), 300)
+    return () => clearTimeout(t)
+  }, [searchTerm, busqueda, setFiltros])
+
+  const limpiarBusqueda = () => {
+    setSearchTerm('')
+    setFiltros({ q: '' })
+  }
 
   const fetchInteresados = async () => {
     try {
@@ -108,13 +158,13 @@ export default function InteresadosPage() {
 
   const filteredInteresados = interesados.filter((interesado) => {
     const matchesSearch =
-      !searchTerm ||
-      interesado.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      interesado.apellidos.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      interesado.telefono.includes(searchTerm) ||
+      !busqueda ||
+      interesado.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+      interesado.apellidos.toLowerCase().includes(busqueda.toLowerCase()) ||
+      interesado.telefono.includes(busqueda) ||
       (interesado.vehiculosInteres &&
         JSON.parse(interesado.vehiculosInteres).some((vehiculo: string) =>
-          vehiculo.toLowerCase().includes(searchTerm.toLowerCase())
+          vehiculo.toLowerCase().includes(busqueda.toLowerCase())
         ))
 
     // Filtros por intereses
@@ -269,7 +319,7 @@ export default function InteresadosPage() {
                     </svg>
                     {searchTerm && (
                       <button
-                        onClick={() => setSearchTerm('')}
+                        onClick={limpiarBusqueda}
                         className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600"
                       >
                         <svg
@@ -479,14 +529,7 @@ export default function InteresadosPage() {
                       {interesados.length} interesados
                     </div>
                     <button
-                      onClick={() => {
-                        setPrecioMaxFilter('')
-                        setKilometrajeFilter('')
-                        setAñoMinFilter('')
-                        setCombustibleFilter('')
-                        setCambioFilter('')
-                        setPagoFilter('')
-                      }}
+                      onClick={limpiarFiltrosAvanzados}
                       className="text-sm text-gray-600 hover:text-gray-800 underline"
                     >
                       Limpiar filtros
@@ -747,5 +790,14 @@ export default function InteresadosPage() {
         </main>
       </div>
     </ProtectedRoute>
+  )
+}
+
+// useSearchParams() exige un límite de Suspense en el App Router (build estático).
+export default function InteresadosPage() {
+  return (
+    <Suspense fallback={null}>
+      <InteresadosPageInner />
+    </Suspense>
   )
 }

@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
+import { useUrlState } from '@/hooks/useUrlState'
 import { useToast } from '@/components/Toast'
 import { useConfirmModal } from '@/components/ConfirmModal'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
@@ -77,13 +78,42 @@ interface PaginationInfo {
   hasPrev: boolean
 }
 
-export default function ListaVehiculos() {
+type StatusFilter =
+  | 'todos'
+  | 'publicados'
+  | 'enProceso'
+  | 'vendidos'
+  | 'reservados'
+type TypeFilter = 'todos' | 'Compra' | 'R' | 'Depósito' | 'inversores'
+
+// Búsqueda, filtros, orden y vista viven en la URL (se conservan al volver atrás)
+const FILTROS_DEFAULT = {
+  q: '',
+  estado: 'publicados' as StatusFilter,
+  tipo: 'todos' as TypeFilter,
+  orden: 'desc' as 'asc' | 'desc',
+  vista: 'cartas' as 'lista' | 'cartas',
+}
+
+function ListaVehiculosInner() {
   const router = useRouter()
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>([])
   const [filteredVehiculos, setFilteredVehiculos] = useState<Vehiculo[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [viewMode, setViewMode] = useState<'lista' | 'cartas'>('cartas')
-  const [searchTerm, setSearchTerm] = useState('')
+  const [filtros, setFiltros] = useUrlState(FILTROS_DEFAULT)
+  const {
+    q: busqueda,
+    estado: statusFilter,
+    tipo: typeFilter,
+    orden: sortOrder,
+    vista: viewMode,
+  } = filtros
+  const setViewMode = (vista: 'lista' | 'cartas') => setFiltros({ vista })
+  const setStatusFilter = (estado: StatusFilter) => setFiltros({ estado })
+  const setTypeFilter = (tipo: TypeFilter) => setFiltros({ tipo })
+  const setSortOrder = (orden: 'asc' | 'desc') => setFiltros({ orden })
+  // El input mantiene su propio valor; la URL (y el filtrado) va con 300 ms de debounce
+  const [searchTerm, setSearchTerm] = useState(busqueda)
   const [searchField, setSearchField] = useState<
     | 'todos'
     | 'referencia'
@@ -92,13 +122,6 @@ export default function ListaVehiculos() {
     | 'matricula'
     | 'bastidor'
     | 'tipo'
-  >('todos')
-  const [statusFilter, setStatusFilter] = useState<
-    'todos' | 'publicados' | 'enProceso' | 'vendidos' | 'reservados'
-  >('publicados')
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
-  const [typeFilter, setTypeFilter] = useState<
-    'todos' | 'Compra' | 'R' | 'Depósito' | 'inversores'
   >('todos')
   const [editingVehiculo, setEditingVehiculo] = useState<Vehiculo | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -133,6 +156,21 @@ export default function ListaVehiculos() {
 
   const { showToast, ToastContainer } = useToast()
   const { showConfirm, ConfirmModalComponent } = useConfirmModal()
+
+  useEffect(() => {
+    setSearchTerm(busqueda)
+  }, [busqueda])
+
+  useEffect(() => {
+    if (searchTerm === busqueda) return
+    const t = setTimeout(() => setFiltros({ q: searchTerm }), 300)
+    return () => clearTimeout(t)
+  }, [searchTerm, busqueda, setFiltros])
+
+  const limpiarBusqueda = () => {
+    setSearchTerm('')
+    setFiltros({ q: '' })
+  }
 
   // Funciones para contar vehículos por tipo
   const getVehicleCountByType = (type: string) => {
@@ -330,8 +368,14 @@ export default function ListaVehiculos() {
 
     if (shouldRefresh) {
       fetchVehiculos(1, true)
-      // Limpiar la URL
-      window.history.replaceState({}, '', '/vehiculos')
+      // Limpiar solo ?refresh; el resto de la query (filtros) se conserva
+      urlParams.delete('refresh')
+      const resto = urlParams.toString()
+      window.history.replaceState(
+        {},
+        '',
+        resto ? `/vehiculos?${resto}` : '/vehiculos'
+      )
     } else {
       fetchVehiculos()
     }
@@ -396,7 +440,7 @@ export default function ListaVehiculos() {
 
   useEffect(() => {
     filterVehiculos()
-  }, [vehiculos, searchTerm, statusFilter, sortOrder, typeFilter])
+  }, [vehiculos, busqueda, statusFilter, sortOrder, typeFilter])
 
   const filterVehiculos = () => {
     let filtered = vehiculos
@@ -425,9 +469,9 @@ export default function ListaVehiculos() {
     }
 
     // Aplicar filtro de búsqueda (siempre en todos los campos)
-    if (searchTerm.trim()) {
+    if (busqueda.trim()) {
       // bastidor y matricula pueden ser null (fix-bastidor-nullable.sql)
-      const q = searchTerm.toLowerCase()
+      const q = busqueda.toLowerCase()
       filtered = filtered.filter((vehiculo) =>
         [
           vehiculo.referencia,
@@ -868,7 +912,7 @@ export default function ListaVehiculos() {
                     </svg>
                     {searchTerm && (
                       <button
-                        onClick={() => setSearchTerm('')}
+                        onClick={limpiarBusqueda}
                         className="absolute right-2 top-2.5 text-slate-400 hover:text-slate-600"
                       >
                         <svg
@@ -1159,7 +1203,7 @@ export default function ListaVehiculos() {
                   No hay vehículos que coincidan con tu búsqueda "{searchTerm}"
                 </p>
                 <button
-                  onClick={() => setSearchTerm('')}
+                  onClick={limpiarBusqueda}
                   className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all duration-300 transform hover:scale-105 shadow-lg font-semibold"
                 >
                   🔄 Limpiar búsqueda
@@ -1912,5 +1956,14 @@ export default function ListaVehiculos() {
         <ConfirmModalComponent />
       </div>
     </ProtectedRoute>
+  )
+}
+
+// useSearchParams() exige un límite de Suspense en el App Router (build estático).
+export default function ListaVehiculos() {
+  return (
+    <Suspense fallback={null}>
+      <ListaVehiculosInner />
+    </Suspense>
   )
 }

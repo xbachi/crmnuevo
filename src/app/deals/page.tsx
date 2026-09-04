@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
+import { useUrlState } from '@/hooks/useUrlState'
 import { useToast } from '@/components/Toast'
 import { formatCurrency, capitalizeText } from '@/lib/utils'
 import ProtectedRoute from '@/components/ProtectedRoute'
@@ -61,6 +62,13 @@ const ESTADOS: { key: EstadoFiltro; label: string }[] = [
   { key: 'anulado', label: 'Anulado' },
 ]
 
+const FILTROS_DEFAULT = {
+  q: '',
+  tipo: 'todas' as TipoFiltro,
+  estado: 'todos' as EstadoFiltro,
+  pagina: 1,
+}
+
 const formatDate = (date: string | null) => {
   if (!date) return '-'
   const d = new Date(date)
@@ -68,27 +76,29 @@ const formatDate = (date: string | null) => {
   return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
 }
 
-export default function VentasPage() {
+function VentasPageInner() {
   const [data, setData] = useState<VentasResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const [searchTerm, setSearchTerm] = useState('')
-  const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [tipo, setTipo] = useState<TipoFiltro>('todas')
-  const [estado, setEstado] = useState<EstadoFiltro>('todos')
-  const [page, setPage] = useState(1)
+  // Búsqueda, filtros y página viven en la URL (se conservan al volver atrás)
+  const [{ q, tipo, estado, pagina: page }, setFiltros] =
+    useUrlState(FILTROS_DEFAULT)
+  // El input mantiene su propio valor; la URL se actualiza con 300 ms de debounce
+  const [searchTerm, setSearchTerm] = useState(q)
 
   const router = useRouter()
   const { showToast } = useToast()
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      setDebouncedSearch(searchTerm)
-      setPage(1)
-    }, 300)
+    setSearchTerm(q)
+  }, [q])
+
+  useEffect(() => {
+    if (searchTerm === q) return
+    const t = setTimeout(() => setFiltros({ q: searchTerm, pagina: 1 }), 300)
     return () => clearTimeout(t)
-  }, [searchTerm])
+  }, [searchTerm, q, setFiltros])
 
   const fetchVentas = useCallback(async () => {
     try {
@@ -99,7 +109,7 @@ export default function VentasPage() {
         page: String(page),
         pageSize: String(PAGE_SIZE),
       })
-      if (debouncedSearch) params.set('q', debouncedSearch)
+      if (q) params.set('q', q)
 
       const response = await fetch(`/api/ventas/unificadas?${params}`)
       if (!response.ok) throw new Error('Error al cargar las ventas')
@@ -115,7 +125,7 @@ export default function VentasPage() {
     }
     // showToast es estable en el provider; no se incluye para no re-disparar
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tipo, estado, page, debouncedSearch])
+  }, [tipo, estado, page, q])
 
   useEffect(() => {
     fetchVentas()
@@ -161,14 +171,9 @@ export default function VentasPage() {
   const totales = data?.totales
   const totalPages = data?.totalPages ?? 1
 
-  const setTipoFiltro = (t: TipoFiltro) => {
-    setTipo(t)
-    setPage(1)
-  }
-  const setEstadoFiltro = (e: EstadoFiltro) => {
-    setEstado(e)
-    setPage(1)
-  }
+  const setTipoFiltro = (t: TipoFiltro) => setFiltros({ tipo: t, pagina: 1 })
+  const setEstadoFiltro = (e: EstadoFiltro) =>
+    setFiltros({ estado: e, pagina: 1 })
 
   return (
     <ProtectedRoute>
@@ -500,7 +505,11 @@ export default function VentasPage() {
                   </span>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      onClick={() =>
+                        setFiltros((f) => ({
+                          pagina: Math.max(1, f.pagina - 1),
+                        }))
+                      }
                       disabled={(data?.page ?? 1) <= 1}
                       className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-white disabled:opacity-40 hover:bg-gray-100"
                     >
@@ -508,7 +517,9 @@ export default function VentasPage() {
                     </button>
                     <button
                       onClick={() =>
-                        setPage((p) => Math.min(totalPages, p + 1))
+                        setFiltros((f) => ({
+                          pagina: Math.min(totalPages, f.pagina + 1),
+                        }))
                       }
                       disabled={(data?.page ?? 1) >= totalPages}
                       className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-white disabled:opacity-40 hover:bg-gray-100"
@@ -539,5 +550,14 @@ export default function VentasPage() {
         />
       </div>
     </ProtectedRoute>
+  )
+}
+
+// useSearchParams() exige un límite de Suspense en el App Router (build estático).
+export default function VentasPage() {
+  return (
+    <Suspense fallback={null}>
+      <VentasPageInner />
+    </Suspense>
   )
 }

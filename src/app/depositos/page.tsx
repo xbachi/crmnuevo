@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
+import { useUrlState } from '@/hooks/useUrlState'
 import { useToast } from '@/components/Toast'
 import { formatCurrency, capitalizeText } from '@/lib/utils'
 import Link from 'next/link'
@@ -50,20 +51,44 @@ interface Deposito {
   }
 }
 
-export default function DepositosPage() {
+type TabDepositos = 'todos' | 'activo' | 'finalizado'
+
+// Búsqueda y pestaña viven en la URL (se conservan al volver atrás)
+const FILTROS_DEFAULT = {
+  q: '',
+  tab: 'activo' as TabDepositos,
+}
+
+function DepositosPageInner() {
   const [depositos, setDepositos] = useState<Deposito[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [activeTab, setActiveTab] = useState<'todos' | 'activo' | 'finalizado'>(
-    'activo'
-  )
+  const [{ q: busqueda, tab: activeTab }, setFiltros] =
+    useUrlState(FILTROS_DEFAULT)
+  const setActiveTab = (tab: TabDepositos) => setFiltros({ tab })
+  // El input mantiene su propio valor; la URL (y el filtrado) va con 300 ms de debounce
+  const [searchTerm, setSearchTerm] = useState(busqueda)
   const [timeFilter, setTimeFilter] = useState<
     'all' | 'week' | 'month' | '3months' | '6months'
   >('all')
 
   const router = useRouter()
   const { showToast } = useToast()
+
+  useEffect(() => {
+    setSearchTerm(busqueda)
+  }, [busqueda])
+
+  useEffect(() => {
+    if (searchTerm === busqueda) return
+    const t = setTimeout(() => setFiltros({ q: searchTerm }), 300)
+    return () => clearTimeout(t)
+  }, [searchTerm, busqueda, setFiltros])
+
+  const limpiarBusqueda = () => {
+    setSearchTerm('')
+    setFiltros({ q: '' })
+  }
 
   useEffect(() => {
     fetchDepositos()
@@ -237,27 +262,27 @@ export default function DepositosPage() {
     let filtered = depositos
 
     // Si hay término de búsqueda, buscar en TODOS los estados primero
-    if (searchTerm) {
+    if (busqueda) {
       filtered = filtered.filter(
         (deposito) =>
           deposito.cliente?.nombre
             ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
+            .includes(busqueda.toLowerCase()) ||
           deposito.cliente?.apellidos
             ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
+            .includes(busqueda.toLowerCase()) ||
           deposito.vehiculo?.marca
             ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
+            .includes(busqueda.toLowerCase()) ||
           deposito.vehiculo?.modelo
             ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
+            .includes(busqueda.toLowerCase()) ||
           deposito.vehiculo?.matricula
             ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
+            .includes(busqueda.toLowerCase()) ||
           deposito.vehiculo?.referencia
             ?.toLowerCase()
-            .includes(searchTerm.toLowerCase())
+            .includes(busqueda.toLowerCase())
       )
 
       // Si hay búsqueda, NO filtrar por estado - mostrar TODOS los resultados de búsqueda
@@ -526,7 +551,7 @@ export default function DepositosPage() {
                     </svg>
                     {searchTerm && (
                       <button
-                        onClick={() => setSearchTerm('')}
+                        onClick={limpiarBusqueda}
                         className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
                       >
                         <svg
@@ -946,5 +971,14 @@ export default function DepositosPage() {
         />
       </div>
     </ProtectedRoute>
+  )
+}
+
+// useSearchParams() exige un límite de Suspense en el App Router (build estático).
+export default function DepositosPage() {
+  return (
+    <Suspense fallback={null}>
+      <DepositosPageInner />
+    </Suspense>
   )
 }
