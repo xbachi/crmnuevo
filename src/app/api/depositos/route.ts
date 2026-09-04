@@ -1,8 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { pool } from '@/lib/direct-database'
+import { getDepositosPage, pool } from '@/lib/direct-database'
+import { construirPagination, leerPaginacion } from '@/lib/listPagination'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // Con ?page= se pagina en SQL ({ depositos, pagination }) con tradicionales
+    // y virtuales en una sola query; sin page, el array completo de siempre.
+    const paginacion = leerPaginacion(new URL(request.url).searchParams)
+    if (paginacion) {
+      const { page, limit, offset, q } = paginacion
+      const { rows, total } = await getDepositosPage({ limit, offset, q })
+      return NextResponse.json({
+        depositos: rows,
+        pagination: construirPagination(total, page, limit),
+      })
+    }
+
     // Obtener depósitos tradicionales de la tabla depositos
     const depositosResult = await pool.query(`
       SELECT 

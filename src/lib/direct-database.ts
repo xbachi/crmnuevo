@@ -369,6 +369,55 @@ export async function getVehiculosCount(
   }
 }
 
+// ---------------------------------------------------------------------------
+// Listas paginadas (clientes, interesados, deals, depósitos). Una sola query:
+// COUNT(*) OVER() devuelve el total filtrado en cada fila. Sin limit/offset se
+// devuelve la lista entera, con la misma forma que las funciones históricas.
+// Página fuera de rango → rows [] y total 0 (la UI vuelve a la página 1).
+// ---------------------------------------------------------------------------
+export interface ListPageParams {
+  limit?: number
+  offset?: number
+  q?: string
+}
+
+export interface ListPage<T> {
+  rows: T[]
+  total: number
+}
+
+function limitOffsetSql(limit?: number, offset?: number): string {
+  const l = limit && limit > 0 ? `LIMIT ${Math.floor(limit)}` : ''
+  const o = offset && offset > 0 ? `OFFSET ${Math.floor(offset)}` : ''
+  return `${l} ${o}`.trim()
+}
+
+// `%q%` para ILIKE; undefined si no hay búsqueda.
+function patronBusqueda(q?: string): string | undefined {
+  const limpio = q?.trim()
+  return limpio ? `%${limpio}%` : undefined
+}
+
+async function ejecutarListPage<T>(
+  etiqueta: string,
+  sql: string,
+  values: string[] | undefined,
+  mapear: (row: QueryResultRow) => T
+): Promise<ListPage<T>> {
+  const client = await pool.connect()
+  try {
+    const result = await client.query(sql, values)
+    const total =
+      result.rows.length > 0 ? Number(result.rows[0].total_count) : 0
+    return { rows: result.rows.map(mapear), total }
+  } catch (error) {
+    console.error(`Error obteniendo ${etiqueta}:`, error)
+    return { rows: [], total: 0 }
+  } finally {
+    client.release()
+  }
+}
+
 // Interfaces para Deals
 export interface Deal {
   id: number
@@ -455,11 +504,8 @@ export interface DealCreateData {
 }
 
 // Funciones para manejar Deals
-export async function getDeals() {
-  const client = await pool.connect()
-  try {
-    // Consulta optimizada con solo campos esenciales
-    const result = await client.query(`
+// SQL compartido por getDeals/getDealsPage (solo campos esenciales de la lista).
+const DEAL_LIST_SELECT = `
       SELECT 
         d.id,
         d.numero,
@@ -495,78 +541,104 @@ export async function getDeals() {
         v."precioPublicacion" as vehiculo_precio,
         v.estado as vehiculo_estado,
         v."fechaMatriculacion" as "vehiculo_fechaMatriculacion",
-        v.año as "vehiculo_año"
+        v.año as "vehiculo_año",
+        COUNT(*) OVER() AS total_count
       FROM "Deal" d
       LEFT JOIN "Cliente" c ON d."clienteId" = c.id
-      LEFT JOIN "Vehiculo" v ON d."vehiculoId" = v.id
-      ORDER BY d."createdAt" DESC
-    `)
+      LEFT JOIN "Vehiculo" v ON d."vehiculoId" = v.id`
 
-    return result.rows.map((row) => ({
-      id: row.id,
-      numero: row.numero,
-      clienteId: row.clienteId,
-      vehiculoId: row.vehiculoId,
-      cliente: {
-        id: row.clienteId,
-        nombre: row.cliente_nombre,
-        apellidos: row.cliente_apellidos,
-        email: row.cliente_email,
-        telefono: row.cliente_telefono,
-        dni: row.cliente_dni,
-      },
-      vehiculo: {
-        id: row.vehiculoId,
-        referencia: row.vehiculo_referencia,
-        marca: row.vehiculo_marca,
-        modelo: row.vehiculo_modelo,
-        matricula: row.vehiculo_matricula,
-        bastidor: row.vehiculo_bastidor,
-        kms: row.vehiculo_kms,
-        precioPublicacion: row.vehiculo_precio,
-        estado: row.vehiculo_estado,
-        fechaMatriculacion: row.vehiculo_fechaMatriculacion,
-        año: row.vehiculo_año,
-      },
-      estado: row.estado,
-      resultado: row.resultado,
-      motivo: row.motivo,
-      importeTotal: row.importeTotal,
-      importeSena: row.importeSena,
-      formaPagoSena: row.formaPagoSena,
-      restoAPagar: row.restoAPagar,
-      financiacion: row.financiacion,
-      entidadFinanciera: row.entidadFinanciera,
-      fechaCreacion: row.fechaCreacion,
-      fechaReservaDesde: row.fechaReservaDesde,
-      fechaReservaExpira: row.fechaReservaExpira,
-      fechaVentaFirmada: row.fechaVentaFirmada,
-      fechaFacturada: row.fechaFacturada,
-      fechaEntrega: row.fechaEntrega,
-      contratoReserva: row.contratoReserva,
-      contratoVenta: row.contratoVenta,
-      mandatoGestoria: row.mandatoGestoria,
-      factura: row.factura,
-      recibos: row.recibos,
-      pagosSena: row.pagosSena,
-      pagosResto: row.pagosResto,
-      observaciones: row.observaciones,
-      responsableComercial: row.responsableComercial,
-      // Cambio de nombre
-      cambioNombreSolicitado: row.cambioNombreSolicitado ?? false,
-      documentacionRecibida: row.documentacionRecibida ?? false,
-      clienteAvisado: row.clienteAvisado ?? false,
-      documentacionRetirada: row.documentacionRetirada ?? false,
-      logHistorial: row.logHistorial,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
-    }))
-  } catch (error) {
-    console.error('Error obteniendo deals:', error)
-    return []
-  } finally {
-    client.release()
+// Mapeo explícito: total_count queda fuera del deal.
+function mapDealListRow(row: QueryResultRow) {
+  return {
+    id: row.id,
+    numero: row.numero,
+    clienteId: row.clienteId,
+    vehiculoId: row.vehiculoId,
+    cliente: {
+      id: row.clienteId,
+      nombre: row.cliente_nombre,
+      apellidos: row.cliente_apellidos,
+      email: row.cliente_email,
+      telefono: row.cliente_telefono,
+      dni: row.cliente_dni,
+    },
+    vehiculo: {
+      id: row.vehiculoId,
+      referencia: row.vehiculo_referencia,
+      marca: row.vehiculo_marca,
+      modelo: row.vehiculo_modelo,
+      matricula: row.vehiculo_matricula,
+      bastidor: row.vehiculo_bastidor,
+      kms: row.vehiculo_kms,
+      precioPublicacion: row.vehiculo_precio,
+      estado: row.vehiculo_estado,
+      fechaMatriculacion: row.vehiculo_fechaMatriculacion,
+      año: row.vehiculo_año,
+    },
+    estado: row.estado,
+    resultado: row.resultado,
+    motivo: row.motivo,
+    importeTotal: row.importeTotal,
+    importeSena: row.importeSena,
+    formaPagoSena: row.formaPagoSena,
+    restoAPagar: row.restoAPagar,
+    financiacion: row.financiacion,
+    entidadFinanciera: row.entidadFinanciera,
+    fechaCreacion: row.fechaCreacion,
+    fechaReservaDesde: row.fechaReservaDesde,
+    fechaReservaExpira: row.fechaReservaExpira,
+    fechaVentaFirmada: row.fechaVentaFirmada,
+    fechaFacturada: row.fechaFacturada,
+    fechaEntrega: row.fechaEntrega,
+    contratoReserva: row.contratoReserva,
+    contratoVenta: row.contratoVenta,
+    mandatoGestoria: row.mandatoGestoria,
+    factura: row.factura,
+    recibos: row.recibos,
+    pagosSena: row.pagosSena,
+    pagosResto: row.pagosResto,
+    observaciones: row.observaciones,
+    responsableComercial: row.responsableComercial,
+    // Cambio de nombre
+    cambioNombreSolicitado: row.cambioNombreSolicitado ?? false,
+    documentacionRecibida: row.documentacionRecibida ?? false,
+    clienteAvisado: row.clienteAvisado ?? false,
+    documentacionRetirada: row.documentacionRetirada ?? false,
+    logHistorial: row.logHistorial,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
   }
+}
+
+function buildDealsListQuery({ limit, offset, q }: ListPageParams): {
+  sql: string
+  values: string[] | undefined
+} {
+  const patron = patronBusqueda(q)
+  const where = patron
+    ? `WHERE (
+        d.numero ILIKE $1 OR
+        c.nombre ILIKE $1 OR c.apellidos ILIKE $1 OR c.dni ILIKE $1 OR
+        c.email ILIKE $1 OR c.telefono ILIKE $1 OR
+        v.referencia ILIKE $1 OR v.marca ILIKE $1 OR v.modelo ILIKE $1 OR
+        v.matricula ILIKE $1 OR v.bastidor ILIKE $1
+      )`
+    : ''
+  const sql = `${DEAL_LIST_SELECT}
+      ${where}
+      ORDER BY d."createdAt" DESC, d.id DESC
+      ${limitOffsetSql(limit, offset)}`
+  return { sql, values: patron ? [patron] : undefined }
+}
+
+export async function getDealsPage(params: ListPageParams = {}) {
+  const { sql, values } = buildDealsListQuery(params)
+  return ejecutarListPage('deals', sql, values, mapDealListRow)
+}
+
+export async function getDeals() {
+  const { rows } = await getDealsPage()
+  return rows
 }
 
 export async function getDealById(id: number): Promise<Deal | null> {
@@ -1424,12 +1496,9 @@ export async function checkUniqueFields(
 }
 
 // Funciones para clientes
-export async function getClientes() {
-  const client = await pool.connect()
-  try {
-    // Consulta con todos los campos incluyendo intereses
-    const result = await client.query(`
-      SELECT 
+// Columnas de Cliente que usan la lista, el exportador y las notificaciones.
+// Compartidas por getClientes y getClientesPage.
+const CLIENTE_LIST_COLS = `
         id,
         nombre,
         apellidos,
@@ -1459,7 +1528,13 @@ export async function getClientes() {
         observaciones,
         activo,
         "createdAt",
-        "updatedAt"
+        "updatedAt"`
+
+export async function getClientes() {
+  const client = await pool.connect()
+  try {
+    const result = await client.query(`
+      SELECT ${CLIENTE_LIST_COLS}
       FROM "Cliente" 
       ORDER BY "createdAt" DESC
     `)
@@ -1470,6 +1545,198 @@ export async function getClientes() {
   } finally {
     client.release()
   }
+}
+
+function buildClientesListQuery({ limit, offset, q }: ListPageParams): {
+  sql: string
+  values: string[] | undefined
+} {
+  const patron = patronBusqueda(q)
+  const where = patron
+    ? `WHERE (
+        nombre ILIKE $1 OR apellidos ILIKE $1 OR dni ILIKE $1 OR
+        email ILIKE $1 OR telefono ILIKE $1 OR "vehiculosInteres" ILIKE $1
+      )`
+    : ''
+  const sql = `
+      SELECT ${CLIENTE_LIST_COLS},
+        COUNT(*) OVER() AS total_count
+      FROM "Cliente"
+      ${where}
+      ORDER BY "createdAt" DESC, id DESC
+      ${limitOffsetSql(limit, offset)}`
+  return { sql, values: patron ? [patron] : undefined }
+}
+
+// Misma fila plana que getClientes (la página hace spread y arma `intereses`).
+function mapClienteListRow(row: QueryResultRow) {
+  const cliente = { ...row }
+  delete cliente.total_count
+  return cliente
+}
+
+export async function getClientesPage(params: ListPageParams = {}) {
+  const { sql, values } = buildClientesListQuery(params)
+  return ejecutarListPage('clientes', sql, values, mapClienteListRow)
+}
+
+// La tabla interesados se creó con columnas sin comillas (quedaron en
+// minúsculas) salvo "añoMinimo"/"createdAt"/"updatedAt": se listan con alias
+// camelCase para devolver la misma forma que la ruta.
+function buildInteresadosListQuery({ limit, offset, q }: ListPageParams): {
+  sql: string
+  values: string[] | undefined
+} {
+  const patron = patronBusqueda(q)
+  const where = patron
+    ? `WHERE (
+        nombre ILIKE $1 OR apellidos ILIKE $1 OR telefono ILIKE $1 OR
+        vehiculosinteres ILIKE $1
+      )`
+    : ''
+  const sql = `
+      SELECT
+        id, nombre, apellidos, telefono,
+        vehiculosinteres AS "vehiculosInteres",
+        presupuestomaximo AS "presupuestoMaximo",
+        kilometrajemaximo AS "kilometrajeMaximo",
+        "añoMinimo",
+        combustiblepreferido AS "combustiblePreferido",
+        cambiopreferido AS "cambioPreferido",
+        formapagopreferida AS "formaPagoPreferida",
+        "createdAt", "updatedAt",
+        COUNT(*) OVER() AS total_count
+      FROM interesados
+      ${where}
+      ORDER BY "createdAt" DESC, id DESC
+      ${limitOffsetSql(limit, offset)}`
+  return { sql, values: patron ? [patron] : undefined }
+}
+
+function mapInteresadoListRow(row: QueryResultRow) {
+  return {
+    id: row.id,
+    nombre: row.nombre,
+    apellidos: row.apellidos,
+    telefono: row.telefono,
+    vehiculosInteres: row.vehiculosInteres,
+    presupuestoMaximo: row.presupuestoMaximo,
+    kilometrajeMaximo: row.kilometrajeMaximo,
+    añoMinimo: row.añoMinimo,
+    combustiblePreferido: row.combustiblePreferido,
+    cambioPreferido: row.cambioPreferido,
+    formaPagoPreferida: row.formaPagoPreferida,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  }
+}
+
+export async function getInteresadosPage(params: ListPageParams = {}) {
+  const { sql, values } = buildInteresadosListQuery(params)
+  return ejecutarListPage('interesados', sql, values, mapInteresadoListRow)
+}
+
+// Depósitos de la tabla + vehículos tipo D sin depósito (virtuales, id
+// 'vehiculo_<id>') en un UNION ALL: lo que la ruta hacía con dos queries y un
+// sort en JS. Los NULL del segundo bloque solo dan forma al UNION; el mapeo
+// fija los valores por defecto igual que antes.
+function buildDepositosListQuery({ limit, offset, q }: ListPageParams): {
+  sql: string
+  values: string[] | undefined
+} {
+  const patron = patronBusqueda(q)
+  const where = patron
+    ? `WHERE (
+        t.nombre ILIKE $1 OR t.apellidos ILIKE $1 OR t.marca ILIKE $1 OR
+        t.modelo ILIKE $1 OR t.matricula ILIKE $1 OR t.referencia ILIKE $1
+      )`
+    : ''
+  const sql = `
+      SELECT t.*, COUNT(*) OVER() AS total_count
+      FROM (
+        SELECT
+          d.id::text AS id,
+          'deposito_tradicional' AS tipo_deposito,
+          d.cliente_id, d.vehiculo_id, d.estado,
+          d.fecha_inicio, d.fecha_fin, d.precio_venta, d.comision_porcentaje,
+          d.notas, d.monto_recibir, d.dias_gestion, d.multa_retiro_anticipado,
+          d.numero_cuenta, d.created_at,
+          c.nombre, c.apellidos, c.email, c.telefono,
+          v.referencia, v.marca, v.modelo, v.matricula, v.tipo,
+          NULL AS bastidor, NULL AS kms, NULL AS "fechaMatriculacion"
+        FROM depositos d
+        JOIN "Cliente" c ON d.cliente_id = c.id
+        JOIN "Vehiculo" v ON d.vehiculo_id = v.id
+        UNION ALL
+        SELECT
+          'vehiculo_' || v.id::text,
+          'vehiculo_deposito',
+          NULL, v.id, 'DISPONIBLE',
+          NULL, NULL, NULL, NULL,
+          NULL, NULL, NULL, NULL,
+          NULL, v."createdAt",
+          'Sin cliente asignado', '', '', '',
+          v.referencia, v.marca, v.modelo, v.matricula, v.tipo,
+          v.bastidor, v.kms, v."fechaMatriculacion"
+        FROM "Vehiculo" v
+        WHERE v.tipo = 'D'
+          AND NOT EXISTS (
+            SELECT 1 FROM depositos dd WHERE dd.vehiculo_id = v.id
+          )
+      ) t
+      ${where}
+      ORDER BY t.created_at DESC, t.id DESC
+      ${limitOffsetSql(limit, offset)}`
+  return { sql, values: patron ? [patron] : undefined }
+}
+
+function mapDepositoListRow(row: QueryResultRow) {
+  const virtual = row.tipo_deposito === 'vehiculo_deposito'
+  return {
+    id: virtual ? row.id : Number(row.id),
+    cliente_id: row.cliente_id,
+    vehiculo_id: row.vehiculo_id,
+    estado: row.estado,
+    fecha_inicio: row.fecha_inicio,
+    fecha_fin: row.fecha_fin,
+    precio_venta: row.precio_venta,
+    comision_porcentaje: virtual ? 5.0 : row.comision_porcentaje,
+    notas: virtual ? 'Vehículo de depósito disponible para venta' : row.notas,
+    monto_recibir: row.monto_recibir,
+    dias_gestion: virtual ? 90 : row.dias_gestion,
+    multa_retiro_anticipado: row.multa_retiro_anticipado,
+    numero_cuenta: row.numero_cuenta,
+    created_at: row.created_at,
+    tipo_deposito: row.tipo_deposito,
+    cliente: {
+      id: row.cliente_id,
+      nombre: row.nombre,
+      apellidos: row.apellidos,
+      email: row.email,
+      telefono: row.telefono,
+      dni: '',
+      direccion: '',
+      ciudad: '',
+      provincia: '',
+      codPostal: '',
+    },
+    vehiculo: {
+      id: row.vehiculo_id,
+      referencia: row.referencia,
+      marca: row.marca,
+      modelo: row.modelo,
+      matricula: row.matricula,
+      tipo: row.tipo,
+      bastidor: row.bastidor || '',
+      kms: row.kms || 0,
+      fechaMatriculacion: row.fechaMatriculacion || '',
+    },
+  }
+}
+
+export async function getDepositosPage(params: ListPageParams = {}) {
+  const { sql, values } = buildDepositosListQuery(params)
+  return ejecutarListPage('depósitos', sql, values, mapDepositoListRow)
 }
 
 export async function saveCliente(clienteData: any) {

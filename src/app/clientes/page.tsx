@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUrlState } from '@/hooks/useUrlState'
 import NotificationCenter from '@/components/NotificationCenter'
@@ -10,11 +10,14 @@ import { useSimpleToast } from '@/hooks/useSimpleToast'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal'
+import PaginadorLista from '@/components/PaginadorLista'
 import { capitalizeText } from '@/lib/utils'
+import { LIMIT_POR_DEFECTO, type Pagination } from '@/lib/listPagination'
 
 // Búsqueda, filtros y vista viven en la URL (se conservan al volver atrás)
 const FILTROS_DEFAULT = {
   q: '',
+  pagina: 1,
   estado: '',
   prioridad: '',
   precioMax: '',
@@ -26,17 +29,81 @@ const FILTROS_DEFAULT = {
   vista: 'list' as 'cards' | 'list',
 }
 
+// Fila de /api/clientes → forma que espera la lista (intereses anidados,
+// JSON parseado). Compartida por la lista paginada y el exportador.
+function mapearCliente(cliente: any): Cliente {
+  // Parsear vehiculosInteres
+  let vehiculosInteres = []
+  if (cliente.vehiculosInteres) {
+    try {
+      vehiculosInteres = JSON.parse(cliente.vehiculosInteres)
+    } catch (e) {
+      vehiculosInteres = []
+    }
+  }
+
+  // Parsear etiquetas
+  let etiquetas = []
+  if (cliente.etiquetas) {
+    try {
+      etiquetas = JSON.parse(cliente.etiquetas)
+    } catch (e) {
+      etiquetas = []
+    }
+  }
+
+  // Parsear coloresDeseados
+  let coloresDeseados = []
+  if (cliente.coloresDeseados) {
+    try {
+      coloresDeseados = JSON.parse(cliente.coloresDeseados)
+    } catch (e) {
+      coloresDeseados = []
+    }
+  }
+
+  // Parsear necesidadesEspeciales
+  let necesidadesEspeciales = []
+  if (cliente.necesidadesEspeciales) {
+    try {
+      necesidadesEspeciales = JSON.parse(cliente.necesidadesEspeciales)
+    } catch (e) {
+      necesidadesEspeciales = []
+    }
+  }
+
+  return {
+    ...cliente,
+    // Mapear para compatibilidad con el frontend existente
+    intereses: {
+      vehiculosInteres: vehiculosInteres,
+      precioMaximo: cliente.presupuestoMaximo || 0,
+      kilometrajeMaximo: cliente.kilometrajeMaximo || 0,
+      añoMinimo: cliente.añoMinimo || 0,
+      combustiblePreferido: cliente.combustiblePreferido || 'cualquiera',
+      cambioPreferido: cliente.cambioPreferido || 'cualquiera',
+      coloresDeseados: coloresDeseados,
+      necesidadesEspeciales: necesidadesEspeciales,
+      formaPagoPreferida: cliente.formaPagoPreferida || 'cualquiera',
+    },
+    etiquetas: etiquetas,
+  }
+}
+
 function ClientesPageInner() {
   const router = useRouter()
   const { showToast, ToastContainer } = useSimpleToast()
 
   const [clientes, setClientes] = useState<Cliente[]>([])
+  const [pagination, setPagination] = useState<Pagination | null>(null)
+  const [clientesExportar, setClientesExportar] = useState<Cliente[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isDeleting, setIsDeleting] = useState(false)
   const [clienteToDelete, setClienteToDelete] = useState<Cliente | null>(null)
   const [filtros, setFiltros] = useUrlState(FILTROS_DEFAULT)
   const {
     q: busqueda,
+    pagina,
     estado: estadoFilter,
     prioridad: prioridadFilter,
     precioMax: precioMaxFilter,
@@ -47,15 +114,18 @@ function ClientesPageInner() {
     pago: pagoFilter,
     vista: viewMode,
   } = filtros
-  const setEstadoFilter = (estado: string) => setFiltros({ estado })
-  const setPrioridadFilter = (prioridad: string) => setFiltros({ prioridad })
-  const setPrecioMaxFilter = (precioMax: string) => setFiltros({ precioMax })
-  const setKilometrajeFilter = (km: string) => setFiltros({ km })
-  const setAñoMinFilter = (anioMin: string) => setFiltros({ anioMin })
+  const setEstadoFilter = (estado: string) => setFiltros({ estado, pagina: 1 })
+  const setPrioridadFilter = (prioridad: string) =>
+    setFiltros({ prioridad, pagina: 1 })
+  const setPrecioMaxFilter = (precioMax: string) =>
+    setFiltros({ precioMax, pagina: 1 })
+  const setKilometrajeFilter = (km: string) => setFiltros({ km, pagina: 1 })
+  const setAñoMinFilter = (anioMin: string) =>
+    setFiltros({ anioMin, pagina: 1 })
   const setCombustibleFilter = (combustible: string) =>
-    setFiltros({ combustible })
-  const setCambioFilter = (cambio: string) => setFiltros({ cambio })
-  const setPagoFilter = (pago: string) => setFiltros({ pago })
+    setFiltros({ combustible, pagina: 1 })
+  const setCambioFilter = (cambio: string) => setFiltros({ cambio, pagina: 1 })
+  const setPagoFilter = (pago: string) => setFiltros({ pago, pagina: 1 })
   const setViewMode = (vista: 'cards' | 'list') => setFiltros({ vista })
   const limpiarFiltrosAvanzados = () =>
     setFiltros({
@@ -65,6 +135,7 @@ function ClientesPageInner() {
       combustible: '',
       cambio: '',
       pago: '',
+      pagina: 1,
     })
   // El input mantiene su propio valor; la URL (y el filtrado) va con 300 ms de debounce
   const [searchTerm, setSearchTerm] = useState(busqueda)
@@ -93,94 +164,60 @@ function ClientesPageInner() {
 
   useEffect(() => {
     if (searchTerm === busqueda) return
-    const t = setTimeout(() => setFiltros({ q: searchTerm }), 300)
+    const t = setTimeout(() => setFiltros({ q: searchTerm, pagina: 1 }), 300)
     return () => clearTimeout(t)
   }, [searchTerm, busqueda, setFiltros])
 
   const limpiarBusqueda = () => {
     setSearchTerm('')
-    setFiltros({ q: '' })
+    setFiltros({ q: '', pagina: 1 })
   }
 
-  const fetchClientes = async () => {
+  const fetchClientes = useCallback(async () => {
     try {
       setIsLoading(true)
-      const response = await fetch('/api/clientes')
+      const params = new URLSearchParams({
+        page: String(pagina),
+        limit: String(LIMIT_POR_DEFECTO),
+      })
+      if (busqueda) params.set('q', busqueda)
+      const response = await fetch(`/api/clientes?${params}`)
       if (!response.ok) throw new Error('Error al cargar clientes')
       const data = await response.json()
-
-      // Mapear datos de la base de datos al formato esperado por el frontend
-      const clientesMapeados = data.map((cliente: any) => {
-        // Parsear vehiculosInteres
-        let vehiculosInteres = []
-        if (cliente.vehiculosInteres) {
-          try {
-            vehiculosInteres = JSON.parse(cliente.vehiculosInteres)
-          } catch (e) {
-            vehiculosInteres = []
-          }
-        }
-
-        // Parsear etiquetas
-        let etiquetas = []
-        if (cliente.etiquetas) {
-          try {
-            etiquetas = JSON.parse(cliente.etiquetas)
-          } catch (e) {
-            etiquetas = []
-          }
-        }
-
-        // Parsear coloresDeseados
-        let coloresDeseados = []
-        if (cliente.coloresDeseados) {
-          try {
-            coloresDeseados = JSON.parse(cliente.coloresDeseados)
-          } catch (e) {
-            coloresDeseados = []
-          }
-        }
-
-        // Parsear necesidadesEspeciales
-        let necesidadesEspeciales = []
-        if (cliente.necesidadesEspeciales) {
-          try {
-            necesidadesEspeciales = JSON.parse(cliente.necesidadesEspeciales)
-          } catch (e) {
-            necesidadesEspeciales = []
-          }
-        }
-
-        return {
-          ...cliente,
-          // Mapear para compatibilidad con el frontend existente
-          intereses: {
-            vehiculosInteres: vehiculosInteres,
-            precioMaximo: cliente.presupuestoMaximo || 0,
-            kilometrajeMaximo: cliente.kilometrajeMaximo || 0,
-            añoMinimo: cliente.añoMinimo || 0,
-            combustiblePreferido: cliente.combustiblePreferido || 'cualquiera',
-            cambioPreferido: cliente.cambioPreferido || 'cualquiera',
-            coloresDeseados: coloresDeseados,
-            necesidadesEspeciales: necesidadesEspeciales,
-            formaPagoPreferida: cliente.formaPagoPreferida || 'cualquiera',
-          },
-          etiquetas: etiquetas,
-        }
-      })
-
-      setClientes(clientesMapeados)
+      setClientes((data.clientes ?? []).map(mapearCliente))
+      setPagination(data.pagination ?? null)
     } catch (error) {
       console.error('Error:', error)
       showToast('Error al cargar clientes', 'error')
     } finally {
       setIsLoading(false)
     }
-  }
+    // showToast es estable en el provider; no se incluye para no re-disparar
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busqueda, pagina])
 
   useEffect(() => {
     fetchClientes()
-  }, [])
+  }, [fetchClientes])
+
+  // Página fuera de rango (URL vieja o tras borrar) → volver a la primera
+  useEffect(() => {
+    if (pagination && pagina > pagination.totalPages) setFiltros({ pagina: 1 })
+  }, [pagination, pagina, setFiltros])
+
+  // El exportador trabaja sobre todos los clientes, no solo la página cargada
+  const abrirExportador = async () => {
+    try {
+      const response = await fetch('/api/clientes')
+      const data = response.ok ? await response.json() : null
+      setClientesExportar(
+        Array.isArray(data) ? data.map(mapearCliente) : clientes
+      )
+    } catch {
+      setClientesExportar(clientes)
+    }
+    setShowExporter(true)
+  }
 
   const handleView = (id: number) => {
     router.push(`/clientes/${id}`)
@@ -255,20 +292,7 @@ function ClientesPageInner() {
 
   const filteredClientes = clientes
     .filter((cliente) => {
-      const term = busqueda.toLowerCase()
-      const matchesSearch =
-        !busqueda ||
-        cliente.nombre?.toLowerCase().includes(term) ||
-        cliente.apellidos?.toLowerCase().includes(term) ||
-        cliente.telefono?.includes(busqueda) ||
-        cliente.email?.toLowerCase().includes(term) ||
-        cliente.dni?.toLowerCase().includes(term) ||
-        cliente.intereses?.vehiculosInteres?.some((vehiculo) =>
-          String(vehiculo ?? '')
-            .toLowerCase()
-            .includes(term)
-        )
-
+      // La búsqueda (q) la aplica el servidor; el resto filtra la página cargada
       const matchesEstado =
         !estadoFilter || (cliente.estado || 'nuevo') === estadoFilter
       const matchesPrioridad =
@@ -323,7 +347,6 @@ function ClientesPageInner() {
           cliente.intereses?.formaPagoPreferida === 'cualquiera')
 
       return (
-        matchesSearch &&
         matchesEstado &&
         matchesPrioridad &&
         matchesPrecioMax &&
@@ -402,7 +425,7 @@ function ClientesPageInner() {
                         Clientes
                       </h1>
                       <p className="text-slate-300 text-xs sm:text-sm">
-                        {clientes.length} registrados •{' '}
+                        {pagination?.total ?? clientes.length} registrados •{' '}
                         {filteredClientes.length} mostrados
                       </p>
                     </div>
@@ -429,7 +452,7 @@ function ClientesPageInner() {
                       <div className="absolute -top-1 -right-1 h-2 w-2 sm:h-3 sm:w-3 bg-red-500 rounded-full"></div>
                     </button>
                     <button
-                      onClick={() => setShowExporter(true)}
+                      onClick={abrirExportador}
                       className="px-2 sm:px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors flex items-center space-x-1 sm:space-x-2"
                     >
                       <svg
@@ -762,7 +785,7 @@ function ClientesPageInner() {
                   <div className="flex items-center justify-between mt-4">
                     <div className="text-sm text-gray-600">
                       Mostrando {filteredClientes.length} de {clientes.length}{' '}
-                      clientes
+                      clientes de esta página
                     </div>
                     <button
                       onClick={limpiarFiltrosAvanzados}
@@ -1016,6 +1039,12 @@ function ClientesPageInner() {
             </div>
           )}
 
+          <PaginadorLista
+            pagination={pagination}
+            etiqueta="clientes"
+            onCambiarPagina={(p) => setFiltros({ pagina: p })}
+          />
+
           <ConfirmDeleteModal
             isOpen={clienteToDelete !== null}
             onClose={handleDeleteCancel}
@@ -1040,7 +1069,7 @@ function ClientesPageInner() {
 
           <DataExporter
             clientes={
-              clientes as unknown as React.ComponentProps<
+              clientesExportar as unknown as React.ComponentProps<
                 typeof DataExporter
               >['clientes']
             }

@@ -1,8 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getDeals, createDeal } from '@/lib/direct-database'
+import { getDeals, getDealsPage, createDeal } from '@/lib/direct-database'
+import { construirPagination, leerPaginacion } from '@/lib/listPagination'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // Con ?page= se pagina en SQL ({ deals, pagination }); sin page, el array
+    // completo de siempre (deals/nuevo lo usa para saber qué coches están reservados).
+    const paginacion = leerPaginacion(new URL(request.url).searchParams)
+    if (paginacion) {
+      const { page, limit, offset, q } = paginacion
+      const { rows, total } = await getDealsPage({ limit, offset, q })
+      return NextResponse.json(
+        { deals: rows, pagination: construirPagination(total, page, limit) },
+        { headers: { 'Cache-Control': 'private, max-age=30' } }
+      )
+    }
+
     const deals = await getDeals()
     return NextResponse.json(deals, {
       headers: { 'Cache-Control': 'private, max-age=30' },

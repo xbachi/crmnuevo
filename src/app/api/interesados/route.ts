@@ -1,8 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { pool } from '@/lib/direct-database'
+import { getInteresadosPage, pool } from '@/lib/direct-database'
+import { construirPagination, leerPaginacion } from '@/lib/listPagination'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // Con ?page= se pagina en SQL ({ interesados, pagination }); sin page,
+    // el array completo de siempre.
+    const paginacion = leerPaginacion(new URL(request.url).searchParams)
+    if (paginacion) {
+      const { page, limit, offset, q } = paginacion
+      const { rows, total } = await getInteresadosPage({ limit, offset, q })
+      return NextResponse.json({
+        interesados: rows,
+        pagination: construirPagination(total, page, limit),
+      })
+    }
+
     const client = await pool.connect()
     try {
       const result = await client.query(

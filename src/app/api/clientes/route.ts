@@ -1,9 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { pool } from '@/lib/direct-database'
+import { getClientesPage, pool } from '@/lib/direct-database'
+import { construirPagination, leerPaginacion } from '@/lib/listPagination'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     console.log('🔍 [API CLIENTES] Obteniendo lista de clientes...')
+
+    // Con ?page= (limit/q opcionales) se pagina en SQL y la respuesta es
+    // { clientes, pagination }. Sin page, el array completo de siempre
+    // (selects, notificaciones y fichas lo esperan así).
+    const paginacion = leerPaginacion(new URL(request.url).searchParams)
+    if (paginacion) {
+      const { page, limit, offset, q } = paginacion
+      const { rows, total } = await getClientesPage({ limit, offset, q })
+      return NextResponse.json(
+        { clientes: rows, pagination: construirPagination(total, page, limit) },
+        { headers: { 'Cache-Control': 'private, max-age=30' } }
+      )
+    }
 
     const client = await pool.connect()
     try {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUrlState } from '@/hooks/useUrlState'
 import { useToast } from '@/components/Toast'
@@ -8,6 +8,8 @@ import { formatCurrency, capitalizeText } from '@/lib/utils'
 import Link from 'next/link'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal'
+import PaginadorLista from '@/components/PaginadorLista'
+import { LIMIT_POR_DEFECTO, type Pagination } from '@/lib/listPagination'
 
 interface Deposito {
   id: number | string
@@ -56,16 +58,18 @@ type TabDepositos = 'todos' | 'activo' | 'finalizado'
 // Búsqueda y pestaña viven en la URL (se conservan al volver atrás)
 const FILTROS_DEFAULT = {
   q: '',
+  pagina: 1,
   tab: 'activo' as TabDepositos,
 }
 
 function DepositosPageInner() {
   const [depositos, setDepositos] = useState<Deposito[]>([])
+  const [pagination, setPagination] = useState<Pagination | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [{ q: busqueda, tab: activeTab }, setFiltros] =
+  const [{ q: busqueda, tab: activeTab, pagina }, setFiltros] =
     useUrlState(FILTROS_DEFAULT)
-  const setActiveTab = (tab: TabDepositos) => setFiltros({ tab })
+  const setActiveTab = (tab: TabDepositos) => setFiltros({ tab, pagina: 1 })
   // El input mantiene su propio valor; la URL (y el filtrado) va con 300 ms de debounce
   const [searchTerm, setSearchTerm] = useState(busqueda)
   const [timeFilter, setTimeFilter] = useState<
@@ -81,18 +85,51 @@ function DepositosPageInner() {
 
   useEffect(() => {
     if (searchTerm === busqueda) return
-    const t = setTimeout(() => setFiltros({ q: searchTerm }), 300)
+    const t = setTimeout(() => setFiltros({ q: searchTerm, pagina: 1 }), 300)
     return () => clearTimeout(t)
   }, [searchTerm, busqueda, setFiltros])
 
   const limpiarBusqueda = () => {
     setSearchTerm('')
-    setFiltros({ q: '' })
+    setFiltros({ q: '', pagina: 1 })
   }
+
+  const fetchDepositos = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      const params = new URLSearchParams({
+        page: String(pagina),
+        limit: String(LIMIT_POR_DEFECTO),
+      })
+      if (busqueda) params.set('q', busqueda)
+      const response = await fetch(`/api/depositos?${params}`)
+
+      if (!response.ok) {
+        throw new Error('Error al cargar los depósitos')
+      }
+
+      const data = await response.json()
+      setDepositos(Array.isArray(data.depositos) ? data.depositos : [])
+      setPagination(data.pagination ?? null)
+    } catch (error) {
+      console.error('Error fetching depositos:', error)
+      setError('Error al cargar los depósitos')
+      showToast('Error al cargar los depósitos', 'error')
+    } finally {
+      setIsLoading(false)
+    }
+    // showToast es estable en el provider; no se incluye para no re-disparar
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busqueda, pagina])
 
   useEffect(() => {
     fetchDepositos()
-  }, [])
+  }, [fetchDepositos])
+
+  // Página fuera de rango (URL vieja o tras borrar) → volver a la primera
+  useEffect(() => {
+    if (pagination && pagina > pagination.totalPages) setFiltros({ pagina: 1 })
+  }, [pagination, pagina, setFiltros])
 
   // Refresh cuando la página se vuelve visible (ej: navegando de vuelta)
   useEffect(() => {
@@ -105,27 +142,7 @@ function DepositosPageInner() {
     document.addEventListener('visibilitychange', handleVisibilityChange)
     return () =>
       document.removeEventListener('visibilitychange', handleVisibilityChange)
-  }, [])
-
-  const fetchDepositos = async () => {
-    try {
-      setIsLoading(true)
-      const response = await fetch('/api/depositos')
-
-      if (!response.ok) {
-        throw new Error('Error al cargar los depósitos')
-      }
-
-      const data = await response.json()
-      setDepositos(data)
-    } catch (error) {
-      console.error('Error fetching depositos:', error)
-      setError('Error al cargar los depósitos')
-      showToast('Error al cargar los depósitos', 'error')
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  }, [fetchDepositos])
 
   const handleCreateDeposito = () => {
     router.push('/depositos/nuevo')
@@ -261,33 +278,9 @@ function DepositosPageInner() {
   const getFilteredDepositos = () => {
     let filtered = depositos
 
-    // Si hay término de búsqueda, buscar en TODOS los estados primero
-    if (busqueda) {
-      filtered = filtered.filter(
-        (deposito) =>
-          deposito.cliente?.nombre
-            ?.toLowerCase()
-            .includes(busqueda.toLowerCase()) ||
-          deposito.cliente?.apellidos
-            ?.toLowerCase()
-            .includes(busqueda.toLowerCase()) ||
-          deposito.vehiculo?.marca
-            ?.toLowerCase()
-            .includes(busqueda.toLowerCase()) ||
-          deposito.vehiculo?.modelo
-            ?.toLowerCase()
-            .includes(busqueda.toLowerCase()) ||
-          deposito.vehiculo?.matricula
-            ?.toLowerCase()
-            .includes(busqueda.toLowerCase()) ||
-          deposito.vehiculo?.referencia
-            ?.toLowerCase()
-            .includes(busqueda.toLowerCase())
-      )
-
-      // Si hay búsqueda, NO filtrar por estado - mostrar TODOS los resultados de búsqueda
-      return getFilteredDepositosByTime(filtered)
-    }
+    // La búsqueda (q) la aplica el servidor en todos los estados; con
+    // búsqueda no se filtra por pestaña (comportamiento previo)
+    if (busqueda) return getFilteredDepositosByTime(filtered)
 
     // Solo si NO hay búsqueda, aplicar filtro de estado
     if (activeTab !== 'todos') {
@@ -513,7 +506,7 @@ function DepositosPageInner() {
                         Depósitos de Venta
                       </h1>
                       <p className="text-slate-300 text-xs sm:text-sm">
-                        {depositos.length} registrados •{' '}
+                        {pagination?.total ?? depositos.length} registrados •{' '}
                         {getFilteredDepositos().length} mostrados
                       </p>
                     </div>
@@ -954,6 +947,12 @@ function DepositosPageInner() {
               </div>
             </div>
           )}
+
+          <PaginadorLista
+            pagination={pagination}
+            etiqueta="depósitos"
+            onCambiarPagina={(p) => setFiltros({ pagina: p })}
+          />
         </main>
 
         <ConfirmDeleteModal

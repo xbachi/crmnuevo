@@ -1,13 +1,15 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUrlState } from '@/hooks/useUrlState'
 import { useSimpleToast } from '@/hooks/useSimpleToast'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal'
+import PaginadorLista from '@/components/PaginadorLista'
 import { capitalizeText } from '@/lib/utils'
+import { LIMIT_POR_DEFECTO, type Pagination } from '@/lib/listPagination'
 
 interface Interesado {
   id: number
@@ -28,6 +30,7 @@ interface Interesado {
 // Búsqueda, filtros y vista viven en la URL (se conservan al volver atrás)
 const FILTROS_DEFAULT = {
   q: '',
+  pagina: 1,
   precioMax: '',
   km: '',
   anioMin: '',
@@ -42,6 +45,7 @@ function InteresadosPageInner() {
   const { showToast, ToastContainer } = useSimpleToast()
 
   const [interesados, setInteresados] = useState<Interesado[]>([])
+  const [pagination, setPagination] = useState<Pagination | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isDeleting, setIsDeleting] = useState(false)
   const [interesadoToDelete, setInteresadoToDelete] =
@@ -49,6 +53,7 @@ function InteresadosPageInner() {
   const [filtros, setFiltros] = useUrlState(FILTROS_DEFAULT)
   const {
     q: busqueda,
+    pagina,
     precioMax: precioMaxFilter,
     km: kilometrajeFilter,
     anioMin: añoMinFilter,
@@ -57,13 +62,15 @@ function InteresadosPageInner() {
     pago: pagoFilter,
     vista: viewMode,
   } = filtros
-  const setPrecioMaxFilter = (precioMax: string) => setFiltros({ precioMax })
-  const setKilometrajeFilter = (km: string) => setFiltros({ km })
-  const setAñoMinFilter = (anioMin: string) => setFiltros({ anioMin })
+  const setPrecioMaxFilter = (precioMax: string) =>
+    setFiltros({ precioMax, pagina: 1 })
+  const setKilometrajeFilter = (km: string) => setFiltros({ km, pagina: 1 })
+  const setAñoMinFilter = (anioMin: string) =>
+    setFiltros({ anioMin, pagina: 1 })
   const setCombustibleFilter = (combustible: string) =>
-    setFiltros({ combustible })
-  const setCambioFilter = (cambio: string) => setFiltros({ cambio })
-  const setPagoFilter = (pago: string) => setFiltros({ pago })
+    setFiltros({ combustible, pagina: 1 })
+  const setCambioFilter = (cambio: string) => setFiltros({ cambio, pagina: 1 })
+  const setPagoFilter = (pago: string) => setFiltros({ pago, pagina: 1 })
   const setViewMode = (vista: 'cards' | 'list') => setFiltros({ vista })
   const limpiarFiltrosAvanzados = () =>
     setFiltros({
@@ -73,6 +80,7 @@ function InteresadosPageInner() {
       combustible: '',
       cambio: '',
       pago: '',
+      pagina: 1,
     })
   // El input mantiene su propio valor; la URL (y el filtrado) va con 300 ms de debounce
   const [searchTerm, setSearchTerm] = useState(busqueda)
@@ -84,33 +92,46 @@ function InteresadosPageInner() {
 
   useEffect(() => {
     if (searchTerm === busqueda) return
-    const t = setTimeout(() => setFiltros({ q: searchTerm }), 300)
+    const t = setTimeout(() => setFiltros({ q: searchTerm, pagina: 1 }), 300)
     return () => clearTimeout(t)
   }, [searchTerm, busqueda, setFiltros])
 
   const limpiarBusqueda = () => {
     setSearchTerm('')
-    setFiltros({ q: '' })
+    setFiltros({ q: '', pagina: 1 })
   }
 
-  const fetchInteresados = async () => {
+  const fetchInteresados = useCallback(async () => {
     try {
       setIsLoading(true)
-      const response = await fetch('/api/interesados')
+      const params = new URLSearchParams({
+        page: String(pagina),
+        limit: String(LIMIT_POR_DEFECTO),
+      })
+      if (busqueda) params.set('q', busqueda)
+      const response = await fetch(`/api/interesados?${params}`)
       if (!response.ok) throw new Error('Error al cargar interesados')
       const data = await response.json()
-      setInteresados(Array.isArray(data) ? data : [])
+      setInteresados(Array.isArray(data.interesados) ? data.interesados : [])
+      setPagination(data.pagination ?? null)
     } catch (error) {
       console.error('Error:', error)
       showToast('Error al cargar interesados', 'error')
     } finally {
       setIsLoading(false)
     }
-  }
+    // showToast es estable en el provider; no se incluye para no re-disparar
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busqueda, pagina])
 
   useEffect(() => {
     fetchInteresados()
-  }, [])
+  }, [fetchInteresados])
+
+  // Página fuera de rango (URL vieja o tras borrar) → volver a la primera
+  useEffect(() => {
+    if (pagination && pagina > pagination.totalPages) setFiltros({ pagina: 1 })
+  }, [pagination, pagina, setFiltros])
 
   const handleView = (id: number) => {
     router.push(`/interesados/${id}`)
@@ -157,16 +178,7 @@ function InteresadosPageInner() {
   }
 
   const filteredInteresados = interesados.filter((interesado) => {
-    const matchesSearch =
-      !busqueda ||
-      interesado.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-      interesado.apellidos.toLowerCase().includes(busqueda.toLowerCase()) ||
-      interesado.telefono.includes(busqueda) ||
-      (interesado.vehiculosInteres &&
-        JSON.parse(interesado.vehiculosInteres).some((vehiculo: string) =>
-          vehiculo.toLowerCase().includes(busqueda.toLowerCase())
-        ))
-
+    // La búsqueda (q) la aplica el servidor; el resto filtra la página cargada
     // Filtros por intereses
     const precioMaxValue = parseInt(precioMaxFilter)
     const interesadoPrecio = interesado.presupuestoMaximo || 0
@@ -207,7 +219,6 @@ function InteresadosPageInner() {
         interesado.formaPagoPreferida === 'cualquiera')
 
     return (
-      matchesSearch &&
       matchesPrecioMax &&
       matchesKilometraje &&
       matchesAñoMin &&
@@ -260,7 +271,7 @@ function InteresadosPageInner() {
                         Interesados
                       </h1>
                       <p className="text-slate-300 text-xs sm:text-sm">
-                        {interesados.length} registrados •{' '}
+                        {pagination?.total ?? interesados.length} registrados •{' '}
                         {filteredInteresados.length} mostrados
                       </p>
                     </div>
@@ -771,6 +782,12 @@ function InteresadosPageInner() {
               </div>
             </div>
           )}
+
+          <PaginadorLista
+            pagination={pagination}
+            etiqueta="interesados"
+            onCambiarPagina={(p) => setFiltros({ pagina: p })}
+          />
 
           <ConfirmDeleteModal
             isOpen={interesadoToDelete !== null}
