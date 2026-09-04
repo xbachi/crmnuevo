@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useToast } from '@/hooks/useToast'
 import {
@@ -15,6 +15,75 @@ import {
   puedePreseleccionarVehiculo,
   resolverPasoInicial,
 } from '@/lib/dealWizard'
+import {
+  validarCampos,
+  primerCampoConError,
+  sinError,
+  resumenErrores,
+  type Regla,
+} from '@/lib/validacion'
+import {
+  CampoError,
+  Obligatorio,
+  claseInput,
+  enfocarCampo,
+} from '@/components/CampoError'
+
+const CLASE_BUSQUEDA =
+  'w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent'
+const CLASE_INPUT =
+  'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent'
+const CLASE_INPUT_MODAL =
+  'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+
+// Las claves coinciden con el `id` del input para poder enfocar el primer error.
+const REGLAS_PASO_1: Record<string, Regla> = {
+  clienteBusqueda: {
+    etiqueta: 'el cliente',
+    personalizada: (v) => (v ? null : 'Selecciona un cliente de la lista'),
+  },
+}
+const REGLAS_PASO_2: Record<string, Regla> = {
+  vehiculoBusqueda: {
+    etiqueta: 'el vehículo',
+    personalizada: (v) => (v ? null : 'Selecciona un vehículo de la lista'),
+  },
+}
+const REGLAS_RESERVA: Record<string, Regla> = {
+  importeTotal: { etiqueta: 'el importe total', tipo: 'numero', min: 0 },
+  importeSena: {
+    etiqueta: 'la seña',
+    tipo: 'numero',
+    min: 0,
+    personalizada: (v, valores) =>
+      valores.importeTotal && Number(v) > Number(valores.importeTotal)
+        ? 'La seña no puede superar el importe total'
+        : null,
+  },
+  fechaReservaDesde: { etiqueta: 'la fecha de inicio', tipo: 'fecha' },
+  fechaReservaExpira: {
+    etiqueta: 'la fecha de expiración',
+    tipo: 'fecha',
+    personalizada: (v, valores) =>
+      typeof v === 'string' &&
+      typeof valores.fechaReservaDesde === 'string' &&
+      valores.fechaReservaDesde &&
+      v < valores.fechaReservaDesde
+        ? 'La expiración no puede ser anterior al inicio de la reserva'
+        : null,
+  },
+}
+const REGLAS_NUEVO_CLIENTE: Record<string, Regla> = {
+  nombre: { requerido: true, etiqueta: 'el nombre' },
+  apellidos: { requerido: true, etiqueta: 'los apellidos' },
+  dni: { requerido: true, etiqueta: 'el DNI', tipo: 'nif' },
+  telefono: { requerido: true, etiqueta: 'el teléfono', tipo: 'telefono' },
+  direccion: { requerido: true, etiqueta: 'la calle' },
+  codigoPostal: { requerido: true, etiqueta: 'el código postal' },
+  ciudad: { requerido: true, etiqueta: 'la ciudad' },
+  provincia: { requerido: true, etiqueta: 'la provincia' },
+  email: { etiqueta: 'el email', tipo: 'email' },
+}
 
 interface Cliente {
   id: number
@@ -76,6 +145,25 @@ function NuevoDealPageInner() {
   const [selectedVehiculo, setSelectedVehiculo] = useState<Vehiculo | null>(
     null
   )
+
+  // Errores por campo (wizard y modal de cliente) y guard de salida
+  const [errores, setErrores] = useState<Record<string, string>>({})
+  const [erroresCliente, setErroresCliente] = useState<Record<string, string>>(
+    {}
+  )
+  const [sucio, setSucio] = useState(false) // el usuario tocó algo
+  const dealCreadoRef = useRef(false)
+
+  useEffect(() => {
+    if (!sucio) return
+    const avisar = (e: BeforeUnloadEvent) => {
+      if (dealCreadoRef.current) return
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', avisar)
+    return () => window.removeEventListener('beforeunload', avisar)
+  }, [sucio])
 
   // Estados para los buscadores
   const [clienteSearchTerm, setClienteSearchTerm] = useState('')
@@ -274,6 +362,8 @@ function NuevoDealPageInner() {
     >
   ) => {
     const { name, value, type } = e.target
+    setSucio(true)
+    setErrores((prev) => sinError(prev, name))
     setFormData((prev) => ({
       ...prev,
       [name]:
@@ -283,12 +373,16 @@ function NuevoDealPageInner() {
 
   const handleClienteSelect = (clienteId: string) => {
     const cliente = clientes.find((c) => c.id.toString() === clienteId)
+    setSucio(true)
+    setErrores((prev) => sinError(prev, 'clienteBusqueda'))
     setSelectedCliente(cliente || null)
     setFormData((prev) => ({ ...prev, clienteId }))
   }
 
   const handleVehiculoSelect = (vehiculoId: string) => {
     const vehiculo = vehiculos.find((v) => v.id.toString() === vehiculoId)
+    setSucio(true)
+    setErrores((prev) => sinError(prev, 'vehiculoBusqueda'))
     setSelectedVehiculo(vehiculo || null)
     setFormData((prev) => ({
       ...prev,
@@ -297,20 +391,23 @@ function NuevoDealPageInner() {
     }))
   }
 
+  const cambiarNuevoCliente = (
+    campo: keyof typeof newClientData,
+    valor: string
+  ) => {
+    setSucio(true)
+    setErroresCliente((prev) => sinError(prev, campo))
+    setNewClientData((prev) => ({ ...prev, [campo]: valor }))
+  }
+
   // Función para crear nuevo cliente
   const handleCreateClient = async () => {
-    // Validar campos obligatorios
-    if (
-      !newClientData.nombre ||
-      !newClientData.apellidos ||
-      !newClientData.dni ||
-      !newClientData.direccion ||
-      !newClientData.codigoPostal ||
-      !newClientData.ciudad ||
-      !newClientData.provincia ||
-      !newClientData.telefono
-    ) {
-      showToast('Por favor completa todos los campos obligatorios', 'error')
+    const validacion = validarCampos(newClientData, REGLAS_NUEVO_CLIENTE)
+    setErroresCliente(validacion.errores)
+    if (!validacion.ok) {
+      showToast(resumenErrores(validacion.errores), 'error')
+      const primero = primerCampoConError(validacion.errores)
+      enfocarCampo(primero ? `nc-${primero}` : null)
       return
     }
 
@@ -350,6 +447,7 @@ function NuevoDealPageInner() {
 
         // Cerrar modal y limpiar formulario
         setShowCreateClientModal(false)
+        setErroresCliente({})
         setNewClientData({
           nombre: '',
           apellidos: '',
@@ -386,6 +484,14 @@ function NuevoDealPageInner() {
       return
     }
 
+    const validacion = validarCampos(formData, REGLAS_RESERVA)
+    setErrores(validacion.errores)
+    if (!validacion.ok) {
+      showToast(resumenErrores(validacion.errores), 'error')
+      enfocarCampo(primerCampoConError(validacion.errores))
+      return
+    }
+
     setIsLoading(true)
 
     try {
@@ -418,6 +524,7 @@ function NuevoDealPageInner() {
 
       if (response.ok) {
         const deal = await response.json()
+        dealCreadoRef.current = true // sin aviso de salida al navegar a la ficha
         showToast(`Deal ${deal.numero} creado correctamente`, 'success')
         router.push(`/deals/${deal.id}`)
       } else {
@@ -444,9 +551,19 @@ function NuevoDealPageInner() {
       e.preventDefault()
       e.stopPropagation()
     }
-    if (currentStep === 1 && selectedCliente) {
+    const validacion =
+      currentStep === 1
+        ? validarCampos({ clienteBusqueda: selectedCliente }, REGLAS_PASO_1)
+        : validarCampos({ vehiculoBusqueda: selectedVehiculo }, REGLAS_PASO_2)
+    setErrores(validacion.errores)
+    if (!validacion.ok) {
+      showToast(resumenErrores(validacion.errores), 'error')
+      enfocarCampo(primerCampoConError(validacion.errores))
+      return
+    }
+    if (currentStep === 1) {
       setCurrentStep(2)
-    } else if (currentStep === 2 && selectedVehiculo) {
+    } else if (currentStep === 2) {
       setCurrentStep(3)
     }
   }
@@ -565,7 +682,7 @@ function NuevoDealPageInner() {
 
       {/* Formulario */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-8" noValidate>
           {/* Form Container */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-200">
             {/* Progress Steps */}
@@ -616,20 +733,35 @@ function NuevoDealPageInner() {
                     <h3 className="text-lg font-semibold text-slate-900 mb-4">
                       Seleccionar Cliente
                     </h3>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Cliente *
+                    <label
+                      htmlFor="clienteBusqueda"
+                      className="block text-sm font-medium text-slate-700 mb-2"
+                    >
+                      Cliente
+                      <Obligatorio />
                     </label>
                     <div className="relative dropdown-container">
                       <input
                         type="text"
+                        id="clienteBusqueda"
                         value={clienteSearchTerm}
                         onChange={(e) => {
+                          setSucio(true)
                           setClienteSearchTerm(e.target.value)
                           setShowClienteDropdown(true)
                         }}
                         onFocus={() => setShowClienteDropdown(true)}
                         placeholder="Buscar cliente por nombre, apellidos, teléfono, email o DNI..."
-                        className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        aria-invalid={!!errores.clienteBusqueda}
+                        aria-describedby={
+                          errores.clienteBusqueda
+                            ? 'clienteBusqueda-error'
+                            : undefined
+                        }
+                        className={claseInput(
+                          errores.clienteBusqueda,
+                          CLASE_BUSQUEDA
+                        )}
                         required
                       />
                       <svg
@@ -683,6 +815,10 @@ function NuevoDealPageInner() {
                         </div>
                       )}
                     </div>
+                    <CampoError
+                      id="clienteBusqueda-error"
+                      mensaje={errores.clienteBusqueda}
+                    />
 
                     {/* Botón para crear cliente - solo se muestra cuando no hay cliente seleccionado */}
                     {!selectedCliente && (
@@ -767,20 +903,35 @@ function NuevoDealPageInner() {
                     <h3 className="text-lg font-semibold text-slate-900 mb-4">
                       Seleccionar Vehículo
                     </h3>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Vehículo *
+                    <label
+                      htmlFor="vehiculoBusqueda"
+                      className="block text-sm font-medium text-slate-700 mb-2"
+                    >
+                      Vehículo
+                      <Obligatorio />
                     </label>
                     <div className="relative dropdown-container">
                       <input
                         type="text"
+                        id="vehiculoBusqueda"
                         value={vehiculoSearchTerm}
                         onChange={(e) => {
+                          setSucio(true)
                           setVehiculoSearchTerm(e.target.value)
                           setShowVehiculoDropdown(true)
                         }}
                         onFocus={() => setShowVehiculoDropdown(true)}
                         placeholder="Buscar por marca, modelo, referencia, matrícula, bastidor, tipo, estado, color, año..."
-                        className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        aria-invalid={!!errores.vehiculoBusqueda}
+                        aria-describedby={
+                          errores.vehiculoBusqueda
+                            ? 'vehiculoBusqueda-error'
+                            : undefined
+                        }
+                        className={claseInput(
+                          errores.vehiculoBusqueda,
+                          CLASE_BUSQUEDA
+                        )}
                         required
                       />
                       <svg
@@ -854,6 +1005,10 @@ function NuevoDealPageInner() {
                         </div>
                       )}
                     </div>
+                    <CampoError
+                      id="vehiculoBusqueda-error"
+                      mensaje={errores.vehiculoBusqueda}
+                    />
 
                     {selectedVehiculo && (
                       <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200 relative">
@@ -922,32 +1077,56 @@ function NuevoDealPageInner() {
 
                       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label
+                            htmlFor="importeTotal"
+                            className="block text-sm font-medium text-gray-700 mb-2"
+                          >
                             Importe Total (€)
                           </label>
                           <input
                             type="number"
+                            id="importeTotal"
                             name="importeTotal"
                             value={formData.importeTotal}
                             onChange={handleInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            aria-invalid={!!errores.importeTotal}
+                            aria-describedby={
+                              errores.importeTotal ? 'importeTotal-error' : undefined
+                            }
+                            className={claseInput(errores.importeTotal, CLASE_INPUT)}
                             placeholder="0.00"
                             step="0.01"
+                          />
+                          <CampoError
+                            id="importeTotal-error"
+                            mensaje={errores.importeTotal}
                           />
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label
+                            htmlFor="importeSena"
+                            className="block text-sm font-medium text-gray-700 mb-2"
+                          >
                             Importe Seña (€)
                           </label>
                           <input
                             type="number"
+                            id="importeSena"
                             name="importeSena"
                             value={formData.importeSena}
                             onChange={handleInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            aria-invalid={!!errores.importeSena}
+                            aria-describedby={
+                              errores.importeSena ? 'importeSena-error' : undefined
+                            }
+                            className={claseInput(errores.importeSena, CLASE_INPUT)}
                             placeholder="0.00"
                             step="0.01"
+                          />
+                          <CampoError
+                            id="importeSena-error"
+                            mensaje={errores.importeSena}
                           />
                         </div>
 
@@ -1045,28 +1224,52 @@ function NuevoDealPageInner() {
 
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label
+                            htmlFor="fechaReservaDesde"
+                            className="block text-sm font-medium text-gray-700 mb-2"
+                          >
                             Fecha Inicio Reserva
                           </label>
                           <input
                             type="date"
+                            id="fechaReservaDesde"
                             name="fechaReservaDesde"
                             value={formData.fechaReservaDesde}
                             onChange={handleInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            aria-invalid={!!errores.fechaReservaDesde}
+                            aria-describedby={
+                              errores.fechaReservaDesde ? 'fechaReservaDesde-error' : undefined
+                            }
+                            className={claseInput(errores.fechaReservaDesde, CLASE_INPUT)}
+                          />
+                          <CampoError
+                            id="fechaReservaDesde-error"
+                            mensaje={errores.fechaReservaDesde}
                           />
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label
+                            htmlFor="fechaReservaExpira"
+                            className="block text-sm font-medium text-gray-700 mb-2"
+                          >
                             Fecha Expiración Reserva
                           </label>
                           <input
                             type="date"
+                            id="fechaReservaExpira"
                             name="fechaReservaExpira"
                             value={formData.fechaReservaExpira}
                             onChange={handleInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            aria-invalid={!!errores.fechaReservaExpira}
+                            aria-describedby={
+                              errores.fechaReservaExpira ? 'fechaReservaExpira-error' : undefined
+                            }
+                            className={claseInput(errores.fechaReservaExpira, CLASE_INPUT)}
+                          />
+                          <CampoError
+                            id="fechaReservaExpira-error"
+                            mensaje={errores.fechaReservaExpira}
                           />
                         </div>
                       </div>
@@ -1123,11 +1326,11 @@ function NuevoDealPageInner() {
                     <button
                       type="button"
                       onClick={nextStep}
-                      disabled={!canProceedToNext()}
+                      aria-disabled={!canProceedToNext()}
                       className={`px-6 py-2 rounded-lg font-medium transition-colors ${
                         canProceedToNext()
                           ? 'bg-green-600 text-white hover:bg-green-700'
-                          : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-green-600/60 text-white hover:bg-green-600'
                       }`}
                     >
                       Siguiente →
@@ -1221,78 +1424,110 @@ function NuevoDealPageInner() {
               {/* Campos obligatorios */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nombre *
+                  <label
+                    htmlFor="nc-nombre"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
+                    Nombre
+                    <Obligatorio />
                   </label>
                   <input
                     type="text"
+                    id="nc-nombre"
                     value={newClientData.nombre}
-                    onChange={(e) =>
-                      setNewClientData((prev) => ({
-                        ...prev,
-                        nombre: e.target.value,
-                      }))
+                    onChange={(e) => cambiarNuevoCliente('nombre', e.target.value)}
+                    aria-invalid={!!erroresCliente.nombre}
+                    aria-describedby={
+                      erroresCliente.nombre ? 'nc-nombre-error' : undefined
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={claseInput(erroresCliente.nombre, CLASE_INPUT_MODAL)}
                     placeholder="Nombre del cliente"
                     required
                   />
+                  <CampoError
+                    id="nc-nombre-error"
+                    mensaje={erroresCliente.nombre}
+                  />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Apellidos *
+                  <label
+                    htmlFor="nc-apellidos"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
+                    Apellidos
+                    <Obligatorio />
                   </label>
                   <input
                     type="text"
+                    id="nc-apellidos"
                     value={newClientData.apellidos}
-                    onChange={(e) =>
-                      setNewClientData((prev) => ({
-                        ...prev,
-                        apellidos: e.target.value,
-                      }))
+                    onChange={(e) => cambiarNuevoCliente('apellidos', e.target.value)}
+                    aria-invalid={!!erroresCliente.apellidos}
+                    aria-describedby={
+                      erroresCliente.apellidos ? 'nc-apellidos-error' : undefined
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={claseInput(erroresCliente.apellidos, CLASE_INPUT_MODAL)}
                     placeholder="Apellidos del cliente"
                     required
                   />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    DNI *
-                  </label>
-                  <input
-                    type="text"
-                    value={newClientData.dni}
-                    onChange={(e) =>
-                      setNewClientData((prev) => ({
-                        ...prev,
-                        dni: e.target.value,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="DNI del cliente"
-                    required
+                  <CampoError
+                    id="nc-apellidos-error"
+                    mensaje={erroresCliente.apellidos}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Teléfono *
+                  <label
+                    htmlFor="nc-dni"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
+                    DNI
+                    <Obligatorio />
+                  </label>
+                  <input
+                    type="text"
+                    id="nc-dni"
+                    value={newClientData.dni}
+                    onChange={(e) => cambiarNuevoCliente('dni', e.target.value)}
+                    aria-invalid={!!erroresCliente.dni}
+                    aria-describedby={
+                      erroresCliente.dni ? 'nc-dni-error' : undefined
+                    }
+                    className={claseInput(erroresCliente.dni, CLASE_INPUT_MODAL)}
+                    placeholder="DNI del cliente"
+                    required
+                  />
+                  <CampoError
+                    id="nc-dni-error"
+                    mensaje={erroresCliente.dni}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="nc-telefono"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
+                    Teléfono
+                    <Obligatorio />
                   </label>
                   <input
                     type="tel"
+                    id="nc-telefono"
                     value={newClientData.telefono}
-                    onChange={(e) =>
-                      setNewClientData((prev) => ({
-                        ...prev,
-                        telefono: e.target.value,
-                      }))
+                    onChange={(e) => cambiarNuevoCliente('telefono', e.target.value)}
+                    aria-invalid={!!erroresCliente.telefono}
+                    aria-describedby={
+                      erroresCliente.telefono ? 'nc-telefono-error' : undefined
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={claseInput(erroresCliente.telefono, CLASE_INPUT_MODAL)}
                     placeholder="Teléfono del cliente"
                     required
+                  />
+                  <CampoError
+                    id="nc-telefono-error"
+                    mensaje={erroresCliente.telefono}
                   />
                 </div>
               </div>
@@ -1304,78 +1539,110 @@ function NuevoDealPageInner() {
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Calle *
+                    <label
+                      htmlFor="nc-direccion"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
+                      Calle
+                      <Obligatorio />
                     </label>
                     <input
                       type="text"
+                      id="nc-direccion"
                       value={newClientData.direccion}
-                      onChange={(e) =>
-                        setNewClientData((prev) => ({
-                          ...prev,
-                          direccion: e.target.value,
-                        }))
+                      onChange={(e) => cambiarNuevoCliente('direccion', e.target.value)}
+                      aria-invalid={!!erroresCliente.direccion}
+                      aria-describedby={
+                        erroresCliente.direccion ? 'nc-direccion-error' : undefined
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className={claseInput(erroresCliente.direccion, CLASE_INPUT_MODAL)}
                       placeholder="Calle y número"
                       required
                     />
+                    <CampoError
+                      id="nc-direccion-error"
+                      mensaje={erroresCliente.direccion}
+                    />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Código Postal *
+                    <label
+                      htmlFor="nc-codigoPostal"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
+                      Código Postal
+                      <Obligatorio />
                     </label>
                     <input
                       type="text"
+                      id="nc-codigoPostal"
                       value={newClientData.codigoPostal}
-                      onChange={(e) =>
-                        setNewClientData((prev) => ({
-                          ...prev,
-                          codigoPostal: e.target.value,
-                        }))
+                      onChange={(e) => cambiarNuevoCliente('codigoPostal', e.target.value)}
+                      aria-invalid={!!erroresCliente.codigoPostal}
+                      aria-describedby={
+                        erroresCliente.codigoPostal ? 'nc-codigoPostal-error' : undefined
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className={claseInput(erroresCliente.codigoPostal, CLASE_INPUT_MODAL)}
                       placeholder="Código postal"
                       required
                     />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Ciudad *
-                    </label>
-                    <input
-                      type="text"
-                      value={newClientData.ciudad}
-                      onChange={(e) =>
-                        setNewClientData((prev) => ({
-                          ...prev,
-                          ciudad: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Ciudad"
-                      required
+                    <CampoError
+                      id="nc-codigoPostal-error"
+                      mensaje={erroresCliente.codigoPostal}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Provincia *
+                    <label
+                      htmlFor="nc-ciudad"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
+                      Ciudad
+                      <Obligatorio />
                     </label>
                     <input
                       type="text"
-                      value={newClientData.provincia}
-                      onChange={(e) =>
-                        setNewClientData((prev) => ({
-                          ...prev,
-                          provincia: e.target.value,
-                        }))
+                      id="nc-ciudad"
+                      value={newClientData.ciudad}
+                      onChange={(e) => cambiarNuevoCliente('ciudad', e.target.value)}
+                      aria-invalid={!!erroresCliente.ciudad}
+                      aria-describedby={
+                        erroresCliente.ciudad ? 'nc-ciudad-error' : undefined
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className={claseInput(erroresCliente.ciudad, CLASE_INPUT_MODAL)}
+                      placeholder="Ciudad"
+                      required
+                    />
+                    <CampoError
+                      id="nc-ciudad-error"
+                      mensaje={erroresCliente.ciudad}
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="nc-provincia"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
+                      Provincia
+                      <Obligatorio />
+                    </label>
+                    <input
+                      type="text"
+                      id="nc-provincia"
+                      value={newClientData.provincia}
+                      onChange={(e) => cambiarNuevoCliente('provincia', e.target.value)}
+                      aria-invalid={!!erroresCliente.provincia}
+                      aria-describedby={
+                        erroresCliente.provincia ? 'nc-provincia-error' : undefined
+                      }
+                      className={claseInput(erroresCliente.provincia, CLASE_INPUT_MODAL)}
                       placeholder="Provincia"
                       required
+                    />
+                    <CampoError
+                      id="nc-provincia-error"
+                      mensaje={erroresCliente.provincia}
                     />
                   </div>
                 </div>
@@ -1383,20 +1650,27 @@ function NuevoDealPageInner() {
 
               {/* Campo opcional */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="nc-email"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Email (opcional)
                 </label>
                 <input
                   type="email"
+                  id="nc-email"
                   value={newClientData.email}
-                  onChange={(e) =>
-                    setNewClientData((prev) => ({
-                      ...prev,
-                      email: e.target.value,
-                    }))
+                  onChange={(e) => cambiarNuevoCliente('email', e.target.value)}
+                  aria-invalid={!!erroresCliente.email}
+                  aria-describedby={
+                    erroresCliente.email ? 'nc-email-error' : undefined
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className={claseInput(erroresCliente.email, CLASE_INPUT_MODAL)}
                   placeholder="Email del cliente"
+                />
+                <CampoError
+                  id="nc-email-error"
+                  mensaje={erroresCliente.email}
                 />
               </div>
             </div>

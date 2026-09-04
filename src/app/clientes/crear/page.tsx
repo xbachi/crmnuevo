@@ -4,6 +4,30 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/hooks/useToast'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import {
+  validarCampos,
+  primerCampoConError,
+  sinError,
+  resumenErrores,
+  type Regla,
+} from '@/lib/validacion'
+import {
+  CampoError,
+  Obligatorio,
+  claseInput,
+  enfocarCampo,
+} from '@/components/CampoError'
+
+const CLASE_INPUT =
+  'w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors'
+
+const REGLAS_CLIENTE: Record<string, Regla> = {
+  nombre: { requerido: true, etiqueta: 'el nombre' },
+  apellidos: { requerido: true, etiqueta: 'los apellidos' },
+  telefono: { requerido: true, etiqueta: 'el teléfono', tipo: 'telefono' },
+  email: { etiqueta: 'el email', tipo: 'email' },
+  dni: { etiqueta: 'el DNI', tipo: 'nif' },
+}
 
 export default function CrearClientePage() {
   const router = useRouter()
@@ -42,6 +66,7 @@ export default function CrearClientePage() {
 
   const [currentVehiculoInput, setCurrentVehiculoInput] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errores, setErrores] = useState<Record<string, string>>({})
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -49,6 +74,7 @@ export default function CrearClientePage() {
     >
   ) => {
     const { name, value } = e.target
+    setErrores((prev) => sinError(prev, name))
 
     if (name.startsWith('intereses.')) {
       const field = name.split('.')[1]
@@ -82,12 +108,11 @@ export default function CrearClientePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (
-      !formData.nombre.trim() ||
-      !formData.apellidos.trim() ||
-      !formData.telefono.trim()
-    ) {
-      showToast('Por favor completa los campos obligatorios', 'error')
+    const validacion = validarCampos(formData, REGLAS_CLIENTE)
+    setErrores(validacion.errores)
+    if (!validacion.ok) {
+      showToast(resumenErrores(validacion.errores), 'error')
+      enfocarCampo(primerCampoConError(validacion.errores))
       return
     }
 
@@ -161,7 +186,7 @@ export default function CrearClientePage() {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6" noValidate>
             {/* Bloque 1: Información Personal */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
               <div className="flex items-center space-x-3 mb-4">
@@ -196,7 +221,8 @@ export default function CrearClientePage() {
                     htmlFor="nombre"
                     className="block text-sm font-medium text-gray-700 mb-1"
                   >
-                    Nombre *
+                    Nombre
+                    <Obligatorio />
                   </label>
                   <input
                     type="text"
@@ -205,9 +231,12 @@ export default function CrearClientePage() {
                     value={formData.nombre}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    aria-invalid={!!errores.nombre}
+                    aria-describedby={errores.nombre ? 'nombre-error' : undefined}
+                    className={claseInput(errores.nombre, CLASE_INPUT)}
                     placeholder="Ej: Juan"
                   />
+                  <CampoError id="nombre-error" mensaje={errores.nombre} />
                 </div>
 
                 <div>
@@ -215,7 +244,8 @@ export default function CrearClientePage() {
                     htmlFor="apellidos"
                     className="block text-sm font-medium text-gray-700 mb-1"
                   >
-                    Apellidos *
+                    Apellidos
+                    <Obligatorio />
                   </label>
                   <input
                     type="text"
@@ -224,9 +254,12 @@ export default function CrearClientePage() {
                     value={formData.apellidos}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    aria-invalid={!!errores.apellidos}
+                    aria-describedby={errores.apellidos ? 'apellidos-error' : undefined}
+                    className={claseInput(errores.apellidos, CLASE_INPUT)}
                     placeholder="Ej: García López"
                   />
+                  <CampoError id="apellidos-error" mensaje={errores.apellidos} />
                 </div>
 
                 <div>
@@ -234,7 +267,8 @@ export default function CrearClientePage() {
                     htmlFor="telefono"
                     className="block text-sm font-medium text-gray-700 mb-1"
                   >
-                    Teléfono *
+                    Teléfono
+                    <Obligatorio />
                   </label>
                   <input
                     type="tel"
@@ -243,9 +277,12 @@ export default function CrearClientePage() {
                     value={formData.telefono}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    aria-invalid={!!errores.telefono}
+                    aria-describedby={errores.telefono ? 'telefono-error' : undefined}
+                    className={claseInput(errores.telefono, CLASE_INPUT)}
                     placeholder="Ej: 612345678"
                   />
+                  <CampoError id="telefono-error" mensaje={errores.telefono} />
                 </div>
 
                 <div>
@@ -261,9 +298,12 @@ export default function CrearClientePage() {
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    aria-invalid={!!errores.email}
+                    aria-describedby={errores.email ? 'email-error' : undefined}
+                    className={claseInput(errores.email, CLASE_INPUT)}
                     placeholder="Ej: juan@email.com"
                   />
+                  <CampoError id="email-error" mensaje={errores.email} />
                 </div>
 
                 <div>
@@ -279,9 +319,12 @@ export default function CrearClientePage() {
                     name="dni"
                     value={formData.dni}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    aria-invalid={!!errores.dni}
+                    aria-describedby={errores.dni ? 'dni-error' : undefined}
+                    className={claseInput(errores.dni, CLASE_INPUT)}
                     placeholder="Ej: 12345678A"
                   />
+                  <CampoError id="dni-error" mensaje={errores.dni} />
                 </div>
               </div>
 

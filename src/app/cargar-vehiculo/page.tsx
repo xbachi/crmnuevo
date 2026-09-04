@@ -5,6 +5,52 @@ import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/Toast'
 import { Inversor } from '@/lib/database'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import {
+  validarCampos,
+  primerCampoConError,
+  sinError,
+  resumenErrores,
+  type Regla,
+} from '@/lib/validacion'
+import {
+  CampoError,
+  Obligatorio,
+  claseInput,
+  enfocarCampo,
+} from '@/components/CampoError'
+
+const CLASE_INPUT =
+  'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors'
+const CLASE_INPUT_GASTO =
+  'w-full px-2 py-1 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500'
+
+// En orden de aparición en el formulario: el foco va al primer error.
+const REGLAS_VEHICULO: Record<string, Regla> = {
+  referencia: { requerido: true, etiqueta: 'la referencia' },
+  tipo: { requerido: true, etiqueta: 'el tipo' },
+  marca: { requerido: true, etiqueta: 'la marca' },
+  modelo: { requerido: true, etiqueta: 'el modelo' },
+  matricula: { requerido: true, etiqueta: 'la matrícula', tipo: 'matricula' },
+  bastidor: { requerido: true, etiqueta: 'el bastidor' },
+  kms: { requerido: true, etiqueta: 'los kilómetros', tipo: 'numero', min: 0 },
+  inversorId: {
+    etiqueta: 'el inversor',
+    personalizada: (v, valores) =>
+      valores.tipo === 'Inversor' && !v ? 'Selecciona el inversor' : null,
+  },
+  precioCompra: { etiqueta: 'el precio de compra', tipo: 'numero', min: 0 },
+  precioPublicacion: {
+    etiqueta: 'el precio de publicación',
+    tipo: 'numero',
+    min: 0,
+  },
+  gastosTransporte: { etiqueta: 'transporte', tipo: 'numero', min: 0 },
+  gastosTasas: { etiqueta: 'tasas', tipo: 'numero', min: 0 },
+  gastosMecanica: { etiqueta: 'mecánica', tipo: 'numero', min: 0 },
+  gastosPintura: { etiqueta: 'pintura', tipo: 'numero', min: 0 },
+  gastosLimpieza: { etiqueta: 'limpieza', tipo: 'numero', min: 0 },
+  gastosOtros: { etiqueta: 'otros gastos', tipo: 'numero', min: 0 },
+}
 
 export default function CargarVehiculo() {
   const [formData, setFormData] = useState({
@@ -33,6 +79,7 @@ export default function CargarVehiculo() {
   })
   const [inversores, setInversores] = useState<Inversor[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [errores, setErrores] = useState<Record<string, string>>({})
   const router = useRouter()
   const { showToast, ToastContainer } = useToast()
 
@@ -87,6 +134,7 @@ export default function CargarVehiculo() {
     >
   ) => {
     const { name, value, type } = e.target
+    setErrores((prev) => sinError(prev, name))
     setFormData((prev) => {
       const newData = {
         ...prev,
@@ -149,6 +197,15 @@ export default function CargarVehiculo() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    const validacion = validarCampos(formData, REGLAS_VEHICULO)
+    setErrores(validacion.errores)
+    if (!validacion.ok) {
+      showToast(resumenErrores(validacion.errores), 'error')
+      enfocarCampo(primerCampoConError(validacion.errores))
+      return
+    }
+
     setIsLoading(true)
 
     try {
@@ -218,6 +275,7 @@ export default function CargarVehiculo() {
 
       if (response.ok) {
         showToast('Vehículo creado exitosamente', 'success')
+        setErrores({})
         setFormData({
           referencia: '',
           marca: '',
@@ -292,14 +350,15 @@ export default function CargarVehiculo() {
 
           {/* Formulario compacto */}
           <div className="bg-white rounded-lg shadow-sm border border-slate-200">
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-6 space-y-4" noValidate>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label
                     htmlFor="referencia"
                     className="block text-sm font-medium text-slate-700 mb-1"
                   >
-                    Referencia *
+                    Referencia
+                    <Obligatorio />
                   </label>
                   <input
                     type="text"
@@ -308,9 +367,12 @@ export default function CargarVehiculo() {
                     value={formData.referencia || ''}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    aria-invalid={!!errores.referencia}
+                    aria-describedby={errores.referencia ? 'referencia-error' : undefined}
+                    className={claseInput(errores.referencia, CLASE_INPUT)}
                     placeholder="Ej: #1040, I-9, D-5, R-3"
                   />
+                  <CampoError id="referencia-error" mensaje={errores.referencia} />
                 </div>
 
                 <div>
@@ -318,7 +380,8 @@ export default function CargarVehiculo() {
                     htmlFor="tipo"
                     className="block text-sm font-medium text-slate-700 mb-1"
                   >
-                    Tipo *
+                    Tipo
+                    <Obligatorio />
                   </label>
                   <select
                     id="tipo"
@@ -326,7 +389,9 @@ export default function CargarVehiculo() {
                     value={formData.tipo || ''}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    aria-invalid={!!errores.tipo}
+                    aria-describedby={errores.tipo ? 'tipo-error' : undefined}
+                    className={claseInput(errores.tipo, CLASE_INPUT)}
                   >
                     <option value="">Seleccionar tipo</option>
                     <option value="Compra">Compra</option>
@@ -334,6 +399,7 @@ export default function CargarVehiculo() {
                     <option value="Deposito Venta">Deposito Venta</option>
                     <option value="Inversor">Inversor</option>
                   </select>
+                  <CampoError id="tipo-error" mensaje={errores.tipo} />
                 </div>
               </div>
 
@@ -343,7 +409,8 @@ export default function CargarVehiculo() {
                     htmlFor="marca"
                     className="block text-sm font-medium text-slate-700 mb-1"
                   >
-                    Marca *
+                    Marca
+                    <Obligatorio />
                   </label>
                   <input
                     type="text"
@@ -352,9 +419,12 @@ export default function CargarVehiculo() {
                     value={formData.marca || ''}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    aria-invalid={!!errores.marca}
+                    aria-describedby={errores.marca ? 'marca-error' : undefined}
+                    className={claseInput(errores.marca, CLASE_INPUT)}
                     placeholder="Ej: Opel"
                   />
+                  <CampoError id="marca-error" mensaje={errores.marca} />
                 </div>
 
                 <div>
@@ -362,7 +432,8 @@ export default function CargarVehiculo() {
                     htmlFor="modelo"
                     className="block text-sm font-medium text-slate-700 mb-1"
                   >
-                    Modelo *
+                    Modelo
+                    <Obligatorio />
                   </label>
                   <input
                     type="text"
@@ -371,9 +442,12 @@ export default function CargarVehiculo() {
                     value={formData.modelo || ''}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    aria-invalid={!!errores.modelo}
+                    aria-describedby={errores.modelo ? 'modelo-error' : undefined}
+                    className={claseInput(errores.modelo, CLASE_INPUT)}
                     placeholder="Ej: Corsa"
                   />
+                  <CampoError id="modelo-error" mensaje={errores.modelo} />
                 </div>
               </div>
 
@@ -383,7 +457,8 @@ export default function CargarVehiculo() {
                     htmlFor="matricula"
                     className="block text-sm font-medium text-slate-700 mb-1"
                   >
-                    Matrícula *
+                    Matrícula
+                    <Obligatorio />
                   </label>
                   <input
                     type="text"
@@ -392,9 +467,12 @@ export default function CargarVehiculo() {
                     value={formData.matricula || ''}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors font-mono"
+                    aria-invalid={!!errores.matricula}
+                    aria-describedby={errores.matricula ? 'matricula-error' : undefined}
+                    className={claseInput(errores.matricula, `${CLASE_INPUT} font-mono`)}
                     placeholder="Ej: 1234ABC"
                   />
+                  <CampoError id="matricula-error" mensaje={errores.matricula} />
                 </div>
 
                 <div>
@@ -402,7 +480,8 @@ export default function CargarVehiculo() {
                     htmlFor="bastidor"
                     className="block text-sm font-medium text-slate-700 mb-1"
                   >
-                    Bastidor *
+                    Bastidor
+                    <Obligatorio />
                   </label>
                   <input
                     type="text"
@@ -411,9 +490,12 @@ export default function CargarVehiculo() {
                     value={formData.bastidor || ''}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors font-mono"
+                    aria-invalid={!!errores.bastidor}
+                    aria-describedby={errores.bastidor ? 'bastidor-error' : undefined}
+                    className={claseInput(errores.bastidor, `${CLASE_INPUT} font-mono`)}
                     placeholder="Ej: W0L00000000000000"
                   />
+                  <CampoError id="bastidor-error" mensaje={errores.bastidor} />
                 </div>
               </div>
 
@@ -475,7 +557,8 @@ export default function CargarVehiculo() {
                   htmlFor="kms"
                   className="block text-sm font-medium text-slate-700 mb-1"
                 >
-                  Kilómetros *
+                  Kilómetros
+                  <Obligatorio />
                 </label>
                 <input
                   type="number"
@@ -485,9 +568,12 @@ export default function CargarVehiculo() {
                   onChange={handleInputChange}
                   required
                   min="0"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                  aria-invalid={!!errores.kms}
+                  aria-describedby={errores.kms ? 'kms-error' : undefined}
+                  className={claseInput(errores.kms, CLASE_INPUT)}
                   placeholder="Ej: 50000"
                 />
+                <CampoError id="kms-error" mensaje={errores.kms} />
               </div>
 
               {/* Sección de Inversor */}
@@ -509,7 +595,8 @@ export default function CargarVehiculo() {
                           htmlFor="inversorId"
                           className="block text-sm font-medium text-slate-700 mb-1"
                         >
-                          Inversor *
+                          Inversor
+                          <Obligatorio />
                         </label>
                         <select
                           id="inversorId"
@@ -517,7 +604,9 @@ export default function CargarVehiculo() {
                           value={formData.inversorId || ''}
                           onChange={handleInputChange}
                           required={formData.esCocheInversor}
-                          className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                          aria-invalid={!!errores.inversorId}
+                          aria-describedby={errores.inversorId ? 'inversorId-error' : undefined}
+                          className={claseInput(errores.inversorId, CLASE_INPUT)}
                         >
                           <option value="">Seleccionar inversor</option>
                           {inversores.map((inversor) => (
@@ -526,6 +615,7 @@ export default function CargarVehiculo() {
                             </option>
                           ))}
                         </select>
+                        <CampoError id="inversorId-error" mensaje={errores.inversorId} />
                       </div>
 
                       <div>
@@ -562,9 +652,12 @@ export default function CargarVehiculo() {
                           onChange={handleInputChange}
                           min="0"
                           step="0.01"
-                          className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                          aria-invalid={!!errores.precioCompra}
+                          aria-describedby={errores.precioCompra ? 'precioCompra-error' : undefined}
+                          className={claseInput(errores.precioCompra, CLASE_INPUT)}
                           placeholder="0.00"
                         />
+                        <CampoError id="precioCompra-error" mensaje={errores.precioCompra} />
                       </div>
 
                       <div>
@@ -582,9 +675,12 @@ export default function CargarVehiculo() {
                           onChange={handleInputChange}
                           min="0"
                           step="0.01"
-                          className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                          aria-invalid={!!errores.precioPublicacion}
+                          aria-describedby={errores.precioPublicacion ? 'precioPublicacion-error' : undefined}
+                          className={claseInput(errores.precioPublicacion, CLASE_INPUT)}
                           placeholder="0.00"
                         />
+                        <CampoError id="precioPublicacion-error" mensaje={errores.precioPublicacion} />
                       </div>
                     </div>
 
@@ -608,9 +704,12 @@ export default function CargarVehiculo() {
                             onChange={handleInputChange}
                             min="0"
                             step="0.01"
-                            className="w-full px-2 py-1 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                            aria-invalid={!!errores.gastosTransporte}
+                            aria-describedby={errores.gastosTransporte ? 'gastosTransporte-error' : undefined}
+                            className={claseInput(errores.gastosTransporte, CLASE_INPUT_GASTO)}
                             placeholder="0"
                           />
+                          <CampoError id="gastosTransporte-error" mensaje={errores.gastosTransporte} />
                         </div>
                         <div>
                           <label
@@ -627,9 +726,12 @@ export default function CargarVehiculo() {
                             onChange={handleInputChange}
                             min="0"
                             step="0.01"
-                            className="w-full px-2 py-1 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                            aria-invalid={!!errores.gastosTasas}
+                            aria-describedby={errores.gastosTasas ? 'gastosTasas-error' : undefined}
+                            className={claseInput(errores.gastosTasas, CLASE_INPUT_GASTO)}
                             placeholder="0"
                           />
+                          <CampoError id="gastosTasas-error" mensaje={errores.gastosTasas} />
                         </div>
                         <div>
                           <label
@@ -646,9 +748,12 @@ export default function CargarVehiculo() {
                             onChange={handleInputChange}
                             min="0"
                             step="0.01"
-                            className="w-full px-2 py-1 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                            aria-invalid={!!errores.gastosMecanica}
+                            aria-describedby={errores.gastosMecanica ? 'gastosMecanica-error' : undefined}
+                            className={claseInput(errores.gastosMecanica, CLASE_INPUT_GASTO)}
                             placeholder="0"
                           />
+                          <CampoError id="gastosMecanica-error" mensaje={errores.gastosMecanica} />
                         </div>
                         <div>
                           <label
@@ -665,9 +770,12 @@ export default function CargarVehiculo() {
                             onChange={handleInputChange}
                             min="0"
                             step="0.01"
-                            className="w-full px-2 py-1 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                            aria-invalid={!!errores.gastosPintura}
+                            aria-describedby={errores.gastosPintura ? 'gastosPintura-error' : undefined}
+                            className={claseInput(errores.gastosPintura, CLASE_INPUT_GASTO)}
                             placeholder="0"
                           />
+                          <CampoError id="gastosPintura-error" mensaje={errores.gastosPintura} />
                         </div>
                         <div>
                           <label
@@ -684,9 +792,12 @@ export default function CargarVehiculo() {
                             onChange={handleInputChange}
                             min="0"
                             step="0.01"
-                            className="w-full px-2 py-1 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                            aria-invalid={!!errores.gastosLimpieza}
+                            aria-describedby={errores.gastosLimpieza ? 'gastosLimpieza-error' : undefined}
+                            className={claseInput(errores.gastosLimpieza, CLASE_INPUT_GASTO)}
                             placeholder="0"
                           />
+                          <CampoError id="gastosLimpieza-error" mensaje={errores.gastosLimpieza} />
                         </div>
                         <div>
                           <label
@@ -703,9 +814,12 @@ export default function CargarVehiculo() {
                             onChange={handleInputChange}
                             min="0"
                             step="0.01"
-                            className="w-full px-2 py-1 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                            aria-invalid={!!errores.gastosOtros}
+                            aria-describedby={errores.gastosOtros ? 'gastosOtros-error' : undefined}
+                            className={claseInput(errores.gastosOtros, CLASE_INPUT_GASTO)}
                             placeholder="0"
                           />
+                          <CampoError id="gastosOtros-error" mensaje={errores.gastosOtros} />
                         </div>
                       </div>
                     </div>
