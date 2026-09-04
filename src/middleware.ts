@@ -82,6 +82,10 @@ const PUBLIC_API_PREFIXES = [
   // admin, validado en el handler (patrón /api/gestoria/chequeo-expedientes).
   // SOLO este sub-path: el resto de /api/fiscal/* va por sesión y NO se whitelistea.
   '/api/fiscal/duplicados/scan',
+  // Feed público de stock (web propia / portales). La auth la hace el token
+  // de solo lectura del feed (PUBLIC_FEED_TOKEN) dentro del handler. Sin
+  // barra final: el matcher compara `path === p || path.startsWith(p + '/')`.
+  '/api/public',
 ]
 
 export async function middleware(request: NextRequest) {
