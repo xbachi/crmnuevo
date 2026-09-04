@@ -273,3 +273,52 @@ export function filtrarCamposEditables(body: Record<string, unknown>): {
   }
   return { data, ignorados }
 }
+
+/** Label de UI por estado canónico (títulos de columna del kanban). */
+export const VEHICULO_ESTADO_LABEL: Record<EstadoVehiculo, string> = {
+  SIN_ESTADO: 'Inicial',
+  REVI_INIC: 'Revisión Inicial',
+  MECAUTO: 'Mecauto',
+  REVI_PINTURA: 'Revisión Pintura',
+  PINTURA: 'Pintura',
+  LIMPIEZA: 'Limpieza',
+  FOTOS: 'Fotos',
+  PUBLICADO: 'Publicado',
+  RESERVADO: 'Reservado',
+  VENDIDO: 'Vendido',
+  DISPONIBLE: 'Disponible',
+}
+
+/**
+ * Clase Tailwind del badge por estado canónico. Variante clara del color de
+ * cada columna del kanban; VENDIDO en emerald (no rojo: no es un error).
+ */
+export const VEHICULO_ESTADO_CLASS: Record<EstadoVehiculo, string> = {
+  SIN_ESTADO: 'bg-gray-100 text-gray-700',
+  REVI_INIC: 'bg-slate-200 text-slate-700',
+  MECAUTO: 'bg-blue-100 text-blue-800',
+  REVI_PINTURA: 'bg-purple-100 text-purple-800',
+  PINTURA: 'bg-indigo-100 text-indigo-800',
+  LIMPIEZA: 'bg-cyan-100 text-cyan-800',
+  FOTOS: 'bg-teal-100 text-teal-800',
+  PUBLICADO: 'bg-green-100 text-green-800',
+  RESERVADO: 'bg-yellow-100 text-yellow-800',
+  VENDIDO: 'bg-emerald-100 text-emerald-800',
+  DISPONIBLE: 'bg-green-50 text-green-700',
+}
+
+const VEHICULO_ESTADO_CLASS_DESCONOCIDO = 'bg-gray-100 text-gray-700'
+
+/** Clase de badge para cualquier variante; gris si no se reconoce. */
+export function getVehiculoEstadoClass(v: string | null | undefined): string {
+  const n = normalizarEstado(v)
+  return n ? VEHICULO_ESTADO_CLASS[n] : VEHICULO_ESTADO_CLASS_DESCONOCIDO
+}
+
+/** Label para cualquier variante; valor crudo (o 'Sin estado') si no se reconoce. */
+export function getVehiculoEstadoLabel(v: string | null | undefined): string {
+  const n = normalizarEstado(v)
+  if (n) return VEHICULO_ESTADO_LABEL[n]
+  const raw = String(v ?? '').trim()
+  return raw || 'Sin estado'
+}

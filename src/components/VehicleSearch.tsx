@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { getVehiculoAño } from '@/lib/utils'
+import EstadoBadge from '@/components/EstadoBadge'
 
 interface Vehiculo {
   id: number
@@ -110,16 +111,6 @@ export default function VehicleSearch({
     )
     setIsOpen(false)
     onVehicleSelect(vehiculo)
-  }
-
-  const getEstadoColor = (estado: string) => {
-    const colors = {
-      disponible: 'bg-green-100 text-green-800',
-      vendido: 'bg-red-100 text-red-800',
-      reservado: 'bg-yellow-100 text-yellow-800',
-      mantenimiento: 'bg-blue-100 text-blue-800',
-    }
-    return colors[estado as keyof typeof colors] || 'bg-gray-100 text-gray-800'
   }
 
   const formatPrice = (price: number) => {
@@ -240,12 +231,7 @@ export default function VehicleSearch({
                   <span className="text-sm font-bold text-gray-900">
                     {formatPrice(vehiculo.precio)}
                   </span>
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${getEstadoColor(vehiculo.estado)}`}
-                  >
-                    {vehiculo.estado.charAt(0).toUpperCase() +
-                      vehiculo.estado.slice(1)}
-                  </span>
+                  <EstadoBadge entidad="vehiculo" valor={vehiculo.estado} />
                 </div>
               </div>
             </div>

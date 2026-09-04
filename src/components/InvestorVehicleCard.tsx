@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { Vehiculo } from '@/lib/database'
+import EstadoBadge from '@/components/EstadoBadge'
 import {
   formatDate,
   formatVehicleReference,
@@ -169,23 +170,6 @@ export function InvestorVehicleCard({
 
   const handleImageError = () => {
     setImageError(true)
-  }
-
-  const getEstadoColor = (estado: string) => {
-    const estados = {
-      REVI_INIC: 'bg-yellow-100 text-yellow-800',
-      MECAUTO: 'bg-blue-100 text-blue-800',
-      REVI_PINTURA: 'bg-orange-100 text-orange-800',
-      PINTURA: 'bg-purple-100 text-purple-800',
-      LIMPIEZA: 'bg-cyan-100 text-cyan-800',
-      FOTOS: 'bg-indigo-100 text-indigo-800',
-      PUBLICADO: 'bg-green-100 text-green-800',
-      vendido: 'bg-emerald-100 text-emerald-800',
-      '': 'bg-gray-100 text-gray-800',
-    }
-    return (
-      estados[estado as keyof typeof estados] || 'bg-gray-100 text-gray-800'
-    )
   }
 
   const calcularDiasEnStock = () => {
@@ -568,15 +552,7 @@ export function InvestorVehicleCard({
             <span className="text-sm font-medium text-gray-700">
               Estado Actual:
             </span>
-            <span
-              className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                esVendido
-                  ? 'bg-red-600 text-white'
-                  : getEstadoColor(vehiculo.estado)
-              }`}
-            >
-              {esVendido ? 'VENDIDO' : vehiculo.estado || 'Inicial'}
-            </span>
+            <EstadoBadge entidad="vehiculo" valor={vehiculo.estado} />
           </div>
           <div className="flex items-center space-x-2">
             <svg

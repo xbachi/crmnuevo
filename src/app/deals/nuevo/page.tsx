@@ -10,6 +10,7 @@ import {
   capitalizeText,
 } from '@/lib/utils'
 import Link from 'next/link'
+import EstadoBadge from '@/components/EstadoBadge'
 import {
   puedePreseleccionarVehiculo,
   resolverPasoInicial,
@@ -824,20 +825,10 @@ function NuevoDealPageInner() {
                                     {capitalizeText(vehiculo.marca)}{' '}
                                     {capitalizeText(vehiculo.modelo)}
                                   </div>
-                                  <div
-                                    className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                      vehiculo.estado === 'inicial' ||
-                                      vehiculo.estado === 'disponible'
-                                        ? 'bg-green-100 text-green-700'
-                                        : vehiculo.estado === 'reservado'
-                                          ? 'bg-yellow-100 text-yellow-700'
-                                          : vehiculo.estado === 'vendido'
-                                            ? 'bg-red-100 text-red-700'
-                                            : 'bg-gray-100 text-gray-700'
-                                    }`}
-                                  >
-                                    {vehiculo.estado || 'Sin estado'}
-                                  </div>
+                                  <EstadoBadge
+                                    entidad="vehiculo"
+                                    valor={vehiculo.estado}
+                                  />
                                 </div>
                                 <div className="text-gray-500 text-xs">
                                   Ref:{' '}

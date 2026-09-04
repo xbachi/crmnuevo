@@ -6,6 +6,7 @@ import { useToast } from '@/components/Toast'
 import { formatCurrency, capitalizeText } from '@/lib/utils'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal'
+import EstadoBadge from '@/components/EstadoBadge'
 import type {
   EstadoFiltro,
   TipoFiltro,
@@ -59,14 +60,6 @@ const ESTADOS: { key: EstadoFiltro; label: string }[] = [
   { key: 'facturado', label: 'Facturado' },
   { key: 'anulado', label: 'Anulado' },
 ]
-
-const ESTADO_CLASS: Record<string, string> = {
-  nuevo: 'bg-blue-100 text-blue-700',
-  reservado: 'bg-yellow-100 text-yellow-700',
-  vendido: 'bg-green-100 text-green-700',
-  facturado: 'bg-purple-100 text-purple-700',
-  anulado: 'bg-red-100 text-red-700',
-}
 
 const formatDate = (date: string | null) => {
   if (!date) return '-'
@@ -405,15 +398,10 @@ export default function VentasPage() {
                             : '-'}
                         </td>
                         <td className="hidden sm:table-cell px-4 py-4 whitespace-nowrap">
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              ESTADO_CLASS[
-                                venta.anulada ? 'anulado' : venta.estado
-                              ] ?? 'bg-gray-100 text-gray-700'
-                            }`}
-                          >
-                            {venta.anulada ? 'anulado' : venta.estado}
-                          </span>
+                          <EstadoBadge
+                            entidad="deal"
+                            valor={venta.anulada ? 'anulado' : venta.estado}
+                          />
                         </td>
                         <td className="hidden lg:table-cell px-4 py-4 whitespace-nowrap">
                           {venta.facturada ? (
