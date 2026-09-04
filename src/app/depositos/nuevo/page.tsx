@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useToast, ToastContainer } from '@/hooks/useToast'
-import { useCache } from '@/contexts/CacheContext'
 import VehicleForm from '@/components/VehicleForm'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { capitalizeText } from '@/lib/utils'
@@ -43,7 +42,8 @@ export default function NuevoDepositoPage() {
   )
   const [showClienteDropdown, setShowClienteDropdown] = useState(false)
   const [showVehiculoDropdown, setShowVehiculoDropdown] = useState(false)
-  const { clientes, vehiculos, refreshClientes, refreshVehiculos } = useCache()
+  const [clientes, setClientes] = useState<Cliente[]>([])
+  const [vehiculos, setVehiculos] = useState<Vehiculo[]>([])
 
   // Datos financieros
   const [montoRecibir, setMontoRecibir] = useState('')
@@ -95,7 +95,33 @@ export default function NuevoDepositoPage() {
     documentacion: false,
   })
 
-  // Los datos se cargan automáticamente desde el caché global
+  const refreshClientes = async () => {
+    try {
+      const response = await fetch('/api/clientes')
+      if (response.ok) {
+        const data = await response.json()
+        setClientes(Array.isArray(data) ? data : [])
+      }
+    } catch (error) {
+      console.error('Error cargando clientes:', error)
+    }
+  }
+
+  const refreshVehiculos = async () => {
+    try {
+      const response = await fetch('/api/vehiculos?limit=1000')
+      if (response.ok) {
+        const data = await response.json()
+        setVehiculos(Array.isArray(data.vehiculos) ? data.vehiculos : [])
+      }
+    } catch (error) {
+      console.error('Error cargando vehículos:', error)
+    }
+  }
+
+  useEffect(() => {
+    Promise.all([refreshClientes(), refreshVehiculos()])
+  }, [])
 
   // Cerrar dropdowns al hacer clic fuera
   useEffect(() => {
