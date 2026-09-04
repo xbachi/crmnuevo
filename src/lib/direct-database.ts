@@ -1,5 +1,5 @@
 // Conexión directa a PostgreSQL sin Prisma para evitar problemas del pooler
-import { Pool } from 'pg'
+import { Pool, type QueryResultRow } from 'pg'
 
 // Cargar variables de entorno manualmente
 import fs from 'fs'
@@ -144,54 +144,57 @@ export interface Vehiculo {
   } | null
 }
 
-export async function getVehiculos(
-  limit?: number,
-  offset?: number,
-  search?: string,
+export interface VehiculosPageParams {
+  limit?: number
+  offset?: number
+  search?: string
   tipo?: string
-): Promise<Vehiculo[]> {
+}
+
+export interface VehiculosPage {
+  vehiculos: Vehiculo[]
+  total: number
+}
+
+// SQL compartido por getVehiculos/getVehiculosPage. COUNT(*) OVER() trae el total
+// filtrado (sin LIMIT/OFFSET) en cada fila: filas + total en una sola query.
+function buildVehiculosListQuery({
+  limit,
+  offset,
+  search,
+  tipo,
+}: VehiculosPageParams): { sql: string; values: string[] | undefined } {
   // La columna Vehiculo.tipo guarda solo letras (C/I/D/R). Si el filtro llega
   // como palabra ('Compra'/'Inversor'…), traducirlo a letra antes de comparar.
   const tipoFiltro =
     tipo && tipo.trim() ? (normalizarTipo(tipo) ?? tipo.trim()) : undefined
-  const client = await pool.connect()
-  try {
-    // Consulta optimizada: solo campos necesarios para la lista
-    const limitClause = limit ? `LIMIT ${limit}` : ''
-    const offsetClause = offset ? `OFFSET ${offset}` : ''
+  const searchFiltro = search && search.trim() ? `%${search}%` : undefined
 
-    // Construir filtros de búsqueda
-    let whereClause = ''
-    const conditions = []
+  const conditions: string[] = []
+  const values: string[] = []
 
-    if (search && search.trim()) {
-      conditions.push(`(
-        LOWER(v.referencia) LIKE LOWER($1) OR
-        LOWER(v.marca) LIKE LOWER($1) OR
-        LOWER(v.modelo) LIKE LOWER($1) OR
-        LOWER(v.matricula) LIKE LOWER($1) OR
-        LOWER(v.bastidor) LIKE LOWER($1)
+  if (searchFiltro) {
+    values.push(searchFiltro)
+    const p = `$${values.length}`
+    conditions.push(`(
+        LOWER(v.referencia) LIKE LOWER(${p}) OR
+        LOWER(v.marca) LIKE LOWER(${p}) OR
+        LOWER(v.modelo) LIKE LOWER(${p}) OR
+        LOWER(v.matricula) LIKE LOWER(${p}) OR
+        LOWER(v.bastidor) LIKE LOWER(${p})
       )`)
-    }
+  }
+  if (tipoFiltro) {
+    values.push(tipoFiltro)
+    conditions.push(`v.tipo = $${values.length}`)
+  }
 
-    if (tipo && tipo.trim()) {
-      conditions.push(`v.tipo = $${conditions.length + 1}`)
-    }
+  const whereClause =
+    conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+  const limitClause = limit ? `LIMIT ${Number(limit)}` : ''
+  const offsetClause = offset ? `OFFSET ${Number(offset)}` : ''
 
-    if (conditions.length > 0) {
-      whereClause = `WHERE ${conditions.join(' AND ')}`
-    }
-
-    const queryParams = []
-    if (search && search.trim()) {
-      queryParams.push(`%${search}%`)
-    }
-    if (tipoFiltro) {
-      queryParams.push(tipoFiltro)
-    }
-
-    const result = await client.query(
-      `
+  const sql = `
       SELECT
         v.id, v.referencia, v.marca, v.modelo, v.matricula, v.bastidor,
         v.kms, v.tipo, v.estado, v.orden, v."createdAt", v."updatedAt",
@@ -201,72 +204,108 @@ export async function getVehiculos(
         v."gastosOtros", v."gastosCNGarantia", v."precioPublicacion", v."precioVenta", v."beneficioNeto",
         v."notasInversor", v."fotoInversor", v.itv, v.seguro, v."segundaLlave",
         v.carpeta, v.master, v."hojasA", v.documentacion, i.nombre as inversor_nombre,
-        d.id as deposito_id, d.estado as deposito_estado
+        d.id as deposito_id, d.estado as deposito_estado,
+        COUNT(*) OVER() AS total_count
       FROM "Vehiculo" v
       LEFT JOIN "Inversor" i ON v."inversorId" = i.id
       LEFT JOIN "depositos" d ON v.id = d.vehiculo_id AND d.estado = 'ACTIVO'
       ${whereClause}
       ORDER BY v."createdAt" DESC, v.id DESC
       ${limitClause} ${offsetClause}
-    `,
-      queryParams.length > 0 ? queryParams : undefined
-    )
+    `
 
-    return result.rows.map((row) => ({
-      id: row.id,
-      referencia: row.referencia,
-      marca: row.marca,
-      modelo: row.modelo,
-      matricula: row.matricula,
-      bastidor: row.bastidor,
-      kms: row.kms,
-      tipo: row.tipo,
-      estado: row.estado,
-      orden: row.orden,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
-      color: row.color,
-      fechaMatriculacion: row.fechaMatriculacion,
-      año: row.año,
-      esCocheInversor: row.esCocheInversor,
-      inversorId: row.inversorId,
-      inversor: row.inversor_nombre
-        ? {
-            id: row.inversorId,
-            nombre: row.inversor_nombre,
-          }
-        : null,
-      fechaCompra: row.fechaCompra,
-      precioCompra: row.precioCompra,
-      gastosTransporte: row.gastosTransporte,
-      gastosTasas: row.gastosTasas,
-      gastosMecanica: row.gastosMecanica,
-      gastosPintura: row.gastosPintura,
-      gastosLimpieza: row.gastosLimpieza,
-      gastosOtros: row.gastosOtros,
-      gastosCNGarantia: row.gastosCNGarantia,
-      precioPublicacion: row.precioPublicacion,
-      precioVenta: row.precioVenta,
-      garantiaPremium: row.garantiaPremium || false,
-      beneficioNeto: row.beneficioNeto,
-      notasInversor: row.notasInversor,
-      fotoInversor: row.fotoInversor,
-      itv: row.itv,
-      seguro: row.seguro,
-      segundaLlave: row.segundaLlave,
-      carpeta: row.carpeta,
-      master: row.master,
-      hojasA: row.hojasA,
-      documentacion: row.documentacion,
-      enDeposito: !!row.deposito_id,
-      depositoId: row.deposito_id,
-    }))
+  return { sql, values: values.length > 0 ? values : undefined }
+}
+
+// Mapeo explícito: total_count queda fuera del objeto vehículo.
+function mapVehiculoListRow(row: QueryResultRow) {
+  return {
+    id: row.id,
+    referencia: row.referencia,
+    marca: row.marca,
+    modelo: row.modelo,
+    matricula: row.matricula,
+    bastidor: row.bastidor,
+    kms: row.kms,
+    tipo: row.tipo,
+    estado: row.estado,
+    orden: row.orden,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    color: row.color,
+    fechaMatriculacion: row.fechaMatriculacion,
+    año: row.año,
+    esCocheInversor: row.esCocheInversor,
+    inversorId: row.inversorId,
+    inversor: row.inversor_nombre
+      ? {
+          id: row.inversorId,
+          nombre: row.inversor_nombre,
+        }
+      : null,
+    fechaCompra: row.fechaCompra,
+    precioCompra: row.precioCompra,
+    gastosTransporte: row.gastosTransporte,
+    gastosTasas: row.gastosTasas,
+    gastosMecanica: row.gastosMecanica,
+    gastosPintura: row.gastosPintura,
+    gastosLimpieza: row.gastosLimpieza,
+    gastosOtros: row.gastosOtros,
+    gastosCNGarantia: row.gastosCNGarantia,
+    precioPublicacion: row.precioPublicacion,
+    precioVenta: row.precioVenta,
+    garantiaPremium: row.garantiaPremium || false,
+    beneficioNeto: row.beneficioNeto,
+    notasInversor: row.notasInversor,
+    fotoInversor: row.fotoInversor,
+    itv: row.itv,
+    seguro: row.seguro,
+    segundaLlave: row.segundaLlave,
+    carpeta: row.carpeta,
+    master: row.master,
+    hojasA: row.hojasA,
+    documentacion: row.documentacion,
+    enDeposito: !!row.deposito_id,
+    depositoId: row.deposito_id,
+  }
+}
+
+export async function getVehiculosPage(
+  params: VehiculosPageParams = {}
+): Promise<VehiculosPage> {
+  const { sql, values } = buildVehiculosListQuery(params)
+  const client = await pool.connect()
+  let rows: QueryResultRow[] = []
+  try {
+    const result = await client.query(sql, values)
+    rows = result.rows
   } catch (error) {
     console.error('Error obteniendo vehículos:', error)
-    return []
+    return { vehiculos: [], total: 0 }
   } finally {
     client.release()
   }
+
+  // Página fuera de rango: sin filas no hay total_count que leer. getVehiculosCount
+  // abre su propia conexión, por eso va después del release (pool max=1).
+  const total =
+    rows.length > 0
+      ? Number(rows[0].total_count)
+      : params.offset
+        ? await getVehiculosCount(params.search, params.tipo)
+        : 0
+
+  return { vehiculos: rows.map(mapVehiculoListRow), total }
+}
+
+export async function getVehiculos(
+  limit?: number,
+  offset?: number,
+  search?: string,
+  tipo?: string
+): Promise<Vehiculo[]> {
+  const { vehiculos } = await getVehiculosPage({ limit, offset, search, tipo })
+  return vehiculos
 }
 
 export async function getVehiculosCount(
@@ -784,10 +823,15 @@ export async function updateDeal(
       // Aviso automático al inversor si el coche es suyo (best-effort, dedup interno)
       if (vehiculoEstado === 'reservado' || vehiculoEstado === 'vendido') {
         try {
-          const { notifyInversorVehiculoEvento } = await import('./inversorNotify')
+          const { notifyInversorVehiculoEvento } = await import(
+            './inversorNotify'
+          )
           await notifyInversorVehiculoEvento(vehiculoId, vehiculoEstado)
         } catch (err) {
-          console.error('[updateDeal] notify inversor:', (err as Error)?.message ?? err)
+          console.error(
+            '[updateDeal] notify inversor:',
+            (err as Error)?.message ?? err
+          )
         }
       }
     }

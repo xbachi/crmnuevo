@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import {
   getVehiculos,
+  getVehiculosPage,
   saveVehiculo,
   updateVehiculo,
   deleteVehiculo,
@@ -15,29 +16,49 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
 
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '20')
+    // Sin page/limit se devuelve todo el stock (kanban, VehicleSearch y la venta
+    // B2B dependen de ello); solo se pagina cuando el cliente lo pide.
+    const rawPage = searchParams.get('page')
+    const rawLimit = searchParams.get('limit')
+    const paginado = rawPage !== null || rawLimit !== null
+    const page = Math.max(1, parseInt(rawPage || '1', 10) || 1)
+    const limit = paginado
+      ? Math.max(1, parseInt(rawLimit || '20', 10) || 20)
+      : undefined
+    const offset = limit ? (page - 1) * limit : undefined
     const search = searchParams.get('search') || undefined
     const tipo = searchParams.get('tipo') || undefined
-    const estado = searchParams.get('estado') || undefined
-    const inversorId = searchParams.get('inversorId')
-      ? parseInt(searchParams.get('inversorId')!)
-      : undefined
-    const orderBy = searchParams.get('orderBy') || 'createdAt'
-    const orderDirection = (searchParams.get('orderDirection') || 'desc') as
-      | 'asc'
-      | 'desc'
+    // estado / inversorId / orderBy siguen sin aplicarse en servidor
+    // (comportamiento previo: /vehiculos filtra por estado en cliente).
 
-    const vehiculos = await getVehiculos()
-    const result = {
-      vehiculos,
-      total: vehiculos.length,
-      page,
+    const { vehiculos, total } = await getVehiculosPage({
       limit,
-      totalPages: Math.ceil(vehiculos.length / limit),
+      offset,
+      search,
+      tipo,
+    })
+
+    const pageSize = limit ?? Math.max(total, 1)
+    const totalPages = Math.ceil(total / pageSize)
+    const pagination = {
+      total,
+      page,
+      limit: limit ?? total,
+      totalPages,
+      pages: totalPages,
+      hasNext: page * pageSize < total,
+      hasPrev: page > 1,
     }
 
-    return NextResponse.json(result)
+    // Claves planas (total/page/limit/totalPages) mantenidas por compatibilidad.
+    return NextResponse.json({
+      vehiculos,
+      pagination,
+      total,
+      page,
+      limit: pagination.limit,
+      totalPages,
+    })
   } catch (error) {
     console.error('Error obteniendo vehículos:', error)
     return NextResponse.json(

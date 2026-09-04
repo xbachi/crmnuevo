@@ -267,14 +267,14 @@ export default function ListaVehiculos() {
 
       // Cargar todas las páginas restantes
       let currentPageToLoad = currentPage + 1
-      const totalPages = Math.ceil(pagination.total / 50)
+      const totalPages = Math.ceil(pagination.total / 500)
 
       while (currentPageToLoad <= totalPages) {
         console.log(
           `🔄 [LOAD ALL] Cargando página ${currentPageToLoad} de ${totalPages}`
         )
         const response = await fetch(
-          `/api/vehiculos?page=${currentPageToLoad}&limit=50`
+          `/api/vehiculos?page=${currentPageToLoad}&limit=500`
         )
 
         if (response.ok) {
@@ -500,7 +500,7 @@ export default function ListaVehiculos() {
         setIsLoadingMore(true)
       }
 
-      const response = await fetch(`/api/vehiculos?page=${page}&limit=50`, {
+      const response = await fetch(`/api/vehiculos?page=${page}&limit=500`, {
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           Pragma: 'no-cache',
