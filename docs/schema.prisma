@@ -1,3 +1,4 @@
+// Documentación histórica: Prisma no se usa en runtime desde 2026-09; el esquema real vive en los *.sql
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 

@@ -4,7 +4,7 @@ Senior-dev workflow. Surgical, reversible changes. Quality before commit.
 
 ## Stack
 - **Next.js 15** (App Router) + **React 19** + **TypeScript** (strict)
-- **Prisma 6** + **PostgreSQL** (raw `pg` pool also used in API routes)
+- **PostgreSQL** vía pool `pg` (`src/lib/direct-database.ts`); Prisma eliminado, el esquema vive en los `*.sql` de la raíz (copia documental en `docs/schema.prisma`)
 - **Vercel** (deploy) + **Vercel Blob** (file storage)
 - **Jest** (unit + integration) + **Playwright** (E2E)
 - **Husky** pre-commit / pre-push (lint-staged + Prettier)

@@ -9,7 +9,6 @@ import {
 /**
  * Whitelist de rutas API que NO requieren autenticación.
  * - /api/auth/* → login/logout/me (sin sesión por definición)
- * - /api/test-* → bloqueadas en prod, libres en dev
  */
 const PUBLIC_API_PREFIXES = [
   '/api/auth/login',
@@ -84,14 +83,6 @@ const PUBLIC_API_PREFIXES = [
 
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname
-
-  // Bloquear endpoints /api/test-* en producción.
-  if (path.startsWith('/api/test-')) {
-    if (process.env.NODE_ENV === 'production') {
-      return new NextResponse(null, { status: 404 })
-    }
-    return NextResponse.next()
-  }
 
   // Whitelist de auth.
   if (PUBLIC_API_PREFIXES.some((p) => path === p || path.startsWith(p + '/'))) {
