@@ -993,10 +993,14 @@ export default function ClienteDetailPage() {
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="cli-nombre"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           Nombre
                         </label>
                         <input
+                          id="cli-nombre"
                           type="text"
                           name="nombre"
                           value={editData.nombre}
@@ -1005,10 +1009,14 @@ export default function ClienteDetailPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="cli-apellidos"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           Apellidos
                         </label>
                         <input
+                          id="cli-apellidos"
                           type="text"
                           name="apellidos"
                           value={editData.apellidos}
@@ -1017,10 +1025,14 @@ export default function ClienteDetailPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="cli-telefono"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           Teléfono
                         </label>
                         <input
+                          id="cli-telefono"
                           type="tel"
                           name="telefono"
                           value={editData.telefono}
@@ -1029,10 +1041,14 @@ export default function ClienteDetailPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="cli-email"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           Email
                         </label>
                         <input
+                          id="cli-email"
                           type="email"
                           name="email"
                           value={editData.email}
@@ -1041,10 +1057,14 @@ export default function ClienteDetailPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="cli-dni"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           DNI
                         </label>
                         <input
+                          id="cli-dni"
                           type="text"
                           name="dni"
                           value={editData.dni}
@@ -1062,10 +1082,14 @@ export default function ClienteDetailPage() {
                       </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label
+                            htmlFor="cli-direccion"
+                            className="block text-sm font-medium text-gray-700 mb-1"
+                          >
                             Dirección
                           </label>
                           <input
+                            id="cli-direccion"
                             type="text"
                             name="direccion"
                             value={editData.direccion}
@@ -1075,10 +1099,14 @@ export default function ClienteDetailPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label
+                            htmlFor="cli-ciudad"
+                            className="block text-sm font-medium text-gray-700 mb-1"
+                          >
                             Ciudad
                           </label>
                           <input
+                            id="cli-ciudad"
                             type="text"
                             name="ciudad"
                             value={editData.ciudad}
@@ -1088,10 +1116,14 @@ export default function ClienteDetailPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label
+                            htmlFor="cli-provincia"
+                            className="block text-sm font-medium text-gray-700 mb-1"
+                          >
                             Provincia
                           </label>
                           <input
+                            id="cli-provincia"
                             type="text"
                             name="provincia"
                             value={editData.provincia}
@@ -1101,10 +1133,14 @@ export default function ClienteDetailPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label
+                            htmlFor="cli-codigo-postal"
+                            className="block text-sm font-medium text-gray-700 mb-1"
+                          >
                             Código Postal
                           </label>
                           <input
+                            id="cli-codigo-postal"
                             type="text"
                             name="codigoPostal"
                             value={editData.codigoPostal}
@@ -1118,10 +1154,14 @@ export default function ClienteDetailPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="cli-como-llego"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           Cómo llegó
                         </label>
                         <select
+                          id="cli-como-llego"
                           name="comoLlego"
                           value={editData.comoLlego || ''}
                           onChange={handleInputChange}
@@ -1135,10 +1175,14 @@ export default function ClienteDetailPage() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="cli-estado"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           Estado
                         </label>
                         <select
+                          id="cli-estado"
                           name="estado"
                           value={editData.estado || ''}
                           onChange={handleInputChange}
@@ -1152,10 +1196,14 @@ export default function ClienteDetailPage() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="cli-prioridad"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           Prioridad
                         </label>
                         <select
+                          id="cli-prioridad"
                           name="prioridad"
                           value={editData.prioridad || ''}
                           onChange={handleInputChange}
@@ -1305,7 +1353,10 @@ export default function ClienteDetailPage() {
                 {isEditingIntereses ? (
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label
+                        htmlFor="cli-vehiculos-interes"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
                         Vehículos de interés
                       </label>
                       <div className="relative">
@@ -1323,6 +1374,8 @@ export default function ClienteDetailPage() {
                                   type="button"
                                   onClick={() => removeVehiculoInteres(index)}
                                   className="ml-2 text-blue-600 hover:text-blue-800"
+                                  aria-label="Quitar vehículo de interés"
+                                  title="Quitar vehículo de interés"
                                 >
                                   ×
                                 </button>
@@ -1330,6 +1383,7 @@ export default function ClienteDetailPage() {
                             ))}
                           {/* Input para agregar nuevos */}
                           <input
+                            id="cli-vehiculos-interes"
                             type="text"
                             value={currentVehiculoInput}
                             onChange={(e) =>
@@ -1377,10 +1431,14 @@ export default function ClienteDetailPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Columna izquierda - coincide con el orden de visualización */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="cli-precio-maximo"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           Precio máximo (€)
                         </label>
                         <input
+                          id="cli-precio-maximo"
                           type="number"
                           name="intereses.precioMaximo"
                           value={editData.intereses?.precioMaximo || ''}
@@ -1389,10 +1447,14 @@ export default function ClienteDetailPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="cli-kilometraje-maximo"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           Kilometraje máximo
                         </label>
                         <input
+                          id="cli-kilometraje-maximo"
                           type="number"
                           name="intereses.kilometrajeMaximo"
                           value={editData.intereses?.kilometrajeMaximo || ''}
@@ -1401,10 +1463,14 @@ export default function ClienteDetailPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="cli-combustible-preferido"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           Combustible preferido
                         </label>
                         <select
+                          id="cli-combustible-preferido"
                           name="intereses.combustiblePreferido"
                           value={
                             editData.intereses?.combustiblePreferido ||
@@ -1423,10 +1489,14 @@ export default function ClienteDetailPage() {
 
                       {/* Columna derecha - coincide con el orden de visualización */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="cli-anio-minimo"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           Año mínimo
                         </label>
                         <input
+                          id="cli-anio-minimo"
                           type="number"
                           name="intereses.añoMinimo"
                           value={editData.intereses?.añoMinimo || ''}
@@ -1435,10 +1505,14 @@ export default function ClienteDetailPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="cli-cambio-preferido"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           Cambio preferido
                         </label>
                         <select
+                          id="cli-cambio-preferido"
                           name="intereses.cambioPreferido"
                           value={
                             editData.intereses?.cambioPreferido || 'cualquiera'
@@ -1602,6 +1676,7 @@ export default function ClienteDetailPage() {
                 {/* Formulario para agregar nota */}
                 <div className="mb-4">
                   <textarea
+                    aria-label="Agregar una nueva nota"
                     value={nuevaNota}
                     onChange={(e) => setNuevaNota(e.target.value)}
                     placeholder="Agregar una nueva nota..."
@@ -1629,6 +1704,7 @@ export default function ClienteDetailPage() {
                           {editingNotaId === nota.id ? (
                             <div className="space-y-2">
                               <textarea
+                                aria-label="Editar nota"
                                 value={editingContent || ''}
                                 onChange={(e) =>
                                   setEditingContent(e.target.value)

@@ -679,7 +679,7 @@ function ExpedienteRow({
                           requerido
                         </span>
                       ) : (
-                        <span className="ml-auto text-xs text-gray-400">
+                        <span className="ml-auto text-xs text-gray-600">
                           opcional
                         </span>
                       )}
@@ -1177,7 +1177,7 @@ function ChequeoPanel({ chequeo }: { chequeo: ResultadoChequeo }) {
                 {e.ambiguos.map((a) => (
                   <li key={a.nombre}>
                     {a.nombre}{' '}
-                    <span className="text-gray-400">({a.motivo})</span>
+                    <span className="text-gray-600">({a.motivo})</span>
                   </li>
                 ))}
               </ul>
@@ -1270,7 +1270,7 @@ function MesChequeoRow({
               </div>
             ))}
             {mes.carpetas.scannedAt && (
-              <div className="text-gray-400">
+              <div className="text-gray-600">
                 Snapshot OneDrive: {mes.carpetas.scannedAt}
               </div>
             )}

@@ -306,10 +306,14 @@ export default function GeneradorFacturas() {
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gf-nombre"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Nombre *
                     </label>
                     <input
+                      id="gf-nombre"
                       type="text"
                       value={cliente.nombre}
                       onChange={(e) =>
@@ -327,10 +331,14 @@ export default function GeneradorFacturas() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gf-apellidos"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Apellidos *
                     </label>
                     <input
+                      id="gf-apellidos"
                       type="text"
                       value={cliente.apellidos}
                       onChange={(e) =>
@@ -351,10 +359,14 @@ export default function GeneradorFacturas() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gf-dni"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       DNI *
                     </label>
                     <input
+                      id="gf-dni"
                       type="text"
                       value={cliente.dni}
                       onChange={(e) =>
@@ -372,10 +384,14 @@ export default function GeneradorFacturas() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gf-telefono"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Teléfono
                     </label>
                     <input
+                      id="gf-telefono"
                       type="text"
                       value={cliente.telefono}
                       onChange={(e) =>
@@ -388,10 +404,14 @@ export default function GeneradorFacturas() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="gf-email"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Email
                   </label>
                   <input
+                    id="gf-email"
                     type="email"
                     value={cliente.email}
                     onChange={(e) =>
@@ -403,10 +423,14 @@ export default function GeneradorFacturas() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="gf-direccion"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Dirección
                   </label>
                   <input
+                    id="gf-direccion"
                     type="text"
                     value={cliente.direccion}
                     onChange={(e) =>
@@ -419,10 +443,14 @@ export default function GeneradorFacturas() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gf-ciudad"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Ciudad
                     </label>
                     <input
+                      id="gf-ciudad"
                       type="text"
                       value={cliente.ciudad}
                       onChange={(e) =>
@@ -433,10 +461,14 @@ export default function GeneradorFacturas() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gf-provincia"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Provincia
                     </label>
                     <input
+                      id="gf-provincia"
                       type="text"
                       value={cliente.provincia}
                       onChange={(e) =>
@@ -447,10 +479,14 @@ export default function GeneradorFacturas() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gf-codigo-postal"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Código Postal
                     </label>
                     <input
+                      id="gf-codigo-postal"
                       type="text"
                       value={cliente.codPostal}
                       onChange={(e) =>
@@ -473,10 +509,14 @@ export default function GeneradorFacturas() {
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gf-marca"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Marca *
                     </label>
                     <input
+                      id="gf-marca"
                       type="text"
                       value={vehiculo.marca}
                       onChange={(e) =>
@@ -494,10 +534,14 @@ export default function GeneradorFacturas() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gf-modelo"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Modelo *
                     </label>
                     <input
+                      id="gf-modelo"
                       type="text"
                       value={vehiculo.modelo}
                       onChange={(e) =>
@@ -518,10 +562,14 @@ export default function GeneradorFacturas() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gf-matricula"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Matrícula *
                     </label>
                     <input
+                      id="gf-matricula"
                       type="text"
                       value={vehiculo.matricula}
                       onChange={(e) =>
@@ -539,10 +587,14 @@ export default function GeneradorFacturas() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gf-bastidor"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Bastidor
                     </label>
                     <input
+                      id="gf-bastidor"
                       type="text"
                       value={vehiculo.bastidor}
                       onChange={(e) =>
@@ -556,10 +608,14 @@ export default function GeneradorFacturas() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gf-kilometros"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Kilómetros
                     </label>
                     <input
+                      id="gf-kilometros"
                       type="number"
                       value={vehiculo.kms}
                       onChange={(e) =>
@@ -573,10 +629,14 @@ export default function GeneradorFacturas() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gf-color"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Color
                     </label>
                     <input
+                      id="gf-color"
                       type="text"
                       value={vehiculo.color}
                       onChange={(e) =>
@@ -587,10 +647,14 @@ export default function GeneradorFacturas() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gf-anio"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Año
                     </label>
                     <input
+                      id="gf-anio"
                       type="number"
                       value={vehiculo.año}
                       onChange={(e) =>
@@ -606,10 +670,14 @@ export default function GeneradorFacturas() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="gf-fecha-matriculacion"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Fecha de Matriculación
                   </label>
                   <input
+                    id="gf-fecha-matriculacion"
                     type="date"
                     value={vehiculo.fechaMatriculacion}
                     onChange={(e) =>
@@ -629,10 +697,14 @@ export default function GeneradorFacturas() {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="gf-importe-total"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Importe Total *
                   </label>
                   <input
+                    id="gf-importe-total"
                     type="number"
                     step="0.01"
                     value={factura.importeTotal}
@@ -651,10 +723,14 @@ export default function GeneradorFacturas() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="gf-importe-sena"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Importe Seña
                   </label>
                   <input
+                    id="gf-importe-sena"
                     type="number"
                     step="0.01"
                     value={factura.importeSena}
@@ -669,10 +745,14 @@ export default function GeneradorFacturas() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="gf-forma-pago-sena"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Forma de Pago Seña
                   </label>
                   <select
+                    id="gf-forma-pago-sena"
                     value={factura.formaPagoSena}
                     onChange={(e) =>
                       handleFacturaChange('formaPagoSena', e.target.value)

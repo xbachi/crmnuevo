@@ -163,8 +163,11 @@ export default function VehicleSearch({
               setIsOpen(false)
             }}
             className="absolute inset-y-0 right-0 pr-3 flex items-center"
+            aria-label="Limpiar búsqueda"
+            title="Limpiar búsqueda"
           >
             <svg
+              aria-hidden="true"
               className="h-4 w-4 text-gray-400 hover:text-gray-600"
               fill="none"
               stroke="currentColor"

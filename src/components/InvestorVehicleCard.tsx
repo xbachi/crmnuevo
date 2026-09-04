@@ -1316,8 +1316,11 @@ export function InvestorVehicleCard({
             <button
               onClick={() => setShowPhotoModal(false)}
               className="absolute top-4 right-4 text-white hover:text-gray-300 z-10"
+              aria-label="Cerrar"
+              title="Cerrar"
             >
               <svg
+                aria-hidden="true"
                 className="w-8 h-8"
                 fill="none"
                 stroke="currentColor"

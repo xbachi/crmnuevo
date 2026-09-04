@@ -870,8 +870,11 @@ export default function DepositoDetail() {
                     <button
                       onClick={() => router.push('/depositos')}
                       className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+                      aria-label="Volver a depósitos"
+                      title="Volver a depósitos"
                     >
                       <svg
+                        aria-hidden="true"
                         className="w-6 h-6 text-white"
                         fill="none"
                         stroke="currentColor"

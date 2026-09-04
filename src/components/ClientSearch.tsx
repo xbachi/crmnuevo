@@ -122,8 +122,10 @@ export default function ClientSearch({ onClientSelect, placeholder = "Buscar cli
               setIsOpen(false)
             }}
             className="absolute inset-y-0 right-0 pr-3 flex items-center"
+            aria-label="Limpiar búsqueda"
+            title="Limpiar búsqueda"
           >
-            <svg className="h-4 w-4 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg aria-hidden="true" className="h-4 w-4 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>

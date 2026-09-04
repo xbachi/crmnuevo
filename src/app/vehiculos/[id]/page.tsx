@@ -1733,8 +1733,11 @@ export default function VehiculoDetailPage() {
                 <button
                   onClick={() => router.push('/vehiculos')}
                   className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                  aria-label="Volver a vehículos"
+                  title="Volver a vehículos"
                 >
                   <svg
+                    aria-hidden="true"
                     className="w-4 h-4 sm:w-5 sm:h-5"
                     fill="none"
                     stroke="currentColor"
@@ -2089,6 +2092,7 @@ export default function VehiculoDetailPage() {
                                 Tipo:{' '}
                                 {isEditingGeneral ? (
                                   <select
+                                    aria-label="Tipo"
                                     value={editingData.tipo}
                                     onChange={(e) => {
                                       const nuevoTipo = e.target.value
@@ -2136,6 +2140,7 @@ export default function VehiculoDetailPage() {
                                 <span className="text-blue-700 font-medium">
                                   Inversor:{' '}
                                   <select
+                                    aria-label="Inversor"
                                     value={editingData.inversorId || 0}
                                     onChange={(e) =>
                                       setEditingData((prev) => ({
@@ -2162,6 +2167,7 @@ export default function VehiculoDetailPage() {
                                 Marca:{' '}
                                 {isEditingGeneral ? (
                                   <input
+                                    aria-label="Marca"
                                     type="text"
                                     value={editingData.marca}
                                     onChange={(e) =>
@@ -2182,6 +2188,7 @@ export default function VehiculoDetailPage() {
                                 Modelo:{' '}
                                 {isEditingGeneral ? (
                                   <input
+                                    aria-label="Modelo"
                                     type="text"
                                     value={editingData.modelo}
                                     onChange={(e) =>
@@ -2204,6 +2211,7 @@ export default function VehiculoDetailPage() {
                                 Fecha de Compra:{' '}
                                 {isEditingGeneral ? (
                                   <input
+                                    aria-label="Fecha de compra"
                                     type="date"
                                     value={editingData.fechaCompra || ''}
                                     onChange={(e) =>
@@ -2279,6 +2287,7 @@ export default function VehiculoDetailPage() {
                                 Bastidor:{' '}
                                 {isEditingGeneral ? (
                                   <input
+                                    aria-label="Bastidor"
                                     type="text"
                                     value={editingData.bastidor}
                                     onChange={(e) =>
@@ -2299,6 +2308,7 @@ export default function VehiculoDetailPage() {
                                 Fecha Matriculación:{' '}
                                 {isEditingGeneral ? (
                                   <input
+                                    aria-label="Fecha de matriculación"
                                     type="date"
                                     value={editingData.fechaMatriculacion || ''}
                                     onChange={(e) =>
@@ -2351,6 +2361,7 @@ export default function VehiculoDetailPage() {
                                 KMs:{' '}
                                 {isEditingGeneral ? (
                                   <input
+                                    aria-label="Kilómetros"
                                     type="number"
                                     value={editingData.kms}
                                     onChange={(e) =>
@@ -2372,6 +2383,7 @@ export default function VehiculoDetailPage() {
                                 Color:{' '}
                                 {isEditingGeneral ? (
                                   <input
+                                    aria-label="Color"
                                     type="text"
                                     value={editingData.color}
                                     onChange={(e) =>
@@ -2644,6 +2656,7 @@ export default function VehiculoDetailPage() {
                               </span>
                               {isEditingFinanciero ? (
                                 <input
+                                  aria-label="Precio de compra"
                                   type="text"
                                   value={
                                     editingData.precioCompra === 0
@@ -2672,6 +2685,7 @@ export default function VehiculoDetailPage() {
                               </span>
                               {isEditingFinanciero ? (
                                 <input
+                                  aria-label="Transporte"
                                   type="text"
                                   value={
                                     editingData.gastosTransporte === 0
@@ -2702,6 +2716,7 @@ export default function VehiculoDetailPage() {
                               </span>
                               {isEditingFinanciero ? (
                                 <input
+                                  aria-label="Tasas"
                                   type="text"
                                   value={
                                     editingData.gastosTasas === 0
@@ -2730,6 +2745,7 @@ export default function VehiculoDetailPage() {
                               </span>
                               {isEditingFinanciero ? (
                                 <input
+                                  aria-label="Mecánica"
                                   type="text"
                                   value={
                                     editingData.gastosMecanica === 0
@@ -2758,6 +2774,7 @@ export default function VehiculoDetailPage() {
                               </span>
                               {isEditingFinanciero ? (
                                 <input
+                                  aria-label="Pintura"
                                   type="text"
                                   value={
                                     editingData.gastosPintura === 0
@@ -2786,6 +2803,7 @@ export default function VehiculoDetailPage() {
                               </span>
                               {isEditingFinanciero ? (
                                 <input
+                                  aria-label="Limpieza"
                                   type="text"
                                   value={
                                     editingData.gastosLimpieza === 0
@@ -2814,6 +2832,7 @@ export default function VehiculoDetailPage() {
                               </span>
                               {isEditingFinanciero ? (
                                 <input
+                                  aria-label="Otros"
                                   type="text"
                                   value={
                                     editingData.gastosOtros === 0
@@ -2881,6 +2900,7 @@ export default function VehiculoDetailPage() {
                               </span>
                               {isEditingFinanciero ? (
                                 <input
+                                  aria-label="Precio de venta"
                                   type="text"
                                   value={
                                     editingData.precioVenta === 0
@@ -3093,6 +3113,7 @@ export default function VehiculoDetailPage() {
                           Estado:{' '}
                           {isEditingDocumentacion ? (
                             <select
+                              aria-label="Estado ITV"
                               value={
                                 editingData.itv === null ||
                                 editingData.itv === undefined ||
@@ -3174,6 +3195,7 @@ export default function VehiculoDetailPage() {
                           Estado:{' '}
                           {isEditingDocumentacion ? (
                             <select
+                              aria-label="Estado seguro"
                               value={
                                 editingData.seguro === 'Sí' ||
                                 editingData.seguro === 'si'
@@ -3287,6 +3309,7 @@ export default function VehiculoDetailPage() {
                           Disponible:{' '}
                           {isEditingDocumentacion ? (
                             <select
+                              aria-label="Garantía disponible"
                               value={
                                 editingData.segundaLlave === 'Sí' ||
                                 editingData.segundaLlave === 'si'
@@ -3364,6 +3387,7 @@ export default function VehiculoDetailPage() {
                           Estado:{' '}
                           {isEditingDocumentacion ? (
                             <select
+                              aria-label="Estado documentación"
                               value={
                                 editingData.documentacion === 'Sí' ||
                                 editingData.documentacion === 'si'
@@ -3441,6 +3465,7 @@ export default function VehiculoDetailPage() {
                           Estado:{' '}
                           {isEditingDocumentacion ? (
                             <select
+                              aria-label="Estado master"
                               value={
                                 editingData.master === 'Sí' ||
                                 editingData.master === 'si'
@@ -3513,6 +3538,7 @@ export default function VehiculoDetailPage() {
                       </span>
                       {isEditingDocumentacion ? (
                         <select
+                          aria-label="Carpeta"
                           value={
                             editingData.carpeta === 'Sí' ||
                             editingData.carpeta === 'si'
@@ -3582,6 +3608,7 @@ export default function VehiculoDetailPage() {
                       </span>
                       {isEditingDocumentacion ? (
                         <select
+                          aria-label="Hojas A"
                           value={
                             editingData.hojasA === 'Sí' ||
                             editingData.hojasA === 'si'
@@ -3793,7 +3820,7 @@ export default function VehiculoDetailPage() {
                         />
                       </svg>
                       <p className="text-sm">No hay documentos subidos</p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-gray-600">
                         Sube archivos para organizarlos aquí
                       </p>
                     </div>
@@ -3858,8 +3885,11 @@ export default function VehiculoDetailPage() {
                             <button
                               onClick={() => handleDeleteFile(doc.id)}
                               className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                              aria-label="Eliminar documento"
+                              title="Eliminar documento"
                             >
                               <svg
+                                aria-hidden="true"
                                 className="w-4 h-4"
                                 fill="none"
                                 stroke="currentColor"
@@ -3918,6 +3948,7 @@ export default function VehiculoDetailPage() {
                     </h3>
                     <div className="space-y-3">
                       <input
+                        aria-label="Título del recordatorio"
                         type="text"
                         value={nuevoRecordatorio.titulo}
                         onChange={(e) =>
@@ -3931,6 +3962,7 @@ export default function VehiculoDetailPage() {
                       />
                       <div className="grid grid-cols-2 gap-2">
                         <select
+                          aria-label="Tipo de recordatorio"
                           value={nuevoRecordatorio.tipo}
                           onChange={(e) =>
                             setNuevoRecordatorio({
@@ -3947,6 +3979,7 @@ export default function VehiculoDetailPage() {
                           <option value="otro">Otro</option>
                         </select>
                         <select
+                          aria-label="Prioridad del recordatorio"
                           value={nuevoRecordatorio.prioridad}
                           onChange={(e) =>
                             setNuevoRecordatorio({
@@ -3962,6 +3995,7 @@ export default function VehiculoDetailPage() {
                         </select>
                       </div>
                       <input
+                        aria-label="Fecha del recordatorio"
                         type="datetime-local"
                         value={nuevoRecordatorio.fechaRecordatorio}
                         onChange={(e) =>
@@ -3973,6 +4007,7 @@ export default function VehiculoDetailPage() {
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                       <textarea
+                        aria-label="Descripción del recordatorio"
                         value={nuevoRecordatorio.descripcion}
                         onChange={(e) =>
                           setNuevoRecordatorio({
@@ -4078,8 +4113,19 @@ export default function VehiculoDetailPage() {
                                   ? 'text-green-600 hover:bg-green-100'
                                   : 'text-gray-400 hover:bg-gray-100'
                               }`}
+                              aria-label={
+                                recordatorio.completado
+                                  ? 'Marcar como pendiente'
+                                  : 'Marcar como completado'
+                              }
+                              title={
+                                recordatorio.completado
+                                  ? 'Marcar como pendiente'
+                                  : 'Marcar como completado'
+                              }
                             >
                               <svg
+                                aria-hidden="true"
                                 className="w-4 h-4"
                                 fill="none"
                                 stroke="currentColor"
@@ -4098,8 +4144,11 @@ export default function VehiculoDetailPage() {
                                 handleEditarRecordatorio(recordatorio)
                               }
                               className="p-1 text-blue-600 hover:bg-blue-100 rounded transition-colors"
+                              aria-label="Editar recordatorio"
+                              title="Editar recordatorio"
                             >
                               <svg
+                                aria-hidden="true"
                                 className="w-4 h-4"
                                 fill="none"
                                 stroke="currentColor"
@@ -4118,8 +4167,11 @@ export default function VehiculoDetailPage() {
                                 handleEliminarRecordatorio(recordatorio.id)
                               }
                               className="p-1 text-red-600 hover:bg-red-100 rounded transition-colors"
+                              aria-label="Eliminar recordatorio"
+                              title="Eliminar recordatorio"
                             >
                               <svg
+                                aria-hidden="true"
                                 className="w-4 h-4"
                                 fill="none"
                                 stroke="currentColor"
@@ -4674,8 +4726,11 @@ export default function VehiculoDetailPage() {
                           })
                         }}
                         className="text-gray-400 hover:text-gray-600 transition-colors"
+                        aria-label="Cerrar formulario de recordatorio"
+                        title="Cerrar formulario de recordatorio"
                       >
                         <svg
+                          aria-hidden="true"
                           className="w-5 h-5"
                           fill="none"
                           stroke="currentColor"
@@ -4693,6 +4748,7 @@ export default function VehiculoDetailPage() {
                     <div className="space-y-3">
                       <div>
                         <input
+                          aria-label="Título del recordatorio"
                           type="text"
                           value={nuevoRecordatorio.titulo}
                           onChange={(e) =>
@@ -4707,6 +4763,7 @@ export default function VehiculoDetailPage() {
                       </div>
                       <div>
                         <input
+                          aria-label="Fecha del recordatorio"
                           type="datetime-local"
                           value={nuevoRecordatorio.fechaRecordatorio}
                           onChange={(e) =>
@@ -4720,6 +4777,7 @@ export default function VehiculoDetailPage() {
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <select
+                          aria-label="Tipo de recordatorio"
                           value={nuevoRecordatorio.tipo}
                           onChange={(e) =>
                             setNuevoRecordatorio({
@@ -4736,6 +4794,7 @@ export default function VehiculoDetailPage() {
                           <option value="otro">Otro</option>
                         </select>
                         <select
+                          aria-label="Prioridad del recordatorio"
                           value={nuevoRecordatorio.prioridad}
                           onChange={(e) =>
                             setNuevoRecordatorio({
@@ -4802,6 +4861,7 @@ export default function VehiculoDetailPage() {
                             {editingRecordatorioId === recordatorio.id ? (
                               <div className="space-y-3">
                                 <input
+                                  aria-label="Título del recordatorio"
                                   type="text"
                                   value={editingRecordatorioData.titulo}
                                   onChange={(e) =>
@@ -4815,6 +4875,7 @@ export default function VehiculoDetailPage() {
                                 />
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                   <select
+                                    aria-label="Tipo de recordatorio"
                                     value={editingRecordatorioData.tipo}
                                     onChange={(e) =>
                                       setEditingRecordatorioData({
@@ -4833,6 +4894,7 @@ export default function VehiculoDetailPage() {
                                     <option value="otro">Otro</option>
                                   </select>
                                   <select
+                                    aria-label="Prioridad del recordatorio"
                                     value={editingRecordatorioData.prioridad}
                                     onChange={(e) =>
                                       setEditingRecordatorioData({
@@ -4848,6 +4910,7 @@ export default function VehiculoDetailPage() {
                                   </select>
                                 </div>
                                 <input
+                                  aria-label="Fecha del recordatorio"
                                   type="date"
                                   value={
                                     editingRecordatorioData.fechaRecordatorio
@@ -4861,6 +4924,7 @@ export default function VehiculoDetailPage() {
                                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 />
                                 <textarea
+                                  aria-label="Descripción del recordatorio"
                                   value={editingRecordatorioData.descripcion}
                                   onChange={(e) =>
                                     setEditingRecordatorioData({
@@ -5024,8 +5088,11 @@ export default function VehiculoDetailPage() {
                       setShowClienteDropdown(false)
                     }}
                     className="text-gray-400 hover:text-gray-600"
+                    aria-label="Cerrar"
+                    title="Cerrar"
                   >
                     <svg
+                      aria-hidden="true"
                       className="w-6 h-6"
                       fill="none"
                       stroke="currentColor"
@@ -5044,11 +5111,15 @@ export default function VehiculoDetailPage() {
                 <div className="space-y-4">
                   {/* Selección de Cliente - Mismo diseño que deals */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label
+                      htmlFor="veh-contrato-cliente"
+                      className="block text-sm font-medium text-slate-700 mb-2"
+                    >
                       Cliente *
                     </label>
                     <div className="relative dropdown-container">
                       <input
+                        id="veh-contrato-cliente"
                         type="text"
                         value={clienteSearchTerm}
                         onChange={(e) => {
@@ -5127,8 +5198,11 @@ export default function VehiculoDetailPage() {
                               setClienteSearchTerm('')
                             }}
                             className="text-red-500 hover:text-red-700 ml-2"
+                            aria-label="Quitar cliente seleccionado"
+                            title="Quitar cliente seleccionado"
                           >
                             <svg
+                              aria-hidden="true"
                               className="w-4 h-4"
                               fill="none"
                               stroke="currentColor"
@@ -5149,10 +5223,14 @@ export default function VehiculoDetailPage() {
 
                   {/* Precio de Venta */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label
+                      htmlFor="veh-contrato-precio-venta"
+                      className="block text-sm font-medium text-slate-700 mb-2"
+                    >
                       Precio de Venta (€) *
                     </label>
                     <input
+                      id="veh-contrato-precio-venta"
                       type="number"
                       placeholder="0.00"
                       value={precioVenta}
@@ -5228,20 +5306,28 @@ export default function VehiculoDetailPage() {
                 la matrícula anterior ({vehiculo.matricula}); el CRM las sigue
                 cruzando con este coche.
               </p>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="veh-matricula-nueva"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Matrícula nueva
               </label>
               <input
+                id="veh-matricula-nueva"
                 type="text"
                 value={nuevaMatricula}
                 onChange={(e) => setNuevaMatricula(e.target.value)}
                 placeholder="5439NNW"
                 className="w-full border border-gray-300 rounded px-3 py-2 font-mono uppercase mb-3"
               />
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="veh-matricula-motivo"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Motivo
               </label>
               <textarea
+                id="veh-matricula-motivo"
                 value={motivoMatricula}
                 onChange={(e) => setMotivoMatricula(e.target.value)}
                 rows={2}

@@ -1321,8 +1321,11 @@ export default function DealDetail() {
                 <button
                   onClick={() => router.push('/deals')}
                   className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  aria-label="Volver a deals"
+                  title="Volver a deals"
                 >
                   <svg
+                    aria-hidden="true"
                     className="w-5 h-5"
                     fill="none"
                     stroke="currentColor"
@@ -1838,7 +1841,7 @@ export default function DealDetail() {
                 >
                   Cambio de Nombre
                   {deal.estado !== 'facturado' && (
-                    <span className="text-sm font-normal text-gray-400 ml-2">
+                    <span className="text-sm font-normal text-gray-600 ml-2">
                       (Disponible solo después de generar la factura)
                     </span>
                   )}
@@ -2062,7 +2065,7 @@ export default function DealDetail() {
                         </button>
                       </div>
                     ) : (
-                      <span className="px-3 py-1 bg-gray-100 text-gray-400 rounded-md text-sm font-medium cursor-not-allowed">
+                      <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-md text-sm font-medium cursor-not-allowed">
                         No generado
                       </span>
                     )}
@@ -2117,7 +2120,7 @@ export default function DealDetail() {
                         </button>
                       </div>
                     ) : (
-                      <span className="px-3 py-1 bg-gray-100 text-gray-400 rounded-md text-sm font-medium cursor-not-allowed">
+                      <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-md text-sm font-medium cursor-not-allowed">
                         No generado
                       </span>
                     )}

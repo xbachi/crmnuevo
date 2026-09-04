@@ -189,8 +189,10 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600"
+              aria-label="Cerrar"
+              title="Cerrar"
             >
-              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg aria-hidden="true" className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>

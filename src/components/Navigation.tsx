@@ -396,9 +396,11 @@ export default function Navigation() {
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           className="fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-lg border border-gray-200 lg:hidden"
-          aria-label="Toggle menu"
+          aria-label={isMobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
+          title={isMobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
         >
           <svg
+            aria-hidden="true"
             className="w-6 h-6"
             fill="none"
             stroke="currentColor"
@@ -543,9 +545,11 @@ export default function Navigation() {
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
               className="absolute top-1/2 -right-3 w-6 h-6 bg-white border border-gray-200 rounded-full flex items-center justify-center shadow-sm hover:shadow-md transition-shadow z-10"
-              title={isCollapsed ? 'Expandir' : 'Contraer'}
+              aria-label={isCollapsed ? 'Expandir menú' : 'Contraer menú'}
+              title={isCollapsed ? 'Expandir menú' : 'Contraer menú'}
             >
               <svg
+                aria-hidden="true"
                 className={`w-4 h-4 text-gray-600 transition-transform duration-200 ${
                   isCollapsed ? 'rotate-180' : ''
                 }`}

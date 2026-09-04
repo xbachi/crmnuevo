@@ -269,10 +269,14 @@ export default function GeneradorContratos() {
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gc-nombre"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Nombre *
                     </label>
                     <input
+                      id="gc-nombre"
                       type="text"
                       value={cliente.nombre}
                       onChange={(e) => {
@@ -288,10 +292,14 @@ export default function GeneradorContratos() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gc-apellidos"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Apellidos *
                     </label>
                     <input
+                      id="gc-apellidos"
                       type="text"
                       value={cliente.apellidos}
                       onChange={(e) => {
@@ -310,10 +318,14 @@ export default function GeneradorContratos() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gc-dni"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       DNI/NIE *
                     </label>
                     <input
+                      id="gc-dni"
                       type="text"
                       value={cliente.dni}
                       onChange={(e) => {
@@ -332,10 +344,14 @@ export default function GeneradorContratos() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gc-telefono"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Teléfono *
                     </label>
                     <input
+                      id="gc-telefono"
                       type="tel"
                       value={cliente.telefono}
                       onChange={(e) => {
@@ -354,10 +370,14 @@ export default function GeneradorContratos() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gc-email"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Email
                     </label>
                     <input
+                      id="gc-email"
                       type="email"
                       value={cliente.email}
                       onChange={(e) =>
@@ -368,10 +388,14 @@ export default function GeneradorContratos() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gc-calle"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Calle *
                     </label>
                     <input
+                      id="gc-calle"
                       type="text"
                       value={cliente.calle}
                       onChange={(e) => {
@@ -390,10 +414,14 @@ export default function GeneradorContratos() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gc-ciudad"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Ciudad *
                     </label>
                     <input
+                      id="gc-ciudad"
                       type="text"
                       value={cliente.ciudad}
                       onChange={(e) => {
@@ -412,10 +440,14 @@ export default function GeneradorContratos() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gc-provincia"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Provincia *
                     </label>
                     <input
+                      id="gc-provincia"
                       type="text"
                       value={cliente.provincia}
                       onChange={(e) => {
@@ -434,10 +466,14 @@ export default function GeneradorContratos() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gc-codigo-postal"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Código Postal
                     </label>
                     <input
+                      id="gc-codigo-postal"
                       type="text"
                       value={cliente.codPostal}
                       onChange={(e) =>
@@ -457,10 +493,14 @@ export default function GeneradorContratos() {
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gc-marca"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Marca *
                     </label>
                     <input
+                      id="gc-marca"
                       type="text"
                       value={vehiculo.marca}
                       onChange={(e) => {
@@ -479,10 +519,14 @@ export default function GeneradorContratos() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gc-modelo"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Modelo *
                     </label>
                     <input
+                      id="gc-modelo"
                       type="text"
                       value={vehiculo.modelo}
                       onChange={(e) => {
@@ -501,10 +545,14 @@ export default function GeneradorContratos() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gc-matricula"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Matrícula *
                     </label>
                     <input
+                      id="gc-matricula"
                       type="text"
                       value={vehiculo.matricula}
                       onChange={(e) => {
@@ -523,10 +571,14 @@ export default function GeneradorContratos() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gc-bastidor"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Bastidor *
                     </label>
                     <input
+                      id="gc-bastidor"
                       type="text"
                       value={vehiculo.bastidor}
                       onChange={(e) => {
@@ -545,10 +597,14 @@ export default function GeneradorContratos() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gc-kilometros"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Kilómetros
                     </label>
                     <input
+                      id="gc-kilometros"
                       type="number"
                       value={vehiculo.kms || ''}
                       onChange={(e) =>
@@ -562,10 +618,14 @@ export default function GeneradorContratos() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gc-color"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Color
                     </label>
                     <input
+                      id="gc-color"
                       type="text"
                       value={vehiculo.color}
                       onChange={(e) =>
@@ -576,10 +636,14 @@ export default function GeneradorContratos() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gc-fecha-matriculacion"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Fecha de Matriculación
                     </label>
                     <input
+                      id="gc-fecha-matriculacion"
                       type="date"
                       value={vehiculo.fechaMatriculacion}
                       onChange={(e) =>
@@ -592,10 +656,14 @@ export default function GeneradorContratos() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gc-anio"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Año
                     </label>
                     <input
+                      id="gc-anio"
                       type="number"
                       value={vehiculo.año || ''}
                       onChange={(e) =>
@@ -618,10 +686,14 @@ export default function GeneradorContratos() {
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gc-precio-compra"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Precio de Compra (€) *
                     </label>
                     <input
+                      id="gc-precio-compra"
                       type="number"
                       step="0.01"
                       value={contrato.precioCompra || ''}
@@ -644,10 +716,14 @@ export default function GeneradorContratos() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gc-fecha-compra"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Fecha de Compra
                     </label>
                     <input
+                      id="gc-fecha-compra"
                       type="date"
                       value={contrato.fechaCompra}
                       onChange={(e) =>
@@ -660,10 +736,14 @@ export default function GeneradorContratos() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="gc-forma-pago"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Forma de Pago
                     </label>
                     <select
+                      id="gc-forma-pago"
                       value={contrato.formaPago}
                       onChange={(e) =>
                         setContrato({ ...contrato, formaPago: e.target.value })

@@ -343,8 +343,11 @@ export default function KanbanPage() {
                       <button
                         onClick={() => setSearchTerm('')}
                         className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+                        aria-label="Limpiar búsqueda"
+                        title="Limpiar búsqueda"
                       >
                         <svg
+                          aria-hidden="true"
                           className="h-4 w-4"
                           fill="none"
                           stroke="currentColor"
@@ -409,8 +412,11 @@ export default function KanbanPage() {
                   <button
                     onClick={closeEditModal}
                     className="text-white hover:text-green-100 transition-colors"
+                    aria-label="Cerrar"
+                    title="Cerrar"
                   >
                     <svg
+                      aria-hidden="true"
                       className="w-6 h-6"
                       fill="none"
                       stroke="currentColor"

@@ -102,6 +102,8 @@ export default function Toast({
 
   return (
     <div
+      role="status"
+      aria-live="polite"
       className={`fixed top-4 right-4 z-50 transform transition-all duration-300 ${
         isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
       }`}
@@ -117,8 +119,11 @@ export default function Toast({
             setTimeout(onClose, 300)
           }}
           className="ml-2 hover:bg-white/20 rounded-full p-1 transition-colors"
+          aria-label="Cerrar"
+          title="Cerrar"
         >
           <svg
+            aria-hidden="true"
             className="w-4 h-4"
             fill="none"
             stroke="currentColor"

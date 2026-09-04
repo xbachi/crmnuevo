@@ -468,11 +468,15 @@ export default function NuevoDepositoPage() {
                     <h3 className="text-lg font-semibold text-slate-900 mb-4">
                       Seleccionar Cliente
                     </h3>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label
+                      htmlFor="dep-cliente-busqueda"
+                      className="block text-sm font-medium text-slate-700 mb-2"
+                    >
                       Cliente *
                     </label>
                     <div className="relative dropdown-container">
                       <input
+                        id="dep-cliente-busqueda"
                         type="text"
                         value={clienteSearch}
                         onChange={(e) => {
@@ -593,10 +597,14 @@ export default function NuevoDepositoPage() {
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                               <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">
+                                <label
+                                  htmlFor="dep-cliente-nombre"
+                                  className="block text-sm font-medium text-slate-700 mb-1"
+                                >
                                   Nombre *
                                 </label>
                                 <input
+                                  id="dep-cliente-nombre"
                                   type="text"
                                   value={newCliente.nombre}
                                   onChange={(e) =>
@@ -609,10 +617,14 @@ export default function NuevoDepositoPage() {
                                 />
                               </div>
                               <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">
+                                <label
+                                  htmlFor="dep-cliente-apellidos"
+                                  className="block text-sm font-medium text-slate-700 mb-1"
+                                >
                                   Apellidos *
                                 </label>
                                 <input
+                                  id="dep-cliente-apellidos"
                                   type="text"
                                   value={newCliente.apellidos}
                                   onChange={(e) =>
@@ -625,10 +637,14 @@ export default function NuevoDepositoPage() {
                                 />
                               </div>
                               <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">
+                                <label
+                                  htmlFor="dep-cliente-telefono"
+                                  className="block text-sm font-medium text-slate-700 mb-1"
+                                >
                                   Teléfono *
                                 </label>
                                 <input
+                                  id="dep-cliente-telefono"
                                   type="tel"
                                   value={newCliente.telefono}
                                   onChange={(e) =>
@@ -641,10 +657,14 @@ export default function NuevoDepositoPage() {
                                 />
                               </div>
                               <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">
+                                <label
+                                  htmlFor="dep-cliente-email"
+                                  className="block text-sm font-medium text-slate-700 mb-1"
+                                >
                                   Email
                                 </label>
                                 <input
+                                  id="dep-cliente-email"
                                   type="email"
                                   value={newCliente.email}
                                   onChange={(e) =>
@@ -657,10 +677,14 @@ export default function NuevoDepositoPage() {
                                 />
                               </div>
                               <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">
+                                <label
+                                  htmlFor="dep-cliente-dni"
+                                  className="block text-sm font-medium text-slate-700 mb-1"
+                                >
                                   DNI *
                                 </label>
                                 <input
+                                  id="dep-cliente-dni"
                                   type="text"
                                   value={newCliente.dni}
                                   onChange={(e) =>
@@ -682,10 +706,14 @@ export default function NuevoDepositoPage() {
                               </h4>
                               <div className="space-y-3">
                                 <div>
-                                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                                  <label
+                                    htmlFor="dep-cliente-calle"
+                                    className="block text-sm font-medium text-slate-700 mb-1"
+                                  >
                                     Calle *
                                   </label>
                                   <input
+                                    id="dep-cliente-calle"
                                     type="text"
                                     value={newCliente.calle}
                                     onChange={(e) =>
@@ -700,10 +728,14 @@ export default function NuevoDepositoPage() {
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                   <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                                    <label
+                                      htmlFor="dep-cliente-codigo-postal"
+                                      className="block text-sm font-medium text-slate-700 mb-1"
+                                    >
                                       Código Postal *
                                     </label>
                                     <input
+                                      id="dep-cliente-codigo-postal"
                                       type="text"
                                       value={newCliente.codPostal}
                                       onChange={(e) =>
@@ -717,10 +749,14 @@ export default function NuevoDepositoPage() {
                                     />
                                   </div>
                                   <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                                    <label
+                                      htmlFor="dep-cliente-ciudad"
+                                      className="block text-sm font-medium text-slate-700 mb-1"
+                                    >
                                       Ciudad *
                                     </label>
                                     <input
+                                      id="dep-cliente-ciudad"
                                       type="text"
                                       value={newCliente.ciudad}
                                       onChange={(e) =>
@@ -735,10 +771,14 @@ export default function NuevoDepositoPage() {
                                   </div>
                                 </div>
                                 <div>
-                                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                                  <label
+                                    htmlFor="dep-cliente-provincia"
+                                    className="block text-sm font-medium text-slate-700 mb-1"
+                                  >
                                     Provincia *
                                   </label>
                                   <input
+                                    id="dep-cliente-provincia"
                                     type="text"
                                     value={newCliente.provincia}
                                     onChange={(e) =>
@@ -785,11 +825,15 @@ export default function NuevoDepositoPage() {
                     <h3 className="text-lg font-semibold text-slate-900 mb-4">
                       Seleccionar Vehículo
                     </h3>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label
+                      htmlFor="dep-vehiculo-busqueda"
+                      className="block text-sm font-medium text-slate-700 mb-2"
+                    >
                       Vehículo *
                     </label>
                     <div className="relative dropdown-container">
                       <input
+                        id="dep-vehiculo-busqueda"
                         type="text"
                         value={vehiculoSearch}
                         onChange={(e) => {
@@ -1001,10 +1045,14 @@ export default function NuevoDepositoPage() {
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                        <label
+                          htmlFor="dep-monto-propietario"
+                          className="block text-sm font-medium text-slate-700 mb-2"
+                        >
                           Monto que va a recibir el propietario (€)
                         </label>
                         <input
+                          id="dep-monto-propietario"
                           type="number"
                           step="0.01"
                           value={montoRecibir}
@@ -1014,10 +1062,14 @@ export default function NuevoDepositoPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                        <label
+                          htmlFor="dep-dias-gestion"
+                          className="block text-sm font-medium text-slate-700 mb-2"
+                        >
                           Días de gestión
                         </label>
                         <input
+                          id="dep-dias-gestion"
                           type="number"
                           value={diasGestion}
                           onChange={(e) => setDiasGestion(e.target.value)}
@@ -1026,10 +1078,14 @@ export default function NuevoDepositoPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                        <label
+                          htmlFor="dep-multa-retiro"
+                          className="block text-sm font-medium text-slate-700 mb-2"
+                        >
                           Multa por retiro anticipado (€)
                         </label>
                         <input
+                          id="dep-multa-retiro"
                           type="number"
                           step="0.01"
                           value={multaRetiroAnticipado}
@@ -1041,10 +1097,14 @@ export default function NuevoDepositoPage() {
                         />
                       </div>
                       <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                        <label
+                          htmlFor="dep-numero-cuenta"
+                          className="block text-sm font-medium text-slate-700 mb-2"
+                        >
                           Número de cuenta
                         </label>
                         <input
+                          id="dep-numero-cuenta"
                           type="text"
                           value={numeroCuenta}
                           onChange={(e) => setNumeroCuenta(e.target.value)}
