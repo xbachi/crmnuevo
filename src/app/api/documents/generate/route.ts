@@ -3,6 +3,7 @@ import {
   generarContratoReserva,
   generarContratoVenta,
   generarFactura,
+  generarMandatoGestoria,
 } from '@/lib/contractGenerator'
 import {
   isDocumentType,
@@ -10,6 +11,7 @@ import {
   type DocumentType,
 } from '@/lib/documentStorage'
 import {
+  getDealById,
   setDealDocumentRef,
   type DealDocumentColumn,
 } from '@/lib/direct-database'
@@ -20,20 +22,34 @@ import {
 const PERSIST_COLUMN: Partial<Record<DocumentType, DealDocumentColumn>> = {
   'contrato-reserva': 'contratoReserva',
   'contrato-venta': 'contratoVenta',
+  'mandato-gestoria': 'mandatoGestoria',
+}
+
+interface GestoriaInput {
+  nombre?: string | null
+  nif?: string | null
+  direccion?: string | null
+}
+
+// Gestoría del mandato: lo que venga en el body pisa el entorno; lo que no
+// esté en ninguno queda como línea en blanco en el PDF.
+function resolverGestoria(body: GestoriaInput | null | undefined) {
+  return {
+    nombre: body?.nombre ?? process.env.GESTORIA_NOMBRE ?? null,
+    nif: body?.nif ?? process.env.GESTORIA_NIF ?? null,
+    direccion: body?.direccion ?? process.env.GESTORIA_DIRECCION ?? null,
+  }
 }
 
 export async function POST(request: NextRequest) {
   try {
     console.log('🔍 [API GENERATE] Iniciando generación de documento...')
 
-    const {
-      dealId,
-      documentType,
-      dealData,
-      dealNumber,
-      tipoFactura,
-      numeroFactura,
-    } = await request.json()
+    const body = await request.json()
+    const { dealId, tipoFactura, numeroFactura, gestoria } = body
+    // `type` es alias de `documentType` (la ficha manda documentType).
+    const documentType = body.documentType ?? body.type
+    let { dealData, dealNumber } = body
 
     console.log('🔍 [API GENERATE] Request recibido:', {
       dealId,
@@ -43,16 +59,8 @@ export async function POST(request: NextRequest) {
       dealNumber,
     })
 
-    // Validar parámetros
-    if (!documentType || !dealData || !dealNumber) {
-      return NextResponse.json(
-        { error: 'Parámetros faltantes' },
-        { status: 400 }
-      )
-    }
-
     // Validar tipo de documento
-    if (!isDocumentType(documentType)) {
+    if (!documentType || !isDocumentType(documentType)) {
       return NextResponse.json(
         { error: 'Tipo de documento inválido' },
         { status: 400 }
@@ -63,6 +71,39 @@ export async function POST(request: NextRequest) {
     if (dealId && isNaN(dealIdNum)) {
       return NextResponse.json(
         { error: 'ID de deal inválido' },
+        { status: 400 }
+      )
+    }
+
+    // Sin dealData en el body (p. ej. mandato: basta con dealId), se carga el
+    // deal de la base de datos.
+    if ((!dealData || !dealNumber) && dealIdNum > 0) {
+      const deal = await getDealById(dealIdNum)
+      if (!deal) {
+        return NextResponse.json(
+          { error: 'Deal no encontrado' },
+          { status: 404 }
+        )
+      }
+      dealData = dealData ?? {
+        numero: deal.numero,
+        fechaCreacion: deal.fechaCreacion,
+        cliente: deal.cliente,
+        vehiculo: deal.vehiculo,
+        importeTotal: deal.importeTotal,
+        importeSena: deal.importeSena,
+        formaPagoSena: deal.formaPagoSena,
+        fechaReservaDesde: deal.fechaReservaDesde,
+        fechaReservaExpira: deal.fechaReservaExpira,
+        fechaVentaFirmada: deal.fechaVentaFirmada,
+      }
+      dealNumber = dealNumber ?? deal.numero
+    }
+
+    // Validar parámetros
+    if (!dealData || !dealNumber) {
+      return NextResponse.json(
+        { error: 'Parámetros faltantes' },
         { status: 400 }
       )
     }
@@ -129,6 +170,18 @@ export async function POST(request: NextRequest) {
           pdfBuffer = await generarFactura(dealData, tipoFactura, numeroFactura)
           console.log(
             '✅ [API GENERATE] Factura generada exitosamente, tamaño:',
+            pdfBuffer.length,
+            'bytes'
+          )
+          break
+
+        case 'mandato-gestoria':
+          console.log('🔍 [API GENERATE] Generando mandato de gestoría...')
+          pdfBuffer = await generarMandatoGestoria(dealData, {
+            gestoria: resolverGestoria(gestoria),
+          })
+          console.log(
+            '✅ [API GENERATE] Mandato de gestoría generado, tamaño:',
             pdfBuffer.length,
             'bytes'
           )

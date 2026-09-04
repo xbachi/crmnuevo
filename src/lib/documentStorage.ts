@@ -18,12 +18,17 @@ import { del, put } from '@vercel/blob'
  *   - cualquier otro   → nombre de archivo legacy en public/documents/.
  */
 
-export type DocumentType = 'contrato-reserva' | 'contrato-venta' | 'factura'
+export type DocumentType =
+  | 'contrato-reserva'
+  | 'contrato-venta'
+  | 'factura'
+  | 'mandato-gestoria'
 
 export const DOCUMENT_TYPES: readonly DocumentType[] = [
   'contrato-reserva',
   'contrato-venta',
   'factura',
+  'mandato-gestoria',
 ]
 
 export function isDocumentType(value: unknown): value is DocumentType {

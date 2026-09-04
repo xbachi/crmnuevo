@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { useToast } from '@/components/Toast'
 import { useConfirmModal } from '@/components/ConfirmModal'
@@ -11,7 +11,7 @@ import {
 import DealRectificarButton from '@/components/invoicing/DealRectificarButton'
 import { downloadPdf } from '@/lib/pdf/download'
 
-interface Invoice {
+export interface Invoice {
   id: number
   invoice_type: string
   series: string
@@ -58,6 +58,9 @@ interface Props {
   /** Invoked after a successful issue/preview refresh so the parent page
    *  (e.g. the Documentación panel reading `deal.factura`) can re-fetch. */
   onInvoiceIssued?: () => void | Promise<void>
+  /** Lista de facturas del deal tras cada carga y tras emitir, para que el
+   *  padre (panel Documentación) muestre la factura real sin otra query. */
+  onInvoicesChange?: (invoices: Invoice[]) => void
 }
 
 function formatEUR(n: number | string | null | undefined) {
@@ -101,10 +104,17 @@ export default function DealInvoiceSection({
   legacyFacturaName,
   legacyFacturaDate,
   onInvoiceIssued,
+  onInvoicesChange,
 }: Props) {
   const { showToast, ToastContainer } = useToast()
   const { showConfirm, ConfirmModalComponent } = useConfirmModal()
   const [invoices, setInvoices] = useState<Invoice[]>([])
+  // Ref para que un callback inline del padre no recree `load` (y con él el
+  // useEffect de carga) en cada render.
+  const onInvoicesChangeRef = useRef(onInvoicesChange)
+  useEffect(() => {
+    onInvoicesChangeRef.current = onInvoicesChange
+  }, [onInvoicesChange])
   const [isLoading, setIsLoading] = useState(true)
   const [preview, setPreview] = useState<PreviewData | null>(null)
   const [previewType, setPreviewType] = useState<'VAT' | 'REBU' | null>(null)
@@ -152,7 +162,9 @@ export default function DealInvoiceSection({
         })
         if (res.ok) {
           const data = await res.json()
-          setInvoices(data.rows ?? [])
+          const rows: Invoice[] = data.rows ?? []
+          setInvoices(rows)
+          onInvoicesChangeRef.current?.(rows)
         }
       } catch (e) {
         console.error('[DealInvoiceSection] load', e)
@@ -330,10 +342,12 @@ export default function DealInvoiceSection({
       // refetch ni el archivado en OneDrive) para que no quede la duda de si se
       // creó. El load() posterior reconcilia con el estado real del servidor.
       if (data.invoice) {
-        setInvoices((prev) => [
+        const next: Invoice[] = [
           data.invoice,
-          ...prev.filter((i) => i.id !== data.invoice.id),
-        ])
+          ...invoices.filter((i) => i.id !== data.invoice.id),
+        ]
+        setInvoices(next)
+        onInvoicesChangeRef.current?.(next)
         setJustIssued(data.invoice)
         setBannerClosed(false)
       }

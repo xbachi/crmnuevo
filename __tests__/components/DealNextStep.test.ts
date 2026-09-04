@@ -104,6 +104,32 @@ describe('calcularSiguientePaso', () => {
     expect(r.anchorId).toBe(DEAL_ANCHOR_CAMBIO_NOMBRE)
   })
 
+  it('cambio de nombre sin mandato de gestoría → lo pide como primer sub-paso', () => {
+    const facturado: SiguientePasoInput = {
+      ...base,
+      estado: 'facturado',
+      tieneFacturaActiva: true,
+    }
+    const sin = calcularSiguientePaso({
+      ...facturado,
+      tieneMandatoGestoria: false,
+    })
+    expect(sin.paso).toBe(4)
+    expect(sin.descripcion).toBe(
+      'Genera el mandato de gestoría · después: cambio de nombre solicitado'
+    )
+
+    // true o undefined → descripción de siempre
+    const con = calcularSiguientePaso({
+      ...facturado,
+      tieneMandatoGestoria: true,
+    })
+    expect(con.descripcion).toBe('Siguiente: cambio de nombre solicitado')
+    expect(calcularSiguientePaso(facturado).descripcion).toBe(
+      'Siguiente: cambio de nombre solicitado'
+    )
+  })
+
   it('vendido con factura activa se trata como facturado', () => {
     const r = calcularSiguientePaso({
       ...base,

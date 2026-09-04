@@ -417,6 +417,7 @@ export interface Deal {
   fechaEntrega?: Date
   contratoReserva?: string
   contratoVenta?: string
+  mandatoGestoria?: string
   factura?: string
   recibos?: string
   pagosSena?: string
@@ -478,6 +479,7 @@ export async function getDeals() {
         d."responsableComercial",
         d."contratoReserva",
         d."contratoVenta",
+        d."mandatoGestoria",
         d.factura,
         c.nombre as cliente_nombre,
         c.apellidos as cliente_apellidos,
@@ -543,6 +545,7 @@ export async function getDeals() {
       fechaEntrega: row.fechaEntrega,
       contratoReserva: row.contratoReserva,
       contratoVenta: row.contratoVenta,
+      mandatoGestoria: row.mandatoGestoria,
       factura: row.factura,
       recibos: row.recibos,
       pagosSena: row.pagosSena,
@@ -650,6 +653,7 @@ export async function getDealById(id: number): Promise<Deal | null> {
       fechaEntrega: row.fechaEntrega,
       contratoReserva: row.contratoReserva,
       contratoVenta: row.contratoVenta,
+      mandatoGestoria: row.mandatoGestoria,
       factura: row.factura,
       recibos: row.recibos,
       pagosSena: row.pagosSena,
@@ -733,7 +737,10 @@ export async function createDeal(dealData: DealCreateData) {
   }
 }
 
-export type DealDocumentColumn = 'contratoReserva' | 'contratoVenta'
+export type DealDocumentColumn =
+  | 'contratoReserva'
+  | 'contratoVenta'
+  | 'mandatoGestoria'
 
 /**
  * Persiste la referencia (URL de Vercel Blob) del PDF generado para un deal.
@@ -752,7 +759,11 @@ export async function setDealDocumentRef(
 }
 
 function isDealDocumentColumn(key: string): key is DealDocumentColumn {
-  return key === 'contratoReserva' || key === 'contratoVenta'
+  return (
+    key === 'contratoReserva' ||
+    key === 'contratoVenta' ||
+    key === 'mandatoGestoria'
+  )
 }
 
 // Mismo criterio que documentStorage.isBlobRef, duplicado a propósito: importar

@@ -12,7 +12,13 @@ import { formatCurrency, generateClienteSlug } from '@/lib/utils'
 import DealVentaInfo from '@/components/DealVentaInfo'
 import CondicionesPagoModal from '@/components/CondicionesPagoModal'
 import type { CondicionesPago } from '@/lib/ventaCondicionesPago'
-import DealInvoiceSection from '@/components/invoicing/DealInvoiceSection'
+import DealInvoiceSection, {
+  type Invoice,
+} from '@/components/invoicing/DealInvoiceSection'
+import {
+  InvoiceStatusBadge,
+  InvoiceTypeBadge,
+} from '@/components/invoicing/InvoiceStatusBadge'
 import NotasSection from '@/components/NotasSection'
 import EstadoBadge from '@/components/EstadoBadge'
 import DealNextStep, {
@@ -71,6 +77,7 @@ interface Deal {
   fechaEntrega?: Date
   contratoReserva?: string
   contratoVenta?: string
+  mandatoGestoria?: string
   factura?: string
   recibos?: string
   pagosSena?: string
@@ -217,6 +224,9 @@ export default function DealDetail() {
   const [isUpdating, setIsUpdating] = useState(false)
   const [isGeneratingReserva, setIsGeneratingReserva] = useState(false)
   const [isGeneratingVenta, setIsGeneratingVenta] = useState(false)
+  const [isGeneratingMandato, setIsGeneratingMandato] = useState(false)
+  // Facturas reales del módulo de facturación (las reporta DealInvoiceSection)
+  const [invoices, setInvoices] = useState<Invoice[]>([])
   const [notas, setNotas] = useState<Nota[]>([])
   const [recordatorios, setRecordatorios] = useState<Recordatorio[]>([])
   const [documentacionFiles, setDocumentacionFiles] = useState<any[]>([])
@@ -803,6 +813,132 @@ export default function DealDetail() {
     )
   }
 
+  // Factura activa del módulo de facturación: ni anulada, ni rectificada, ni
+  // un abono (RECTIFYING). Alimenta la card de factura del panel Documentación.
+  const facturaActiva = invoices.find(
+    (i) =>
+      i.status !== 'VOIDED' &&
+      i.status !== 'RECTIFIED' &&
+      i.invoice_type !== 'RECTIFYING'
+  )
+
+  const handleDescargarFacturaReal = async (inv: Invoice) => {
+    const { downloadPdf } = await import('@/lib/pdf/download')
+    await downloadPdf({
+      url: `/api/invoices/${inv.id}/download`,
+      filename: `factura-${inv.full_invoice_number}`,
+      onError: (msg) => showToast(msg, 'error'),
+    })
+  }
+
+  // Mandato de gestoría: autorización del comprador para el cambio de nombre.
+  // Tiene sentido a partir de la venta (vendido o facturado).
+  const puedeGenerarMandato =
+    deal != null &&
+    ['vendido', 'facturado'].includes(normalizarDealEstado(deal.estado))
+
+  const handleGenerarMandatoGestoria = async () => {
+    if (!deal) {
+      showToast('No hay datos del deal disponibles', 'error')
+      return
+    }
+    try {
+      setIsGeneratingMandato(true)
+      const response = await fetch('/api/documents/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dealId: deal.id,
+          documentType: 'mandato-gestoria',
+          dealNumber: deal.numero,
+          dealData: {
+            numero: deal.numero,
+            fechaCreacion: deal.fechaCreacion,
+            cliente: deal.cliente,
+            vehiculo: deal.vehiculo,
+            importeTotal: deal.importeTotal,
+            fechaVentaFirmada: deal.fechaVentaFirmada,
+          },
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}))
+        showToast(
+          error.error || 'Error generando el mandato de gestoría',
+          'error'
+        )
+        return
+      }
+
+      // El endpoint devuelve el PDF: se descarga al instante y la referencia
+      // ya quedó persistida en el deal (Deal.mandatoGestoria).
+      const pdfBlob = await response.blob()
+      const url = window.URL.createObjectURL(pdfBlob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `mandato-gestoria-${deal.numero}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+
+      showToast('Mandato de gestoría generado exitosamente', 'success')
+      await fetchDeal({ silent: true })
+    } catch (error) {
+      console.error('Error generando mandato de gestoría:', error)
+      showToast('Error al generar el mandato de gestoría', 'error')
+    } finally {
+      setIsGeneratingMandato(false)
+    }
+  }
+
+  const handleDescargarMandatoGestoria = () => {
+    if (!deal?.mandatoGestoria) return
+    window.open(
+      `/api/documents/${deal.id}/mandato-gestoria?dealNumber=${deal.numero}`,
+      '_blank'
+    )
+  }
+
+  const handleAnularMandatoGestoria = () => {
+    if (!deal?.mandatoGestoria) return
+
+    showConfirm(
+      'Anular mandato de gestoría',
+      `Se eliminará el PDF del mandato de gestoría del deal ${deal.numero}. Esta acción no se puede deshacer.`,
+      async () => {
+        setIsUpdating(true)
+        try {
+          await fetch(`/api/documents/${deal.id}/mandato-gestoria`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dealNumber: deal.numero }),
+          })
+
+          const response = await fetch(`/api/deals/${deal.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mandatoGestoria: null }),
+          })
+
+          if (response.ok) {
+            showToast('Mandato de gestoría anulado', 'success')
+            await fetchDeal({ silent: true })
+          } else {
+            showToast('Error al anular el mandato de gestoría', 'error')
+          }
+        } catch (error) {
+          console.error('Error anulando mandato de gestoría:', error)
+          showToast('Error al anular el mandato de gestoría', 'error')
+        } finally {
+          setIsUpdating(false)
+        }
+      },
+      'danger'
+    )
+  }
+
   const handleCambioNombreChange = async (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -1221,6 +1357,7 @@ export default function DealDetail() {
             estado={deal.estado}
             tieneContratoReserva={Boolean(deal.contratoReserva)}
             tieneContratoVenta={Boolean(deal.contratoVenta)}
+            tieneMandatoGestoria={Boolean(deal.mandatoGestoria)}
             // El backend pone estado=facturado al emitir y lo devuelve a vendido
             // al rectificar: el estado es la única señal fiable de factura activa.
             tieneFacturaActiva={
@@ -1405,6 +1542,7 @@ export default function DealDetail() {
                   // Refresco silencioso: el spinner de página desmonta la sección y
                   // perdería la factura recién emitida (y su toast).
                   onInvoiceIssued={() => fetchDeal({ silent: true })}
+                  onInvoicesChange={setInvoices}
                 />
               </div>
 
@@ -1985,8 +2123,63 @@ export default function DealDetail() {
                     )}
                   </div>
 
-                  {/* Factura emitida por el sistema anterior (solo deals antiguos) */}
-                  {deal.factura && (
+                  {/* Factura: la real del módulo de facturación; si no hay, la del sistema anterior */}
+                  {facturaActiva ? (
+                    <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center bg-green-100">
+                          <svg
+                            className="w-4 h-4 text-green-600"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                            />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            Factura {facturaActiva.full_invoice_number}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
+                            <span>
+                              {new Date(
+                                facturaActiva.invoice_date
+                              ).toLocaleDateString('es-ES')}
+                            </span>
+                            <InvoiceTypeBadge
+                              type={facturaActiva.invoice_type}
+                            />
+                            <InvoiceStatusBadge status={facturaActiva.status} />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex space-x-2">
+                        {facturaActiva.pdf_url && (
+                          <button
+                            onClick={() =>
+                              handleDescargarFacturaReal(facturaActiva)
+                            }
+                            disabled={isUpdating}
+                            className="px-3 py-1 bg-blue-100 text-blue-700 rounded-md text-sm font-medium hover:bg-blue-200 transition-colors"
+                          >
+                            Descargar PDF
+                          </button>
+                        )}
+                        <Link
+                          href={`/facturacion/${facturaActiva.id}`}
+                          className="px-3 py-1 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors"
+                        >
+                          Ver detalle
+                        </Link>
+                      </div>
+                    </div>
+                  ) : deal.factura ? (
                     <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                       <div className="flex items-center space-x-3">
                         <div className="w-8 h-8 rounded-full flex items-center justify-center bg-green-100">
@@ -2021,24 +2214,50 @@ export default function DealDetail() {
                         Descargar
                       </button>
                     </div>
+                  ) : (
+                    <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center bg-gray-100">
+                          <svg
+                            className="w-4 h-4 text-gray-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                            />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">Factura</p>
+                          <p className="text-sm text-gray-500">
+                            Sin factura: emítela desde la sección{' '}
+                            <a
+                              href={`#${DEAL_ANCHOR_FACTURACION}`}
+                              className="text-blue-600 hover:underline"
+                            >
+                              Facturación
+                            </a>
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   )}
 
-                  {/* Mandato Gestoría */}
+                  {/* Mandato de gestoría (generado desde la venta) */}
                   <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                     <div className="flex items-center space-x-3">
                       <div
                         className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          getDocumentFile('mandato_gestoria')
-                            ? 'bg-green-100'
-                            : 'bg-gray-100'
+                          deal.mandatoGestoria ? 'bg-green-100' : 'bg-gray-100'
                         }`}
                       >
                         <svg
-                          className={`w-4 h-4 ${
-                            getDocumentFile('mandato_gestoria')
-                              ? 'text-green-600'
-                              : 'text-gray-400'
-                          }`}
+                          className={`w-4 h-4 ${deal.mandatoGestoria ? 'text-green-600' : 'text-gray-400'}`}
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -2053,31 +2272,57 @@ export default function DealDetail() {
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">
-                          Mandato Gestoría
+                          Mandato de gestoría
                         </p>
                         <p className="text-sm text-gray-500">
-                          {getDocumentFile('mandato_gestoria')
-                            ? 'Archivo disponible'
-                            : 'No hay archivo subido'}
+                          {deal.mandatoGestoria
+                            ? 'Generado'
+                            : puedeGenerarMandato
+                              ? 'No generado'
+                              : 'Disponible a partir de la venta'}
                         </p>
                       </div>
                     </div>
-                    {getDocumentFile('mandato_gestoria') ? (
-                      <a
-                        href={getDocumentFile('mandato_gestoria').url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-3 py-1 bg-green-100 text-green-700 rounded-md text-sm font-medium hover:bg-green-200"
-                      >
-                        Imprimir
-                      </a>
+                    {deal.mandatoGestoria ? (
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={handleDescargarMandatoGestoria}
+                          disabled={isUpdating}
+                          className="px-3 py-1 bg-blue-100 text-blue-700 rounded-md text-sm font-medium hover:bg-blue-200 transition-colors"
+                        >
+                          Descargar
+                        </button>
+                        <button
+                          onClick={handleAnularMandatoGestoria}
+                          disabled={isUpdating}
+                          className="px-3 py-1 bg-red-100 text-red-700 rounded-md text-sm font-medium hover:bg-red-200 transition-colors"
+                        >
+                          Anular
+                        </button>
+                      </div>
                     ) : (
-                      <Link
-                        href="/documentacion"
-                        className="px-3 py-1 bg-blue-100 text-blue-700 rounded-md text-sm font-medium hover:bg-blue-200"
+                      <button
+                        onClick={handleGenerarMandatoGestoria}
+                        disabled={
+                          !puedeGenerarMandato ||
+                          isGeneratingMandato ||
+                          isUpdating
+                        }
+                        title={
+                          puedeGenerarMandato
+                            ? undefined
+                            : 'Disponible cuando el deal está vendido o facturado'
+                        }
+                        className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                          puedeGenerarMandato
+                            ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        }`}
                       >
-                        Subir
-                      </Link>
+                        {isGeneratingMandato
+                          ? 'Generando...'
+                          : 'Generar mandato'}
+                      </button>
                     )}
                   </div>
 

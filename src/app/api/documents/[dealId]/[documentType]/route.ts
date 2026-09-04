@@ -13,6 +13,7 @@ interface DealDocRow {
   numero: string
   contratoReserva: string | null
   contratoVenta: string | null
+  mandatoGestoria: string | null
 }
 
 interface ResolvedDocument {
@@ -48,7 +49,8 @@ async function resolveDocument(
   }
 
   const { rows } = await pool.query<DealDocRow>(
-    `SELECT numero, "contratoReserva", "contratoVenta" FROM "Deal" WHERE id = $1`,
+    `SELECT numero, "contratoReserva", "contratoVenta", "mandatoGestoria"
+       FROM "Deal" WHERE id = $1`,
     [dealIdNum]
   )
   const deal = rows[0]
@@ -61,7 +63,9 @@ async function resolveDocument(
       ? deal.contratoReserva
       : documentType === 'contrato-venta'
         ? deal.contratoVenta
-        : null
+        : documentType === 'mandato-gestoria'
+          ? deal.mandatoGestoria
+          : null
 
   const dealNumber = deal.numero || dealNumberHint || String(dealIdNum)
   return {

@@ -419,6 +419,8 @@ export interface DealData {
   fechaReservaExpira?: Date
   /** Condiciones de pago capturadas al generar el contrato de venta. */
   condicionesPago?: CondicionesPago
+  /** Fecha del contrato de venta; el mandato de gestoría la cita. */
+  fechaVentaFirmada?: Date | string | null
 }
 
 // Función para convertir números a letras
@@ -1211,6 +1213,315 @@ export async function generarContratoVenta(
 
   const pdfBuffer = doc.output('arraybuffer')
   return new Uint8Array(pdfBuffer)
+}
+
+// =============================================================================
+// Mandato de gestoría: autorización del comprador para que la gestoría tramite
+// el cambio de titularidad en la DGT. Una hoja A4, mismo header/footer que los
+// contratos de reserva/venta.
+// =============================================================================
+
+export interface MandatoGestoriaOptions {
+  gestoria?: {
+    nombre?: string | null
+    nif?: string | null
+    direccion?: string | null
+  }
+}
+
+interface CampoMandato {
+  label: string
+  value?: string | null
+}
+
+/** "4 de septiembre de 2026" (sin día de la semana). */
+function formatearFechaLarga(fecha: Date): string {
+  return fecha.toLocaleDateString('es-ES', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+}
+
+/** "04/09/2026"; null si la fecha falta o no es válida. */
+function formatearFechaCorta(
+  fecha: Date | string | null | undefined
+): string | null {
+  if (!fecha) return null
+  const d = fecha instanceof Date ? fecha : new Date(fecha)
+  if (isNaN(d.getTime())) return null
+  return d.toLocaleDateString('es-ES', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
+}
+
+/**
+ * Card con filas "etiqueta · valor". Un valor ausente deja una línea en blanco
+ * para rellenar a mano (el mandato se firma en papel en la entrega).
+ */
+function drawFieldCard(
+  doc: jsPDF,
+  titulo: string,
+  campos: CampoMandato[],
+  x: number,
+  y: number,
+  width: number
+): number {
+  const padX = 4
+  const padY = 3
+  const rowH = 5
+  const labelW = 34
+  const cardH = padY * 2 + 4 + campos.length * rowH
+
+  doc.setFillColor(COLORS.bgCard[0], COLORS.bgCard[1], COLORS.bgCard[2])
+  doc.setDrawColor(COLORS.border[0], COLORS.border[1], COLORS.border[2])
+  doc.setLineWidth(0.2)
+  doc.roundedRect(x, y, width, cardH, 1.5, 1.5, 'FD')
+
+  doc.setFontSize(7.5)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(
+    COLORS.brandDark[0],
+    COLORS.brandDark[1],
+    COLORS.brandDark[2]
+  )
+  doc.text(titulo.toUpperCase(), x + padX, y + padY + 1.5)
+
+  const valueX = x + padX + labelW
+  const valueMaxW = width - padX * 2 - labelW
+  campos.forEach((campo, i) => {
+    const rowY = y + padY + 6.5 + i * rowH
+    doc.setFontSize(7.5)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(
+      COLORS.textSecondary[0],
+      COLORS.textSecondary[1],
+      COLORS.textSecondary[2]
+    )
+    doc.text(campo.label, x + padX, rowY)
+
+    const value = (campo.value ?? '').trim()
+    if (value) {
+      doc.setFontSize(8.8)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(
+        COLORS.textPrimary[0],
+        COLORS.textPrimary[1],
+        COLORS.textPrimary[2]
+      )
+      doc.text(value, valueX, rowY, { maxWidth: valueMaxW })
+    } else {
+      doc.setDrawColor(
+        COLORS.textMuted[0],
+        COLORS.textMuted[1],
+        COLORS.textMuted[2]
+      )
+      doc.setLineWidth(0.25)
+      doc.line(valueX, rowY + 0.6, valueX + valueMaxW, rowY + 0.6)
+    }
+  })
+
+  doc.setTextColor(
+    COLORS.textPrimary[0],
+    COLORS.textPrimary[1],
+    COLORS.textPrimary[2]
+  )
+  return y + cardH + 3
+}
+
+/**
+ * Autorización y mandato del comprador a la gestoría para tramitar la
+ * transferencia del vehículo ante la DGT. Los datos de la gestoría llegan en
+ * `opts.gestoria` (la ruta API los resuelve desde el body o desde el entorno);
+ * lo que falte queda como línea en blanco para rellenar a mano.
+ */
+export async function generarMandatoGestoria(
+  deal: DealData,
+  opts: MandatoGestoriaOptions = {}
+): Promise<Uint8Array> {
+  const doc = new jsPDF()
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
+  const margin = 15
+  const contentWidth = pageWidth - margin * 2
+  const vendor = INVOICE_CONFIG.vendor
+  let y = margin - 9
+
+  // === Header: logo + bloque vendor + barra de acento ===
+  y = await addLogoToContract(doc, y)
+  y -= 8
+  y = drawVendorBlock(doc, vendor, pageWidth, y)
+  drawAccentBar(doc, margin, y, contentWidth)
+  y += 5
+
+  // === Título ===
+  doc.setFontSize(12)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(4, 120, 87)
+  const tituloLineas: string[] = doc.splitTextToSize(
+    'AUTORIZACIÓN Y MANDATO PARA LA TRAMITACIÓN DE LA TRANSFERENCIA DEL VEHÍCULO',
+    contentWidth
+  )
+  tituloLineas.forEach((linea, i) => {
+    doc.text(linea, pageWidth / 2, y + 4 + i * 5.5, { align: 'center' })
+  })
+  y += tituloLineas.length * 5.5 + 5
+
+  // === Lugar y fecha (lugar en blanco: se rellena al firmar) ===
+  doc.setFontSize(8.5)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(17, 24, 39)
+  doc.text(
+    `En ____________________, a ${formatearFechaLarga(new Date())}.`,
+    margin,
+    y
+  )
+  y += 6
+
+  // === Mandante (comprador) ===
+  const cliente = deal.cliente
+  const nombreCompleto =
+    `${capitalizeText(cliente?.nombre) || ''} ${capitalizeText(cliente?.apellidos) || ''}`.trim()
+  const domicilio = [
+    cliente?.calle,
+    cliente?.codPostal,
+    cliente?.ciudad,
+    cliente?.provincia,
+  ]
+    .filter((p) => p && String(p).trim())
+    .join(', ')
+
+  y = drawSectionTitle(doc, 'Mandante (parte compradora)', margin, y)
+  y = drawFieldCard(
+    doc,
+    'Datos del mandante',
+    [
+      { label: 'Nombre y apellidos', value: nombreCompleto },
+      { label: 'DNI / NIE', value: cliente?.dni },
+      { label: 'Domicilio', value: domicilio },
+      { label: 'Teléfono', value: cliente?.telefono },
+      { label: 'Email', value: cliente?.email },
+    ],
+    margin,
+    y,
+    contentWidth
+  )
+
+  // === Vehículo ===
+  y = drawSectionTitle(doc, 'Vehículo objeto de la transferencia', margin, y)
+  y = drawVehicleDataCard(
+    doc,
+    {
+      marca: capitalizeText(deal.vehiculo?.marca) || '—',
+      modelo: capitalizeText(deal.vehiculo?.modelo) || '—',
+      matricula: (deal.vehiculo?.matricula || '—').toUpperCase(),
+      bastidor: deal.vehiculo?.bastidor || '—',
+      kms: deal.vehiculo?.kms
+        ? `${(deal.vehiculo.kms as number).toLocaleString('es-ES')} km`
+        : '—',
+      fechaMatriculacion: deal.vehiculo?.fechaMatriculacion
+        ? getFechaMatriculacion(deal.vehiculo)
+        : '—',
+    },
+    margin,
+    y,
+    contentWidth,
+    { compact: true }
+  )
+
+  // === Gestoría ===
+  const gestoria = opts.gestoria ?? {}
+  y = drawSectionTitle(doc, 'Gestoría autorizada (mandataria)', margin, y)
+  y = drawFieldCard(
+    doc,
+    'Datos de la gestoría',
+    [
+      { label: 'Nombre / razón social', value: gestoria.nombre },
+      { label: 'NIF', value: gestoria.nif },
+      { label: 'Dirección', value: gestoria.direccion },
+    ],
+    margin,
+    y,
+    contentWidth
+  )
+
+  // === Autorización ===
+  const fechaVenta = formatearFechaCorta(deal.fechaVentaFirmada)
+  const refContrato = fechaVenta
+    ? `contrato de compraventa suscrito con ${vendor.legalName} con fecha ${fechaVenta}`
+    : `contrato de compraventa suscrito con ${vendor.legalName} con fecha ____/____/________`
+
+  y = drawSectionTitle(doc, 'Autorización y mandato', margin, y)
+  y = drawNumberedPoint(
+    doc,
+    1,
+    `El/La mandante, comprador/a del vehículo descrito en virtud del ${refContrato}, autoriza expresamente a la gestoría indicada para que, en su nombre y representación, presente ante la Jefatura Provincial de Tráfico / Dirección General de Tráfico la solicitud de cambio de titularidad del citado vehículo.`,
+    margin,
+    y,
+    contentWidth
+  )
+  y = drawNumberedPoint(
+    doc,
+    2,
+    'La autorización comprende aportar y recoger la documentación necesaria para el trámite (permiso de circulación, tarjeta de inspección técnica, justificantes de pago del Impuesto sobre Transmisiones Patrimoniales y de las tasas), abonar en su nombre las tasas correspondientes y realizar cuantas gestiones sean precisas para inscribir el vehículo a nombre del/de la mandante, incluida la subsanación de los defectos que se le requieran.',
+    margin,
+    y,
+    contentWidth
+  )
+  y = drawNumberedPoint(
+    doc,
+    3,
+    `${vendor.legalName}, como parte vendedora, entrega en este acto a la gestoría la documentación del vehículo necesaria para el trámite y firma el presente documento a los solos efectos de acreditar dicha entrega.`,
+    margin,
+    y,
+    contentWidth
+  )
+
+  // Protección de datos: mismo texto que la cláusula de privacidad de la
+  // factura, con la finalidad del tratamiento adaptada a este trámite.
+  doc.setFontSize(7)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(75, 85, 99)
+  doc.text('PROTECCIÓN DE DATOS', margin, y)
+  y += 3.5
+  doc.setFont('helvetica', 'normal')
+  const rgpd = doc.splitTextToSize(
+    `Responsable del tratamiento: ${vendor.legalName} Los datos personales facilitados se tratan con el fin de tramitar la transferencia del vehículo y se comunicarán a la gestoría indicada y a la DGT únicamente para ese fin. ` +
+      'Conservaremos los datos mientras se mantenga la relación comercial y, posteriormente, durante los plazos legalmente exigibles. ' +
+      `Puedes ejercer tus derechos de acceso, rectificación, supresión, oposición, limitación y portabilidad escribiendo a ${vendor.email}. ` +
+      'Si consideras que no hemos satisfecho tu petición, puedes reclamar ante la AEPD (https://www.aepd.es/).',
+    contentWidth
+  )
+  doc.text(rgpd, margin, y)
+  y += rgpd.length * 3 + 4
+
+  // === Conformidad ===
+  doc.setFontSize(8.5)
+  doc.setFont('helvetica', 'italic')
+  doc.setTextColor(75, 85, 99)
+  doc.text(
+    'Y para que así conste y surta los efectos oportunos, firman el presente documento en el lugar y fecha indicados.',
+    margin,
+    y
+  )
+
+  // === Firmas: la vendedora entrega la documentación; el mandante autoriza ===
+  drawSignatureBlock(
+    doc,
+    `${vendor.legalName} — parte vendedora`,
+    'El/La mandante — parte compradora',
+    pageWidth,
+    pageHeight,
+    margin,
+    y
+  )
+
+  // === Footer ===
+  drawFooter(doc, vendor, pageWidth, pageHeight, margin)
+
+  return new Uint8Array(doc.output('arraybuffer'))
 }
 
 // Función para generar contrato de venta CON cláusula de garantía de 14 días (versión especial)

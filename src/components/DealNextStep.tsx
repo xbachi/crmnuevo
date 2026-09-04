@@ -17,6 +17,9 @@ export interface SiguientePasoInput {
   tieneFacturaActiva: boolean
   fechaReservaExpira: string | Date | null | undefined
   cambioNombre: CambioNombreEstado
+  /** `false` → falta el mandato de gestoría (sub-paso previo al cambio de
+   *  nombre); `undefined` → no se evalúa. */
+  tieneMandatoGestoria?: boolean
   /** Inyectable para tests; por defecto `new Date()`. */
   hoy?: Date
 }
@@ -113,11 +116,15 @@ export function calcularSiguientePaso(
         anchorId: null,
       }
     }
+    const siguiente = pendiente.label.toLowerCase()
     return {
       paso: 4,
       total,
       titulo: `Cambio de nombre: ${hechos} de 4 pasos`,
-      descripcion: `Siguiente: ${pendiente.label.toLowerCase()}`,
+      descripcion:
+        input.tieneMandatoGestoria === false
+          ? `Genera el mandato de gestoría · después: ${siguiente}`
+          : `Siguiente: ${siguiente}`,
       ctaLabel: 'Ir al cambio de nombre',
       anchorId: DEAL_ANCHOR_CAMBIO_NOMBRE,
     }

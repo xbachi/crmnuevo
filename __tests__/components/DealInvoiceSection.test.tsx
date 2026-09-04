@@ -87,6 +87,20 @@ describe('DealInvoiceSection — deal ya facturado', () => {
   })
 })
 
+describe('DealInvoiceSection — onInvoicesChange', () => {
+  it('se llama con las facturas cargadas', async () => {
+    mockFetch(() => ({ body: { rows: [ISSUED_INVOICE] } }))
+    const onInvoicesChange = jest.fn()
+    render(
+      <DealInvoiceSection saleId={150} onInvoicesChange={onInvoicesChange} />
+    )
+
+    await waitFor(() =>
+      expect(onInvoicesChange).toHaveBeenCalledWith([ISSUED_INVOICE])
+    )
+  })
+})
+
 describe('DealInvoiceSection — emisión', () => {
   it('tras emitir muestra la factura generada y el botón de descarga', async () => {
     mockFetch((url) => {
