@@ -3,6 +3,11 @@ import { writeFile, mkdir, readFile, unlink } from 'fs/promises'
 import { join } from 'path'
 import { put, list, del } from '@vercel/blob'
 import { pool } from '@/lib/direct-database'
+import {
+  cambiarExtension,
+  comprimirImagen,
+  esImagenComprimible,
+} from '@/lib/imagenes'
 
 const METADATA_FILE = 'archivos-metadata.json'
 // Detectar si estamos en Vercel (producción)
@@ -207,9 +212,41 @@ export async function POST(
       `📁 [VEHICULO UPLOAD] Archivo: ${file.name}, Vehículo: ${vehiculoId}, Blob: ${USE_BLOB_STORAGE}`
     )
 
+    // Fotos (jpeg/png/webp…) → WebP máx. 1600 px. Si la compresión falla o no
+    // reduce el peso, se sube el original: nunca bloquea la subida.
+    let cuerpo: File | Buffer = file
+    let nombreFinal = file.name
+    let tipoFinal = file.type
+    let tamanoFinal = file.size
+    let compresion: {
+      comprimida: true
+      bytesAntes: number
+      bytesDespues: number
+    } | null = null
+
+    if (esImagenComprimible(file.type, file.name)) {
+      const original = Buffer.from(await file.arrayBuffer())
+      const resultado = await comprimirImagen(original)
+      if (resultado && resultado.bytesDespues < resultado.bytesAntes) {
+        cuerpo = resultado.buffer
+        nombreFinal = cambiarExtension(file.name, resultado.extension)
+        tipoFinal = resultado.contentType
+        tamanoFinal = resultado.bytesDespues
+        compresion = {
+          comprimida: true,
+          bytesAntes: resultado.bytesAntes,
+          bytesDespues: resultado.bytesDespues,
+        }
+        console.log(
+          `🗜️ [VEHICULO UPLOAD] Foto comprimida: ${resultado.bytesAntes} → ${resultado.bytesDespues} bytes (${resultado.ancho}x${resultado.alto})`
+        )
+      } else {
+        cuerpo = original
+      }
+    }
+
     const timestamp = Date.now()
-    const fileExtension = file.name.split('.').pop()
-    const uniqueFileName = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
+    const uniqueFileName = `${timestamp}-${nombreFinal.replace(/[^a-zA-Z0-9.-]/g, '_')}`
 
     if (USE_BLOB_STORAGE) {
       // Producción: subir a Vercel Blob
@@ -221,11 +258,11 @@ export async function POST(
 
         const blob = await put(
           `vehiculos/${folderName}/${uniqueFileName}`,
-          file,
+          cuerpo,
           {
             access: 'public',
             addRandomSuffix: true,
-            contentType: file.type,
+            contentType: tipoFinal,
           }
         )
 
@@ -233,10 +270,10 @@ export async function POST(
 
         const newFileMetadata = {
           id: timestamp.toString(),
-          name: file.name,
+          name: nombreFinal,
           fileName: blob.pathname.split('/').pop() ?? uniqueFileName,
-          size: file.size,
-          type: file.type,
+          size: tamanoFinal,
+          type: tipoFinal,
           uploadDate: new Date().toISOString(),
           path: blob.url,
         }
@@ -252,6 +289,7 @@ export async function POST(
           success: true,
           message: 'Archivo subido exitosamente',
           file: newFileMetadata,
+          ...(compresion ?? {}),
         })
       } catch (blobError) {
         console.error('❌ [VEHICULO UPLOAD] Error al subir a Blob:', blobError)
@@ -280,8 +318,9 @@ export async function POST(
       await mkdir(uploadDir, { recursive: true })
       const filePath = join(uploadDir, uniqueFileName)
 
-      const bytes = await file.arrayBuffer()
-      const buffer = Buffer.from(bytes)
+      const buffer = Buffer.isBuffer(cuerpo)
+        ? cuerpo
+        : Buffer.from(await cuerpo.arrayBuffer())
       await writeFile(filePath, buffer)
 
       console.log(`✅ [VEHICULO UPLOAD] Archivo guardado en: ${filePath}`)
@@ -289,10 +328,10 @@ export async function POST(
       const existingMetadata = await loadMetadata(vehiculoId)
       const newFileMetadata = {
         id: timestamp.toString(),
-        name: file.name,
+        name: nombreFinal,
         fileName: uniqueFileName,
-        size: file.size,
-        type: file.type,
+        size: tamanoFinal,
+        type: tipoFinal,
         uploadDate: new Date().toISOString(),
         path: `/uploads/vehiculos/${folderName}/${uniqueFileName}`,
       }
@@ -306,6 +345,7 @@ export async function POST(
         success: true,
         message: 'Archivo subido exitosamente',
         file: newFileMetadata,
+        ...(compresion ?? {}),
       })
     }
   } catch (error) {
