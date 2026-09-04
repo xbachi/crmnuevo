@@ -21,6 +21,7 @@ import DealNextStep, {
   DEAL_ANCHOR_FACTURACION,
 } from '@/components/DealNextStep'
 import { normalizarDealEstado } from '@/lib/dealEstado'
+import DealMensajes from '@/components/DealMensajes'
 
 interface Deal {
   id: number
@@ -1843,6 +1844,9 @@ export default function DealDetail() {
                   </div>
                 </div>
               </div>
+
+              {/* Mensajes al cliente (email / WhatsApp) */}
+              <DealMensajes deal={deal} />
 
               {/* Notas */}
               {deal?.id ? (
