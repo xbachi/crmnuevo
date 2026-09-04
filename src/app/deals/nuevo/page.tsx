@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { useToast } from '@/components/Toast'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useToast } from '@/hooks/useToast'
 import {
   formatCurrency,
   formatVehicleReference,
@@ -10,6 +10,10 @@ import {
   capitalizeText,
 } from '@/lib/utils'
 import Link from 'next/link'
+import {
+  puedePreseleccionarVehiculo,
+  resolverPasoInicial,
+} from '@/lib/dealWizard'
 
 interface Cliente {
   id: number
@@ -41,8 +45,11 @@ interface DealRef {
   estado: string
 }
 
-export default function NuevoDealPage() {
+function NuevoDealPageInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const vehiculoIdParam = searchParams.get('vehiculoId')
+  const clienteIdParam = searchParams.get('clienteId')
   const { showToast, ToastContainer } = useToast()
 
   const [clientes, setClientes] = useState<Cliente[]>([])
@@ -112,6 +119,80 @@ export default function NuevoDealPage() {
       fechaReservaExpira: fechaExpiracionFormato,
     }))
   }, [])
+
+  // Precarga desde la URL (?vehiculoId= desde la ficha del coche, ?clienteId=
+  // desde la ficha del cliente). Va directo a /api/{vehiculos,clientes}/{id}:
+  // la lista del wizard excluye vehículos en preparación y no sirve para esto.
+  useEffect(() => {
+    if (!vehiculoIdParam && !clienteIdParam) return
+    let cancelado = false
+
+    const precargar = async () => {
+      let cliente: Cliente | null = null
+      let vehiculo: Vehiculo | null = null
+
+      if (clienteIdParam) {
+        try {
+          const res = await fetch(`/api/clientes/${clienteIdParam}`)
+          if (res.ok) cliente = await res.json()
+        } catch (error) {
+          console.error('Error precargando cliente:', error)
+        }
+      }
+
+      if (vehiculoIdParam) {
+        try {
+          const res = await fetch(`/api/vehiculos/${vehiculoIdParam}`)
+          if (res.ok) {
+            const v: Vehiculo = await res.json()
+            if (puedePreseleccionarVehiculo(v)) {
+              vehiculo = v
+            } else if (!cancelado) {
+              showToast('Ese vehículo ya está reservado o vendido', 'warning')
+            }
+          }
+        } catch (error) {
+          console.error('Error precargando vehículo:', error)
+        }
+      }
+
+      if (cancelado) return
+
+      if (cliente) {
+        setSelectedCliente(cliente)
+        setClienteSearchTerm(
+          `${capitalizeText(cliente.nombre)} ${capitalizeText(cliente.apellidos)}`
+        )
+      }
+      if (vehiculo) {
+        setSelectedVehiculo(vehiculo)
+        setVehiculoSearchTerm(
+          `${capitalizeText(vehiculo.marca)} ${capitalizeText(vehiculo.modelo)} - ${vehiculo.referencia}`
+        )
+      }
+      const clienteOk = cliente
+      const vehiculoOk = vehiculo
+      setFormData((prev) => ({
+        ...prev,
+        clienteId: clienteOk ? String(clienteOk.id) : prev.clienteId,
+        vehiculoId: vehiculoOk ? String(vehiculoOk.id) : prev.vehiculoId,
+        importeTotal:
+          vehiculoOk && !prev.importeTotal
+            ? String(vehiculoOk.precioPublicacion ?? '')
+            : prev.importeTotal,
+      }))
+      setCurrentStep(
+        resolverPasoInicial({ cliente: !!cliente, vehiculo: !!vehiculo })
+      )
+    }
+
+    precargar()
+    return () => {
+      cancelado = true
+    }
+    // showToast es estable (useCallback sin deps en el provider)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vehiculoIdParam, clienteIdParam])
 
   // Cerrar dropdowns al hacer clic fuera
   useEffect(() => {
@@ -1393,5 +1474,14 @@ export default function NuevoDealPage() {
 
       <ToastContainer />
     </div>
+  )
+}
+
+// useSearchParams() exige un límite de Suspense en el App Router (build estático).
+export default function NuevoDealPage() {
+  return (
+    <Suspense fallback={null}>
+      <NuevoDealPageInner />
+    </Suspense>
   )
 }

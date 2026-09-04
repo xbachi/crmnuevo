@@ -13,6 +13,19 @@ export async function GET() {
   }
 }
 
+// Fecha vacía o inválida → null (nunca reventar el INSERT por un string raro)
+function parseFecha(value: unknown): Date | null {
+  if (value === null || value === undefined || value === '') return null
+  const d = new Date(value as string | number | Date)
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
+function parseNumero(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null
+  const n = Number(value)
+  return Number.isFinite(n) ? n : null
+}
+
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json()
@@ -32,6 +45,13 @@ export async function POST(request: NextRequest) {
       importeTotal: data.importeTotal ? parseFloat(data.importeTotal) : undefined,
       importeSena: data.importeSena ? parseFloat(data.importeSena) : undefined,
       formaPagoSena: data.formaPagoSena,
+      restoAPagar: parseNumero(data.restoAPagar),
+      financiacion: Boolean(data.financiacion),
+      entidadFinanciera: data.entidadFinanciera
+        ? String(data.entidadFinanciera)
+        : null,
+      fechaReservaDesde: parseFecha(data.fechaReservaDesde),
+      fechaReservaExpira: parseFecha(data.fechaReservaExpira),
       observaciones: data.observaciones,
       responsableComercial: data.responsableComercial || 'Usuario'
     })

@@ -435,11 +435,11 @@ export interface DealCreateData {
   importeTotal?: number
   importeSena?: number
   formaPagoSena?: string
-  restoAPagar?: number
+  restoAPagar?: number | null
   financiacion?: boolean
-  entidadFinanciera?: string
-  fechaReservaDesde?: Date
-  fechaReservaExpira?: Date
+  entidadFinanciera?: string | null
+  fechaReservaDesde?: Date | null
+  fechaReservaExpira?: Date | null
   observaciones?: string
   responsableComercial?: string
 }
@@ -688,8 +688,9 @@ export async function createDeal(dealData: DealCreateData) {
     const result = await client.query(
       `
       INSERT INTO "Deal" (
-        numero, "clienteId", "vehiculoId", estado, "importeTotal", "importeSena", "formaPagoSena", observaciones, "responsableComercial"
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *
+        numero, "clienteId", "vehiculoId", estado, "importeTotal", "importeSena", "formaPagoSena", observaciones, "responsableComercial",
+        "restoAPagar", financiacion, "entidadFinanciera", "fechaReservaDesde", "fechaReservaExpira"
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *
     `,
       [
         numero,
@@ -701,6 +702,11 @@ export async function createDeal(dealData: DealCreateData) {
         dealData.formaPagoSena,
         dealData.observaciones,
         dealData.responsableComercial,
+        dealData.restoAPagar ?? null,
+        dealData.financiacion ?? false,
+        dealData.entidadFinanciera ?? null,
+        dealData.fechaReservaDesde ?? null,
+        dealData.fechaReservaExpira ?? null,
       ]
     )
 

@@ -12,7 +12,7 @@ import {
   generateVehicleSlug,
   capitalizeText,
 } from '@/lib/utils'
-import { labelTipo, TIPO_LABEL } from '@/lib/vehiculoEstado'
+import { labelTipo, normalizarEstado, TIPO_LABEL } from '@/lib/vehiculoEstado'
 import NotasSection from '@/components/NotasSection'
 import { useAuth } from '@/contexts/AuthContext'
 import ProtectedRoute from '@/components/ProtectedRoute'
@@ -975,7 +975,7 @@ export default function VehiculoDetailPage() {
           editingData.inversorId <= 0
         ) {
           showToast(
-            'Seleccioná un inversor para el vehículo de tipo Inversor',
+            'Selecciona un inversor para el vehículo de tipo Inversor',
             'error'
           )
           return
@@ -1708,6 +1708,22 @@ export default function VehiculoDetailPage() {
                 >
                   {labelTipo(vehiculo.tipo)}
                 </span>
+                {vehiculo.venta?.dealId ? (
+                  <Link
+                    href={`/deals/${vehiculo.venta.dealId}`}
+                    className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs sm:text-sm font-medium whitespace-nowrap"
+                  >
+                    Ver venta {vehiculo.venta.dealNumero}
+                  </Link>
+                ) : normalizarEstado(vehiculo.estado) !== 'RESERVADO' &&
+                  normalizarEstado(vehiculo.estado) !== 'VENDIDO' ? (
+                  <Link
+                    href={`/deals/nuevo?vehiculoId=${vehiculo.id}`}
+                    className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs sm:text-sm font-medium whitespace-nowrap"
+                  >
+                    Reservar / vender
+                  </Link>
+                ) : null}
               </div>
             </div>
           </div>
