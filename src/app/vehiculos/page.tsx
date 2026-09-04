@@ -653,7 +653,7 @@ export default function ListaVehiculos() {
 
       // Un vehículo de tipo Inversor necesita un inversor asignado.
       if (updatedVehiculo.tipo === 'I' && !updatedVehiculo.inversorId) {
-        showToast('Seleccioná un inversor para el vehículo', 'error')
+        showToast('Selecciona un inversor para el vehículo', 'error')
         setIsUpdating(false)
         return
       }

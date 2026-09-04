@@ -285,7 +285,7 @@ export default function GeneradorFacturas() {
               SIEMPRE usa el siguiente número de la serie para evitar saltos.
             </p>
             <p className="text-xs text-amber-800 mt-2">
-              Para ver, descargar o regenerar facturas emitidas, usá{' '}
+              Para ver, descargar o regenerar facturas emitidas, usa{' '}
               <a
                 href="/facturacion/historial"
                 className="font-medium underline hover:text-amber-900"

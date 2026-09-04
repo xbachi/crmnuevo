@@ -248,12 +248,12 @@ test.describe('Modal de condiciones de pago @comisiones', () => {
 
     // 1) Sin forma de pago.
     await submit.click()
-    await expect(error).toHaveText('Elegí la forma de pago')
+    await expect(error).toHaveText('Elige la forma de pago')
 
     // 2) Con forma de pago pero sin elegir garantía premium (radio sin default).
     await page.getByTestId('forma-pago').selectOption('contado')
     await submit.click()
-    await expect(error).toHaveText('Indicá si lleva garantía premium (sí o no)')
+    await expect(error).toHaveText('Indica si lleva garantía premium (sí o no)')
 
     // Ninguna de las dos intentonas llegó al server.
     expect(posts).toHaveLength(0)

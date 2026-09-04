@@ -334,7 +334,7 @@ export default function InvoiceDetailPage() {
           <strong>Factura importada (legacy).</strong> Esta factura fue migrada
           desde el campo <code>Deal.factura</code> en el momento de la
           instalación del módulo. No tiene PDF descargable porque los datos
-          originales no están disponibles. Si necesitás el PDF, generalo desde
+          originales no están disponibles. Si necesitas el PDF, genéralo desde
           el sistema externo donde se emitió originalmente.
         </div>
       )}

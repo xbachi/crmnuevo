@@ -322,7 +322,7 @@ export default function ValidacionPage() {
               ) : items.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="px-3 py-8 text-center text-sm text-gray-500">
-                    {error ? 'No se pudo cargar el registro.' : 'Nada por acá con estos filtros.'}
+                    {error ? 'No se pudo cargar el registro.' : 'Nada por aquí con estos filtros.'}
                   </td>
                 </tr>
               ) : (

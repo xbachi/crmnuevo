@@ -62,11 +62,11 @@ export default function CondicionesPagoModal({
 
   const handleSubmit = () => {
     if (!formaPago) {
-      setError('Elegí la forma de pago')
+      setError('Elige la forma de pago')
       return
     }
     if (garantiaPremium === null) {
-      setError('Indicá si lleva garantía premium (sí o no)')
+      setError('Indica si lleva garantía premium (sí o no)')
       return
     }
     const val = validarCondicionesPago(

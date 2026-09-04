@@ -171,7 +171,7 @@ export default function RevisionPage() {
             <p className="text-sm text-gray-500 mt-1">
               Documentos dudosos del pipeline de facturas: verificación manual,
               gastos rechazados por rango, registros incompletos y emails a
-              revisar. Corregí los datos y aprobá con un clic.
+              revisar. Corrige los datos y aprueba con un clic.
             </p>
           </div>
         </div>
@@ -246,7 +246,7 @@ export default function RevisionPage() {
             <div className="lg:col-span-2">
               {!selected ? (
                 <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-sm text-gray-500">
-                  Seleccioná un item de la lista para revisarlo.
+                  Selecciona un item de la lista para revisarlo.
                 </div>
               ) : (
                 <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-4">

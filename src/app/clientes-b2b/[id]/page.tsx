@@ -77,7 +77,7 @@ function ClienteB2BDetailPage() {
         return
       }
       showToast(
-        `Factura ${data.full_invoice_number} anulada. Ya podés emitir una nueva.`,
+        `Factura ${data.full_invoice_number} anulada. Ya puedes emitir una nueva.`,
         'success'
       )
       setVentaToVoidFactura(null)
@@ -362,7 +362,7 @@ function ClienteB2BDetailPage() {
           </div>
           {ventas.length === 0 ? (
             <div className="p-8 text-center text-gray-500 text-sm">
-              Aún no hay ventas. Hacé clic en "Generar nueva venta".
+              Aún no hay ventas. Haz clic en &quot;Generar nueva venta&quot;.
             </div>
           ) : (
             <table className="w-full text-sm">

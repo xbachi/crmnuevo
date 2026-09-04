@@ -98,7 +98,7 @@ export async function DELETE(
       return NextResponse.json(
         {
           error:
-            'Esta factura ya fue emitida (ISSUED); no se puede borrar. Usá /anular para anularla conservando el número fiscal.',
+            'Esta factura ya fue emitida (ISSUED); no se puede borrar. Usa /anular para anularla conservando el número fiscal.',
           code: 'ISSUED_NOT_DELETABLE',
         },
         { status: 409 }

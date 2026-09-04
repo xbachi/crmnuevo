@@ -52,8 +52,14 @@ function mockFetch(handler: (url: string, init?: RequestInit) => unknown) {
 
 beforeEach(() => {
   jest.clearAllMocks()
-  window.confirm = jest.fn(() => true)
 })
+
+/** Las confirmaciones fiscales van por ConfirmModal (no window.confirm):
+ *  el botón "Emitir X" abre el modal y el POST solo sale al confirmar. */
+async function confirmarModal(confirmText: string) {
+  const btn = await screen.findByRole('button', { name: confirmText })
+  fireEvent.click(btn)
+}
 
 describe('DealInvoiceSection — deal ya facturado', () => {
   it('deshabilita Emitir IVA / Emitir REBU de forma permanente', async () => {
@@ -93,6 +99,15 @@ describe('DealInvoiceSection — emisión', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Emitir REBU' }))
 
+    // Modal de confirmación: todavía no se hizo el POST.
+    expect(screen.getByText('Emitir factura REBU')).toBeInTheDocument()
+    expect(screen.getByText(/consume el siguiente número fiscal/i)).toBeInTheDocument()
+    expect(
+      (global.fetch as jest.Mock).mock.calls.some(([u]) => String(u).includes('/invoice/issue'))
+    ).toBe(false)
+
+    await confirmarModal('Emitir factura')
+
     await waitFor(() =>
       expect(screen.getByText(/Factura R-2026-031 generada correctamente/i)).toBeInTheDocument()
     )
@@ -124,6 +139,7 @@ describe('DealInvoiceSection — emisión', () => {
     render(<DealInvoiceSection saleId={150} />)
 
     fireEvent.click(await screen.findByRole('button', { name: 'Emitir REBU' }))
+    await confirmarModal('Emitir factura')
 
     // El error del servidor se muestra tal cual, no un genérico.
     await waitFor(() =>
@@ -136,10 +152,36 @@ describe('DealInvoiceSection — emisión', () => {
     fireEvent.click(
       screen.getByRole('button', { name: /Emitir igualmente \(duplicación fiscal\)/i })
     )
+    // Segunda confirmación explícita (tipo danger) antes de forzar.
+    expect(screen.getByText('Coche ya facturado en otra venta')).toBeInTheDocument()
+    expect(issueCalls).toHaveLength(1)
+    await confirmarModal('Emitir igualmente')
 
     await waitFor(() => expect(issueCalls).toHaveLength(2))
     expect(issueCalls[1]).toEqual(
       expect.objectContaining({ invoiceType: 'REBU', allowDuplicate: true })
     )
+  })
+
+  it('cancelar en el modal no emite nada', async () => {
+    const issueCalls: unknown[] = []
+    mockFetch((url) => {
+      if (url.includes('/invoice/issue')) {
+        issueCalls.push(url)
+        return { status: 201, body: { invoice: ISSUED_INVOICE, alreadyExisted: false } }
+      }
+      return { body: { rows: [] } }
+    })
+    render(<DealInvoiceSection saleId={150} />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Emitir IVA' }))
+    expect(screen.getByText('Emitir factura IVA')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+
+    await waitFor(() =>
+      expect(screen.queryByText('Emitir factura IVA')).not.toBeInTheDocument()
+    )
+    expect(issueCalls).toHaveLength(0)
+    expect(screen.getByRole('button', { name: 'Emitir IVA' })).toBeEnabled()
   })
 })

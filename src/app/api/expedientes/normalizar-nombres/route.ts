@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
         {
           ok: false,
           verificable: false,
-          nota: `Sin snapshot de OneDrive para ${quarter}T ${year} — corré el escaneo de expedientes antes de renombrar.`,
+          nota: `Sin snapshot de OneDrive para ${quarter}T ${year} — ejecuta el escaneo de expedientes antes de renombrar.`,
         },
         { status: 409 }
       )
@@ -314,7 +314,7 @@ export async function POST(request: NextRequest) {
       omitidos,
       yaCanonicos,
       fallidos: [] as { carpeta: string; nombre: string; motivo: string }[],
-      nota: 'Simulación: no se renombró nada. Volvé a llamar con dryRun:false para aplicar.',
+      nota: 'Simulación: no se renombró nada. Vuelve a llamar con dryRun:false para aplicar.',
     }
     if (dryRun) return NextResponse.json(informeDry)
 
@@ -455,7 +455,7 @@ export async function POST(request: NextRequest) {
       ...(errorLote ? { error: errorLote } : {}),
       ...(restantes > 0
         ? {
-            nota: `Lote parcial: ${procesados} de ${total} operaciones. Volvé a aplicar para continuar (lo ya renombrado no se vuelve a tocar).`,
+            nota: `Lote parcial: ${procesados} de ${total} operaciones. Vuelve a aplicar para continuar (lo ya renombrado no se vuelve a tocar).`,
           }
         : {}),
     })

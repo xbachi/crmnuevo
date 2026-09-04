@@ -12,6 +12,8 @@ interface ConfirmModalProps {
   cancelText?: string
   type?: 'danger' | 'warning' | 'info'
   isLoading?: boolean
+  /** Texto del botón de confirmar mientras `isLoading` es true. */
+  loadingText?: string
 }
 
 export default function ConfirmModal({
@@ -23,7 +25,8 @@ export default function ConfirmModal({
   confirmText = 'Confirmar',
   cancelText = 'Cancelar',
   type = 'danger',
-  isLoading = false
+  isLoading = false,
+  loadingText = 'Procesando...'
 }: ConfirmModalProps) {
   useEffect(() => {
     if (isOpen) {
@@ -96,7 +99,7 @@ export default function ConfirmModal({
 
           {/* Body */}
           <div className="px-6 py-4">
-            <p className="text-slate-700 leading-relaxed">{message}</p>
+            <p className="text-slate-700 leading-relaxed whitespace-pre-line">{message}</p>
           </div>
 
           {/* Footer */}
@@ -116,7 +119,7 @@ export default function ConfirmModal({
               {isLoading ? (
                 <div className="flex items-center space-x-2">
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                  <span>Eliminando...</span>
+                  <span>{loadingText}</span>
                 </div>
               ) : (
                 confirmText
@@ -130,22 +133,36 @@ export default function ConfirmModal({
 }
 
 // Hook para usar el modal de confirmación
+type ConfirmType = 'danger' | 'warning' | 'info'
+
+export interface ShowConfirmOptions {
+  type?: ConfirmType
+  confirmText?: string
+  cancelText?: string
+  loadingText?: string
+}
+
 export function useConfirmModal() {
   const [modalState, setModalState] = useState({
     isOpen: false,
     title: '',
     message: '',
     onConfirm: () => {},
-    type: 'danger' as 'danger' | 'warning' | 'info',
-    isLoading: false
+    type: 'danger' as ConfirmType,
+    isLoading: false,
+    confirmText: undefined as string | undefined,
+    cancelText: undefined as string | undefined,
+    loadingText: undefined as string | undefined
   })
 
   const showConfirm = (
     title: string,
     message: string,
     onConfirm: () => void | Promise<void>,
-    type: 'danger' | 'warning' | 'info' = 'danger'
+    typeOrOptions: ConfirmType | ShowConfirmOptions = 'danger'
   ) => {
+    const options: ShowConfirmOptions =
+      typeof typeOrOptions === 'string' ? { type: typeOrOptions } : typeOrOptions
     setModalState({
       isOpen: true,
       title,
@@ -160,8 +177,11 @@ export function useConfirmModal() {
           throw error
         }
       },
-      type,
-      isLoading: false
+      type: options.type ?? 'danger',
+      isLoading: false,
+      confirmText: options.confirmText,
+      cancelText: options.cancelText,
+      loadingText: options.loadingText
     })
   }
 
@@ -178,6 +198,9 @@ export function useConfirmModal() {
       message={modalState.message}
       type={modalState.type}
       isLoading={modalState.isLoading}
+      confirmText={modalState.confirmText}
+      cancelText={modalState.cancelText}
+      loadingText={modalState.loadingText}
     />
   )
 

@@ -269,7 +269,7 @@ export default function InvestorDashboardPage() {
           (vendido
             ? `Sin precio, el beneficio de esta venta se calculará mal.\n\n`
             : `Sin precio, el capital invertido de ${inversorData?.nombre} no se descontará.\n\n`) +
-          `Ingresá el precio de compra en € (o dejá vacío para asignar sin precio):`
+          `Introduce el precio de compra en € (o déjalo vacío para asignar sin precio):`
       )
       if (input === null) return
       const parsed = parseFloat(input.replace(/\./g, '').replace(',', '.'))

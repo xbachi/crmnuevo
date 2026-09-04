@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
         {
           ok: false,
           verificable: false,
-          nota: `Sin snapshot de OneDrive para ${quarter}T ${year} — corré el snapshot de expedientes antes de reparar.`,
+          nota: `Sin snapshot de OneDrive para ${quarter}T ${year} — ejecuta el snapshot de expedientes antes de reparar.`,
         },
         { status: 409 }
       )
@@ -273,7 +273,7 @@ export async function POST(request: NextRequest) {
       yaEstaban,
       fallidas,
       nota: dryRun
-        ? 'Simulación: no se copió nada. Volvé a llamar con dryRun:false para aplicar.'
+        ? 'Simulación: no se copió nada. Vuelve a llamar con dryRun:false para aplicar.'
         : undefined,
       notaSinPdf:
         sinPdfEnCrm.length > 0

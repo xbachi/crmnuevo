@@ -73,7 +73,7 @@ export function camposProveedor(body: Record<string, unknown>): CamposProveedor 
       campos.nif = v.normalizado
       campos.nif_valido = v.valido
       if (!v.valido) {
-        aviso = `El NIF "${v.normalizado}" no supera la validación (${v.motivo ?? 'formato no reconocido'}). Se guardó igual marcado como no válido: revisalo antes de declarar, la AEAT lo rechaza en el 347.`
+        aviso = `El NIF "${v.normalizado}" no supera la validación (${v.motivo ?? 'formato no reconocido'}). Se guardó igual marcado como no válido: revísalo antes de declarar, la AEAT lo rechaza en el 347.`
       }
     }
   }

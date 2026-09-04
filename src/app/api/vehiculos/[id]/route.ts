@@ -115,7 +115,7 @@ export async function PUT(
           return NextResponse.json(
             {
               error: `Transición de estado inválida: '${vehiculoExistente.estado ?? ''}' → '${String(updateData.estado)}'`,
-              hint: 'si el cambio es intencional, reenviá con force: true',
+              hint: 'si el cambio es intencional, reenvía con force: true',
             },
             { status: 422 }
           )
@@ -141,7 +141,7 @@ export async function PUT(
         return NextResponse.json(
           {
             error: 'La matrícula no se cambia por este endpoint',
-            hint: `usá POST /api/vehiculos/${id}/matricula { matricula, motivo } — deja historial y mantiene los cruces por la matrícula anterior`,
+            hint: `usa POST /api/vehiculos/${id}/matricula { matricula, motivo } — deja historial y mantiene los cruces por la matrícula anterior`,
           },
           { status: 409 }
         )
@@ -169,7 +169,7 @@ export async function PUT(
         return NextResponse.json(
           {
             error: 'Un vehículo de tipo Inversor requiere un inversor asignado',
-            hint: 'enviá inversorId (> 0) junto con tipo: "I"',
+            hint: 'envía inversorId (> 0) junto con tipo: "I"',
           },
           { status: 400 }
         )

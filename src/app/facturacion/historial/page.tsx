@@ -201,7 +201,7 @@ export default function HistorialFacturacionPage() {
   const handleDownload = (invoice: Invoice) => {
     if (!invoice.pdf_url) {
       showToast(
-        'Esta factura no tiene PDF disponible. Probá regenerarla desde el detalle.',
+        'Esta factura no tiene PDF disponible. Prueba a regenerarla desde el detalle.',
         'info'
       )
       return

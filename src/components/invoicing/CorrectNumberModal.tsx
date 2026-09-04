@@ -61,11 +61,11 @@ export default function CorrectNumberModal({
       return
     }
     if (reason.trim().length < 3) {
-      setError('Indicá un motivo (mínimo 3 caracteres).')
+      setError('Indica un motivo (mínimo 3 caracteres).')
       return
     }
     if (!acknowledged) {
-      setError('Tenés que confirmar que entendés las implicancias contables.')
+      setError('Tienes que confirmar que entiendes las implicaciones contables.')
       return
     }
 

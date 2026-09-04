@@ -185,7 +185,7 @@ export default function ExpedientesPage() {
         // Sin avance no tiene sentido seguir golpeando: algo lo bloquea.
         if (body.procesados === 0) {
           throw new Error(
-            `El renombrado no avanza (${body.restantes} pendiente(s)) — revisá los fallidos.`
+            `El renombrado no avanza (${body.restantes} pendiente(s)) — revisa los fallidos.`
           )
         }
       }
@@ -194,7 +194,7 @@ export default function ExpedientesPage() {
       const incompleto = ultimo && !ultimo.completado
       showToast(
         incompleto
-          ? `Quedaron ${ultimo!.restantes} operación(es) pendientes — volvé a aplicar para continuar`
+          ? `Quedaron ${ultimo!.restantes} operación(es) pendientes — vuelve a aplicar para continuar`
           : n > 0
             ? `${n} archivo(s) renombrados en OneDrive`
             : 'No había nada que renombrar',
@@ -444,7 +444,7 @@ export default function ExpedientesPage() {
                 disabled={chequeando || quarter === 'todos'}
                 title={
                   quarter === 'todos'
-                    ? 'Elegí un trimestre concreto para chequear'
+                    ? 'Elige un trimestre concreto para chequear'
                     : undefined
                 }
                 className={`px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all ${
@@ -461,7 +461,7 @@ export default function ExpedientesPage() {
                   disabled={reparando || quarter === 'todos'}
                   title={
                     quarter === 'todos'
-                      ? 'Elegí un trimestre concreto para reparar'
+                      ? 'Elige un trimestre concreto para reparar'
                       : 'Simula primero: no copia nada hasta confirmar'
                   }
                   className={`px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all ${
@@ -479,7 +479,7 @@ export default function ExpedientesPage() {
                   disabled={normalizando || quarter === 'todos'}
                   title={
                     quarter === 'todos'
-                      ? 'Elegí un trimestre concreto para normalizar'
+                      ? 'Elige un trimestre concreto para normalizar'
                       : 'Simula primero: no renombra nada hasta confirmar'
                   }
                   className={`px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all ${
@@ -648,7 +648,7 @@ function ExpedienteRow({
           <td colSpan={5} className="px-3 sm:px-6 py-4">
             <div className="space-y-3">
               <div className="text-xs text-gray-500">
-                Marcá a mano los documentos verificados. Los que la
+                Marca a mano los documentos verificados. Los que la
                 automatización ya confirmó vienen marcados solos.
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -782,7 +782,7 @@ function NombresPanel({
       {reanudable && (
         <div className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
           Quedaron {nom.restantes} operación(es) sin hacer
-          {nom.siguienteLote ? ` (sigue por ${nom.siguienteLote})` : ''}. Volvé
+          {nom.siguienteLote ? ` (sigue por ${nom.siguienteLote})` : ''}. Vuelve
           a aplicar: continúa donde quedó, lo ya renombrado no se vuelve a
           tocar.
         </div>

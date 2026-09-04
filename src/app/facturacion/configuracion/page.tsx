@@ -55,7 +55,7 @@ export default function ConfiguracionPage() {
         <p className="text-xs text-gray-500 mt-3">
           Este texto se imprime al pie de cada factura REBU. Si tu gestor pide
           una redacción más formal (ej: cita explícita del Art. 135 Ley 37/1992),
-          editá <code>rebu.legalNote</code> en{' '}
+          edita <code>rebu.legalNote</code> en{' '}
           <code>src/config/invoiceConfig.ts</code>.
         </p>
       </Section>

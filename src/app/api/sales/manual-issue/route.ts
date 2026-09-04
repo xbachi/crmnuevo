@@ -272,7 +272,7 @@ export async function POST(request: NextRequest) {
                 : 'un dato único'
       return NextResponse.json(
         {
-          error: `Ya existe un registro con ${campo}. Revisalo o usá el coche/cliente existente.`,
+          error: `Ya existe un registro con ${campo}. Revísalo o usa el coche/cliente existente.`,
           detail: e.detail,
           constraint: e.constraint,
         },

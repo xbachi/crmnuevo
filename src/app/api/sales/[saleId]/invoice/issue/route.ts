@@ -107,7 +107,7 @@ export async function POST(
       return NextResponse.json(
         {
           error:
-            'Ya existe una factura con ese número. Otro usuario probablemente la emitió simultáneamente. Reintentá.',
+            'Ya existe una factura con ese número. Otro usuario probablemente la emitió simultáneamente. Reintenta.',
           code: 'DUPLICATE',
           detail: e.detail,
         },

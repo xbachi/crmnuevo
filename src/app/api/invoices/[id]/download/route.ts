@@ -29,7 +29,7 @@ export async function GET(
       return NextResponse.json(
         {
           error:
-            'Esta factura todavía no tiene PDF disponible. Probá regenerarlo desde el detalle.',
+            'Esta factura todavía no tiene PDF disponible. Prueba a regenerarlo desde el detalle.',
           code: 'NO_PDF',
         },
         { status: 409 }

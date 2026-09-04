@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { useToast } from '@/components/Toast'
+import { useConfirmModal } from '@/components/ConfirmModal'
 import {
   InvoiceStatusBadge,
   InvoiceTypeBadge,
@@ -102,6 +103,7 @@ export default function DealInvoiceSection({
   onInvoiceIssued,
 }: Props) {
   const { showToast, ToastContainer } = useToast()
+  const { showConfirm, ConfirmModalComponent } = useConfirmModal()
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [preview, setPreview] = useState<PreviewData | null>(null)
@@ -201,23 +203,71 @@ export default function DealInvoiceSection({
     (i) => i.status !== 'RECTIFIED' && i.invoice_type !== 'RECTIFYING'
   )
 
-  const handleIssue = async (
-    type: 'VAT' | 'REBU',
-    opts: { allowDuplicate?: boolean; allowRegimen?: boolean } = {}
-  ) => {
+  type IssueOpts = { allowDuplicate?: boolean; allowRegimen?: boolean }
+
+  /** Decide qué confirmación hace falta y abre el modal. La emisión real
+   *  (`doIssue`) solo corre si el usuario confirma. */
+  const handleIssue = (type: 'VAT' | 'REBU', opts: IssueOpts = {}) => {
     if (issuing) return
     if (hasActiveInvoice) return // ya facturado: no se re-emite, se rectifica
 
-    if (!opts.allowDuplicate && !opts.allowRegimen) {
-      const confirmation = window.confirm(
-        `¿Emitir factura ${type === 'VAT' ? 'con IVA' : 'REBU'}?\n\n` +
-          'Esta acción consume el siguiente número fiscal del CRM y crea una factura ' +
-          'definitiva. Solo se puede revertir desde el módulo de facturación.\n\n' +
-          '¿Confirmás?'
+    if (opts.allowDuplicate && dupConflict) {
+      showConfirm(
+        'Coche ya facturado en otra venta',
+        `${dupConflict.message}\n\n` +
+          'Si emites igualmente, el mismo coche quedará con DOS facturas de ' +
+          'venta activas (duplicación fiscal). Sigue solo si es una reventa ' +
+          'real del mismo vehículo.\n\n¿Emitir igualmente?',
+        () => doIssue(type, opts),
+        {
+          type: 'danger',
+          confirmText: 'Emitir igualmente',
+          loadingText: 'Emitiendo...',
+        }
       )
-      if (!confirmation) return
+      return
     }
 
+    if (opts.allowRegimen && regimenConflict) {
+      const diferencia =
+        regimenConflict.diferencia != null
+          ? ` (${formatEUR(regimenConflict.diferencia)} de IVA de más)`
+          : ''
+      showConfirm(
+        'Régimen incoherente con el origen de la compra',
+        `${regimenConflict.message}\n\n` +
+          'Si emites con IVA igualmente, ingresarás IVA sobre el precio TOTAL ' +
+          `del coche${diferencia}. Sigue solo si la operación va en régimen ` +
+          'general a conciencia.\n\n¿Emitir con IVA igualmente?',
+        () => doIssue(type, opts),
+        {
+          type: 'danger',
+          confirmText: 'Emitir igualmente',
+          loadingText: 'Emitiendo...',
+        }
+      )
+      return
+    }
+
+    const total =
+      preview && previewType === type ? preview.amounts.total_amount : null
+    showConfirm(
+      `Emitir factura ${type === 'VAT' ? 'IVA' : 'REBU'}`,
+      'Esta acción consume el siguiente número fiscal del CRM y crea una ' +
+        'factura definitiva. Solo se puede revertir emitiendo una factura ' +
+        'rectificativa.' +
+        (total != null ? `\n\nTotal: ${formatEUR(total)}` : '') +
+        '\n\n¿Confirmas?',
+      () => doIssue(type, opts),
+      {
+        type: 'warning',
+        confirmText: 'Emitir factura',
+        loadingText: 'Emitiendo...',
+      }
+    )
+  }
+
+  const doIssue = async (type: 'VAT' | 'REBU', opts: IssueOpts = {}) => {
     setIssuing(true)
     setDupConflict(null)
     setRegimenConflict(null)
@@ -298,7 +348,7 @@ export default function DealInvoiceSection({
       console.error(e)
       showToast(
         'Error de red al emitir la factura. Puede que se haya emitido igual: ' +
-          'revisá abajo antes de reintentar.',
+          'revisa abajo antes de reintentar.',
         'error'
       )
     } finally {
@@ -325,6 +375,7 @@ export default function DealInvoiceSection({
     return (
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
         <ToastContainer />
+        <ConfirmModalComponent />
         {justIssued && !bannerClosed && (
           <div className="px-4 py-3 bg-green-50 border-b border-green-200 flex items-start justify-between">
             <div className="flex items-center space-x-2 text-green-800">
@@ -445,6 +496,7 @@ export default function DealInvoiceSection({
   return (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
       <ToastContainer />
+      <ConfirmModalComponent />
       {issuing && (
         <div className="px-4 py-3 bg-blue-50 border-b border-blue-200 flex items-center space-x-2 text-blue-800">
           <svg
@@ -482,7 +534,7 @@ export default function DealInvoiceSection({
             {legacyFacturaDate && `(${formatDate(legacyFacturaDate)})`}.
             <br />
             Esta venta ya tiene un número de factura asignado fuera del módulo
-            actual. Si volvés a emitir desde acá, vas a consumir un nuevo número
+            actual. Si vuelves a emitir desde aquí, consumirás un nuevo número
             fiscal. Si la legacy ya está cerrada con el gestor, no la vuelvas a
             emitir.
           </div>
@@ -492,7 +544,7 @@ export default function DealInvoiceSection({
           <div className="bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded p-3">
             Esta venta tuvo factura (
             {listedInvoices.map((i) => i.full_invoice_number).join(', ')}
-            ), rectificada o anulada. Podés emitir una nueva: consumirá un
+            ), rectificada o anulada. Puedes emitir una nueva: consumirá un
             número fiscal nuevo.
           </div>
         )}
@@ -505,16 +557,9 @@ export default function DealInvoiceSection({
             <p className="text-xs text-red-800">{dupConflict.message}</p>
             <div className="flex space-x-2 pt-1">
               <button
-                onClick={() => {
-                  const ok = window.confirm(
-                    `${dupConflict.message}\n\n` +
-                      'Si emitís igual, el mismo coche va a quedar con DOS facturas de ' +
-                      'venta activas (duplicación fiscal). Solo seguí si es una reventa ' +
-                      'real del mismo vehículo.\n\n¿Emitir igualmente?'
-                  )
-                  if (ok)
-                    handleIssue(dupConflict.type, { allowDuplicate: true })
-                }}
+                onClick={() =>
+                  handleIssue(dupConflict.type, { allowDuplicate: true })
+                }
                 disabled={issuing}
                 className="px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded hover:bg-red-700 disabled:opacity-50"
               >
@@ -551,24 +596,13 @@ export default function DealInvoiceSection({
                 {issuing ? 'Emitiendo…' : 'Emitir REBU (lo correcto)'}
               </button>
               <button
-                onClick={() => {
-                  const ok = window.confirm(
-                    `${regimenConflict.message}\n\n` +
-                      'Si emitís con IVA igual, vas a ingresar IVA sobre el precio TOTAL ' +
-                      'del coche' +
-                      (regimenConflict.diferencia != null
-                        ? ` (${formatEUR(regimenConflict.diferencia)} de más)`
-                        : '') +
-                      '. Solo seguí si la operación va en régimen general a conciencia.' +
-                      '\n\n¿Emitir con IVA igualmente?'
-                  )
-                  if (ok)
-                    handleIssue(regimenConflict.type, { allowRegimen: true })
-                }}
+                onClick={() =>
+                  handleIssue(regimenConflict.type, { allowRegimen: true })
+                }
                 disabled={issuing}
                 className="px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded hover:bg-red-700 disabled:opacity-50"
               >
-                Emitir con IVA igualmente (pagás IVA de más)
+                Emitir con IVA igualmente (pagas IVA de más)
               </button>
               <button
                 onClick={() => setRegimenConflict(null)}
@@ -593,7 +627,7 @@ export default function DealInvoiceSection({
                 </h4>
                 <p className="text-xs text-yellow-800 mt-1">
                   Este número aún <strong>no fue consumido</strong>. Otra
-                  emisión simultánea podría usarlo antes que vos.
+                  emisión simultánea podría usarlo antes que tú.
                 </p>
               </div>
             </div>

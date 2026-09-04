@@ -66,7 +66,7 @@ export async function POST(
       return NextResponse.json(
         {
           error: 'firmantes incompletos (nombre y email requeridos)',
-          hint: 'el cliente del deal no tiene email; mandá firmantes en el body',
+          hint: 'el cliente del deal no tiene email; manda firmantes en el body',
         },
         { status: 400 }
       )

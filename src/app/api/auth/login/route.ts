@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     const clave = claveLogin(ip, email)
     if (estaBloqueado(clave)) {
       return NextResponse.json(
-        { error: 'Demasiados intentos. Esperá 15 minutos.' },
+        { error: 'Demasiados intentos. Espera 15 minutos.' },
         { status: 429 }
       )
     }

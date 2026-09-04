@@ -173,7 +173,7 @@ export function evaluarRegimen(args: {
       'de compra): no hay IVA soportado que deducir. Facturarlo con IVA general ' +
       `te hace ingresar IVA sobre el precio total (${eur(ivaGeneral)} sobre ` +
       `${eur(total)}) ${margen} Lo correcto es emitir en REBU. Si aun así la ` +
-      'operación va en régimen general, confirmá para emitir igualmente.',
+      'operación va en régimen general, confirma para emitir igualmente.',
   }
 }
 

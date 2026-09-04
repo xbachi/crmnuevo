@@ -1744,9 +1744,9 @@ export async function generarFactura(
     doc.text(
       'Responsable del tratamiento: Seven Cars Motors S.L. Los datos personales facilitados se tratan con el fin de prestar el servicio solicitado y facturarlo. ' +
         'Conservaremos los datos mientras se mantenga la relación comercial y, posteriormente, durante los plazos legalmente exigibles. ' +
-        'Podés ejercer tus derechos de acceso, rectificación, supresión, oposición, limitación y portabilidad escribiendo a ' +
+        'Puedes ejercer tus derechos de acceso, rectificación, supresión, oposición, limitación y portabilidad escribiendo a ' +
         vendor.email +
-        '. Si consideras que no hemos satisfecho tu petición, podés reclamar ante la AEPD (https://www.aepd.es/).',
+        '. Si consideras que no hemos satisfecho tu petición, puedes reclamar ante la AEPD (https://www.aepd.es/).',
       margin,
       yPosition,
       { maxWidth: contentWidth }

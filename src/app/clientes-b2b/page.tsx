@@ -111,7 +111,7 @@ function ClientesB2BPage() {
           <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500">
             {search
               ? 'Sin resultados para la búsqueda.'
-              : 'Aún no hay clientes B2B. Creá el primero.'}
+              : 'Aún no hay clientes B2B. Crea el primero.'}
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow border border-gray-200 overflow-hidden">

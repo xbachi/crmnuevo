@@ -23,7 +23,7 @@ export default function RegeneratePdfModal({
 
   const handleConfirm = async () => {
     if (reason.trim().length < 3) {
-      setError('Indicá un motivo (mínimo 3 caracteres).')
+      setError('Indica un motivo (mínimo 3 caracteres).')
       return
     }
     setSubmitting(true)

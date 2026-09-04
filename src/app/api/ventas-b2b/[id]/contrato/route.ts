@@ -113,7 +113,7 @@ export async function GET(
       return NextResponse.json(
         {
           error:
-            'El contrato aún no fue generado. Hacé clic en "Generar contrato B2B en el estado".',
+            'El contrato aún no fue generado. Haz clic en "Generar contrato B2B en el estado".',
           code: 'NO_PDF',
         },
         { status: 409 }

@@ -318,7 +318,7 @@ function NuevaVentaB2BPage() {
 
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">
-              Notas sobre estado del vehículo (opcional, queda en el contrato si lo querés referenciar)
+              Notas sobre estado del vehículo (opcional, queda en el contrato si quieres referenciarlo)
             </label>
             <textarea
               value={form.notas_estado_vehiculo}

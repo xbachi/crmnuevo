@@ -49,7 +49,7 @@ export async function PATCH(
   const estado = typeof body.estado === 'string' ? body.estado : null
   if (!clave && !estado) {
     return NextResponse.json(
-      { error: 'nada que actualizar: mandá {clave, presente} y/o {estado}' },
+      { error: 'nada que actualizar: manda {clave, presente} y/o {estado}' },
       { status: 400 }
     )
   }

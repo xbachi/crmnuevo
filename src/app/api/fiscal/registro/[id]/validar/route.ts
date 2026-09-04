@@ -74,7 +74,7 @@ export async function POST(
       return NextResponse.json(
         {
           error:
-            'No se puede validar una factura sin desglose: el 303 declara base y cuota por tipo de IVA, no un importe total. Cargá al menos una línea.',
+            'No se puede validar una factura sin desglose: el 303 declara base y cuota por tipo de IVA, no un importe total. Carga al menos una línea.',
           code: 'MATH_KO',
           cuadre: { ok: false, errores: erroresCuadre },
         },
