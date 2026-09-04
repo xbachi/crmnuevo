@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
   --background: #ffffff;
@@ -25,6 +25,24 @@
   --color-primary-700: #047857;
   --color-primary-800: #065f46;
   --color-primary-900: #064e3b;
+}
+
+/* Entrada del toast global (hooks/useToast). Tailwind v4: --animate-* genera
+   la utilidad animate-slide-up; los @keyframes dentro de @theme se emiten solo
+   si la clase se usa. */
+@theme {
+  --animate-slide-up: slide-up 0.25s ease-out;
+
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(0.5rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 }
 
 @media (prefers-color-scheme: dark) {

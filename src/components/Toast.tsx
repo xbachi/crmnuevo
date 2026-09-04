@@ -1,6 +1,14 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useContext,
+  useRef,
+  type ReactElement,
+} from 'react'
+import { NoopContainer, ToastContext } from '@/hooks/useToast'
 
 interface ToastProps {
   message: string
@@ -130,9 +138,31 @@ export default function Toast({
 }
 
 // Hook para usar toasts
-export function useToast() {
+type LocalToastType = 'success' | 'error' | 'info'
+
+export interface UseToastResult {
+  showToast: (message: string, type?: LocalToastType, duration?: number) => void
+  ToastContainer: () => ReactElement | null
+}
+
+/**
+ * Dentro de <ToastProvider> (toda la app) delega en el toast global: el
+ * `ToastContainer` devuelto es un no-op, así los consumidores que nunca lo
+ * renderizaban dejan de ser mudos sin cambiar una línea. Sin provider (tests
+ * aislados) conserva la implementación local con contenedor propio.
+ *
+ * Todos los hooks se llaman siempre, en el mismo orden: la elección se hace
+ * recién al devolver.
+ */
+export function useToast(): UseToastResult {
+  const ctx = useContext(ToastContext)
   const [toasts, setToasts] = useState<
-    Array<{ id: string; message: string; type: 'success' | 'error' | 'info' }>
+    Array<{
+      id: string
+      message: string
+      type: LocalToastType
+      duration?: number
+    }>
   >([])
   const nextId = useRef(0)
 
@@ -141,12 +171,12 @@ export function useToast() {
   // cada render, el efecto de carga se dispara en loop infinito (bug real de
   // /expedientes: la página quedaba cargando y parpadeando para siempre).
   const showToast = useCallback(
-    (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    (message: string, type: LocalToastType = 'info', duration?: number) => {
       // Contador en ref en lugar de Date.now()/Math.random() (hidratación) y en
       // lugar de toasts.length (obligaría a depender del estado).
       nextId.current += 1
       const id = `toast-${nextId.current}`
-      setToasts((prev) => [...prev, { id, message, type }])
+      setToasts((prev) => [...prev, { id, message, type, duration }])
     },
     []
   )
@@ -162,11 +192,15 @@ export function useToast() {
           key={toast.id}
           message={toast.message}
           type={toast.type}
+          duration={toast.duration}
           onClose={() => removeToast(toast.id)}
         />
       ))}
     </div>
   )
 
+  if (ctx) {
+    return { showToast: ctx.showToast, ToastContainer: NoopContainer }
+  }
   return { showToast, ToastContainer }
 }

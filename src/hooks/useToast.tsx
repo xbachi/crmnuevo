@@ -1,53 +1,49 @@
 'use client'
 
-import { createContext, useContext, useState, ReactNode } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 import { createPortal } from 'react-dom'
+
+export type ToastType = 'success' | 'error' | 'warning' | 'info'
 
 interface Toast {
   id: string
   message: string
-  type: 'success' | 'error' | 'warning' | 'info'
-  duration?: number
+  type: ToastType
+  duration: number
 }
 
-interface ToastContextType {
-  showToast: (message: string, type?: Toast['type'], duration?: number) => void
+export interface ToastContextType {
+  showToast: (message: string, type?: ToastType, duration?: number) => void
 }
 
-const ToastContext = createContext<ToastContextType | undefined>(undefined)
+export const ToastContext = createContext<ToastContextType | undefined>(
+  undefined
+)
+
+const DEFAULT_DURATION = 3000
+// Un error merece más tiempo de lectura que un "guardado".
+const ERROR_DURATION = 5000
+
+// Los consumidores históricos renderizan `<ToastContainer />` del hook; con el
+// provider global ese contenedor ya no dibuja nada. Constante de módulo para
+// que su identidad sea estable entre renders (no remonta nada).
+export const NoopContainer = () => null
 
 export function useToast() {
-  const context = useContext(ToastContext)
-  if (!context) {
+  const ctx = useContext(ToastContext)
+  if (!ctx) {
     throw new Error('useToast must be used within a ToastProvider')
   }
-
-  const [toasts, setToasts] = useState<Toast[]>([])
-
-  const showToast = (
-    message: string,
-    type: Toast['type'] = 'info',
-    duration = 3000
-  ) => {
-    const id = `toast-${toasts.length + 1}`
-    const newToast: Toast = { id, message, type, duration }
-
-    setToasts((prev) => [...prev, newToast])
-
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((toast) => toast.id !== id))
-    }, duration)
-  }
-
-  const removeToast = (id: string) => {
-    setToasts((prev) => prev.filter((toast) => toast.id !== id))
-  }
-
-  const ToastContainerComponent = () => (
-    <ToastContainer toasts={toasts} onRemove={removeToast} />
-  )
-
-  return { showToast, ToastContainer: ToastContainerComponent }
+  return { showToast: ctx.showToast, ToastContainer: NoopContainer }
 }
 
 interface ToastProviderProps {
@@ -56,30 +52,41 @@ interface ToastProviderProps {
 
 export function ToastProvider({ children }: ToastProviderProps) {
   const [toasts, setToasts] = useState<Toast[]>([])
+  const [mounted, setMounted] = useState(false)
+  const nextId = useRef(0)
 
-  const showToast = (
-    message: string,
-    type: Toast['type'] = 'info',
-    duration = 3000
-  ) => {
-    const id = `toast-${toasts.length + 1}`
-    const newToast: Toast = { id, message, type, duration }
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
-    setToasts((prev) => [...prev, newToast])
+  // Identidad ESTABLE: varias páginas usan showToast como dependencia de
+  // useCallback/useEffect; si cambiara en cada render dispararían loops.
+  const showToast = useCallback(
+    (message: string, type: ToastType = 'info', duration?: number) => {
+      nextId.current += 1
+      const id = `toast-${nextId.current}`
+      const ms =
+        duration ?? (type === 'error' ? ERROR_DURATION : DEFAULT_DURATION)
 
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((toast) => toast.id !== id))
-    }, duration)
-  }
+      setToasts((prev) => [...prev, { id, message, type, duration: ms }])
 
-  const removeToast = (id: string) => {
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((toast) => toast.id !== id))
+      }, ms)
+    },
+    []
+  )
+
+  const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id))
-  }
+  }, [])
+
+  const value = useMemo(() => ({ showToast }), [showToast])
 
   return (
-    <ToastContext.Provider value={{ showToast }}>
+    <ToastContext.Provider value={value}>
       {children}
-      {typeof window !== 'undefined' &&
+      {mounted &&
         createPortal(
           <ToastContainer toasts={toasts} onRemove={removeToast} />,
           document.body
@@ -94,10 +101,14 @@ interface ToastContainerProps {
 }
 
 export function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
-  if (toasts.length === 0) return null
-
+  // La región live se renderiza siempre (aun vacía) para que los lectores de
+  // pantalla anuncien lo que entra después.
   return (
-    <div className="fixed top-4 right-4 z-50 space-y-2">
+    <div
+      role="status"
+      aria-live="polite"
+      className="fixed top-4 right-4 z-50 space-y-2"
+    >
       {toasts.map((toast) => (
         <ToastItem
           key={toast.id}
@@ -115,7 +126,7 @@ interface ToastItemProps {
 }
 
 function ToastItem({ toast, onRemove }: ToastItemProps) {
-  const getToastStyles = (type: Toast['type']) => {
+  const getToastStyles = (type: ToastType) => {
     switch (type) {
       case 'success':
         return 'bg-green-50 border-green-200 text-green-800'
@@ -130,7 +141,7 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
     }
   }
 
-  const getIcon = (type: Toast['type']) => {
+  const getIcon = (type: ToastType) => {
     switch (type) {
       case 'success':
         return '✅'
@@ -158,7 +169,9 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
         <span className="text-lg">{getIcon(toast.type)}</span>
         <p className="font-medium text-sm flex-1">{toast.message}</p>
         <button
+          type="button"
           onClick={onRemove}
+          aria-label="Cerrar"
           className="text-gray-400 hover:text-gray-600 transition-colors"
         >
           ✕
