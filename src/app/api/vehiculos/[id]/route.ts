@@ -13,6 +13,13 @@ import {
   transicionValida,
 } from '@/lib/vehiculoEstado'
 import { normPlate } from '@/lib/gastoMapping'
+import { esFechaYMD } from '@/lib/fechas'
+
+const CAMPOS_FECHA_VENCIMIENTO = [
+  'itvVence',
+  'seguroVence',
+  'garantiaVence',
+] as const
 
 export async function GET(
   request: NextRequest,
@@ -100,6 +107,24 @@ export async function PUT(
     const { data: updateData, ignorados } = filtrarCamposEditables(body)
     if (ignorados.length > 0) {
       console.warn('⚠️ Campos no editables ignorados en PUT vehículo:', ignorados)
+    }
+
+    // Fechas de vencimiento: 'YYYY-MM-DD' o null ('' cuenta como null).
+    for (const campo of CAMPOS_FECHA_VENCIMIENTO) {
+      if (!(campo in updateData)) continue
+      const v = updateData[campo]
+      if (v === null || v === '') {
+        updateData[campo] = null
+        continue
+      }
+      if (!esFechaYMD(v)) {
+        return NextResponse.json(
+          {
+            error: `${campo} inválida: '${String(v)}' (formato esperado YYYY-MM-DD o null)`,
+          },
+          { status: 400 }
+        )
+      }
     }
 
     // Máquina de estados: si cambia el estado, validar la transición.

@@ -12,6 +12,7 @@ import {
   type VentaTipo,
 } from './ventasUnificadas'
 import { normalizarTipo } from './vehiculoEstado'
+import { dateToYMD, normalizarFechaYMD } from './fechas'
 
 // Función para cargar .env.local
 function loadEnvFile() {
@@ -104,6 +105,10 @@ export interface Vehiculo {
   seguro?: string | null
   segundaLlave?: string | null
   documentacion?: string | null
+  // Fechas de vencimiento (DATE en pg), expuestas como 'YYYY-MM-DD'
+  itvVence?: string | null
+  seguroVence?: string | null
+  garantiaVence?: string | null
   carpeta?: string | null
   master?: string | null
   hojasA?: string | null
@@ -204,6 +209,7 @@ function buildVehiculosListQuery({
         v."gastosOtros", v."gastosCNGarantia", v."precioPublicacion", v."precioVenta", v."beneficioNeto",
         v."notasInversor", v."fotoInversor", v.itv, v.seguro, v."segundaLlave",
         v.carpeta, v.master, v."hojasA", v.documentacion, i.nombre as inversor_nombre,
+        v."itvVence", v."seguroVence", v."garantiaVence",
         d.id as deposito_id, d.estado as deposito_estado,
         COUNT(*) OVER() AS total_count
       FROM "Vehiculo" v
@@ -265,6 +271,9 @@ function mapVehiculoListRow(row: QueryResultRow) {
     master: row.master,
     hojasA: row.hojasA,
     documentacion: row.documentacion,
+    itvVence: dateToYMD(row.itvVence),
+    seguroVence: dateToYMD(row.seguroVence),
+    garantiaVence: dateToYMD(row.garantiaVence),
     enDeposito: !!row.deposito_id,
     depositoId: row.deposito_id,
   }
@@ -952,6 +961,9 @@ export async function getVehiculoById(id: number): Promise<Vehiculo | null> {
       seguro: row.seguro,
       segundaLlave: row.segundaLlave,
       documentacion: row.documentacion,
+      itvVence: dateToYMD(row.itvVence),
+      seguroVence: dateToYMD(row.seguroVence),
+      garantiaVence: dateToYMD(row.garantiaVence),
       carpeta: row.carpeta,
       master: row.master,
       hojasA: row.hojasA,
@@ -1108,6 +1120,12 @@ export async function deleteVehiculo(id: number): Promise<boolean> {
   }
 }
 
+const FECHAS_VENCIMIENTO_VEHICULO = new Set([
+  'itvVence',
+  'seguroVence',
+  'garantiaVence',
+])
+
 export async function updateVehiculo(
   id: number,
   vehiculoData: Partial<Vehiculo>
@@ -1123,6 +1141,10 @@ export async function updateVehiculo(
         value === ''
       ) {
         return null
+      }
+      // Fechas de vencimiento (DATE): vacío/inválido → NULL, nunca revienta el UPDATE
+      if (FECHAS_VENCIMIENTO_VEHICULO.has(field)) {
+        return normalizarFechaYMD(value)
       }
       // Asegurar que inversorId se maneje correctamente (puede venir como string, número o null)
       if (field === 'inversorId') {
@@ -1219,7 +1241,14 @@ export async function updateVehiculo(
       )
     }
 
-    return (result.rows[0] as Vehiculo) || null
+    const row = result.rows[0]
+    if (!row) return null
+    return {
+      ...row,
+      itvVence: dateToYMD(row.itvVence),
+      seguroVence: dateToYMD(row.seguroVence),
+      garantiaVence: dateToYMD(row.garantiaVence),
+    } as Vehiculo
   } catch (error: any) {
     console.error('❌ Error actualizando vehículo:', error)
     console.error('❌ Tipo de error:', typeof error)

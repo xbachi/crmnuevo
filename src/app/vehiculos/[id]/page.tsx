@@ -13,6 +13,11 @@ import {
   capitalizeText,
 } from '@/lib/utils'
 import { labelTipo, normalizarEstado, TIPO_LABEL } from '@/lib/vehiculoEstado'
+import {
+  estadoVencimiento,
+  formatFechaCorta,
+  textoVencimiento,
+} from '@/lib/vencimientos'
 import NotasSection from '@/components/NotasSection'
 import EstadoBadge from '@/components/EstadoBadge'
 import { useAuth } from '@/contexts/AuthContext'
@@ -64,6 +69,9 @@ interface Vehiculo {
   itv?: string
   fechaItv?: string
   fechaVencimientoItv?: string
+  itvVence?: string | null
+  seguroVence?: string | null
+  garantiaVence?: string | null
   seguro?: string
   segundaLlave?: string
   carpeta?: string
@@ -203,6 +211,9 @@ export default function VehiculoDetailPage() {
     master: '' as string | null,
     hojasA: '' as string | null,
     documentacion: '' as string | null,
+    itvVence: '' as string | null,
+    seguroVence: '' as string | null,
+    garantiaVence: '' as string | null,
     precioCompra: 0,
     gastosTransporte: 0,
     gastosTasas: 0,
@@ -265,6 +276,63 @@ export default function VehiculoDetailPage() {
       return 'Chequear'
     }
     return value
+  }
+
+  // ITV vencida: la fecha manda; el string 'No' solo cuenta si no hay fecha
+  const itvVencida = vehiculo?.itvVence
+    ? estadoVencimiento(vehiculo.itvVence)?.estado === 'vencida'
+    : vehiculo?.itv === 'No'
+
+  // Vencimientos (ITV/seguro/garantía): input date en edición; en lectura
+  // dd/mm/aaaa + badge rojo (vencida) / ámbar (vence en ≤ 30 días).
+  const renderVencimiento = (
+    campo: 'itvVence' | 'seguroVence' | 'garantiaVence',
+    label: string,
+    colorTexto: string
+  ) => {
+    if (isEditingDocumentacion) {
+      return (
+        <div className="mt-1 flex items-center gap-2">
+          <label className={`${colorTexto} font-medium`}>
+            {label}:{' '}
+            <input
+              type="date"
+              value={editingData[campo] || ''}
+              onChange={(e) =>
+                setEditingData(
+                  (prev) =>
+                    ({ ...prev, [campo]: e.target.value }) as typeof prev
+                )
+              }
+              className="ml-1 bg-white border border-gray-300 rounded px-2 py-1 text-sm text-gray-900"
+            />
+          </label>
+        </div>
+      )
+    }
+    const fecha = vehiculo?.[campo]
+    if (!fecha) return null
+    const estado = estadoVencimiento(fecha)
+    const texto = textoVencimiento(estado)
+    return (
+      <div className="mt-1 flex items-center gap-2">
+        <span className={`${colorTexto} font-medium`}>
+          {label}:{' '}
+          <span className="text-gray-900">{formatFechaCorta(fecha)}</span>
+        </span>
+        {texto && (
+          <span
+            className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${
+              estado?.estado === 'vencida'
+                ? 'bg-red-100 text-red-800'
+                : 'bg-amber-100 text-amber-800'
+            }`}
+          >
+            {texto}
+          </span>
+        )}
+      </div>
+    )
   }
 
   // Función para obtener datos del vehículo
@@ -838,6 +906,9 @@ export default function VehiculoDetailPage() {
         master: vehiculo.master || '',
         hojasA: vehiculo.hojasA || '',
         documentacion: vehiculo.documentacion || '',
+        itvVence: vehiculo.itvVence || '',
+        seguroVence: vehiculo.seguroVence || '',
+        garantiaVence: vehiculo.garantiaVence || '',
         inversorId: vehiculo.inversorId || 0,
       }
 
@@ -874,6 +945,9 @@ export default function VehiculoDetailPage() {
         master: vehiculo.master || '',
         hojasA: vehiculo.hojasA || '',
         documentacion: vehiculo.documentacion || '',
+        itvVence: vehiculo.itvVence || '',
+        seguroVence: vehiculo.seguroVence || '',
+        garantiaVence: vehiculo.garantiaVence || '',
       }))
       setIsEditingDocumentacion(true)
     }
@@ -1007,6 +1081,10 @@ export default function VehiculoDetailPage() {
         camposAGuardar.carpeta = editingData.carpeta
       if (editingData.hojasA !== undefined)
         camposAGuardar.hojasA = editingData.hojasA
+      // Fechas de vencimiento: vacío → null (borra la fecha)
+      camposAGuardar.itvVence = editingData.itvVence || null
+      camposAGuardar.seguroVence = editingData.seguroVence || null
+      camposAGuardar.garantiaVence = editingData.garantiaVence || null
     }
 
     if (isEditingFinanciero) {
@@ -1849,7 +1927,7 @@ export default function VehiculoDetailPage() {
                   </div>
 
                   {/* Alerta de ITV vencida */}
-                  {vehiculo?.itv === 'No' && (
+                  {itvVencida && (
                     <div className="bg-red-50 border border-red-200 rounded-lg p-1.5 xl:p-2 lg:p-4">
                       <div className="flex items-center space-x-2">
                         <div className="w-3 h-3 xl:w-4 xl:h-4 lg:w-6 lg:h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
@@ -3059,15 +3137,12 @@ export default function VehiculoDetailPage() {
                             </span>
                           )}
                         </span>
-                        {vehiculo.fechaVencimientoItv && (
-                          <span className="text-red-700 font-medium">
-                            Vencimiento:{' '}
-                            <span className="text-red-900 font-medium ml-1">
-                              {formatDate(vehiculo.fechaVencimientoItv)}
-                            </span>
-                          </span>
-                        )}
                       </div>
+                      {renderVencimiento(
+                        'itvVence',
+                        'ITV vence',
+                        'text-red-700'
+                      )}
                     </div>
                   </div>
 
@@ -3145,6 +3220,42 @@ export default function VehiculoDetailPage() {
                           )}
                         </span>
                       </div>
+                      {renderVencimiento(
+                        'seguroVence',
+                        'Seguro vence',
+                        'text-blue-700'
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Garantía */}
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-1.5 sm:p-2 lg:p-4">
+                    <div className="flex items-center space-x-1 sm:space-x-2 mb-1 lg:mb-3">
+                      <div className="w-3 h-3 sm:w-4 sm:h-4 lg:w-6 lg:h-6 bg-emerald-500 rounded-full flex items-center justify-center">
+                        <svg
+                          className="w-1.5 h-1.5 sm:w-2 sm:h-2 lg:w-3 lg:h-3 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                          />
+                        </svg>
+                      </div>
+                      <h3 className="text-xs sm:text-sm lg:text-base font-semibold text-orange-900">
+                        Garantía
+                      </h3>
+                    </div>
+                    <div className="text-xs lg:text-sm">
+                      {renderVencimiento(
+                        'garantiaVence',
+                        'Garantía vence',
+                        'text-emerald-700'
+                      ) ?? <span className="text-gray-500">Sin fecha</span>}
                     </div>
                   </div>
 

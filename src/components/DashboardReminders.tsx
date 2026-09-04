@@ -4,7 +4,12 @@ import { useState, useEffect } from 'react'
 
 interface DashboardReminder {
   id: string
-  type: 'itv_vencida' | 'documentacion_pendiente' | 'cambio_nombre_pendiente'
+  type:
+    | 'itv_vencida'
+    | 'seguro_vencido'
+    | 'vencimiento_proximo'
+    | 'documentacion_pendiente'
+    | 'cambio_nombre_pendiente'
   title: string
   description: string
   count: number
@@ -80,6 +85,10 @@ export default function DashboardReminders() {
     switch (type) {
       case 'itv_vencida':
         return '🚗'
+      case 'seguro_vencido':
+        return '🛡️'
+      case 'vencimiento_proximo':
+        return '⏰'
       case 'documentacion_pendiente':
         return '📄'
       case 'cambio_nombre_pendiente':
@@ -434,6 +443,8 @@ export default function DashboardReminders() {
                 onClick={() => {
                   if (
                     reminder.type === 'itv_vencida' ||
+                    reminder.type === 'seguro_vencido' ||
+                    reminder.type === 'vencimiento_proximo' ||
                     reminder.type === 'documentacion_pendiente'
                   ) {
                     window.location.href = '/vehiculos'
