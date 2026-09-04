@@ -13,7 +13,7 @@ Senior-dev workflow. Surgical, reversible changes. Quality before commit.
 - **One shared pg.Pool only:** it lives in `src/lib/direct-database.ts` with `max: 3` (rationale in that file's comment: EMAXCONN incident on the Supabase pooler + self-deadlock at `max: 1`). NEVER do `new Pool()` in routes or elsewhere; always `import { pool } from '@/lib/direct-database'`. Do not raise `max` without explicit approval.
 - **Never skip git hooks** (`--no-verify`, `--no-gpg-sign`). If a hook fails, fix the cause.
 - **Never read or commit:** `.env*`, `secrets/**`, `public/documents/**` (real customer PDFs/contracts).
-- **SQL migrations** live at repo root as `add-*.sql` / `create-*.sql` / `fix-*.sql`. Add new ones following the same naming; don't reorder existing files.
+- **SQL migrations** live at repo root as `add-*.sql` / `create-*.sql` / `fix-*.sql`. Add new ones following the same naming; don't reorder existing files. Apply with `node scripts/apply-sql.js <archivo> --apply` (registers in `schema_migrations`; `--status` shows what is applied).
 - **Invoicing logic** (`next_number`, facturado flow) is fragile — see commits `02772ec`, `3326e03`. Touch only with a plan and regression tests.
 - **API routes** under `src/app/api/**` — keep them stateless; do not cache pg clients across requests.
 
