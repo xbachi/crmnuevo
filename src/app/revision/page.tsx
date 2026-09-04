@@ -33,6 +33,7 @@ const ORIGEN_LABEL: Record<string, { label: string; className: string }> = {
   'gasto-rechazado': { label: 'Gasto rechazado', className: 'bg-red-100 text-red-800' },
   'registro-incompleto': { label: 'Registro incompleto', className: 'bg-blue-100 text-blue-800' },
   'imap-revisar': { label: 'Email a revisar', className: 'bg-purple-100 text-purple-800' },
+  alertas: { label: 'Alerta', className: 'bg-orange-100 text-orange-800' },
   otro: { label: 'Otro', className: 'bg-gray-100 text-gray-700' },
 }
 
@@ -261,6 +262,14 @@ export default function RevisionPage() {
                       <p className="text-sm text-amber-800 mt-2 bg-amber-50 rounded px-2 py-1">
                         {selected.payload.motivo}
                       </p>
+                    )}
+                    {typeof selected.payload?.url === 'string' && (
+                      <a
+                        href={selected.payload.url}
+                        className="inline-block mt-2 text-sm text-primary-600 hover:underline"
+                      >
+                        Abrir ficha →
+                      </a>
                     )}
                   </div>
 

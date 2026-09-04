@@ -14,6 +14,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { safeEqual } from '@/lib/secrets'
+import { notificarFalloCron } from '@/lib/cronNotify'
 
 export const maxDuration = 60
 
@@ -40,6 +41,8 @@ export async function GET(request: NextRequest) {
   const h = { 'x-admin-secret': adminSecret }
 
   const out: Record<string, unknown> = { year }
+  // Pasos con ok:false; al final se avisa por mail (A6) en un solo envío.
+  const fallos: Record<string, unknown> = {}
   try {
     // 1. resync fill (rellena celdas vacías desde el CRM)
     const rs = await fetch(
@@ -47,6 +50,8 @@ export async function GET(request: NextRequest) {
       { method: 'POST', headers: h }
     )
     out.resync = await rs.json().catch(() => ({ status: rs.status }))
+    if ((out.resync as { ok?: boolean })?.ok === false)
+      fallos.resync = out.resync
     // 2. check (reporta faltantes CB + Control Facturas)
     const ck = await fetch(`${base}/api/admin/check-facturas?year=${year}`, {
       headers: h,
@@ -54,11 +59,13 @@ export async function GET(request: NextRequest) {
     const check = await ck.json().catch(() => ({ status: ck.status }))
     out.ok = (check as { ok?: boolean }).ok ?? null
     out.check = check
-    if (out.ok === false)
+    if (out.ok === false) {
       console.warn(
         '[cron/costobeneficio] inconsistencias:',
         JSON.stringify(check)
       )
+      fallos.check = check
+    }
     // 3. reintento del outbox de webhooks de gestoría; un fallo acá no tumba 1 y 2
     try {
       const ob = await fetch(`${base}/api/admin/webhook-outbox/retry`, {
@@ -71,9 +78,19 @@ export async function GET(request: NextRequest) {
     } catch (err) {
       out.outbox = { ok: false, error: (err as Error).message }
     }
+    if ((out.outbox as { ok?: boolean })?.ok === false)
+      fallos.outbox = out.outbox
   } catch (err) {
     out.error = (err as Error).message
+    await notificarFalloCron('costobeneficio', {
+      year,
+      error: out.error,
+      ...fallos,
+    })
     return NextResponse.json(out, { status: 500 })
+  }
+  if (Object.keys(fallos).length > 0) {
+    await notificarFalloCron('costobeneficio', { year, ...fallos })
   }
   return NextResponse.json(out)
 }
