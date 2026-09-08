@@ -1,0 +1,9 @@
+openpyxl
+pymupdf
+pillow
+openai
+python-dotenv
+gspread
+google-auth
+pytest
+requests

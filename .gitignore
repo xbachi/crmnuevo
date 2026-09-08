@@ -1,0 +1,6 @@
+.venv/
+.claude/
+__pycache__/
+*.pyc
+.pytest_cache/
+sevencars-fichas/data/base_datos_vehiculos.xlsx

@@ -1,0 +1,51 @@
+CREAR MÁSCARAS PARA REMOVER COCHES
+===================================
+
+Necesitas crear 2 archivos de máscara antes de ejecutar remove_car_temp.py:
+
+UBICACIÓN:
+  /home/seb/fotosseven/sevencars-photo-pipeline/backgrounds/
+
+ARCHIVOS NECESARIOS:
+  ✓ bg_2_mask.jpg  (para bg_2.jpg)
+  ✓ bg_3_mask.jpg  (para bg_3.jpg)
+
+CÓMO CREAR LA MÁSCARA:
+---------------------
+
+Opción 1 - GIMP (recomendado):
+  1. Abrir bg_2.jpg en GIMP
+  2. Herramientas → Selección → Selección libre (o lasso)
+  3. Dibujar alrededor del coche para seleccionarlo
+  4. Editar → Rellenar con color → Blanco
+  5. Seleccionar → Invertir
+  6. Editar → Rellenar con color → Negro
+  7. Exportar como bg_2_mask.jpg (JPEG 100% calidad)
+
+Opción 2 - Photoshop:
+  1. Abrir bg_2.jpg
+  2. Crear nueva capa
+  3. Rellenar todo de negro
+  4. Con pincel blanco, pintar sobre el coche
+  5. Aplanar imagen y guardar como bg_2_mask.jpg
+
+Opción 3 - Python (auto mask con SAM):
+  # Si quieres que te cree un script automático para esto, dime
+
+REGLAS DE LA MÁSCARA:
+-------------------
+  • BLANCO (255, 255, 255) = área del coche (remover)
+  • NEGRO (0, 0, 0) = fondo (mantener)
+  • Mismo tamaño que la imagen original
+  • Formato: JPEG
+
+EJECUTAR:
+--------
+  1. Crear las máscaras
+  2. export FAL_KEY=tu_api_key
+  3. python3 remove_car_temp.py
+
+RESULTADO:
+---------
+  → bg_2_clean.jpg
+  → bg_3_clean.jpg

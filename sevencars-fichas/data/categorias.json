@@ -1,0 +1,15 @@
+{
+  "categorias": {"urbano": 24, "compacto": 25, "berlina": 26, "suv-4x4": 27, "familiar": 28, "coupe": 29, "furgoneta": 99},
+  "modelos": {
+    "xceed": ["suv-4x4", "familiar"],
+    "sportage": ["suv-4x4"], "compass": ["suv-4x4"], "qashqai": ["suv-4x4"], "kuga": ["suv-4x4"], "puma": ["suv-4x4"],
+    "captur": ["suv-4x4"], "kadjar": ["suv-4x4"], "q2": ["suv-4x4"], "juke": ["suv-4x4"], "tucson": ["suv-4x4"],
+    "kona": ["suv-4x4"], "x1": ["suv-4x4"], "2008": ["suv-4x4"], "3008": ["suv-4x4"], "discovery sport": ["suv-4x4"],
+    "i10": ["urbano"], "i20": ["urbano"], "polo": ["urbano"], "clio": ["urbano"], "forfour": ["urbano"],
+    "500": ["urbano"], "corsa": ["urbano"], "c3": ["urbano"], "208": ["urbano"], "ibiza": ["urbano"], "a1": ["urbano"],
+    "logan": ["berlina"], "c220": ["berlina"], "clase c": ["berlina"], "model 3": ["berlina"], "insignia": ["berlina"],
+    "clase a": ["compacto"], "astra": ["compacto"], "golf": ["compacto"], "c4": ["compacto"], "focus": ["compacto"],
+    "leon": ["compacto"], "megane": ["compacto"], "serie 1": ["compacto"], "a3": ["compacto"],
+    "tts": ["coupe"], "tt": ["coupe"]
+  }
+}
