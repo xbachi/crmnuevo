@@ -49,8 +49,8 @@ describe('POST /api/admin/webhook-outbox/retry', () => {
     // the mock returns exactly what that query would: two eligible rows.
     mockQuery.mockResolvedValueOnce({
       rows: [
-        { id: 1, payload: payloadA, numero_factura: 'F-2026-0001' },
-        { id: 2, payload: payloadB, numero_factura: 'F-2026-0002' },
+        { id: 1, tipo: 'factura_venta', payload: payloadA, numero_factura: 'F-2026-0001' },
+        { id: 2, tipo: 'factura_venta', payload: payloadB, numero_factura: 'F-2026-0002' },
       ],
     })
     ;(global.fetch as jest.Mock)
@@ -67,8 +67,10 @@ describe('POST /api/admin/webhook-outbox/retry', () => {
     expect(res.status).toBe(200)
     expect(body).toMatchObject({ reintentadas: 2, exitosas: 1, fallidas: 1 })
 
-    // The SELECT must scope to pendiente + intentos < max_intentos.
+    // The SELECT must scope to pendiente + intentos < max_intentos, and read
+    // `tipo` — without it every row would be sent to the gestoria webhook.
     expect(mockQuery.mock.calls[0][0]).toMatch(/estado = 'pendiente' AND intentos < max_intentos/)
+    expect(mockQuery.mock.calls[0][0]).toMatch(/SELECT id, tipo, payload, numero_factura/)
 
     // Row 1 → enviado
     expect(mockQuery.mock.calls[1][0]).toMatch(/estado = 'enviado'/)
@@ -77,6 +79,44 @@ describe('POST /api/admin/webhook-outbox/retry', () => {
     // Row 2 → failure recorded, not thrown
     expect(mockQuery.mock.calls[2][0]).toMatch(/intentos = intentos \+ 1/)
     expect(mockQuery.mock.calls[2][1]).toEqual([2, 'webhook returned 500'])
+  })
+
+  it('routes each row by tipo: web_estado never reaches the gestoria webhook', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 10,
+          tipo: 'web_estado',
+          payload: { matricula: '3429LHT', matriculas: ['3429LHT'], estado: 'reservado', ts: 1757800000 },
+          numero_factura: '3429LHT',
+        },
+        { id: 11, tipo: 'lo_que_sea', payload: {}, numero_factura: null },
+      ],
+    })
+    ;(global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true, status: 200 })
+    mockQuery.mockResolvedValue({ rows: [] })
+
+    process.env.SEVEN_WEB_SYNC_URL = 'https://www.sevencars.es/wp-json/sevencars/v1/vehiculo/estado'
+    process.env.SEVEN_WEB_SYNC_SECRET = 'web-secret'
+    process.env.N8N_INVOICE_WEBHOOK_URL = 'https://n8n.example.com/webhook/invoice'
+    const res = await POST(makeRequest(ADMIN_SECRET))
+    delete process.env.SEVEN_WEB_SYNC_URL
+    delete process.env.SEVEN_WEB_SYNC_SECRET
+    delete process.env.N8N_INVOICE_WEBHOOK_URL
+
+    const body = await res.json()
+    expect(body).toMatchObject({ reintentadas: 2, exitosas: 1, fallidas: 1 })
+
+    // Only ONE request went out, and to the web — not to n8n.
+    expect((global.fetch as jest.Mock)).toHaveBeenCalledTimes(1)
+    expect((global.fetch as jest.Mock).mock.calls[0][0]).toContain('sevencars.es')
+
+    // Unknown tipo: recorded as a failure with a clear reason, sent nowhere.
+    expect(body.detalle[1]).toMatchObject({ id: 11, tipo: 'lo_que_sea', ok: false })
+    expect(body.detalle[1].error).toMatch(/tipo desconocido/)
+
+    // detalle says which type each row was.
+    expect(body.detalle[0]).toMatchObject({ id: 10, tipo: 'web_estado', referencia: '3429LHT', ok: true })
   })
 
   it('reports zero retries when there is nothing eligible', async () => {

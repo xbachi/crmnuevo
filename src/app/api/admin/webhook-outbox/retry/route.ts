@@ -1,9 +1,14 @@
 /**
  * POST /api/admin/webhook-outbox/retry
  *
- * Reintenta el envío del webhook de gestoría para filas 'pendiente' de
- * webhook_outbox con intentos < max_intentos (C-23). Lo dispara el cron
- * diario /api/cron/costobeneficio (paso 3) o un humano.
+ * Reintenta las filas 'pendiente' de webhook_outbox con intentos <
+ * max_intentos (C-23). Lo dispara el cron diario /api/cron/costobeneficio
+ * (paso 3) o un humano.
+ *
+ * El reenvío se ROUTEA por `tipo`: la tabla ya no guarda solo facturas para la
+ * gestoría, también avisos de estado a la web ('web_estado'). Mandar el
+ * payload de un coche al webhook de la gestoría sería basura en el destino
+ * equivocado, así que un tipo desconocido no se manda a ningún lado.
  *
  * Protegido por X-Admin-Secret.
  */
@@ -14,13 +19,43 @@ import {
   postGestoriaWebhook,
   type GestoriaInvoicePayload,
 } from '@/lib/gestoriaWebhook'
-import { markOutboxEnviado, markOutboxFallo } from '@/lib/webhookOutbox'
+import { postWebEstado, type WebEstadoPayload } from '@/lib/webSync'
+import {
+  markOutboxEnviado,
+  markOutboxFallo,
+  markOutboxAgotado,
+} from '@/lib/webhookOutbox'
 import { safeEqual } from '@/lib/secrets'
 
 interface PendingRow {
   id: number
-  payload: GestoriaInvoicePayload
+  tipo: string | null
+  payload: unknown
+  /** Referencia humana de la fila: nº de factura, o matrícula si tipo='web_estado'. */
   numero_factura: string | null
+}
+
+interface Reenvio {
+  ok: boolean
+  error?: string
+  /** Fallo definitivo: agotar los intentos en vez de dejarla 'pendiente'. */
+  permanente?: boolean
+}
+
+/** Reenvía una fila según su tipo. Nunca adivina destino. */
+async function reenviar(row: PendingRow): Promise<Reenvio> {
+  switch (row.tipo) {
+    // El tipo que inserta gestoriaWebhook.ts (y el DEFAULT de la tabla).
+    case 'factura_venta':
+      return postGestoriaWebhook(row.payload as GestoriaInvoicePayload)
+    case 'web_estado':
+      return postWebEstado(row.payload as WebEstadoPayload)
+    default:
+      return {
+        ok: false,
+        error: `tipo desconocido '${row.tipo ?? 'null'}': sin destino, no se reenvía`,
+      }
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -32,7 +67,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const pending = await pool.query<PendingRow>(
-      `SELECT id, payload, numero_factura
+      `SELECT id, tipo, payload, numero_factura
          FROM webhook_outbox
         WHERE estado = 'pendiente' AND intentos < max_intentos
         ORDER BY created_at ASC`
@@ -42,23 +77,27 @@ export async function POST(request: NextRequest) {
     let fallidas = 0
     const detalle: {
       id: number
-      numeroFactura: string | null
+      tipo: string | null
+      referencia: string | null
       ok: boolean
       error: string | null
     }[] = []
 
     for (const row of pending.rows) {
-      const result = await postGestoriaWebhook(row.payload)
+      const result = await reenviar(row)
       if (result.ok) {
         exitosas++
         await markOutboxEnviado(row.id)
       } else {
         fallidas++
-        await markOutboxFallo(row.id, result.error ?? 'unknown error')
+        const motivo = result.error ?? 'unknown error'
+        if (result.permanente) await markOutboxAgotado(row.id, motivo)
+        else await markOutboxFallo(row.id, motivo)
       }
       detalle.push({
         id: row.id,
-        numeroFactura: row.numero_factura,
+        tipo: row.tipo,
+        referencia: row.numero_factura,
         ok: result.ok,
         error: result.error ?? null,
       })

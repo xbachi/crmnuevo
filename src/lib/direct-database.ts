@@ -972,6 +972,18 @@ export async function updateDeal(
           )
         }
       }
+
+      // Aviso a la web: cubre TAMBIÉN 'disponible' (rama else de arriba), si no
+      // un coche que se desreserva se queda bloqueado en la web para siempre.
+      try {
+        const { notifyWebVehiculoEstado } = await import('./webSync')
+        await notifyWebVehiculoEstado(vehiculoId, vehiculoEstado)
+      } catch (err) {
+        console.error(
+          '[updateDeal] notify web:',
+          (err as Error)?.message ?? err
+        )
+      }
     }
 
     return await getDealById(id)

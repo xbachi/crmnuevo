@@ -80,3 +80,29 @@ export async function markOutboxFallo(id: number, error: string): Promise<void> 
     console.error('[webhookOutbox] mark fallo failed:', (err as Error)?.message ?? err)
   }
 }
+
+/**
+ * Fallo DEFINITIVO: agota los intentos de una sola vez ('agotado', intentos
+ * al tope) en vez de dejar la fila 'pendiente'. Para respuestas que no son
+ * transitorias — p. ej. 400 (payload inválido) o 404 (la web no conoce esa
+ * matrícula) en el sync de estados: reintentarlas nunca va a funcionar y solo
+ * llenan la bandeja de reintento de basura permanente.
+ *
+ * `intentos` sube al tope (no solo el estado) para que el SELECT del retry
+ * —que filtra por `intentos < max_intentos`— tampoco la vuelva a mirar.
+ */
+export async function markOutboxAgotado(id: number, error: string): Promise<void> {
+  try {
+    await pool.query(
+      `UPDATE webhook_outbox
+          SET intentos = GREATEST(intentos + 1, max_intentos),
+              ultimo_error = $2,
+              estado = 'agotado',
+              updated_at = NOW()
+        WHERE id = $1`,
+      [id, error]
+    )
+  } catch (err) {
+    console.error('[webhookOutbox] mark agotado failed:', (err as Error)?.message ?? err)
+  }
+}

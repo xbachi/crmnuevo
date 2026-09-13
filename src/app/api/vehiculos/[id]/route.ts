@@ -254,6 +254,22 @@ export async function PUT(
         console.error('notify inversor:', (err as Error)?.message ?? err)
       }
     }
+
+    // Aviso a la web (ficha pública) en paralelo al del inversor, pero para
+    // TODOS los coches y también al volver a PUBLICADO/DISPONIBLE: si no, un
+    // coche que se desreserva se queda "reservado" en la web para siempre.
+    if (estadoNuevoNorm && estadoNuevoNorm !== estadoPrevioNorm) {
+      try {
+        const { notifyWebVehiculoEstado } = await import('@/lib/webSync')
+        await notifyWebVehiculoEstado(
+          id,
+          estadoNuevoNorm,
+          vehiculoActualizado?.matricula ?? vehiculoExistente.matricula ?? null
+        )
+      } catch (err) {
+        console.error('notify web:', (err as Error)?.message ?? err)
+      }
+    }
     // console.log('✅ Vehículo actualizado.color:', vehiculoActualizado?.color)
     // console.log('✅ Vehículo actualizado.fechaMatriculacion:', vehiculoActualizado?.fechaMatriculacion)
 
