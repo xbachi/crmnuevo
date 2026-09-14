@@ -31,6 +31,9 @@ const PUBLIC_API_PREFIXES = [
   // Snapshot del inventario de carpetas de expedientes en OneDrive; lo POSTea
   // el script del server (X-Webhook-Secret).
   '/api/gestoria/expedientes-snapshot',
+  // Extracción de la ficha técnica (tarjeta ITV) de la carpeta del coche; la
+  // POSTea el script del server que lee OneDrive (X-Webhook-Secret).
+  '/api/fichas-tecnicas/snapshot',
   // Chequeo integral de expedientes: X-Admin-Secret O sesión, validado en el
   // handler (mismo patrón que /api/automation-log).
   '/api/gestoria/chequeo-expedientes',
@@ -72,6 +75,7 @@ const PUBLIC_API_PREFIXES = [
   '/api/cron/costobeneficio',
   '/api/cron/alertas',
   '/api/cron/sheets-vehiculos',
+  '/api/cron/fichas-tecnicas',
   // Health-check para monitor externo: SELECT 1 + versión, sin datos sensibles.
   '/api/health',
   // Bandeja de revisión: POST lo llama n8n (X-Webhook-Secret) y /sync es

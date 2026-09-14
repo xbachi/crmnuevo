@@ -11,7 +11,8 @@
   "crons": [
     { "path": "/api/cron/costobeneficio", "schedule": "0 6 * * *" },
     { "path": "/api/cron/alertas", "schedule": "0 7 * * *" },
-    { "path": "/api/cron/sheets-vehiculos", "schedule": "30 6 * * *" }
+    { "path": "/api/cron/sheets-vehiculos", "schedule": "30 6 * * *" },
+    { "path": "/api/cron/fichas-tecnicas", "schedule": "45 6 * * *" }
   ],
   "env": {
     "NODE_ENV": "production",

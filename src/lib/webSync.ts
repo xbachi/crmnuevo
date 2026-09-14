@@ -14,6 +14,10 @@
  *   X-Seven-Signature: sha256=<hmac_sha256(ts + '.' + cuerpoCrudo, SECRETO)>
  *   { matricula, matriculas[], estado, ts }
  *   200 ok · 400 payload · 401 firma · 404 matrícula · 409 repetición · 429 rate
+ *
+ * En sentido inverso (fetchFichaWeb, al final) se LEE la ficha publicada para
+ * cruzarla con la ficha técnica del coche: mismo secreto y misma firma, pero
+ * sobre `${ts}.GET.${matricula_norm}` porque un GET no tiene cuerpo que firmar.
  */
 
 import crypto from 'crypto'
@@ -21,6 +25,7 @@ import { pool } from '@/lib/direct-database'
 import { normPlate } from '@/lib/facturasRegistro'
 import { aliasDeMatricula } from '@/lib/aliasMatriculas'
 import { normalizarEstado } from '@/lib/vehiculoEstado'
+import type { FichaWeb } from '@/lib/fichaTecnica'
 import {
   insertOutboxPending,
   markOutboxEnviado,
@@ -237,5 +242,107 @@ export async function notifyWebVehiculoEstado(
     const reason = (err as Error)?.message ?? String(err)
     console.error('[webSync] error inesperado:', reason)
     return { sent: false, reason }
+  }
+}
+
+// ── Lectura de la ficha pública (chequeo diario de ficha técnica) ────────────
+
+/**
+ * URL del endpoint de lectura de la web. Se deriva de SEVEN_WEB_SYNC_URL para no
+ * añadir otra variable de entorno que configurar (y desincronizar) en Vercel: es
+ * el mismo WordPress y el mismo namespace de la REST API.
+ */
+export function urlFichaWeb(): string | null {
+  const sync = process.env.SEVEN_WEB_SYNC_URL
+  if (!sync) return null
+  try {
+    const u = new URL(sync)
+    const i = u.pathname.indexOf('/sevencars/v1/')
+    u.pathname =
+      i >= 0
+        ? `${u.pathname.slice(0, i)}/sevencars/v1/vehiculo/ficha`
+        : '/wp-json/sevencars/v1/vehiculo/ficha'
+    u.search = ''
+    u.hash = ''
+    return u.toString()
+  } catch {
+    return null
+  }
+}
+
+function texto(v: unknown): string | null {
+  const s = String(v ?? '').trim()
+  return s || null
+}
+
+function aFichaWeb(j: Record<string, unknown>): FichaWeb {
+  const id = Number(j.id)
+  return {
+    id: Number.isFinite(id) ? id : null,
+    url: texto(j.url),
+    marca: texto(j.marca),
+    modelo: texto(j.modelo),
+    version: texto(j.version),
+    combustible: texto(j.combustible),
+    cubicaje: (j.cubicaje as string | number | null) ?? null,
+    cv: (j.cv as string | number | null) ?? null,
+    caja: texto(j.caja),
+    matriculacion: texto(j.matriculacion),
+    fecha_matriculacion: texto(j.fecha_matriculacion),
+    matricula: texto(j.matricula),
+    plazas: (j.plazas as string | number | null) ?? null,
+  }
+}
+
+/**
+ * Ficha publicada en la web para una matrícula. Best-effort: NUNCA lanza y
+ * devuelve null ante cualquier problema (sin configurar, 404 —el coche no está
+ * publicado en la web—, timeout, JSON roto). El cron que la usa tiene que poder
+ * seguir con el resto de los coches aunque WordPress esté caído.
+ *
+ * Firma del contrato de lectura: HMAC-SHA256 de `${ts}.GET.${matricula_norm}`,
+ * que es el mismo `firmaWebSync(ts, cuerpo)` con cuerpo = `GET.${matricula}`.
+ */
+export async function fetchFichaWeb(
+  matricula: string
+): Promise<FichaWeb | null> {
+  const base = urlFichaWeb()
+  const secreto = process.env.SEVEN_WEB_SYNC_SECRET
+  const plate = normPlate(String(matricula ?? ''))
+  if (!base || !secreto || !plate) return null
+
+  const ts = Math.floor(Date.now() / 1000)
+  const firma = firmaWebSync(ts, `GET.${plate}`, secreto)
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 6_000)
+  try {
+    const res = await fetch(
+      `${base}?matricula=${encodeURIComponent(plate)}`,
+      {
+        method: 'GET',
+        headers: {
+          'X-Seven-Timestamp': String(ts),
+          'X-Seven-Signature': `sha256=${firma}`,
+        },
+        signal: controller.signal,
+      }
+    )
+    // 404 = ese coche no está publicado en la web. No es un fallo.
+    if (res.status === 404) return null
+    if (!res.ok) {
+      console.error(`[webSync] ficha web ${plate}: HTTP ${res.status}`)
+      return null
+    }
+    const j = (await res.json()) as Record<string, unknown>
+    if (!j || typeof j !== 'object') return null
+    return aFichaWeb(j)
+  } catch (err) {
+    console.error(
+      `[webSync] ficha web ${plate}:`,
+      (err as Error)?.message ?? err
+    )
+    return null
+  } finally {
+    clearTimeout(timeout)
   }
 }
