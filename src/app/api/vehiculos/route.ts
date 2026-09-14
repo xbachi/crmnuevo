@@ -12,6 +12,7 @@ import {
 import { promises as fs } from 'fs'
 import { generateFolderName, getFolderPathsByTipo } from '@/config/folders'
 import { encolarSheetsVehiculo } from '@/lib/sheetsVehiculo'
+import { guardarFicha, validarFicha } from '@/lib/fichaComercial'
 import { normalizarTipo } from '@/lib/vehiculoEstado'
 import {
   extraerMatriculaEntrada,
@@ -55,6 +56,7 @@ export async function POST(request: NextRequest) {
       comprobante,
       porteSolicitado,
       recibidoTexto,
+      fichaComercial,
     } = body
 
     console.log('🔍 Campos extraídos:', {
@@ -172,6 +174,23 @@ export async function POST(request: NextRequest) {
       matriculaNorm,
       tipoLetra
     )
+
+    // Ficha comercial (web y presupuesto) del alta; un fallo no deshace el alta.
+    if (fichaComercial && typeof fichaComercial === 'object') {
+      try {
+        const val = validarFicha(fichaComercial)
+        if (val.ok && Object.keys(val.patch).length > 0) {
+          await guardarFicha(vehiculo.id, val.patch)
+        } else if (!val.ok) {
+          console.warn('ficha comercial ignorada:', val.errores.join('; '))
+        }
+      } catch (err) {
+        console.error(
+          'guardar ficha comercial:',
+          (err as Error)?.message ?? err
+        )
+      }
+    }
 
     // Encolar la hoja ANTES de responder: el INSERT en el outbox es barato y
     // fuera de la request la lambda puede congelarse antes de hacerlo.
