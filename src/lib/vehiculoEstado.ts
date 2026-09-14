@@ -260,6 +260,12 @@ export const CAMPOS_EDITABLES_VEHICULO = [
   'precioPublicacion',
   'precioVenta',
   'garantiaPremium',
+  'proveedor',
+  'abonado',
+  'comprobante',
+  'porteSolicitado',
+  'recibido',
+  'recibidoFecha',
 ] as const
 
 /** Filtra el body a los campos editables. Devuelve también los ignorados. */

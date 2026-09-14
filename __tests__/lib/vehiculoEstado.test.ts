@@ -171,13 +171,37 @@ describe('filtrarCamposEditables', () => {
       precioCompra: 9000,
     })
     expect(ignorados).toEqual(
-      expect.arrayContaining(['id', 'force', 'dealActivoId', 'orden', 'hackField'])
+      expect.arrayContaining([
+        'id',
+        'force',
+        'dealActivoId',
+        'orden',
+        'hackField',
+      ])
     )
+  })
+
+  it('acepta los campos de compra y deja fuera pasos (van aparte)', () => {
+    const { data, ignorados } = filtrarCamposEditables({
+      proveedor: 'ayvens',
+      recibidoFecha: '2026-03-24',
+      pasos: [],
+    })
+    expect(data).toEqual({ proveedor: 'ayvens', recibidoFecha: '2026-03-24' })
+    expect(ignorados).toEqual(['pasos'])
   })
 
   it('la whitelist no incluye campos internos', () => {
     const lista = CAMPOS_EDITABLES_VEHICULO as readonly string[]
-    for (const interno of ['id', 'orden', 'dealActivoId', 'createdAt', 'updatedAt', 'matricula_norm', 'beneficioNeto']) {
+    for (const interno of [
+      'id',
+      'orden',
+      'dealActivoId',
+      'createdAt',
+      'updatedAt',
+      'matricula_norm',
+      'beneficioNeto',
+    ]) {
       expect(lista).not.toContain(interno)
     }
   })

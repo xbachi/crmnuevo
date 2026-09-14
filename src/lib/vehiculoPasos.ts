@@ -6,16 +6,9 @@ import { pool } from '@/lib/direct-database'
 import { dateToYMD, esFechaYMD } from '@/lib/fechas'
 import { normalizarEstado } from '@/lib/vehiculoEstado'
 
-export const PASOS_VEHICULO = [
-  'REVI_INIC',
-  'MECAUTO',
-  'REVI_PINTURA',
-  'PINTURA',
-  'LIMPIEZA',
-  'FOTOS',
-  'PUBLICADO',
-] as const
-export type PasoVehiculo = (typeof PASOS_VEHICULO)[number]
+import { PASOS_VEHICULO, type PasoVehiculo } from '@/lib/vehiculoPasosConst'
+
+export { PASOS_VEHICULO, type PasoVehiculo }
 export type FuentePaso = 'crm' | 'import'
 
 export interface PasoRow {

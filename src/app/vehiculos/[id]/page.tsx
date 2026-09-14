@@ -20,6 +20,9 @@ import {
 } from '@/lib/vencimientos'
 import NotasSection from '@/components/NotasSection'
 import EstadoBadge from '@/components/EstadoBadge'
+import VehiculoPreparacionCard, {
+  type PasoVehiculoUI,
+} from '@/components/VehiculoPreparacionCard'
 import { useAuth } from '@/contexts/AuthContext'
 import ProtectedRoute from '@/components/ProtectedRoute'
 
@@ -79,6 +82,14 @@ interface Vehiculo {
   hojasA?: string
   documentacion?: string
   ubicacion?: string
+  // Logística de compra + checklist de preparación (vehiculo_pasos)
+  proveedor?: string | null
+  abonado?: string | null
+  comprobante?: string | null
+  porteSolicitado?: string | null
+  recibido?: string | null
+  recibidoFecha?: string | null
+  pasos?: PasoVehiculoUI[]
 
   createdAt: string
   updatedAt?: string
@@ -3655,6 +3666,14 @@ export default function VehiculoDetailPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Compra (logística) + Preparación (13 pasos) */}
+              <VehiculoPreparacionCard
+                vehiculoId={vehiculo.id}
+                vehiculo={vehiculo}
+                onSaved={fetchVehiculo}
+                showToast={showToast}
+              />
 
               {/* Estado de Compra */}
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-3 sm:p-4 lg:p-6">

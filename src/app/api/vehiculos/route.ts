@@ -50,6 +50,11 @@ export async function POST(request: NextRequest) {
       beneficioNeto,
       notasInversor,
       fotoInversor,
+      proveedor,
+      abonado,
+      comprobante,
+      porteSolicitado,
+      recibido,
     } = body
 
     console.log('🔍 Campos extraídos:', {
@@ -151,6 +156,11 @@ export async function POST(request: NextRequest) {
       beneficioNeto: beneficioNeto || undefined,
       notasInversor: notasInversor || undefined,
       fotoInversor: fotoInversor || undefined,
+      proveedor: proveedor || undefined,
+      abonado: abonado || undefined,
+      comprobante: comprobante || undefined,
+      porteSolicitado: porteSolicitado || undefined,
+      recibido: recibido || undefined,
     } as Omit<Vehiculo, 'id' | 'createdAt' | 'updatedAt'>)
     // console.log('✅ Vehículo guardado:', vehiculo)
 

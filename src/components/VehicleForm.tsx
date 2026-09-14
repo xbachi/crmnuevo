@@ -29,6 +29,11 @@ interface VehicleFormData {
   precioPublicacion: string
   precioVenta: string
   notasInversor: string
+  proveedor: string
+  abonado: string
+  comprobante: string
+  porteSolicitado: string
+  recibido: string
 }
 
 interface VehicleFormProps {
@@ -79,6 +84,11 @@ export default function VehicleForm({
     precioPublicacion: '',
     precioVenta: '',
     notasInversor: '',
+    proveedor: '',
+    abonado: '',
+    comprobante: '',
+    porteSolicitado: '',
+    recibido: '',
     ...initialData,
   })
   const [inversores, setInversores] = useState<Inversor[]>([])
@@ -434,6 +444,98 @@ export default function VehicleForm({
           className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
           placeholder="Ej: 50000"
         />
+      </div>
+
+      {/* Compra (logística: lo que antes vivía sólo en la hoja COMPRAS) */}
+      <div className="border-t border-slate-200 pt-4">
+        <h3 className="text-sm font-medium text-slate-800 mb-2">Compra</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div>
+            <label
+              htmlFor="proveedor"
+              className="block text-xs text-slate-600 mb-1"
+            >
+              Proveedor
+            </label>
+            <input
+              type="text"
+              id="proveedor"
+              name="proveedor"
+              value={formData.proveedor || ''}
+              onChange={handleInputChange}
+              className="w-full px-2 py-1 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
+              placeholder="Ej: ayvens"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="abonado"
+              className="block text-xs text-slate-600 mb-1"
+            >
+              Abonado
+            </label>
+            <input
+              type="text"
+              id="abonado"
+              name="abonado"
+              value={formData.abonado || ''}
+              onChange={handleInputChange}
+              className="w-full px-2 py-1 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
+              placeholder="Ej: SI"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="comprobante"
+              className="block text-xs text-slate-600 mb-1"
+            >
+              Comprobante
+            </label>
+            <input
+              type="text"
+              id="comprobante"
+              name="comprobante"
+              value={formData.comprobante || ''}
+              onChange={handleInputChange}
+              className="w-full px-2 py-1 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
+              placeholder="Ej: enviado"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="porteSolicitado"
+              className="block text-xs text-slate-600 mb-1"
+            >
+              Porte solicitado
+            </label>
+            <input
+              type="text"
+              id="porteSolicitado"
+              name="porteSolicitado"
+              value={formData.porteSolicitado || ''}
+              onChange={handleInputChange}
+              className="w-full px-2 py-1 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
+              placeholder="Ej: SI / VEN"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="recibido"
+              className="block text-xs text-slate-600 mb-1"
+            >
+              Recibido
+            </label>
+            <input
+              type="text"
+              id="recibido"
+              name="recibido"
+              value={formData.recibido || ''}
+              onChange={handleInputChange}
+              className="w-full px-2 py-1 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
+              placeholder="Ej: 24/3"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Sección de Inversor */}

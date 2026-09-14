@@ -14,11 +14,19 @@ import {
 } from '@/lib/vehiculoEstado'
 import { normalizarMatricula, normalizarReferencia } from '@/lib/normalizacion'
 import { esFechaYMD } from '@/lib/fechas'
+import {
+  esPasoVehiculo,
+  getPasos,
+  upsertPasos,
+  type PasoInput,
+} from '@/lib/vehiculoPasos'
 
+// Fechas 'YYYY-MM-DD' o null: vencimientos + fecha de recepción del coche.
 const CAMPOS_FECHA_VENCIMIENTO = [
   'itvVence',
   'seguroVence',
   'garantiaVence',
+  'recibidoFecha',
 ] as const
 
 export async function GET(
@@ -42,7 +50,13 @@ export async function GET(
       )
     }
 
-    return NextResponse.json(vehiculo)
+    let pasos: Awaited<ReturnType<typeof getPasos>> = []
+    try {
+      pasos = await getPasos(id)
+    } catch (err) {
+      console.error('pasos vehículo:', (err as Error)?.message ?? err)
+    }
+    return NextResponse.json({ ...vehiculo, pasos })
   } catch (error: unknown) {
     const errorMessage =
       error instanceof Error ? error.message : 'Error desconocido'
@@ -100,6 +114,42 @@ export async function PUT(
         )
       }
       body.tipo = tipoNorm
+    }
+
+    // Checklist de preparación (vehiculo_pasos): va aparte de la whitelist.
+    let pasosBody: PasoInput[] | null = null
+    if ('pasos' in body) {
+      if (!Array.isArray(body.pasos)) {
+        return NextResponse.json(
+          { error: 'pasos debe ser un array de {paso, texto, fecha}' },
+          { status: 400 }
+        )
+      }
+      pasosBody = []
+      for (const p of body.pasos as unknown[]) {
+        const item = (p ?? {}) as Record<string, unknown>
+        if (!esPasoVehiculo(item.paso)) {
+          return NextResponse.json(
+            { error: `Paso no reconocido: '${String(item.paso)}'` },
+            { status: 400 }
+          )
+        }
+        const fecha = item.fecha
+        if (fecha != null && fecha !== '' && !esFechaYMD(fecha)) {
+          return NextResponse.json(
+            {
+              error: `Fecha inválida en paso ${item.paso}: '${String(fecha)}' (formato esperado YYYY-MM-DD o null)`,
+            },
+            { status: 400 }
+          )
+        }
+        pasosBody.push({
+          paso: item.paso,
+          texto: item.texto == null ? null : String(item.texto),
+          fecha: fecha == null || fecha === '' ? null : (fecha as string),
+        })
+      }
+      delete body.pasos
     }
 
     // Whitelist: solo campos que la UI edita; lo demás se ignora (id, force,
@@ -248,11 +298,16 @@ export async function PUT(
     )
     console.log('🔍 updateData.esCocheInversor:', updateData.esCocheInversor)
 
-    // Actualizar el vehículo con los nuevos datos
-    const vehiculoActualizado = await updateVehiculo(
-      id,
-      updateData as Partial<Vehiculo>
-    )
+    // Actualizar el vehículo con los nuevos datos (un body con sólo `pasos`
+    // no toca "Vehiculo": el SET quedaría vacío).
+    const vehiculoActualizado =
+      Object.keys(updateData).length > 0
+        ? await updateVehiculo(id, updateData as Partial<Vehiculo>)
+        : vehiculoExistente
+
+    if (pasosBody && pasosBody.length > 0) {
+      await upsertPasos(id, pasosBody, 'crm')
+    }
 
     console.log(
       '✅ Vehículo actualizado - inversorId guardado:',
@@ -306,7 +361,7 @@ export async function PUT(
       }
     }
     // Fila del vehículo en las hojas (upsert por referencia, en background).
-    if (Object.keys(updateData).length > 0) {
+    if (Object.keys(updateData).length > 0 || (pasosBody?.length ?? 0) > 0) {
       try {
         const { encolarSheetsVehiculo } = await import('@/lib/sheetsVehiculo')
         await encolarSheetsVehiculo(
