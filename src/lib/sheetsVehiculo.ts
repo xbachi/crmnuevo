@@ -440,10 +440,11 @@ export async function upsertVehiculoEnHojas(
           )
           const esperadaFila = filas.length + 2
           const filaNum = res.data.updates?.updatedRange?.match(/!A?(\d+)/)?.[1]
+          let colsFormula: number[] = []
           if (filaNum) {
             for (const c of escritas) c.celda = c.celda.replace('?', filaNum)
             if (hoja === 'BASE_DATOS') {
-              await heredarFilaAnterior(
+              colsFormula = await heredarFilaAnterior(
                 sheets,
                 hoja,
                 pestana,
@@ -462,7 +463,11 @@ export async function upsertVehiculoEnHojas(
           }
           if (filaNum && parseInt(filaNum, 10) === esperadaFila) {
             filas.push(fila.map((v) => String(v)))
-            leida.formulas?.push([])
+            if (leida.formulas) {
+              const mask: boolean[] = new Array(headers.length).fill(false)
+              for (const c of colsFormula) mask[c] = true
+              leida.formulas.push(mask)
+            }
           } else {
             // Sheets insertó la fila en otro sitio (hueco en la tabla): los
             // índices cacheados ya no valen, se relee la pestaña la próxima vez.
@@ -523,7 +528,9 @@ export async function upsertVehiculoEnHojas(
 
 /**
  * Base_Datos: la fila nueva hereda las fórmulas (desplazadas) y el formato de
- * la fila anterior, para que calcule igual que el resto. Best-effort.
+ * la fila anterior, para que calcule igual que el resto; una fórmula heredada
+ * pisa el valor literal recién escrito (la celda pasa a ser de la hoja).
+ * Best-effort. Devuelve las columnas que quedaron con fórmula.
  */
 async function heredarFilaAnterior(
   sheets: sheets_v4.Sheets,
@@ -531,10 +538,11 @@ async function heredarFilaAnterior(
   pestana: Pestana,
   filaNum: number,
   headers: string[]
-): Promise<void> {
+): Promise<number[]> {
   const previa = filaNum - 1
-  if (previa < 2) return
+  if (previa < 2) return []
   const spreadsheetId = spreadsheetIdDe(hoja)
+  let cols: number[] = []
   try {
     const res = await retryWithBackoff(() =>
       sheets.spreadsheets.values.get({
@@ -562,6 +570,7 @@ async function heredarFilaAnterior(
           },
         })
       )
+      cols = formulas.map((f) => f.col)
     }
     const sheetId = await getSheetId(spreadsheetId, pestana)
     await sheets.spreadsheets.batchUpdate({
@@ -597,6 +606,7 @@ async function heredarFilaAnterior(
       (err as Error)?.message ?? err
     )
   }
+  return cols
 }
 
 /** Mismo formato blanco que aplicaba el append antiguo; best-effort. */
