@@ -211,6 +211,7 @@ function hojas(expo: string[][], compras: string[][]) {
 beforeEach(() => {
   jest.clearAllMocks()
   delete process.env.SHEETS_VEHICULO_DISABLED
+  process.env.SHEETS_VEHICULO_ENABLED = '1'
   process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL = 'sa@test'
   process.env.GOOGLE_PRIVATE_KEY = 'key'
   mockSheets.spreadsheets.values.append.mockResolvedValue({

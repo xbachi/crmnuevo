@@ -12,7 +12,8 @@
  * Encolado: los disparadores insertan en webhook_outbox (tipo 'sheets_vehiculo')
  * y se procesa en background (after() + timeout 20 s); lo que falle lo
  * reintenta POST /api/admin/webhook-outbox/retry y el cron diario.
- * Kill switch: SHEETS_VEHICULO_DISABLED=1.
+ * Apagado por defecto: se activa con SHEETS_VEHICULO_ENABLED=1
+ * (SHEETS_VEHICULO_DISABLED=1 apaga aunque esté activado).
  */
 import { google, type sheets_v4 } from 'googleapis'
 import { after } from 'next/server'
@@ -101,7 +102,8 @@ export type CacheLectura = Map<ClavePestana, PestanaLeida>
 const TIMEOUT_MS = 20_000
 
 export function sheetsVehiculoDeshabilitado(): boolean {
-  return process.env.SHEETS_VEHICULO_DISABLED === '1'
+  if (process.env.SHEETS_VEHICULO_DISABLED === '1') return true
+  return process.env.SHEETS_VEHICULO_ENABLED !== '1'
 }
 
 export function spreadsheetIdDe(hoja: Hoja): string {
@@ -295,6 +297,16 @@ export async function upsertVehiculoEnHojas(
       ok: false,
       permanente: true,
       error: `vehículo ${vehiculoId} sin referencia`,
+    }
+  }
+  // Referencias viejas (#I3, MAN-…, pruebas) no se proyectan: crearían filas
+  // con una referencia que no existe en el CRM.
+  if (refCanon !== String(ctx.vehiculo.referencia ?? '').trim()) {
+    return {
+      ...vacio,
+      ok: false,
+      permanente: true,
+      error: `vehículo ${vehiculoId} con referencia no canónica: ${ctx.vehiculo.referencia}`,
     }
   }
 
@@ -595,7 +607,7 @@ export async function encolarSheetsVehiculo(
 ): Promise<{ encolado: boolean; outboxId?: number; reason?: string }> {
   try {
     if (sheetsVehiculoDeshabilitado()) {
-      return { encolado: false, reason: 'SHEETS_VEHICULO_DISABLED=1' }
+      return { encolado: false, reason: 'SHEETS_VEHICULO_ENABLED!=1' }
     }
     const pendiente = await pool.query<{ id: number }>(
       `SELECT id FROM webhook_outbox
@@ -726,7 +738,7 @@ export async function checkSheetsVehiculos(opts: {
   const espera = (ms: number) => (opts.sinEsperas ? undefined : dormir(ms))
 
   if (!dryRun && sheetsVehiculoDeshabilitado()) {
-    out.errores.push('SHEETS_VEHICULO_DISABLED=1')
+    out.errores.push('SHEETS_VEHICULO_ENABLED!=1')
     return out
   }
 

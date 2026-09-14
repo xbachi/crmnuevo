@@ -168,6 +168,7 @@ function db(extra: Record<string, unknown>[] = []) {
 beforeEach(() => {
   jest.clearAllMocks()
   delete process.env.SHEETS_VEHICULO_DISABLED
+  process.env.SHEETS_VEHICULO_ENABLED = '1'
   process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL = 'x@y'
   process.env.GOOGLE_PRIVATE_KEY = 'k'
   hojas()
@@ -247,7 +248,7 @@ describe('checkSheetsVehiculos', () => {
   it('kill switch: apply no hace nada, dryRun sigue leyendo', async () => {
     process.env.SHEETS_VEHICULO_DISABLED = '1'
     const a = await checkSheetsVehiculos({ dryRun: false, sinEsperas: true })
-    expect(a.errores).toEqual(['SHEETS_VEHICULO_DISABLED=1'])
+    expect(a.errores).toEqual(['SHEETS_VEHICULO_ENABLED!=1'])
     expect(mockSheets.spreadsheets.values.get).not.toHaveBeenCalled()
     const d = await checkSheetsVehiculos({ dryRun: true, sinEsperas: true })
     expect(d.errores).toEqual([])
