@@ -51,6 +51,33 @@ const REGLAS_VEHICULO: Record<string, Regla> = {
   gastosPintura: { etiqueta: 'pintura', tipo: 'numero', min: 0 },
   gastosLimpieza: { etiqueta: 'limpieza', tipo: 'numero', min: 0 },
   gastosOtros: { etiqueta: 'otros gastos', tipo: 'numero', min: 0 },
+  fichaPrecioContado: {
+    etiqueta: 'el precio contado',
+    tipo: 'numero',
+    min: 0,
+  },
+  fichaGp: { etiqueta: 'el GP', tipo: 'numero', min: 0 },
+}
+
+const FICHA_VACIA = {
+  fichaRegimen: '',
+  fichaNombreComercial: '',
+  fichaPrecioContado: '',
+  fichaTarifa: '',
+  fichaGp: '',
+}
+
+/** Sólo los campos rellenados; undefined si no hay ninguno. precio_contado pisa precioPublicacion. */
+function fichaComercialDe(f: typeof FICHA_VACIA) {
+  const ficha: Record<string, string | number> = {}
+  if (f.fichaRegimen) ficha.regimen = f.fichaRegimen
+  if (f.fichaNombreComercial.trim())
+    ficha.nombre_comercial = f.fichaNombreComercial.trim()
+  if (f.fichaPrecioContado)
+    ficha.precio_contado = parseFloat(f.fichaPrecioContado)
+  if (f.fichaTarifa) ficha.tarifa_financiacion = f.fichaTarifa
+  if (f.fichaGp) ficha.gp = parseFloat(f.fichaGp)
+  return Object.keys(ficha).length ? ficha : undefined
 }
 
 export default function CargarVehiculo() {
@@ -78,6 +105,7 @@ export default function CargarVehiculo() {
     precioPublicacion: '',
     precioVenta: '',
     notasInversor: '',
+    ...FICHA_VACIA,
   })
   const [inversores, setInversores] = useState<Inversor[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -277,6 +305,7 @@ export default function CargarVehiculo() {
             formData.tipo === 'Inversor'
               ? formData.notasInversor || undefined
               : undefined,
+          fichaComercial: fichaComercialDe(formData),
         }),
       })
 
@@ -309,6 +338,7 @@ export default function CargarVehiculo() {
           precioPublicacion: '',
           precioVenta: '',
           notasInversor: '',
+          ...FICHA_VACIA,
         })
 
         // Redirigir después de un breve delay
@@ -990,6 +1020,127 @@ export default function CargarVehiculo() {
                   </div>
                 </div>
               )}
+
+              <div className="border-t border-slate-200 pt-4">
+                <h3 className="text-sm font-semibold text-slate-800 mb-3">
+                  Ficha comercial (web y presupuesto)
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div>
+                    <label
+                      htmlFor="fichaRegimen"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Régimen
+                    </label>
+                    <select
+                      id="fichaRegimen"
+                      name="fichaRegimen"
+                      value={formData.fichaRegimen}
+                      onChange={handleInputChange}
+                      className={CLASE_INPUT}
+                    >
+                      <option value="">—</option>
+                      <option value="IVA21">IVA 21</option>
+                      <option value="REBU">REBU</option>
+                    </select>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label
+                      htmlFor="fichaNombreComercial"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Nombre comercial
+                    </label>
+                    <input
+                      type="text"
+                      id="fichaNombreComercial"
+                      name="fichaNombreComercial"
+                      value={formData.fichaNombreComercial}
+                      onChange={handleInputChange}
+                      className={CLASE_INPUT}
+                      placeholder="Kia XCeed eDrive PHEV 1.6 105CV AT6 E6d"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="fichaPrecioContado"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Precio contado (€)
+                    </label>
+                    <input
+                      type="number"
+                      id="fichaPrecioContado"
+                      name="fichaPrecioContado"
+                      value={formData.fichaPrecioContado}
+                      onChange={handleInputChange}
+                      min="0"
+                      step="0.01"
+                      aria-invalid={!!errores.fichaPrecioContado}
+                      aria-describedby={
+                        errores.fichaPrecioContado
+                          ? 'fichaPrecioContado-error'
+                          : undefined
+                      }
+                      className={claseInput(
+                        errores.fichaPrecioContado,
+                        CLASE_INPUT
+                      )}
+                      placeholder="0.00"
+                    />
+                    <CampoError
+                      id="fichaPrecioContado-error"
+                      mensaje={errores.fichaPrecioContado}
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="fichaTarifa"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Tarifa financiación
+                    </label>
+                    <select
+                      id="fichaTarifa"
+                      name="fichaTarifa"
+                      value={formData.fichaTarifa}
+                      onChange={handleInputChange}
+                      className={CLASE_INPUT}
+                    >
+                      <option value="">—</option>
+                      <option value="NORMAL">Normal</option>
+                      <option value="ESPECIAL">Especial</option>
+                      <option value="SIN_DTO">Sin dto</option>
+                      <option value="CONSULTAR">Consúltanos</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="fichaGp"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      GP
+                    </label>
+                    <input
+                      type="number"
+                      id="fichaGp"
+                      name="fichaGp"
+                      value={formData.fichaGp}
+                      onChange={handleInputChange}
+                      min="0"
+                      step="1"
+                      aria-invalid={!!errores.fichaGp}
+                      aria-describedby={
+                        errores.fichaGp ? 'fichaGp-error' : undefined
+                      }
+                      className={claseInput(errores.fichaGp, CLASE_INPUT)}
+                      placeholder="490"
+                    />
+                    <CampoError id="fichaGp-error" mensaje={errores.fichaGp} />
+                  </div>
+                </div>
+              </div>
 
               <div className="pt-4">
                 <button

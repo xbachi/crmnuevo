@@ -20,6 +20,7 @@ import {
 } from '@/lib/vencimientos'
 import NotasSection from '@/components/NotasSection'
 import EstadoBadge from '@/components/EstadoBadge'
+import VehiculoFichaComercialCard from '@/components/VehiculoFichaComercialCard'
 import VehiculoPreparacionCard, {
   type PasoVehiculoUI,
 } from '@/components/VehiculoPreparacionCard'
@@ -3673,6 +3674,13 @@ export default function VehiculoDetailPage() {
                 vehiculo={vehiculo}
                 onSaved={fetchVehiculo}
                 showToast={showToast}
+              />
+
+              {/* Ficha comercial (web y presupuesto → hoja Base_Datos) */}
+              <VehiculoFichaComercialCard
+                vehiculoId={vehiculo.id}
+                showToast={showToast}
+                onSaved={fetchVehiculo}
               />
 
               {/* Estado de Compra */}
