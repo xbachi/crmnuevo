@@ -31,6 +31,9 @@ describe('normalizarReferencia', () => {
     ['D-28', 'R', '#D-28'],
     ['#1038', 'Deposito Venta', '#1038'],
     ['1038', 'R', '#1038'],
+    ['I-1088', 'I', '#1088'],
+    ['#I-1065', undefined, '#1065'],
+    ['i1065', 'Inversor', '#1065'],
     ['1088', 'Compra', '#1088'],
     ['1088', 'M', '#1088'],
     ['1088', undefined, '#1088'],
@@ -131,6 +134,7 @@ describe('refCarpeta', () => {
     ['#1088', { tipo: 'C' }, '88'],
     ['#D-28', { tipo: 'C' }, 'D-28'],
     ['#1250', { tipo: 'D' }, null],
+    ['#I-1088', { tipo: 'I' }, '88'],
   ])('%p %p → %p', (ref, opts, esperado) => {
     expect(refCarpeta(ref, opts)).toBe(esperado)
   })

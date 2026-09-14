@@ -17,6 +17,7 @@ const {
   normalizarReferencia,
   extraerMatriculaEntrada,
   validarMatricula,
+  letraTipo,
 } = require('./lib/normalizacion')
 
 const REPO_ROOT = path.resolve(__dirname, '..')
@@ -60,6 +61,9 @@ function sinAcentos(s) {
     .trim()
     .toUpperCase()
 }
+
+// Título de pestaña dentro de un rango A1: la comilla simple se dobla.
+const a1Titulo = (t) => String(t).replace(/'/g, "''")
 
 function letraColumna(idx) {
   let n = idx + 1
@@ -113,7 +117,7 @@ async function titulosPestanas(sheets, spreadsheetId) {
 async function leerPestana(sheets, spreadsheetId, titulo) {
   const r = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range: `'${titulo}'!A1:Z`,
+    range: `'${a1Titulo(titulo)}'!A1:Z`,
     valueRenderOption: 'FORMATTED_VALUE',
   })
   return r.data.values || []
@@ -146,8 +150,11 @@ async function leerBase(pool) {
 }
 
 function pestanaEsperada(v) {
-  const c = normalizarReferencia(v.referencia, v.tipo)
-  const letra = c ? /^#([DR])-/.exec(c)?.[1] : undefined
+  let letra = letraTipo(v.tipo)
+  if (!letra) {
+    const c = normalizarReferencia(v.referencia, v.tipo)
+    letra = c ? /^#([DR])-/.exec(c)?.[1] : undefined
+  }
   if (letra === 'D') return { compras: 'Deposito', ventas: 'Deposito' }
   if (letra === 'R') return { compras: 'R', ventas: 'R' }
   return { compras: 'Compras', ventas: 'Expo' }
@@ -229,18 +236,33 @@ async function main() {
             const mismoNumero =
               parseInt(refRaw.replace(/\D/g, ''), 10) ===
               parseInt(canon.replace(/\D/g, ''), 10)
+            // Misma letra: la del raw, o ninguna (la aporta la pestaña D/R),
+            // o 'C' viejo → 'D'. Cualquier otra cosa cambia la identidad.
+            const letraRaw = /^#?([A-Z])/i
+              .exec(refRaw.replace(/\s/g, ''))?.[1]
+              ?.toUpperCase()
+            const letraCanon = /^#([DR])-/.exec(canon)?.[1]
+            const mismaLetra =
+              !letraRaw ||
+              letraRaw === letraCanon ||
+              (letraRaw === 'C' && letraCanon === 'D')
+            const fixOmitido = !mismoNumero
+              ? 'cambia el numero'
+              : !mismaLetra
+                ? 'cambia la letra'
+                : null
             informe.referenciasFueraDeFormato.push({
               ...loc,
               celda: celdaRef,
               valor: refRaw,
               canonica: canon,
-              ...(mismoNumero ? {} : { fixOmitido: 'cambia el numero' }),
+              ...(fixOmitido ? { fixOmitido } : {}),
             })
-            if (FIX_FORMATO && mismoNumero) {
+            if (FIX_FORMATO && !fixOmitido) {
               informe.fixFormato.push({
                 spreadsheetId: hoja.id,
                 ...loc,
-                range: `'${titulo}'!${celdaRef}`,
+                range: `'${a1Titulo(titulo)}'!${celdaRef}`,
                 actual: refRaw,
                 nuevo: canon,
               })
@@ -259,7 +281,7 @@ async function main() {
               informe.fixFormato.push({
                 spreadsheetId: hoja.id,
                 ...loc,
-                range: `'${titulo}'!${celdaMat}`,
+                range: `'${a1Titulo(titulo)}'!${celdaMat}`,
                 actual: matRaw,
                 nuevo: matNorm,
               })

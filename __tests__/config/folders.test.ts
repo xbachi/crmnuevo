@@ -11,6 +11,8 @@ describe('generateFolderName', () => {
     ['11', 'Coche R', 'R-11-Opel-Astra-8061KRN'],
     ['#D-2', 'D', 'D-02-Opel-Astra-8061KRN'],
     ['#1150', 'C', '150-Opel-Astra-8061KRN'],
+    ['#1200', 'R', 'R-1200-Opel-Astra-8061KRN'],
+    ['#R-1200', 'R', 'R-1200-Opel-Astra-8061KRN'],
   ])('%p (%p) → %p', (ref, tipo, esperado) => {
     expect(generateFolderName(ref, 'opel', 'astra', '8061KRN', tipo)).toBe(
       esperado

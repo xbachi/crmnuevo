@@ -1463,6 +1463,12 @@ export async function saveInversor(inversorData: any) {
   }
 }
 
+// Misma normalización que el WHERE: filas legacy '1088' / '#1088 ' chocan con '#1088'.
+const normRef = (s: unknown) =>
+  String(s ?? '')
+    .toUpperCase()
+    .replace(/[#\s.\-]/g, '')
+
 export async function checkUniqueFields(
   referencia: string,
   matricula: string,
@@ -1474,7 +1480,11 @@ export async function checkUniqueFields(
     let query = `
       SELECT referencia, matricula, matricula_norm, bastidor
       FROM "Vehiculo"
-      WHERE (referencia = $1 OR matricula = $2 OR matricula_norm = $2 OR bastidor = $3)
+      WHERE (
+        regexp_replace(upper(referencia), '[#[:space:].-]', '', 'g') =
+          regexp_replace(upper($1), '[#[:space:].-]', '', 'g')
+        OR matricula = $2 OR matricula_norm = $2 OR bastidor = $3
+      )
     `
     const params = [referencia, matricula, bastidor]
 
@@ -1487,7 +1497,7 @@ export async function checkUniqueFields(
 
     if (result.rows.length > 0) {
       const existing = result.rows[0]
-      if (existing.referencia === referencia) {
+      if (normRef(existing.referencia) === normRef(referencia)) {
         return { field: 'referencia', value: referencia }
       }
       if (

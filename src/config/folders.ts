@@ -34,10 +34,14 @@ export function generateFolderName(
   tipo?: string
 ): string {
   const ref = String(referencia ?? '')
-  // Fuera del rango 1000-1199 sin letra: últimos 2 dígitos, como siempre.
-  const fallbackLegacy = (parseInt(ref.replace(/\D/g, ''), 10) % 100 || 0)
-    .toString()
-    .padStart(2, '0')
+  const digitos = ref.replace(/\D/g, '')
+  const letra = normalizarTipo(tipo)
+  // Sin carpeta conocida: D/R conservan letra y número ('R-1200'); el resto,
+  // últimos 2 dígitos como siempre.
+  const fallbackLegacy =
+    letra === 'D' || letra === 'R'
+      ? `${letra}-${digitos || '0'}`
+      : (parseInt(digitos, 10) % 100 || 0).toString().padStart(2, '0')
   const numeroCarpeta =
     refCarpeta(normalizarReferencia(ref, tipo), { tipo }) ?? fallbackLegacy
 

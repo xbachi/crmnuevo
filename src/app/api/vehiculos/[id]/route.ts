@@ -179,6 +179,14 @@ export async function PUT(
       updateData.matricula = matriculaLimpia
     }
 
+    // Referencia sin cambios (vehículo legacy) → no se normaliza ni valida.
+    if (
+      typeof updateData.referencia === 'string' &&
+      updateData.referencia.trim() ===
+        String(vehiculoExistente.referencia ?? '').trim()
+    ) {
+      delete updateData.referencia
+    }
     if (typeof updateData.referencia === 'string') {
       const tipoEf = (body.tipo as string | undefined) ?? vehiculoExistente.tipo
       const referenciaCanon = normalizarReferencia(

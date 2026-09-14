@@ -32,7 +32,7 @@ function numeroCarpeta(n) {
 
 /**
  * Referencia canónica: '#NNNN' (C/I/M/sin tipo) o '#D-NN' / '#R-NN'.
- * La letra del input prevalece sobre `tipo`; 'C-n' viejo es depósito.
+ * La letra del input prevalece sobre `tipo`; 'C-n' viejo es depósito; 'I-n' es #n.
  * @param {unknown} input
  * @param {unknown} [tipo]
  * @returns {string|null}
@@ -45,8 +45,10 @@ function normalizarReferencia(input, tipo) {
     .replace(/^#/, '')
   if (!s) return null
 
-  const m = /^([DRC])-?(\d+)$/.exec(s)
+  const m = /^([DRCI])-?(\d+)$/.exec(s)
   if (m) {
+    // 'I-1088' (inversor, lo manda el frontend) va en la serie numérica.
+    if (m[1] === 'I') return `#${parseInt(m[2], 10)}`
     const letra = m[1] === 'C' ? 'D' : m[1]
     return `#${letra}-${pad2(parseInt(m[2], 10))}`
   }
