@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useInversorAuth } from '@/contexts/InversorAuthContext'
-import { isCrmUserAuthenticated } from '@/lib/auth-utils'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface InversorAuthGuardProps {
   children: React.ReactNode
@@ -13,24 +13,12 @@ export default function InversorAuthGuard({
   children,
 }: InversorAuthGuardProps) {
   const { inversor, isLoading } = useInversorAuth()
+  // Usuario CRM = sesión real (cookie) hidratada por AuthProvider
+  const { user: crmUser, isLoading: crmLoading } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
-  const [isCrmUser, setIsCrmUser] = useState<boolean | null>(null)
-  const [authChecked, setAuthChecked] = useState(false)
-
-  useEffect(() => {
-    // Verificar autenticación CRM
-    const checkAuth = () => {
-      const crmAuth = isCrmUserAuthenticated()
-      setIsCrmUser(crmAuth)
-      setAuthChecked(true)
-    }
-
-    // Pequeño delay para asegurar que el DOM esté listo
-    const timer = setTimeout(checkAuth, 100)
-
-    return () => clearTimeout(timer)
-  }, [])
+  const isCrmUser = !!crmUser
+  const authChecked = !crmLoading
 
   useEffect(() => {
     // Solo ejecutar la lógica de redirección cuando tengamos toda la información
@@ -40,7 +28,6 @@ export default function InversorAuthGuard({
 
     // Si es usuario CRM, permitir acceso completo
     if (isCrmUser) {
-      // console.log('Usuario CRM detectado, permitiendo acceso completo')
       return
     }
 
@@ -51,7 +38,7 @@ export default function InversorAuthGuard({
       )
       router.push('/logininv')
     }
-  }, [inversor, isLoading, isCrmUser, authChecked, router])
+  }, [inversor, isLoading, isCrmUser, authChecked, router, pathname])
 
   // Mostrar loading mientras se verifica la autenticación
   if (isLoading || !authChecked) {

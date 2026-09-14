@@ -1,8 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { useInversorAuth } from '@/contexts/InversorAuthContext'
-import { isCrmUserAuthenticated } from '@/lib/auth-utils'
+import { useAuth } from '@/contexts/AuthContext'
 import InversorNavigation from '@/components/InversorNavigation'
 
 interface InversorLayoutWrapperProps {
@@ -13,21 +12,11 @@ export default function InversorLayoutWrapper({
   children,
 }: InversorLayoutWrapperProps) {
   const { inversor, isLoading } = useInversorAuth()
-  const [isCrmUser, setIsCrmUser] = useState<boolean | null>(null)
-  const [authChecked, setAuthChecked] = useState(false)
-
-  useEffect(() => {
-    const checkAuth = () => {
-      const crmAuth = isCrmUserAuthenticated()
-      setIsCrmUser(crmAuth)
-      setAuthChecked(true)
-    }
-    const timer = setTimeout(checkAuth, 100)
-    return () => clearTimeout(timer)
-  }, [])
+  // Usuario CRM = sesión real (cookie) hidratada por AuthProvider
+  const { user: crmUser, isLoading: crmLoading } = useAuth()
 
   // Mostrar loading mientras se verifica la autenticación
-  if (isLoading || !authChecked) {
+  if (isLoading || crmLoading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -36,7 +25,7 @@ export default function InversorLayoutWrapper({
   }
 
   // Si es usuario CRM, mostrar solo el contenido (la navegación CRM se maneja desde ConditionalLayout)
-  if (isCrmUser) {
+  if (crmUser) {
     return <>{children}</>
   }
 

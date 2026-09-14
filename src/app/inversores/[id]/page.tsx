@@ -14,7 +14,6 @@ import ConfirmDeleteModal from '@/components/ConfirmDeleteModal'
 import { useInversorAuth } from '@/contexts/InversorAuthContext'
 import InversorProtectedRoute from '@/components/InversorProtectedRoute'
 import { useAuth } from '@/contexts/AuthContext'
-import { isCrmUserAuthenticated } from '@/lib/auth-utils'
 
 interface InvestorMetrics {
   beneficioAcumulado: number
@@ -39,13 +38,9 @@ export default function InvestorDashboardPage() {
   const params = useParams()
   const { showToast, ToastContainer } = useSimpleToast()
   const { inversor, clearInversor, isLoading: authLoading } = useInversorAuth()
-  const { isAdmin } = useAuth()
-  const [isCrmUser, setIsCrmUser] = useState(false)
-
-  // Verificar si es usuario CRM (admin)
-  useEffect(() => {
-    setIsCrmUser(isCrmUserAuthenticated())
-  }, [])
+  const { isAdmin, user: crmUser } = useAuth()
+  // Usuario CRM = sesión real (cookie) hidratada por AuthProvider
+  const isCrmUser = !!crmUser
 
   // Determinar si el usuario puede editar (solo admin puede editar)
   const canEdit = isAdmin || isCrmUser
