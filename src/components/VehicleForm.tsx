@@ -33,7 +33,7 @@ interface VehicleFormData {
   abonado: string
   comprobante: string
   porteSolicitado: string
-  recibido: string
+  recibidoTexto: string
 }
 
 interface VehicleFormProps {
@@ -88,7 +88,7 @@ export default function VehicleForm({
     abonado: '',
     comprobante: '',
     porteSolicitado: '',
-    recibido: '',
+    recibidoTexto: '',
     ...initialData,
   })
   const [inversores, setInversores] = useState<Inversor[]>([])
@@ -520,16 +520,16 @@ export default function VehicleForm({
           </div>
           <div>
             <label
-              htmlFor="recibido"
+              htmlFor="recibidoTexto"
               className="block text-xs text-slate-600 mb-1"
             >
               Recibido
             </label>
             <input
               type="text"
-              id="recibido"
-              name="recibido"
-              value={formData.recibido || ''}
+              id="recibidoTexto"
+              name="recibidoTexto"
+              value={formData.recibidoTexto || ''}
               onChange={handleInputChange}
               className="w-full px-2 py-1 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
               placeholder="Ej: 24/3"

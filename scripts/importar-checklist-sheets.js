@@ -52,7 +52,7 @@ const TEXTO_COMPRA = {
   ABONADO: 'abonado',
   COMPROBANTE: 'comprobante',
   PORTESOLICITADO: 'porteSolicitado',
-  RECIBIDO: 'recibido',
+  RECIBIDO: 'recibidoTexto',
 }
 const NUMERO_COMPRA = { MONTO: 'precioCompra', PORTECOMI: 'gastosTransporte' }
 const FECHA_MATRICULACION = ['FMATR', 'FECHAMATRI', 'FECHAMATR', 'FECHAMATRIC']
@@ -204,16 +204,20 @@ function planFila(vehiculo, fila, ctx, opts = {}) {
   }
 
   if (
-    updates.recibido &&
+    updates.recibidoTexto &&
     vacio(vehiculo.recibidoFecha) &&
     !setEnRun.has('recibidoFecha')
   ) {
-    const iso = interpretarFechaCorta(updates.recibido, anioRef)
-    if (iso) updates.recibidoFecha = iso
-    else
+    const iso = interpretarFechaCorta(updates.recibidoTexto, anioRef)
+    if (iso) {
+      updates.recibidoFecha = iso
+      // recibido (BOOLEAN, estado de compra): una fecha en la hoja implica recibido.
+      if (vehiculo.recibido !== true && !setEnRun.has('recibido'))
+        updates.recibido = true
+    } else if (/\d/.test(updates.recibidoTexto))
       skipped.fechasNoInterpretadas.push({
-        campo: 'recibido',
-        texto: updates.recibido,
+        campo: 'recibidoTexto',
+        texto: updates.recibidoTexto,
       })
   }
 
@@ -265,7 +269,7 @@ async function leerBase(client) {
     `SELECT id, referencia, tipo, "fechaCompra", "createdAt", "fechaMatriculacion",
             "precioCompra", "gastosTransporte", "segundaLlave", carpeta, master, "hojasA",
             documentacion, itv, seguro, proveedor, abonado, comprobante, "porteSolicitado",
-            recibido, "recibidoFecha"
+            recibido, "recibidoTexto", "recibidoFecha"
        FROM "Vehiculo"`
   )
   const porRef = new Map()

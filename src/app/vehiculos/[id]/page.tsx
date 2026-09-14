@@ -87,7 +87,7 @@ interface Vehiculo {
   abonado?: string | null
   comprobante?: string | null
   porteSolicitado?: string | null
-  recibido?: string | null
+  recibidoTexto?: string | null
   recibidoFecha?: string | null
   pasos?: PasoVehiculoUI[]
 

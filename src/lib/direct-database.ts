@@ -117,7 +117,7 @@ export interface Vehiculo {
   abonado?: string | null
   comprobante?: string | null
   porteSolicitado?: string | null
-  recibido?: string | null
+  recibidoTexto?: string | null
   recibidoFecha?: string | null
   esCocheInversor?: boolean
   inversorId?: number | null
@@ -1123,7 +1123,7 @@ export async function getVehiculoById(id: number): Promise<Vehiculo | null> {
       abonado: row.abonado,
       comprobante: row.comprobante,
       porteSolicitado: row.porteSolicitado,
-      recibido: row.recibido,
+      recibidoTexto: row.recibidoTexto,
       recibidoFecha: dateToYMD(row.recibidoFecha),
       esCocheInversor: row.esCocheInversor,
       inversorId: row.inversorId,
@@ -1187,7 +1187,7 @@ export async function saveVehiculo(
         "fechaCompra", "precioCompra", "gastosTransporte", "gastosTasas",
         "gastosMecanica", "gastosPintura", "gastosLimpieza", "gastosOtros",
         "precioPublicacion", "precioVenta", "beneficioNeto", "notasInversor",
-        "fotoInversor", proveedor, abonado, comprobante, "porteSolicitado", recibido,
+        "fotoInversor", proveedor, abonado, comprobante, "porteSolicitado", "recibidoTexto",
         "createdAt", "updatedAt"
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21,
@@ -1234,7 +1234,7 @@ export async function saveVehiculo(
         vehiculoData.abonado ?? null,
         vehiculoData.comprobante ?? null,
         vehiculoData.porteSolicitado ?? null,
-        vehiculoData.recibido ?? null,
+        vehiculoData.recibidoTexto ?? null,
       ]
     )
 

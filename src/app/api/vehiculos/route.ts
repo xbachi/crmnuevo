@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       abonado,
       comprobante,
       porteSolicitado,
-      recibido,
+      recibidoTexto,
     } = body
 
     console.log('🔍 Campos extraídos:', {
@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
       abonado: abonado || undefined,
       comprobante: comprobante || undefined,
       porteSolicitado: porteSolicitado || undefined,
-      recibido: recibido || undefined,
+      recibidoTexto: recibidoTexto || undefined,
     } as Omit<Vehiculo, 'id' | 'createdAt' | 'updatedAt'>)
     // console.log('✅ Vehículo guardado:', vehiculo)
 

@@ -29,7 +29,7 @@ const CAMPOS_COMPRA = [
   ['abonado', 'Abonado'],
   ['comprobante', 'Comprobante'],
   ['porteSolicitado', 'Porte solicitado'],
-  ['recibido', 'Recibido'],
+  ['recibidoTexto', 'Recibido'],
 ] as const
 type CampoCompra = (typeof CAMPOS_COMPRA)[number][0]
 

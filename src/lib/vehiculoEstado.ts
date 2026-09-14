@@ -264,7 +264,7 @@ export const CAMPOS_EDITABLES_VEHICULO = [
   'abonado',
   'comprobante',
   'porteSolicitado',
-  'recibido',
+  'recibidoTexto',
   'recibidoFecha',
 ] as const
 

@@ -123,7 +123,7 @@ export async function cargarCtx(
             v.kms, v.estado, v."fechaMatriculacion", v."fechaCompra", v."precioCompra",
             v."gastosTransporte", v."segundaLlave", v.carpeta, v.master, v."hojasA",
             v.documentacion, v.itv, v.seguro, v.proveedor, v.abonado, v.comprobante,
-            v."porteSolicitado", v.recibido, v."recibidoFecha", v."createdAt",
+            v."porteSolicitado", v.recibido, v."recibidoTexto", v."recibidoFecha", v."createdAt",
             d."importeTotal" AS deal_importe,
             TRIM(CONCAT_WS(' ', c.nombre, c.apellidos)) AS deal_cliente
        FROM "Vehiculo" v

@@ -51,7 +51,8 @@ export interface VehiculoSheets {
   abonado?: string | null
   comprobante?: string | null
   porteSolicitado?: string | null
-  recibido?: string | boolean | null
+  recibido?: boolean | null
+  recibidoTexto?: string | null
   recibidoFecha?: unknown
   createdAt?: unknown
 }
@@ -249,7 +250,9 @@ export const mapeoColumnas: Record<ClavePestana, Record<string, Getter>> = {
     COMPROBANTE: campo('comprobante'),
     PORTESOLICITADO: campo('porteSolicitado'),
     RECIBIDO: ({ vehiculo: v }) =>
-      fmtFecha(v.recibidoFecha) ?? texto(v.recibido),
+      fmtFecha(v.recibidoFecha) ??
+      texto(v.recibidoTexto) ??
+      (v.recibido === true ? 'SI' : null),
     ...CHECKLIST_VEHICULO,
     ...CHECKLIST_PASOS,
   },

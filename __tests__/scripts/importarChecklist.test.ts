@@ -68,8 +68,9 @@ describe('planFila', () => {
       proveedor: 'ayvens',
       precioCompra: 8100,
       fechaCompra: '2026-03-10',
-      recibido: '24/3',
+      recibidoTexto: '24/3',
       recibidoFecha: '2026-03-24',
+      recibido: true,
       carpeta: 'SI',
     })
     expect(plan.pasos).toEqual([
