@@ -11,7 +11,7 @@ import {
 } from '@/lib/direct-database'
 import { promises as fs } from 'fs'
 import { generateFolderName, getFolderPathsByTipo } from '@/config/folders'
-import { writeVehiculoToSheets } from '@/lib/googleSheets'
+import { encolarSheetsVehiculo } from '@/lib/sheetsVehiculo'
 import { normalizarTipo } from '@/lib/vehiculoEstado'
 import {
   extraerMatriculaEntrada,
@@ -181,8 +181,7 @@ export async function POST(request: NextRequest) {
       // Escribir en Google Sheets en background
       (async () => {
         try {
-          await writeVehiculoToSheets(vehiculo)
-          // console.log('Vehículo guardado en Google Sheets')
+          await encolarSheetsVehiculo(vehiculo.id, 'create')
         } catch (sheetsError) {
           console.error('Error guardando en Google Sheets:', sheetsError)
         }

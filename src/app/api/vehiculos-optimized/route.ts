@@ -8,7 +8,7 @@ import {
   getVehiculoById,
   type Vehiculo,
 } from '@/lib/direct-database'
-import { writeVehiculoToSheets } from '@/lib/googleSheets'
+import { encolarSheetsVehiculo } from '@/lib/sheetsVehiculo'
 import { generateFolderName, getFolderPathsByTipo } from '@/config/folders'
 import { promises as fs } from 'fs'
 import { normalizarTipo } from '@/lib/vehiculoEstado'
@@ -227,15 +227,7 @@ export async function POST(request: NextRequest) {
 
     // Sincronizar con Google Sheets (opcional)
     try {
-      await writeVehiculoToSheets({
-        referencia: referenciaCanon,
-        marca,
-        modelo,
-        matricula: matriculaNorm,
-        bastidor,
-        kms: parseInt(kms),
-        tipo,
-      })
+      await encolarSheetsVehiculo(vehiculo.id, 'create')
     } catch (sheetsError) {
       console.error('Error sincronizando con Google Sheets:', sheetsError)
       // No fallar la operación por errores de Google Sheets

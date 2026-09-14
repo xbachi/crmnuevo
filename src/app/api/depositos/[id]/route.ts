@@ -218,6 +218,15 @@ export async function PUT(
 
     console.log(`✅ Depósito actualizado exitosamente:`, result.rows[0])
     console.log(`📅 updated_at value:`, result.rows[0].updated_at)
+    try {
+      const { encolarSheetsVehiculo } = await import('@/lib/sheetsVehiculo')
+      await encolarSheetsVehiculo(
+        Number(result.rows[0].vehiculo_id),
+        'deposito'
+      )
+    } catch (err) {
+      console.error('encolar sheets:', (err as Error)?.message ?? err)
+    }
     return NextResponse.json(result.rows[0])
   } catch (error) {
     console.error('❌ Error updating deposito:', error)
@@ -226,7 +235,10 @@ export async function PUT(
       error && typeof error === 'object' && 'code' in error
         ? (error as { code?: unknown }).code
         : undefined
-    console.error('❌ Error stack:', error instanceof Error ? error.stack : undefined)
+    console.error(
+      '❌ Error stack:',
+      error instanceof Error ? error.stack : undefined
+    )
     console.error('❌ Error code:', code)
     return NextResponse.json(
       {
@@ -274,8 +286,7 @@ export async function DELETE(
       if (result.rows.length === 0) {
         return NextResponse.json(
           {
-            error:
-              'Vehículo no encontrado o ya no está marcado como depósito.',
+            error: 'Vehículo no encontrado o ya no está marcado como depósito.',
           },
           { status: 404 }
         )
@@ -308,9 +319,7 @@ export async function DELETE(
       )
       await client.query('RELEASE SAVEPOINT child_delete')
     } catch {
-      await client
-        .query('ROLLBACK TO SAVEPOINT child_delete')
-        .catch(() => {})
+      await client.query('ROLLBACK TO SAVEPOINT child_delete').catch(() => {})
     }
 
     const result = await client.query(

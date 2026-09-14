@@ -991,6 +991,16 @@ export async function updateDeal(
           (err as Error)?.message ?? err
         )
       }
+      // Marca VENDIDO / comprador en las hojas
+      try {
+        const { encolarSheetsVehiculo } = await import('./sheetsVehiculo')
+        await encolarSheetsVehiculo(vehiculoId, 'deal')
+      } catch (err) {
+        console.error(
+          '[updateDeal] encolar sheets:',
+          (err as Error)?.message ?? err
+        )
+      }
     }
 
     return await getDealById(id)
@@ -2182,6 +2192,12 @@ export async function updateVehiculosOrden(updates: unknown[]) {
           )
         } catch (err) {
           console.error('registrar paso:', (err as Error)?.message ?? err)
+        }
+        try {
+          const { encolarSheetsVehiculo } = await import('./sheetsVehiculo')
+          await encolarSheetsVehiculo((update as { id: number }).id, 'kanban')
+        } catch (err) {
+          console.error('encolar sheets:', (err as Error)?.message ?? err)
         }
       }
     }

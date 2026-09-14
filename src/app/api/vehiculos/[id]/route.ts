@@ -305,6 +305,20 @@ export async function PUT(
         console.error('registrar paso:', (err as Error)?.message ?? err)
       }
     }
+    // Fila del vehículo en las hojas (upsert por referencia, en background).
+    if (Object.keys(updateData).length > 0) {
+      try {
+        const { encolarSheetsVehiculo } = await import('@/lib/sheetsVehiculo')
+        await encolarSheetsVehiculo(
+          id,
+          estadoNuevoNorm && estadoNuevoNorm !== estadoPrevioNorm
+            ? 'estado'
+            : 'update'
+        )
+      } catch (err) {
+        console.error('encolar sheets:', (err as Error)?.message ?? err)
+      }
+    }
     // console.log('✅ Vehículo actualizado.color:', vehiculoActualizado?.color)
     // console.log('✅ Vehículo actualizado.fechaMatriculacion:', vehiculoActualizado?.fechaMatriculacion)
 

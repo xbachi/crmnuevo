@@ -1,9 +1,5 @@
 import { google } from 'googleapis'
-import {
-  SHEETS_CONFIG,
-  resolverTipoSheets,
-  validateSheetsConfig,
-} from './sheetsConfig'
+import { SHEETS_CONFIG, validateSheetsConfig } from './sheetsConfig'
 import { normalizarMatricula, normalizarReferencia } from '@/lib/normalizacion'
 
 // Configuración de Google Sheets
@@ -32,11 +28,17 @@ export async function getGoogleSheetsAuth() {
   }
 }
 
+// sheetId por (spreadsheet, pestaña); no cambia, se cachea por proceso.
+const sheetIdCache = new Map<string, number>()
+
 // Función para obtener el ID de una hoja por nombre
-async function getSheetId(
+export async function getSheetId(
   spreadsheetId: string,
   sheetName: string
 ): Promise<number> {
+  const cacheKey = `${spreadsheetId}/${sheetName}`
+  const cached = sheetIdCache.get(cacheKey)
+  if (cached !== undefined) return cached
   try {
     const auth = await getGoogleSheetsAuth()
     const sheets = google.sheets({ version: 'v4', auth })
@@ -48,10 +50,11 @@ async function getSheetId(
     const sheet = response.data.sheets?.find(
       (s) => s.properties?.title === sheetName
     )
-    if (!sheet?.properties?.sheetId) {
+    if (sheet?.properties?.sheetId == null) {
       throw new Error(`Hoja '${sheetName}' no encontrada`)
     }
 
+    sheetIdCache.set(cacheKey, sheet.properties.sheetId)
     return sheet.properties.sheetId
   } catch (error) {
     console.error(`Error getting sheet ID for ${sheetName}:`, error)
@@ -213,41 +216,25 @@ export async function writeToGoogleSheets(
   }
 }
 
-// Función para escribir vehículo en ambas hojas de cálculo según el tipo
-export async function writeVehiculoToSheets(vehiculo: any) {
-  try {
-    const { SPREADSHEET_IDS } = SHEETS_CONFIG
-
-    // Pestañas según el tipo (letra canónica o palabra legacy)
-    const { ventas: ventasSheetName, compras: comprasSheetName } =
-      resolverTipoSheets(vehiculo.tipo)
-
-    // Escribir en ambas hojas de cálculo separadas
-    const promises = [
-      writeToGoogleSheets(
-        SPREADSHEET_IDS.VENTAS,
-        ventasSheetName,
-        vehiculo,
-        'VENTAS'
-      ),
-      writeToGoogleSheets(
-        SPREADSHEET_IDS.COMPRAS,
-        comprasSheetName,
-        vehiculo,
-        'COMPRAS'
-      ),
-    ]
-
-    await Promise.all(promises)
-    // console.log(`Vehículo guardado en Google Sheets - Ventas (${ventasSheetName}) y Compras (${comprasSheetName})`)
-  } catch (error) {
-    console.error('Error writing vehicle to Google Sheets:', error)
-    throw error
+/**
+ * Compatibilidad: antes hacía append de 6 columnas al crear. Ahora delega en
+ * el upsert por referencia (sheetsVehiculo.ts) vía outbox; necesita el id del
+ * vehículo ya guardado. Nunca lanza.
+ */
+export async function writeVehiculoToSheets(vehiculo: { id?: unknown }) {
+  const id = Number(vehiculo?.id)
+  if (!Number.isFinite(id) || id <= 0) {
+    console.warn(
+      '[googleSheets] writeVehiculoToSheets sin id de vehículo: no se encola'
+    )
+    return
   }
+  const { encolarSheetsVehiculo } = await import('./sheetsVehiculo')
+  return encolarSheetsVehiculo(id, 'create')
 }
 
 // Función para hacer retry con backoff exponencial
-async function retryWithBackoff<T>(
+export async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   maxRetries: number = 3,
   baseDelay: number = 1000

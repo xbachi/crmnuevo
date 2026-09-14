@@ -21,6 +21,10 @@ import {
 } from '@/lib/gestoriaWebhook'
 import { postWebEstado, type WebEstadoPayload } from '@/lib/webSync'
 import {
+  reenviarSheetsVehiculo,
+  type SheetsVehiculoPayload,
+} from '@/lib/sheetsVehiculo'
+import {
   markOutboxEnviado,
   markOutboxFallo,
   markOutboxAgotado,
@@ -50,6 +54,8 @@ async function reenviar(row: PendingRow): Promise<Reenvio> {
       return postGestoriaWebhook(row.payload as GestoriaInvoicePayload)
     case 'web_estado':
       return postWebEstado(row.payload as WebEstadoPayload)
+    case 'sheets_vehiculo':
+      return reenviarSheetsVehiculo(row.payload as SheetsVehiculoPayload)
     default:
       return {
         ok: false,

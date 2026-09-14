@@ -241,6 +241,12 @@ export async function POST(request: NextRequest) {
     )
 
     console.log('✅ Depósito creado exitosamente:', result.rows[0])
+    try {
+      const { encolarSheetsVehiculo } = await import('@/lib/sheetsVehiculo')
+      await encolarSheetsVehiculo(Number(vehiculo_id), 'deposito')
+    } catch (err) {
+      console.error('encolar sheets:', (err as Error)?.message ?? err)
+    }
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error) {
     console.error('❌ Error creating deposito:', error)
