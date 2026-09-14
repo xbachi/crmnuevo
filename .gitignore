@@ -49,6 +49,7 @@ next-env.d.ts
 !next.config.js
 !next.config.ts
 !eslint.config.mjs
+reconciliacion-sheets.json
 
 # Permitir archivos de metadatos de documentación y archivos subidos
 !public/uploads
