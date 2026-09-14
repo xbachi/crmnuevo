@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { clearVehiculos, saveVehiculo } from '@/lib/direct-database'
 import { requireAdminSession } from '@/lib/apiAuth'
+import {
+  extraerMatriculaEntrada,
+  normalizarReferencia,
+  validarMatricula,
+} from '@/lib/normalizacion'
 
 export async function POST(request: NextRequest) {
   const auth = requireAdminSession(request)
@@ -33,7 +38,9 @@ export async function POST(request: NextRequest) {
     await clearVehiculos()
 
     let imported = 0
+    let extranjeras = 0
     let errors = []
+    const avisos: string[] = []
 
     for (let i = 0; i < data.length; i++) {
       const row = data[i]
@@ -177,6 +184,35 @@ export async function POST(request: NextRequest) {
           continue
         }
 
+        // Misma normalización que POST /api/vehiculos. La referencia no
+        // bloquea (se conserva cruda con aviso); la matrícula sí.
+        const referenciaCanon = normalizarReferencia(
+          vehiculo.referencia,
+          vehiculo.tipo
+        )
+        if (!referenciaCanon) {
+          avisos.push(
+            `Fila ${i + 1}: referencia '${vehiculo.referencia}' no reconocida, se guarda tal cual`
+          )
+        }
+        vehiculo.referencia = referenciaCanon ?? vehiculo.referencia
+        vehiculo.matricula = extraerMatriculaEntrada(vehiculo.matricula)
+        const extranjera = /^(si|sí|s|true|1|x)$/i.test(
+          String(
+            row.matriculaExtranjera ??
+              row.MATRICULA_EXTRANJERA ??
+              row['Matricula Extranjera'] ??
+              ''
+          ).trim()
+        )
+        if (!validarMatricula(vehiculo.matricula, { extranjera }).ok) {
+          errors.push(
+            `Fila ${i + 1}: matrícula '${vehiculo.matricula}' no válida; añade columna matriculaExtranjera=SI si es extranjera`
+          )
+          continue
+        }
+        if (extranjera) extranjeras++
+
         // Agregar vehículo
         await saveVehiculo(vehiculo)
         imported++
@@ -195,8 +231,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       imported,
+      extranjeras,
       errors: errors.length,
       errorDetails: errors.slice(0, 10), // Solo los primeros 10 errores
+      avisos: avisos.slice(0, 10),
       message: `Importación completada: ${imported} vehículos importados${errors.length > 0 ? `, ${errors.length} errores` : ''}`,
     })
   } catch (error: any) {

@@ -106,7 +106,11 @@ export default function ImportarCSV() {
       if (response.ok) {
         const result = await response.json()
         showToast(
-          `✅ Importación exitosa: ${result.imported} vehículos importados`,
+          `✅ Importación exitosa: ${result.imported} vehículos importados${
+            result.extranjeras > 0
+              ? ` (${result.extranjeras} con matrícula extranjera)`
+              : ''
+          }`,
           'success'
         )
         setCsvData([])

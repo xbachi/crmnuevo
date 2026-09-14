@@ -18,6 +18,7 @@ import {
   claseInput,
   enfocarCampo,
 } from '@/components/CampoError'
+import { normalizarMatricula } from '@/lib/normalizacion'
 
 const CLASE_INPUT =
   'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors'
@@ -58,6 +59,7 @@ export default function CargarVehiculo() {
     marca: '',
     modelo: '',
     matricula: '',
+    matriculaExtranjera: false,
     bastidor: '',
     kms: '',
     tipo: '',
@@ -198,7 +200,14 @@ export default function CargarVehiculo() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    const validacion = validarCampos(formData, REGLAS_VEHICULO)
+    // Extranjera: sólo obligatoria, sin chequeo de formato español.
+    const reglas: Record<string, Regla> = formData.matriculaExtranjera
+      ? {
+          ...REGLAS_VEHICULO,
+          matricula: { requerido: true, etiqueta: 'la matrícula' },
+        }
+      : REGLAS_VEHICULO
+    const validacion = validarCampos(formData, reglas)
     setErrores(validacion.errores)
     if (!validacion.ok) {
       showToast(resumenErrores(validacion.errores), 'error')
@@ -281,6 +290,7 @@ export default function CargarVehiculo() {
           marca: '',
           modelo: '',
           matricula: '',
+          matriculaExtranjera: false,
           bastidor: '',
           kms: '',
           tipo: '',
@@ -306,7 +316,15 @@ export default function CargarVehiculo() {
           router.push('/vehiculos?refresh=true')
         }, 1500)
       } else {
-        showToast(result.error || 'Error al crear el vehículo', 'error')
+        const msg: string = result.error || 'Error al crear el vehículo'
+        showToast(msg, 'error')
+        if (response.status === 400 && /Matrícula/.test(msg)) {
+          setErrores({ matricula: msg })
+          enfocarCampo('matricula')
+        } else if (response.status === 400 && /Referencia/.test(msg)) {
+          setErrores({ referencia: msg })
+          enfocarCampo('referencia')
+        }
       }
     } catch (error) {
       showToast('Error al crear el vehículo', 'error')
@@ -368,11 +386,16 @@ export default function CargarVehiculo() {
                     onChange={handleInputChange}
                     required
                     aria-invalid={!!errores.referencia}
-                    aria-describedby={errores.referencia ? 'referencia-error' : undefined}
+                    aria-describedby={
+                      errores.referencia ? 'referencia-error' : undefined
+                    }
                     className={claseInput(errores.referencia, CLASE_INPUT)}
                     placeholder="Ej: #1040, I-9, D-5, R-3"
                   />
-                  <CampoError id="referencia-error" mensaje={errores.referencia} />
+                  <CampoError
+                    id="referencia-error"
+                    mensaje={errores.referencia}
+                  />
                 </div>
 
                 <div>
@@ -443,7 +466,9 @@ export default function CargarVehiculo() {
                     onChange={handleInputChange}
                     required
                     aria-invalid={!!errores.modelo}
-                    aria-describedby={errores.modelo ? 'modelo-error' : undefined}
+                    aria-describedby={
+                      errores.modelo ? 'modelo-error' : undefined
+                    }
                     className={claseInput(errores.modelo, CLASE_INPUT)}
                     placeholder="Ej: Corsa"
                   />
@@ -466,13 +491,41 @@ export default function CargarVehiculo() {
                     name="matricula"
                     value={formData.matricula || ''}
                     onChange={handleInputChange}
+                    onBlur={(e) => {
+                      const v = normalizarMatricula(e.target.value)
+                      setFormData((prev) => ({ ...prev, matricula: v }))
+                    }}
                     required
                     aria-invalid={!!errores.matricula}
-                    aria-describedby={errores.matricula ? 'matricula-error' : undefined}
-                    className={claseInput(errores.matricula, `${CLASE_INPUT} font-mono`)}
+                    aria-describedby={
+                      errores.matricula ? 'matricula-error' : undefined
+                    }
+                    className={claseInput(
+                      errores.matricula,
+                      `${CLASE_INPUT} font-mono`
+                    )}
                     placeholder="Ej: 1234ABC"
                   />
-                  <CampoError id="matricula-error" mensaje={errores.matricula} />
+                  <CampoError
+                    id="matricula-error"
+                    mensaje={errores.matricula}
+                  />
+                  <label className="mt-2 flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      name="matriculaExtranjera"
+                      checked={formData.matriculaExtranjera}
+                      onChange={(e) => {
+                        const checked = e.target.checked
+                        setErrores((prev) => sinError(prev, 'matricula'))
+                        setFormData((prev) => ({
+                          ...prev,
+                          matriculaExtranjera: checked,
+                        }))
+                      }}
+                    />
+                    Matrícula extranjera
+                  </label>
                 </div>
 
                 <div>
@@ -491,8 +544,13 @@ export default function CargarVehiculo() {
                     onChange={handleInputChange}
                     required
                     aria-invalid={!!errores.bastidor}
-                    aria-describedby={errores.bastidor ? 'bastidor-error' : undefined}
-                    className={claseInput(errores.bastidor, `${CLASE_INPUT} font-mono`)}
+                    aria-describedby={
+                      errores.bastidor ? 'bastidor-error' : undefined
+                    }
+                    className={claseInput(
+                      errores.bastidor,
+                      `${CLASE_INPUT} font-mono`
+                    )}
                     placeholder="Ej: W0L00000000000000"
                   />
                   <CampoError id="bastidor-error" mensaje={errores.bastidor} />
@@ -605,8 +663,13 @@ export default function CargarVehiculo() {
                           onChange={handleInputChange}
                           required={formData.esCocheInversor}
                           aria-invalid={!!errores.inversorId}
-                          aria-describedby={errores.inversorId ? 'inversorId-error' : undefined}
-                          className={claseInput(errores.inversorId, CLASE_INPUT)}
+                          aria-describedby={
+                            errores.inversorId ? 'inversorId-error' : undefined
+                          }
+                          className={claseInput(
+                            errores.inversorId,
+                            CLASE_INPUT
+                          )}
                         >
                           <option value="">Seleccionar inversor</option>
                           {inversores.map((inversor) => (
@@ -615,7 +678,10 @@ export default function CargarVehiculo() {
                             </option>
                           ))}
                         </select>
-                        <CampoError id="inversorId-error" mensaje={errores.inversorId} />
+                        <CampoError
+                          id="inversorId-error"
+                          mensaje={errores.inversorId}
+                        />
                       </div>
 
                       <div>
@@ -653,11 +719,21 @@ export default function CargarVehiculo() {
                           min="0"
                           step="0.01"
                           aria-invalid={!!errores.precioCompra}
-                          aria-describedby={errores.precioCompra ? 'precioCompra-error' : undefined}
-                          className={claseInput(errores.precioCompra, CLASE_INPUT)}
+                          aria-describedby={
+                            errores.precioCompra
+                              ? 'precioCompra-error'
+                              : undefined
+                          }
+                          className={claseInput(
+                            errores.precioCompra,
+                            CLASE_INPUT
+                          )}
                           placeholder="0.00"
                         />
-                        <CampoError id="precioCompra-error" mensaje={errores.precioCompra} />
+                        <CampoError
+                          id="precioCompra-error"
+                          mensaje={errores.precioCompra}
+                        />
                       </div>
 
                       <div>
@@ -676,11 +752,21 @@ export default function CargarVehiculo() {
                           min="0"
                           step="0.01"
                           aria-invalid={!!errores.precioPublicacion}
-                          aria-describedby={errores.precioPublicacion ? 'precioPublicacion-error' : undefined}
-                          className={claseInput(errores.precioPublicacion, CLASE_INPUT)}
+                          aria-describedby={
+                            errores.precioPublicacion
+                              ? 'precioPublicacion-error'
+                              : undefined
+                          }
+                          className={claseInput(
+                            errores.precioPublicacion,
+                            CLASE_INPUT
+                          )}
                           placeholder="0.00"
                         />
-                        <CampoError id="precioPublicacion-error" mensaje={errores.precioPublicacion} />
+                        <CampoError
+                          id="precioPublicacion-error"
+                          mensaje={errores.precioPublicacion}
+                        />
                       </div>
                     </div>
 
@@ -705,11 +791,21 @@ export default function CargarVehiculo() {
                             min="0"
                             step="0.01"
                             aria-invalid={!!errores.gastosTransporte}
-                            aria-describedby={errores.gastosTransporte ? 'gastosTransporte-error' : undefined}
-                            className={claseInput(errores.gastosTransporte, CLASE_INPUT_GASTO)}
+                            aria-describedby={
+                              errores.gastosTransporte
+                                ? 'gastosTransporte-error'
+                                : undefined
+                            }
+                            className={claseInput(
+                              errores.gastosTransporte,
+                              CLASE_INPUT_GASTO
+                            )}
                             placeholder="0"
                           />
-                          <CampoError id="gastosTransporte-error" mensaje={errores.gastosTransporte} />
+                          <CampoError
+                            id="gastosTransporte-error"
+                            mensaje={errores.gastosTransporte}
+                          />
                         </div>
                         <div>
                           <label
@@ -727,11 +823,21 @@ export default function CargarVehiculo() {
                             min="0"
                             step="0.01"
                             aria-invalid={!!errores.gastosTasas}
-                            aria-describedby={errores.gastosTasas ? 'gastosTasas-error' : undefined}
-                            className={claseInput(errores.gastosTasas, CLASE_INPUT_GASTO)}
+                            aria-describedby={
+                              errores.gastosTasas
+                                ? 'gastosTasas-error'
+                                : undefined
+                            }
+                            className={claseInput(
+                              errores.gastosTasas,
+                              CLASE_INPUT_GASTO
+                            )}
                             placeholder="0"
                           />
-                          <CampoError id="gastosTasas-error" mensaje={errores.gastosTasas} />
+                          <CampoError
+                            id="gastosTasas-error"
+                            mensaje={errores.gastosTasas}
+                          />
                         </div>
                         <div>
                           <label
@@ -749,11 +855,21 @@ export default function CargarVehiculo() {
                             min="0"
                             step="0.01"
                             aria-invalid={!!errores.gastosMecanica}
-                            aria-describedby={errores.gastosMecanica ? 'gastosMecanica-error' : undefined}
-                            className={claseInput(errores.gastosMecanica, CLASE_INPUT_GASTO)}
+                            aria-describedby={
+                              errores.gastosMecanica
+                                ? 'gastosMecanica-error'
+                                : undefined
+                            }
+                            className={claseInput(
+                              errores.gastosMecanica,
+                              CLASE_INPUT_GASTO
+                            )}
                             placeholder="0"
                           />
-                          <CampoError id="gastosMecanica-error" mensaje={errores.gastosMecanica} />
+                          <CampoError
+                            id="gastosMecanica-error"
+                            mensaje={errores.gastosMecanica}
+                          />
                         </div>
                         <div>
                           <label
@@ -771,11 +887,21 @@ export default function CargarVehiculo() {
                             min="0"
                             step="0.01"
                             aria-invalid={!!errores.gastosPintura}
-                            aria-describedby={errores.gastosPintura ? 'gastosPintura-error' : undefined}
-                            className={claseInput(errores.gastosPintura, CLASE_INPUT_GASTO)}
+                            aria-describedby={
+                              errores.gastosPintura
+                                ? 'gastosPintura-error'
+                                : undefined
+                            }
+                            className={claseInput(
+                              errores.gastosPintura,
+                              CLASE_INPUT_GASTO
+                            )}
                             placeholder="0"
                           />
-                          <CampoError id="gastosPintura-error" mensaje={errores.gastosPintura} />
+                          <CampoError
+                            id="gastosPintura-error"
+                            mensaje={errores.gastosPintura}
+                          />
                         </div>
                         <div>
                           <label
@@ -793,11 +919,21 @@ export default function CargarVehiculo() {
                             min="0"
                             step="0.01"
                             aria-invalid={!!errores.gastosLimpieza}
-                            aria-describedby={errores.gastosLimpieza ? 'gastosLimpieza-error' : undefined}
-                            className={claseInput(errores.gastosLimpieza, CLASE_INPUT_GASTO)}
+                            aria-describedby={
+                              errores.gastosLimpieza
+                                ? 'gastosLimpieza-error'
+                                : undefined
+                            }
+                            className={claseInput(
+                              errores.gastosLimpieza,
+                              CLASE_INPUT_GASTO
+                            )}
                             placeholder="0"
                           />
-                          <CampoError id="gastosLimpieza-error" mensaje={errores.gastosLimpieza} />
+                          <CampoError
+                            id="gastosLimpieza-error"
+                            mensaje={errores.gastosLimpieza}
+                          />
                         </div>
                         <div>
                           <label
@@ -815,11 +951,21 @@ export default function CargarVehiculo() {
                             min="0"
                             step="0.01"
                             aria-invalid={!!errores.gastosOtros}
-                            aria-describedby={errores.gastosOtros ? 'gastosOtros-error' : undefined}
-                            className={claseInput(errores.gastosOtros, CLASE_INPUT_GASTO)}
+                            aria-describedby={
+                              errores.gastosOtros
+                                ? 'gastosOtros-error'
+                                : undefined
+                            }
+                            className={claseInput(
+                              errores.gastosOtros,
+                              CLASE_INPUT_GASTO
+                            )}
                             placeholder="0"
                           />
-                          <CampoError id="gastosOtros-error" mensaje={errores.gastosOtros} />
+                          <CampoError
+                            id="gastosOtros-error"
+                            mensaje={errores.gastosOtros}
+                          />
                         </div>
                       </div>
                     </div>

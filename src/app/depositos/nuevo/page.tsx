@@ -74,6 +74,9 @@ export default function NuevoDepositoPage() {
     proximoPaso: '',
     notas: '',
   })
+  const [errorMatriculaNuevo, setErrorMatriculaNuevo] = useState<string | null>(
+    null
+  )
   const [newVehiculo, setNewVehiculo] = useState({
     referencia: '',
     marca: '',
@@ -953,11 +956,14 @@ export default function NuevoDepositoPage() {
                             tipo: 'Deposito Venta',
                           }}
                           onSubmit={async (data) => {
+                            setErrorMatriculaNuevo(null)
                             const vehiculoData = {
                               referencia: data.referencia,
                               marca: data.marca,
                               modelo: data.modelo,
                               matricula: data.matricula,
+                              matriculaExtranjera:
+                                data.matriculaExtranjera === true,
                               bastidor: data.bastidor,
                               kms: parseInt(data.kms) || 0,
                               tipo: 'Deposito Venta',
@@ -1023,12 +1029,19 @@ export default function NuevoDepositoPage() {
                             } else {
                               const error = await response.json()
                               showToast(`Error: ${error.error}`, 'error')
+                              if (
+                                response.status === 400 &&
+                                /matr[ií]cula/i.test(String(error.error))
+                              ) {
+                                setErrorMatriculaNuevo(String(error.error))
+                              }
                             }
                           }}
                           onCancel={() => setShowVehiculoForm(false)}
                           showInversorSection={false}
                           fixedTipo="Deposito Venta"
                           submitText="Crear Vehículo"
+                          errorMatricula={errorMatriculaNuevo}
                         />
                       </div>
                     )}
