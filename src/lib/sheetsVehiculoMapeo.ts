@@ -130,7 +130,15 @@ export function fmtFecha(v: unknown): string | null {
   let iso: string | null = null
   if (v instanceof Date) {
     if (Number.isNaN(v.getTime())) return null
-    iso = `${v.getFullYear()}-${pad2(v.getMonth() + 1)}-${pad2(v.getDate())}`
+    // Los timestamps se guardan como medianoche de Madrid (22:00Z): en Vercel
+    // (UTC) getDate() daría el día anterior.
+    const p = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Europe/Madrid',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(v)
+    iso = p.slice(0, 10)
   } else {
     const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(v).trim())
     if (m) iso = `${m[1]}-${m[2]}-${m[3]}`
