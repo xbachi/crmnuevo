@@ -112,6 +112,13 @@ export interface Vehiculo {
   carpeta?: string | null
   master?: string | null
   hojasA?: string | null
+  // Logística de compra (texto libre como en COMPRAS/Compras)
+  proveedor?: string | null
+  abonado?: string | null
+  comprobante?: string | null
+  porteSolicitado?: string | null
+  recibido?: string | null
+  recibidoFecha?: string | null
   esCocheInversor?: boolean
   inversorId?: number | null
   inversor?: {
@@ -1102,6 +1109,12 @@ export async function getVehiculoById(id: number): Promise<Vehiculo | null> {
       carpeta: row.carpeta,
       master: row.master,
       hojasA: row.hojasA,
+      proveedor: row.proveedor,
+      abonado: row.abonado,
+      comprobante: row.comprobante,
+      porteSolicitado: row.porteSolicitado,
+      recibido: row.recibido,
+      recibidoFecha: dateToYMD(row.recibidoFecha),
       esCocheInversor: row.esCocheInversor,
       inversorId: row.inversorId,
       inversor: row.inversor_nombre
@@ -1259,6 +1272,7 @@ const FECHAS_VENCIMIENTO_VEHICULO = new Set([
   'itvVence',
   'seguroVence',
   'garantiaVence',
+  'recibidoFecha',
 ])
 
 export async function updateVehiculo(
@@ -2160,6 +2174,15 @@ export async function updateVehiculosOrden(updates: unknown[]) {
 
       if (result.rows[0]) {
         results.push(result.rows[0])
+        try {
+          const { registrarPasoEstado } = await import('./vehiculoPasos')
+          await registrarPasoEstado(
+            (update as { id: number }).id,
+            (update as { estado: string }).estado
+          )
+        } catch (err) {
+          console.error('registrar paso:', (err as Error)?.message ?? err)
+        }
       }
     }
     return results

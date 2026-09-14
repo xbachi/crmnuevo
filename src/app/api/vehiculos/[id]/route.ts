@@ -297,6 +297,13 @@ export async function PUT(
       } catch (err) {
         console.error('notify web:', (err as Error)?.message ?? err)
       }
+      // Checklist de preparación: fecha de hoy en el paso al que entra.
+      try {
+        const { registrarPasoEstado } = await import('@/lib/vehiculoPasos')
+        await registrarPasoEstado(id, estadoNuevoNorm)
+      } catch (err) {
+        console.error('registrar paso:', (err as Error)?.message ?? err)
+      }
     }
     // console.log('✅ Vehículo actualizado.color:', vehiculoActualizado?.color)
     // console.log('✅ Vehículo actualizado.fechaMatriculacion:', vehiculoActualizado?.fechaMatriculacion)
