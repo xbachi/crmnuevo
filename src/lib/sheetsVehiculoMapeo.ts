@@ -297,9 +297,9 @@ export function tipoDePestana(pestana: Pestana): 'C' | 'D' | 'R' {
 
 export const COL_REFERENCIA = 0
 
+/** Siempre la columna A: la cabecera varía ("R", "SI", "751", "REFERENCIA"). */
 export function indiceReferencia(headers: string[]): number {
-  const i = headers.findIndex((h) => /REFERENCIA/i.test(String(h ?? '')))
-  return i >= 0 ? i : COL_REFERENCIA
+  return Math.min(COL_REFERENCIA, Math.max(0, headers.length - 1))
 }
 
 /**
@@ -450,9 +450,9 @@ export function planUpsert(
     if (e.col >= headers.length && !e.marcaVendido) continue
     const actual = filaActual[e.col] ?? ''
     if (e.marcaVendido) {
-      if (normalizarCelda(actual) === normalizarCelda(e.valor)) continue
-      // Ventas/R: "SI" sólo si está vacía (puede tener el nombre del comprador).
-      if (e.valor === 'SI' && normalizarCelda(actual)) continue
+      // La marca sólo se pone en celda vacía: nunca pisa texto libre
+      // ("VENDIDO 12/03", nombre del comprador) ni se quita.
+      if (normalizarCelda(actual)) continue
       celdas.push({
         col: e.col,
         letra: letraColumna(e.col),

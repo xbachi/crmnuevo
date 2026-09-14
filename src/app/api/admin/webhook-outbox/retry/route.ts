@@ -44,6 +44,8 @@ interface Reenvio {
   error?: string
   /** Fallo definitivo: agotar los intentos en vez de dejarla 'pendiente'. */
   permanente?: boolean
+  /** No se pudo reservar la fila (otro job en curso): no se contabiliza ni se marca. */
+  skip?: boolean
 }
 
 /** Reenvía una fila según su tipo. Nunca adivina destino. */
@@ -55,7 +57,10 @@ async function reenviar(row: PendingRow): Promise<Reenvio> {
     case 'web_estado':
       return postWebEstado(row.payload as WebEstadoPayload)
     case 'sheets_vehiculo':
-      return reenviarSheetsVehiculo(row.payload as SheetsVehiculoPayload)
+      return reenviarSheetsVehiculo(
+        row.payload as SheetsVehiculoPayload,
+        row.id
+      )
     default:
       return {
         ok: false,
@@ -75,12 +80,21 @@ export async function POST(request: NextRequest) {
     const pending = await pool.query<PendingRow>(
       `SELECT id, tipo, payload, numero_factura
          FROM webhook_outbox
-        WHERE estado = 'pendiente' AND intentos < max_intentos
+        WHERE intentos < max_intentos
+          AND (
+            (tipo <> 'sheets_vehiculo' AND estado = 'pendiente')
+            -- sheets_vehiculo: las recién encoladas (< 2 min) están en curso
+            -- vía after(); un 'procesando' de > 10 min es un job muerto.
+            OR (tipo = 'sheets_vehiculo' AND (
+                 (estado = 'pendiente' AND updated_at < NOW() - INTERVAL '2 minutes')
+              OR (estado = 'procesando' AND updated_at < NOW() - INTERVAL '10 minutes')))
+          )
         ORDER BY created_at ASC`
     )
 
     let exitosas = 0
     let fallidas = 0
+    let omitidas = 0
     const detalle: {
       id: number
       tipo: string | null
@@ -91,6 +105,10 @@ export async function POST(request: NextRequest) {
 
     for (const row of pending.rows) {
       const result = await reenviar(row)
+      if (result.skip) {
+        omitidas++
+        continue
+      }
       if (result.ok) {
         exitosas++
         await markOutboxEnviado(row.id)
@@ -114,6 +132,7 @@ export async function POST(request: NextRequest) {
       reintentadas: pending.rows.length,
       exitosas,
       fallidas,
+      omitidas,
       detalle,
     })
   } catch (err) {

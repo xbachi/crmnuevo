@@ -161,7 +161,7 @@ describe('indiceReferencia / indiceVendido', () => {
   it('la referencia es la columna A salvo cabecera REFERENCIA explícita', () => {
     expect(indiceReferencia(HEADERS_COMPRAS)).toBe(0)
     expect(indiceReferencia(HEADERS_EXPO)).toBe(0)
-    expect(indiceReferencia(['X', 'REFERENCIA'])).toBe(1)
+    expect(indiceReferencia(['X', 'REFERENCIA'])).toBe(0)
   })
   it('marca VENDIDO: sin cabecera → columna tras la última; Ventas/R → SI', () => {
     expect(indiceVendido('VENTAS/Expo', HEADERS_EXPO)).toEqual({
@@ -357,6 +357,9 @@ describe('planUpsert', () => {
     ])
     expect(
       planUpsert(HEADERS_EXPO, [...fila, 'VENDIDO'], vend, 2026).celdas
+    ).toEqual([])
+    expect(
+      planUpsert(HEADERS_EXPO, [...fila, 'VENDIDO 12/03'], vend, 2026).celdas
     ).toEqual([])
     const pub = valoresEsperados(
       'VENTAS/Expo',

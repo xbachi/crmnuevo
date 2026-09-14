@@ -87,8 +87,7 @@ export async function registrarPasoEstado(
       `INSERT INTO vehiculo_pasos (vehiculo_id, paso, texto, fecha, fuente)
        VALUES ($1, $2, $3, $4::date, 'crm')
        ON CONFLICT (vehiculo_id, paso) DO UPDATE SET
-         texto = CASE WHEN vehiculo_pasos.fuente = 'import'
-                      THEN vehiculo_pasos.texto ELSE EXCLUDED.texto END,
+         texto = COALESCE(NULLIF(vehiculo_pasos.texto, ''), EXCLUDED.texto),
          fecha = COALESCE(vehiculo_pasos.fecha, EXCLUDED.fecha),
          updated_at = NOW()`,
       [vehiculoId, paso, texto, ymd]

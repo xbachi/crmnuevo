@@ -11,7 +11,7 @@ import {
   type VentaRowDb,
   type VentaTipo,
 } from './ventasUnificadas'
-import { normalizarTipo } from './vehiculoEstado'
+import { normalizarEstado, normalizarTipo } from './vehiculoEstado'
 import { dateToYMD, normalizarFechaYMD } from './fechas'
 
 // Función para cargar .env.local
@@ -2175,12 +2175,15 @@ export async function updateVehiculosOrden(updates: unknown[]) {
   try {
     const results = []
     for (const update of updates) {
+      // Devuelve también el estado previo: reordenar dentro de una columna
+      // no cambia el estado y no debe registrar paso ni encolar la hoja.
       const result = await client.query(
         `
-        UPDATE "Vehiculo" 
+        UPDATE "Vehiculo" v
         SET estado = $2, orden = $3, "updatedAt" = NOW()
-        WHERE id = $1 
-        RETURNING *
+        FROM (SELECT estado AS estado_previo FROM "Vehiculo" WHERE id = $1) p
+        WHERE v.id = $1 
+        RETURNING v.*, p.estado_previo
       `,
         [
           (update as { id: number }).id,
@@ -2190,13 +2193,14 @@ export async function updateVehiculosOrden(updates: unknown[]) {
       )
 
       if (result.rows[0]) {
-        results.push(result.rows[0])
+        const { estado_previo, ...row } = result.rows[0]
+        results.push(row)
+        const estadoNuevo = (update as { estado: string }).estado
+        if (normalizarEstado(estado_previo) === normalizarEstado(estadoNuevo))
+          continue
         try {
           const { registrarPasoEstado } = await import('./vehiculoPasos')
-          await registrarPasoEstado(
-            (update as { id: number }).id,
-            (update as { estado: string }).estado
-          )
+          await registrarPasoEstado((update as { id: number }).id, estadoNuevo)
         } catch (err) {
           console.error('registrar paso:', (err as Error)?.message ?? err)
         }

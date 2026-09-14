@@ -2,15 +2,17 @@
  * GET /api/cron/sheets-vehiculos — disparado por Vercel Cron (diario).
  *
  * Red de seguridad del upsert de vehículos en las hojas: 1) comprueba y
- * repara todas las filas (POST /api/admin/check-sheets-vehiculos) y
- * 2) reintenta el outbox (sheets_vehiculo y el resto). Si algo falla, avisa
- * por mail con notificarFalloCron.
+ * repara todas las filas (checkSheetsVehiculos, en proceso: no se reenvía el
+ * ADMIN_SECRET a una URL construida desde Host) y 2) reintenta el outbox
+ * (sheets_vehiculo y el resto). Si algo falla, avisa por mail con
+ * notificarFalloCron.
  *
  * Auth: `Authorization: Bearer $CRON_SECRET` (Vercel) o X-Admin-Secret (a mano).
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { safeEqual } from '@/lib/secrets'
 import { notificarFalloCron } from '@/lib/cronNotify'
+import { checkSheetsVehiculos } from '@/lib/sheetsVehiculo'
 
 export const maxDuration = 60
 
@@ -35,19 +37,17 @@ export async function GET(request: NextRequest) {
   const fallos: Record<string, unknown> = {}
   try {
     // 1. check + reparación de las filas de vehículos
-    const ck = await fetch(`${base}/api/admin/check-sheets-vehiculos`, {
-      method: 'POST',
-      headers: h,
+    const resumen = await checkSheetsVehiculos({
+      dryRun: false,
+      motivo: 'cron',
     })
-    const check = await ck
-      .json()
-      .catch(() => ({ ok: false, status: ck.status }))
-    out.ok = (check as { ok?: boolean }).ok ?? false
+    const check = { ok: resumen.errores.length === 0, ...resumen }
+    out.ok = check.ok
     out.check = check
-    if (out.ok === false) {
+    if (!check.ok) {
       console.warn(
         '[cron/sheets-vehiculos] errores:',
-        JSON.stringify((check as { errores?: unknown }).errores ?? check)
+        JSON.stringify(resumen.errores)
       )
       fallos.check = check
     }

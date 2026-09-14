@@ -131,6 +131,7 @@ export async function cargarCtx(
          SELECT dd."importeTotal", dd."clienteId"
            FROM "Deal" dd
           WHERE dd."vehiculoId" = v.id
+            AND LOWER(TRIM(dd.estado)) IN ('vendido', 'facturado')
           ORDER BY (dd.id = v."dealActivoId") DESC, dd.id DESC
           LIMIT 1
        ) d ON TRUE
@@ -340,6 +341,7 @@ export async function upsertVehiculoEnHojas(
               requestBody: { values: [fila] },
             })
           )
+          const esperadaFila = filas.length + 2
           const filaNum = res.data.updates?.updatedRange?.match(/!A?(\d+)/)?.[1]
           if (filaNum) {
             for (const c of escritas) c.celda = c.celda.replace('?', filaNum)
@@ -351,7 +353,16 @@ export async function upsertVehiculoEnHojas(
               fila.length
             )
           }
-          filas.push(fila.map((v) => String(v)))
+          if (filaNum && parseInt(filaNum, 10) === esperadaFila) {
+            filas.push(fila.map((v) => String(v)))
+          } else {
+            // Sheets insertó la fila en otro sitio (hueco en la tabla): los
+            // índices cacheados ya no valen, se relee la pestaña la próxima vez.
+            console.warn(
+              `[sheetsVehiculo] ${clave}: append en fila ${filaNum ?? '?'} (esperada ${esperadaFila}); caché invalidada`
+            )
+            cache.delete(clave)
+          }
           await registrarLog(vehiculoId, motivo, escritas)
         }
         out.appends++
@@ -451,11 +462,49 @@ async function formatearFilaBlanca(
 // Cola (webhook_outbox) y procesamiento
 // ---------------------------------------------------------------------------
 
+/**
+ * Reserva la fila del outbox antes de procesarla ('pendiente' → 'procesando').
+ * Falla (false) si ya la tomó otro proceso, o si hay otro job del MISMO
+ * vehículo en curso (< 2 min): dos upserts concurrentes leerían "sin fila"
+ * los dos y harían doble append. Un 'procesando' de más de 10 min se
+ * considera muerto y se puede volver a reservar.
+ */
+export async function reservarOutboxSheetsVehiculo(
+  outboxId: number
+): Promise<boolean> {
+  try {
+    const res = await pool.query<{ id: number }>(
+      `UPDATE webhook_outbox o
+          SET estado = 'procesando', updated_at = NOW()
+        WHERE o.id = $1
+          AND (o.estado = 'pendiente'
+               OR (o.estado = 'procesando'
+                   AND o.updated_at < NOW() - INTERVAL '10 minutes'))
+          AND NOT EXISTS (
+                SELECT 1 FROM webhook_outbox x
+                 WHERE x.tipo = $2 AND x.estado = 'procesando' AND x.id <> o.id
+                   AND x.payload->>'vehiculoId' = o.payload->>'vehiculoId'
+                   AND x.updated_at > NOW() - INTERVAL '2 minutes')
+        RETURNING o.id`,
+      [outboxId, SHEETS_VEHICULO_TIPO_OUTBOX]
+    )
+    return !!res.rows[0]
+  } catch (err) {
+    console.error(
+      '[sheetsVehiculo] reservar outbox:',
+      (err as Error)?.message ?? err
+    )
+    return false
+  }
+}
+
 export async function procesarOutboxSheetsVehiculo(
   outboxId: number,
   payload: SheetsVehiculoPayload
 ): Promise<void> {
   try {
+    // Sin reserva no se procesa: lo hará el retry/cron cuando quede libre.
+    if (!(await reservarOutboxSheetsVehiculo(outboxId))) return
     let timer: ReturnType<typeof setTimeout> | undefined
     const timeout = new Promise<ResultadoUpsert>((resolve) => {
       timer = setTimeout(
@@ -484,13 +533,26 @@ export async function procesarOutboxSheetsVehiculo(
   }
 }
 
-/** Reenvío desde /api/admin/webhook-outbox/retry (mismo contrato que el resto). */
+/**
+ * Reenvío desde /api/admin/webhook-outbox/retry (mismo contrato que el resto).
+ * Si se pasa `outboxId`, primero reserva la fila; si no se puede (otro job del
+ * vehículo en curso) devuelve `skip: true` y el retry no la marca como fallo.
+ */
 export async function reenviarSheetsVehiculo(
-  payload: SheetsVehiculoPayload
-): Promise<{ ok: boolean; error?: string; permanente?: boolean }> {
+  payload: SheetsVehiculoPayload,
+  outboxId?: number
+): Promise<{
+  ok: boolean
+  error?: string
+  permanente?: boolean
+  skip?: boolean
+}> {
   const id = Number(payload?.vehiculoId)
   if (!Number.isFinite(id) || id <= 0) {
     return { ok: false, error: 'payload sin vehiculoId', permanente: true }
+  }
+  if (outboxId != null && !(await reservarOutboxSheetsVehiculo(outboxId))) {
+    return { ok: false, error: 'en curso', skip: true }
   }
   const r = await upsertVehiculoEnHojas(id, 'retry')
   return { ok: r.ok, error: r.error, permanente: r.permanente }
@@ -507,9 +569,10 @@ function programarEnBackground(fn: () => Promise<void>): void {
 }
 
 /**
- * Encola el upsert del vehículo. Dedupe: si ya hay una fila pendiente sin
- * intentos para el mismo vehículo, no se encola otra (el job relee la DB al
- * ejecutarse, así que ya va a escribir el estado más reciente). Nunca lanza.
+ * Encola el upsert del vehículo. Dedupe: si ya hay una fila 'pendiente' (aún
+ * no reservada) para el mismo vehículo, no se encola otra: cuando se ejecute
+ * releerá la DB y escribirá el estado más reciente. Una fila 'procesando' NO
+ * deduplica (puede haber leído la DB antes de este cambio). Nunca lanza.
  */
 export async function encolarSheetsVehiculo(
   vehiculoId: number,
@@ -521,7 +584,7 @@ export async function encolarSheetsVehiculo(
     }
     const pendiente = await pool.query<{ id: number }>(
       `SELECT id FROM webhook_outbox
-        WHERE tipo = $1 AND estado = 'pendiente' AND intentos = 0
+        WHERE tipo = $1 AND estado = 'pendiente'
           AND payload->>'vehiculoId' = $2
         LIMIT 1`,
       [SHEETS_VEHICULO_TIPO_OUTBOX, String(vehiculoId)]
@@ -592,6 +655,8 @@ export interface ResumenCheck {
   appends: number
   /** Total real de diferencias (la lista por pestaña se recorta a MAX_DIFERENCIAS). */
   diferenciasTotal: number
+  /** Vehículos sin referencia interpretable (no se sincronizan; no es error). */
+  sinReferencia: string[]
   errores: string[]
 }
 
@@ -614,6 +679,7 @@ function resumenVacio(dryRun: boolean): ResumenCheck {
     escritas: 0,
     appends: 0,
     diferenciasTotal: 0,
+    sinReferencia: [],
     errores: [],
   }
 }
@@ -679,7 +745,11 @@ export async function checkSheetsVehiculos(opts: {
 
     let seguidos429 = 0
     for (const v of vehiculos) {
-      const refCanon = referenciaCanonica(v) ?? String(v.id)
+      const refCanon = referenciaCanonica(v)
+      if (refCanon == null) {
+        out.sinReferencia.push(`#${v.id}`)
+        continue
+      }
       for (const [hoja, pestana] of pestanasDe(v.tipo)) {
         esperadasPorPestana
           .get(`${hoja}/${pestana}` as ClavePestana)
@@ -726,8 +796,10 @@ export async function checkSheetsVehiculos(opts: {
     }
 
     for (const clave of CLAVES_PESTANA) {
-      const { headers, filas } = cache.get(clave)!
-      const pestana = clave.split('/')[1] as Pestana
+      const [hoja, pestana] = clave.split('/') as [Hoja, Pestana]
+      // Un append fuera de sitio invalida la entrada; se relee para las huérfanas.
+      const { headers, filas } =
+        cache.get(clave) ?? (await leerPestana(sheets, hoja, pestana))
       const refIdx = indiceReferencia(headers)
       const esperadas = esperadasPorPestana.get(clave)!
       const vistas = new Set<string>()

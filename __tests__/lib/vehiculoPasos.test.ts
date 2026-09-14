@@ -45,7 +45,10 @@ describe('registrarPasoEstado', () => {
     const [sql, params] = mockQuery.mock.calls[0]
     expect(sql).toMatch(/INSERT INTO vehiculo_pasos/)
     expect(sql).toMatch(/ON CONFLICT \(vehiculo_id, paso\)/)
-    expect(sql).toMatch(/fuente = 'import'/)
+    // Nunca pisa un texto existente (kanban o import), sólo rellena.
+    expect(sql).toMatch(
+      /texto = COALESCE\(NULLIF\(vehiculo_pasos\.texto, ''\), EXCLUDED\.texto\)/
+    )
     expect(params).toEqual([7, 'REVI_INIC', '14/09', '2026-09-14'])
   })
 

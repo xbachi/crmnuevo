@@ -243,7 +243,9 @@ export async function retryWithBackoff<T>(
     try {
       return await fn()
     } catch (error: any) {
-      if (error.code === 429 && attempt < maxRetries - 1) {
+      // gaxios 7 deja el HTTP status en error.status (code es el errno).
+      const status = error?.status ?? error?.response?.status ?? error?.code
+      if ((status === 429 || status === 503) && attempt < maxRetries - 1) {
         // Quota exceeded, wait with exponential backoff
         const delay = baseDelay * Math.pow(2, attempt)
         console.log(

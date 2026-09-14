@@ -9,9 +9,13 @@
 jest.mock('@/lib/direct-database', () => ({
   pool: { query: jest.fn() },
 }))
+jest.mock('@/lib/sheetsVehiculo', () => ({
+  reenviarSheetsVehiculo: jest.fn(),
+}))
 
 import { NextRequest } from 'next/server'
 import { pool } from '@/lib/direct-database'
+import { reenviarSheetsVehiculo } from '@/lib/sheetsVehiculo'
 import { POST } from '@/app/api/admin/webhook-outbox/retry/route'
 
 const mockQuery = pool.query as jest.Mock
@@ -49,8 +53,18 @@ describe('POST /api/admin/webhook-outbox/retry', () => {
     // the mock returns exactly what that query would: two eligible rows.
     mockQuery.mockResolvedValueOnce({
       rows: [
-        { id: 1, tipo: 'factura_venta', payload: payloadA, numero_factura: 'F-2026-0001' },
-        { id: 2, tipo: 'factura_venta', payload: payloadB, numero_factura: 'F-2026-0002' },
+        {
+          id: 1,
+          tipo: 'factura_venta',
+          payload: payloadA,
+          numero_factura: 'F-2026-0001',
+        },
+        {
+          id: 2,
+          tipo: 'factura_venta',
+          payload: payloadB,
+          numero_factura: 'F-2026-0002',
+        },
       ],
     })
     ;(global.fetch as jest.Mock)
@@ -59,7 +73,8 @@ describe('POST /api/admin/webhook-outbox/retry', () => {
     mockQuery.mockResolvedValueOnce({ rows: [] }) // markOutboxEnviado(1)
     mockQuery.mockResolvedValueOnce({ rows: [] }) // markOutboxFallo(2)
 
-    process.env.N8N_INVOICE_WEBHOOK_URL = 'https://n8n.example.com/webhook/invoice'
+    process.env.N8N_INVOICE_WEBHOOK_URL =
+      'https://n8n.example.com/webhook/invoice'
     const res = await POST(makeRequest(ADMIN_SECRET))
     delete process.env.N8N_INVOICE_WEBHOOK_URL
 
@@ -69,8 +84,17 @@ describe('POST /api/admin/webhook-outbox/retry', () => {
 
     // The SELECT must scope to pendiente + intentos < max_intentos, and read
     // `tipo` — without it every row would be sent to the gestoria webhook.
-    expect(mockQuery.mock.calls[0][0]).toMatch(/estado = 'pendiente' AND intentos < max_intentos/)
-    expect(mockQuery.mock.calls[0][0]).toMatch(/SELECT id, tipo, payload, numero_factura/)
+    expect(mockQuery.mock.calls[0][0]).toMatch(/intentos < max_intentos/)
+    expect(mockQuery.mock.calls[0][0]).toMatch(
+      /tipo <> 'sheets_vehiculo' AND estado = 'pendiente'/
+    )
+    // sheets_vehiculo: las recién encoladas están en curso; los 'procesando' viejos se recuperan
+    expect(mockQuery.mock.calls[0][0]).toMatch(
+      /estado = 'procesando' AND updated_at < NOW\(\) - INTERVAL '10 minutes'/
+    )
+    expect(mockQuery.mock.calls[0][0]).toMatch(
+      /SELECT id, tipo, payload, numero_factura/
+    )
 
     // Row 1 → enviado
     expect(mockQuery.mock.calls[1][0]).toMatch(/estado = 'enviado'/)
@@ -87,18 +111,28 @@ describe('POST /api/admin/webhook-outbox/retry', () => {
         {
           id: 10,
           tipo: 'web_estado',
-          payload: { matricula: '3429LHT', matriculas: ['3429LHT'], estado: 'reservado', ts: 1757800000 },
+          payload: {
+            matricula: '3429LHT',
+            matriculas: ['3429LHT'],
+            estado: 'reservado',
+            ts: 1757800000,
+          },
           numero_factura: '3429LHT',
         },
         { id: 11, tipo: 'lo_que_sea', payload: {}, numero_factura: null },
       ],
     })
-    ;(global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true, status: 200 })
+    ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+    })
     mockQuery.mockResolvedValue({ rows: [] })
 
-    process.env.SEVEN_WEB_SYNC_URL = 'https://www.sevencars.es/wp-json/sevencars/v1/vehiculo/estado'
+    process.env.SEVEN_WEB_SYNC_URL =
+      'https://www.sevencars.es/wp-json/sevencars/v1/vehiculo/estado'
     process.env.SEVEN_WEB_SYNC_SECRET = 'web-secret'
-    process.env.N8N_INVOICE_WEBHOOK_URL = 'https://n8n.example.com/webhook/invoice'
+    process.env.N8N_INVOICE_WEBHOOK_URL =
+      'https://n8n.example.com/webhook/invoice'
     const res = await POST(makeRequest(ADMIN_SECRET))
     delete process.env.SEVEN_WEB_SYNC_URL
     delete process.env.SEVEN_WEB_SYNC_SECRET
@@ -108,15 +142,26 @@ describe('POST /api/admin/webhook-outbox/retry', () => {
     expect(body).toMatchObject({ reintentadas: 2, exitosas: 1, fallidas: 1 })
 
     // Only ONE request went out, and to the web — not to n8n.
-    expect((global.fetch as jest.Mock)).toHaveBeenCalledTimes(1)
-    expect((global.fetch as jest.Mock).mock.calls[0][0]).toContain('sevencars.es')
+    expect(global.fetch as jest.Mock).toHaveBeenCalledTimes(1)
+    expect((global.fetch as jest.Mock).mock.calls[0][0]).toContain(
+      'sevencars.es'
+    )
 
     // Unknown tipo: recorded as a failure with a clear reason, sent nowhere.
-    expect(body.detalle[1]).toMatchObject({ id: 11, tipo: 'lo_que_sea', ok: false })
+    expect(body.detalle[1]).toMatchObject({
+      id: 11,
+      tipo: 'lo_que_sea',
+      ok: false,
+    })
     expect(body.detalle[1].error).toMatch(/tipo desconocido/)
 
     // detalle says which type each row was.
-    expect(body.detalle[0]).toMatchObject({ id: 10, tipo: 'web_estado', referencia: '3429LHT', ok: true })
+    expect(body.detalle[0]).toMatchObject({
+      id: 10,
+      tipo: 'web_estado',
+      referencia: '3429LHT',
+      ok: true,
+    })
   })
 
   it('reports zero retries when there is nothing eligible', async () => {
@@ -125,6 +170,62 @@ describe('POST /api/admin/webhook-outbox/retry', () => {
     const res = await POST(makeRequest(ADMIN_SECRET))
     const body = await res.json()
 
-    expect(body).toEqual({ ok: true, reintentadas: 0, exitosas: 0, fallidas: 0, detalle: [] })
+    expect(body).toEqual({
+      ok: true,
+      reintentadas: 0,
+      exitosas: 0,
+      fallidas: 0,
+      omitidas: 0,
+      detalle: [],
+    })
+  })
+
+  it('sheets_vehiculo: reserva la fila por id; si no puede (en curso) la omite sin marcarla', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 20,
+          tipo: 'sheets_vehiculo',
+          payload: { vehiculoId: 7, motivo: 'update' },
+          numero_factura: '#1002',
+        },
+        {
+          id: 21,
+          tipo: 'sheets_vehiculo',
+          payload: { vehiculoId: 8, motivo: 'estado' },
+          numero_factura: '#1003',
+        },
+      ],
+    })
+    mockQuery.mockResolvedValue({ rows: [] })
+    ;(reenviarSheetsVehiculo as jest.Mock)
+      .mockResolvedValueOnce({ ok: false, error: 'en curso', skip: true })
+      .mockResolvedValueOnce({ ok: true })
+
+    const res = await POST(makeRequest(ADMIN_SECRET))
+    const body = await res.json()
+    expect(body).toMatchObject({
+      ok: true,
+      reintentadas: 2,
+      exitosas: 1,
+      fallidas: 0,
+      omitidas: 1,
+    })
+    expect(reenviarSheetsVehiculo).toHaveBeenNthCalledWith(
+      1,
+      { vehiculoId: 7, motivo: 'update' },
+      20
+    )
+    expect(reenviarSheetsVehiculo).toHaveBeenNthCalledWith(
+      2,
+      { vehiculoId: 8, motivo: 'estado' },
+      21
+    )
+    // Sólo la fila 21 se marca (enviado); la 20 queda como estaba.
+    const marks = mockQuery.mock.calls.slice(1)
+    expect(marks).toHaveLength(1)
+    expect(marks[0][0]).toMatch(/estado = 'enviado'/)
+    expect(marks[0][1]).toEqual([21])
+    expect(body.detalle).toHaveLength(1)
   })
 })

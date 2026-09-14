@@ -173,6 +173,14 @@ export async function POST(request: NextRequest) {
       tipoLetra
     )
 
+    // Encolar la hoja ANTES de responder: el INSERT en el outbox es barato y
+    // fuera de la request la lambda puede congelarse antes de hacerlo.
+    try {
+      await encolarSheetsVehiculo(vehiculo.id, 'create')
+    } catch (sheetsError) {
+      console.error('Error encolando Google Sheets:', sheetsError)
+    }
+
     // Operaciones asíncronas que no bloquean la respuesta
     Promise.all([
       // Crear carpetas en background
@@ -185,15 +193,6 @@ export async function POST(request: NextRequest) {
           }
         } catch (folderError) {
           console.error('Error creando carpetas:', folderError)
-        }
-      })(),
-
-      // Escribir en Google Sheets en background
-      (async () => {
-        try {
-          await encolarSheetsVehiculo(vehiculo.id, 'create')
-        } catch (sheetsError) {
-          console.error('Error guardando en Google Sheets:', sheetsError)
         }
       })(),
     ]).catch((error) => {

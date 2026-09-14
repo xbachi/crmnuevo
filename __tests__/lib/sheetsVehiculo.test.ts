@@ -40,6 +40,7 @@ import { writeVehiculoToSheets } from '@/lib/googleSheets'
 import {
   encolarSheetsVehiculo,
   procesarOutboxSheetsVehiculo,
+  reenviarSheetsVehiculo,
   upsertVehiculoEnHojas,
   type CacheLectura,
 } from '@/lib/sheetsVehiculo'
@@ -180,6 +181,8 @@ const VEHICULO = {
 /** pool.query por defecto: vehículo + pasos vacíos + (sin depósito). */
 function dbConVehiculo(v: Record<string, unknown> | null = VEHICULO) {
   mockQuery.mockImplementation(async (sql: string) => {
+    // Reserva de la fila del outbox ('pendiente' → 'procesando'): OK por defecto.
+    if (sql.includes('UPDATE webhook_outbox')) return { rows: [{ id: 1 }] }
     if (sql.includes('FROM "Vehiculo" v')) return { rows: v ? [v] : [] }
     if (sql.includes('FROM vehiculo_pasos'))
       return {
@@ -302,6 +305,9 @@ describe('upsertVehiculoEnHojas', () => {
 
   it('usa la caché de lectura si se pasa y la actualiza tras el append', async () => {
     dbConVehiculo()
+    mockSheets.spreadsheets.values.append.mockResolvedValue({
+      data: { updates: { updatedRange: "'Expo'!A2:U2" } },
+    })
     const cache: CacheLectura = new Map([
       ['VENTAS/Expo', { headers: HEADERS_EXPO, filas: [] }],
       ['COMPRAS/Compras', { headers: HEADERS_COMPRAS, filas: [FILA_COMPRAS] }],
@@ -310,6 +316,22 @@ describe('upsertVehiculoEnHojas', () => {
     expect(mockSheets.spreadsheets.values.get).not.toHaveBeenCalled()
     expect(cache.get('VENTAS/Expo')!.filas).toHaveLength(1)
     expect(cache.get('VENTAS/Expo')!.filas[0][0]).toBe('#1002')
+  })
+
+  it('append que no cae al final de la tabla: invalida la caché de la pestaña', async () => {
+    dbConVehiculo()
+    // Sheets insertó en la fila 88 aunque la caché sólo conocía 0 filas (esperada 2).
+    const cache: CacheLectura = new Map([
+      ['VENTAS/Expo', { headers: HEADERS_EXPO, filas: [] }],
+      ['COMPRAS/Compras', { headers: HEADERS_COMPRAS, filas: [FILA_COMPRAS] }],
+    ])
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+    const r = await upsertVehiculoEnHojas(7, 'cron', { cache })
+    warn.mockRestore()
+    expect(r.appends).toBe(1)
+    expect(r.detalle[0].celda).toBe('A88')
+    expect(cache.has('VENTAS/Expo')).toBe(false)
+    expect(cache.has('COMPRAS/Compras')).toBe(true)
   })
 
   it('SHEETS_VEHICULO_DISABLED=1 → no-op', async () => {
@@ -330,7 +352,7 @@ describe('upsertVehiculoEnHojas', () => {
   it('429 persistente → ok:false transitorio (no permanente)', async () => {
     dbConVehiculo()
     mockSheets.spreadsheets.values.get.mockRejectedValue(
-      Object.assign(new Error('quota'), { code: 429 })
+      Object.assign(new Error('quota'), { status: 429 })
     )
     const r = await upsertVehiculoEnHojas(7, 'update')
     expect(r.ok).toBe(false)
@@ -387,6 +409,48 @@ describe('encolarSheetsVehiculo / procesarOutboxSheetsVehiculo', () => {
       2,
       expect.stringContaining('boom')
     )
+  })
+
+  it('sin reserva de la fila (otro job en curso) no procesa ni marca nada', async () => {
+    dbConVehiculo()
+    hojas([FILA_EXPO], [FILA_COMPRAS])
+    mockQuery.mockImplementation(async (sql: string) =>
+      sql.includes('UPDATE webhook_outbox') ? { rows: [] } : { rows: [] }
+    )
+    await procesarOutboxSheetsVehiculo(3, { vehiculoId: 7, motivo: 'update' })
+    expect(mockSheets.spreadsheets.values.get).not.toHaveBeenCalled()
+    expect(markOutboxEnviado).not.toHaveBeenCalled()
+    expect(markOutboxFallo).not.toHaveBeenCalled()
+    const reserva = mockQuery.mock.calls.find(([s]) =>
+      String(s).includes('UPDATE webhook_outbox')
+    )
+    expect(String(reserva?.[0])).toMatch(/estado = 'procesando'/)
+    expect(String(reserva?.[0])).toMatch(/NOT EXISTS/)
+    expect(reserva?.[1]).toEqual([3, 'sheets_vehiculo'])
+  })
+
+  it('reenviar con outboxId: si no reserva → skip, si reserva → upsert', async () => {
+    dbConVehiculo()
+    hojas([FILA_EXPO], [FILA_COMPRAS])
+    const base = mockQuery.getMockImplementation()!
+    mockQuery.mockImplementation(async (sql: string, p?: unknown[]) =>
+      sql.includes('UPDATE webhook_outbox') ? { rows: [] } : base(sql, p)
+    )
+    const s = await reenviarSheetsVehiculo(
+      { vehiculoId: 7, motivo: 'retry' },
+      9
+    )
+    expect(s).toEqual({ ok: false, error: 'en curso', skip: true })
+    expect(mockSheets.spreadsheets.values.get).not.toHaveBeenCalled()
+
+    dbConVehiculo()
+    const r = await reenviarSheetsVehiculo(
+      { vehiculoId: 7, motivo: 'retry' },
+      9
+    )
+    expect(r.ok).toBe(true)
+    expect(r.skip).toBeUndefined()
+    expect(mockSheets.spreadsheets.values.get).toHaveBeenCalledTimes(2)
   })
 
   it('writeVehiculoToSheets sin id: no lanza ni encola', async () => {

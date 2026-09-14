@@ -125,7 +125,7 @@ function hojas() {
     }
   )
   mockSheets.spreadsheets.values.append.mockResolvedValue({
-    data: { updates: { updatedRange: "'Deposito'!A9:D9" } },
+    data: { updates: { updatedRange: "'Deposito'!A2:D2" } },
   })
   mockSheets.spreadsheets.values.batchUpdate.mockResolvedValue({ data: {} })
   mockSheets.spreadsheets.get.mockResolvedValue({
@@ -134,8 +134,8 @@ function hojas() {
   mockSheets.spreadsheets.batchUpdate.mockResolvedValue({ data: {} })
 }
 
-function db() {
-  const vehiculos = [V1, V2, V3]
+function db(extra: Record<string, unknown>[] = []) {
+  const vehiculos = [V1, V2, V3, ...extra]
   mockQuery.mockImplementation(async (sql: string, params?: unknown[]) => {
     if (sql.startsWith('SELECT id, referencia, tipo FROM "Vehiculo"'))
       return {
@@ -216,6 +216,18 @@ describe('checkSheetsVehiculos', () => {
     expect(r.escritas).toBeGreaterThanOrEqual(3)
   })
 
+  it('apply: append fuera de sitio → relee la pestaña, sin error', async () => {
+    mockSheets.spreadsheets.values.append.mockResolvedValue({
+      data: { updates: { updatedRange: "'Deposito'!A9:D9" } },
+    })
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+    const r = await checkSheetsVehiculos({ dryRun: false, sinEsperas: true })
+    warn.mockRestore()
+    expect(r.errores).toEqual([])
+    expect(r.appends).toBe(1)
+    expect(mockSheets.spreadsheets.values.get).toHaveBeenCalledTimes(7)
+  })
+
   it('kill switch: apply no hace nada, dryRun sigue leyendo', async () => {
     process.env.SHEETS_VEHICULO_DISABLED = '1'
     const a = await checkSheetsVehiculos({ dryRun: false, sinEsperas: true })
@@ -224,6 +236,17 @@ describe('checkSheetsVehiculos', () => {
     const d = await checkSheetsVehiculos({ dryRun: true, sinEsperas: true })
     expect(d.errores).toEqual([])
     expect(mockSheets.spreadsheets.values.get).toHaveBeenCalledTimes(6)
+  })
+
+  it('vehículo sin referencia: se lista en sinReferencia, no es error ni se sincroniza', async () => {
+    db([{ id: 4, referencia: null, tipo: 'C', marca: 'Sin ref' }])
+    const r = await checkSheetsVehiculos({ dryRun: true, sinEsperas: true })
+    expect(r.errores).toEqual([])
+    expect(r.sinReferencia).toEqual(['#4'])
+    expect(r.vehiculos).toBe(3)
+    expect(
+      mockQuery.mock.calls.some(([, p]) => Array.isArray(p) && p[0] === 4)
+    ).toBe(false)
   })
 
   it('fallo de lectura de una pestaña: error y sin recorrer vehículos', async () => {
