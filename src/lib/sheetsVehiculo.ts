@@ -39,6 +39,7 @@ import {
   indiceReferencia,
   letraColumna,
   planUpsert,
+  refDeCelda,
   referenciaCanonica,
   tipoDePestana,
   valoresEsperados,
@@ -122,7 +123,7 @@ export async function cargarCtx(
             v.kms, v.estado, v."fechaMatriculacion", v."fechaCompra", v."precioCompra",
             v."gastosTransporte", v."segundaLlave", v.carpeta, v.master, v."hojasA",
             v.documentacion, v.itv, v.seguro, v.proveedor, v.abonado, v.comprobante,
-            v."porteSolicitado", v.recibido, v."createdAt",
+            v."porteSolicitado", v.recibido, v."recibidoFecha", v."createdAt",
             d."importeTotal" AS deal_importe,
             TRIM(CONCAT_WS(' ', c.nombre, c.apellidos)) AS deal_cliente
        FROM "Vehiculo" v
@@ -551,4 +552,194 @@ export async function encolarSheetsVehiculo(
     console.error('[sheetsVehiculo] encolar:', reason)
     return { encolado: false, reason }
   }
+}
+
+// ---------------------------------------------------------------------------
+// Comprobación / reparación global (cron diario y endpoint admin)
+// ---------------------------------------------------------------------------
+
+export const CLAVES_PESTANA: ClavePestana[] = [
+  'VENTAS/Expo',
+  'VENTAS/Deposito',
+  'VENTAS/R',
+  'COMPRAS/Compras',
+  'COMPRAS/Deposito',
+  'COMPRAS/R',
+]
+
+export interface DiferenciaCheck {
+  referencia: string
+  celda: string
+  columna: string
+  anterior: string
+  nuevo: ValorCelda
+}
+
+export interface ResumenPestana {
+  filas: number
+  /** Referencias de vehículos sin fila en la pestaña (append hecho o pendiente). */
+  faltantes: string[]
+  diferencias: DiferenciaCheck[]
+  /** Referencias de la hoja sin vehículo en el CRM (sólo informe). */
+  huerfanas: string[]
+}
+
+export interface ResumenCheck {
+  dryRun: boolean
+  porPestana: Record<ClavePestana, ResumenPestana>
+  vehiculos: number
+  escritas: number
+  appends: number
+  /** Total real de diferencias (la lista por pestaña se recorta a MAX_DIFERENCIAS). */
+  diferenciasTotal: number
+  errores: string[]
+}
+
+const MAX_DIFERENCIAS = 500
+const ESPERA_LECTURA_MS = 300
+const ESPERA_ESCRITURA_MS = 150
+const MAX_429_SEGUIDOS = 3
+
+const dormir = (ms: number) =>
+  ms > 0 ? new Promise((r) => setTimeout(r, ms)) : Promise.resolve()
+
+function resumenVacio(dryRun: boolean): ResumenCheck {
+  const porPestana = {} as Record<ClavePestana, ResumenPestana>
+  for (const k of CLAVES_PESTANA)
+    porPestana[k] = { filas: 0, faltantes: [], diferencias: [], huerfanas: [] }
+  return {
+    dryRun,
+    porPestana,
+    vehiculos: 0,
+    escritas: 0,
+    appends: 0,
+    diferenciasTotal: 0,
+    errores: [],
+  }
+}
+
+/**
+ * Recorre todos los vehículos C/I/D/R, compara su fila esperada con las 6
+ * pestañas (leídas UNA vez) y, salvo dryRun, repara las celdas propiedad del
+ * CRM con el mismo upsert. Las filas de la hoja sin vehículo se listan como
+ * huérfanas (nunca se crean vehículos ni se borran filas). Nunca lanza.
+ */
+export async function checkSheetsVehiculos(opts: {
+  dryRun: boolean
+  motivo?: MotivoSheets
+  sheets?: sheets_v4.Sheets
+  /** Sólo tests: sin esperas entre llamadas. */
+  sinEsperas?: boolean
+}): Promise<ResumenCheck> {
+  const dryRun = !!opts.dryRun
+  const motivo = opts.motivo ?? 'cron'
+  const out = resumenVacio(dryRun)
+  const espera = (ms: number) => (opts.sinEsperas ? undefined : dormir(ms))
+
+  if (!dryRun && sheetsVehiculoDeshabilitado()) {
+    out.errores.push('SHEETS_VEHICULO_DISABLED=1')
+    return out
+  }
+
+  try {
+    const sheets = opts.sheets ?? (await clienteSheets())
+    const cache: CacheLectura = new Map()
+    for (const clave of CLAVES_PESTANA) {
+      const [hoja, pestana] = clave.split('/') as [Hoja, Pestana]
+      try {
+        cache.set(clave, await leerPestana(sheets, hoja, pestana))
+      } catch (err) {
+        out.errores.push(
+          `lectura ${clave}: ${(err as Error)?.message ?? String(err)}`
+        )
+        return out
+      }
+      await espera(ESPERA_LECTURA_MS)
+    }
+    for (const clave of CLAVES_PESTANA) {
+      out.porPestana[clave].filas = cache
+        .get(clave)!
+        .filas.filter((f) => f.some((c) => String(c ?? '').trim())).length
+    }
+
+    const res = await pool.query<{
+      id: number
+      referencia: string | null
+      tipo: string | null
+    }>('SELECT id, referencia, tipo FROM "Vehiculo" ORDER BY id')
+    const vehiculos = res.rows.filter((v) => {
+      const t = normalizarTipo(v.tipo)
+      return t === 'C' || t === 'I' || t === 'D' || t === 'R'
+    })
+    out.vehiculos = vehiculos.length
+
+    // Referencias que el CRM espera en cada pestaña (para detectar huérfanas).
+    const esperadasPorPestana = new Map<ClavePestana, Set<string>>()
+    for (const k of CLAVES_PESTANA) esperadasPorPestana.set(k, new Set())
+
+    let seguidos429 = 0
+    for (const v of vehiculos) {
+      const refCanon = referenciaCanonica(v) ?? String(v.id)
+      for (const [hoja, pestana] of pestanasDe(v.tipo)) {
+        esperadasPorPestana
+          .get(`${hoja}/${pestana}` as ClavePestana)
+          ?.add(refCanon)
+      }
+
+      const r = await upsertVehiculoEnHojas(v.id, motivo, {
+        dryRun,
+        cache,
+        sheets,
+      })
+      out.escritas += r.escritas
+      out.appends += r.appends
+      for (const clave of r.faltantes)
+        out.porPestana[clave].faltantes.push(refCanon)
+      for (const c of r.detalle) {
+        out.diferenciasTotal++
+        if (out.diferenciasTotal <= MAX_DIFERENCIAS) {
+          out.porPestana[
+            `${c.hoja}/${c.pestana}` as ClavePestana
+          ].diferencias.push({
+            referencia: refCanon,
+            celda: c.celda,
+            columna: c.columna,
+            anterior: c.anterior,
+            nuevo: c.nuevo,
+          })
+        }
+      }
+      if (!r.ok) {
+        out.errores.push(`${refCanon} (#${v.id}): ${r.error ?? 'error'}`)
+        if (/429|quota/i.test(r.error ?? '')) {
+          if (++seguidos429 >= MAX_429_SEGUIDOS) {
+            out.errores.push(
+              `cuota de Sheets agotada (${seguidos429} fallos seguidos): se detiene`
+            )
+            break
+          }
+        }
+      } else {
+        seguidos429 = 0
+      }
+      if (!dryRun && r.escritas > 0) await espera(ESPERA_ESCRITURA_MS)
+    }
+
+    for (const clave of CLAVES_PESTANA) {
+      const { headers, filas } = cache.get(clave)!
+      const pestana = clave.split('/')[1] as Pestana
+      const refIdx = indiceReferencia(headers)
+      const esperadas = esperadasPorPestana.get(clave)!
+      const vistas = new Set<string>()
+      for (const fila of filas) {
+        const ref = refDeCelda(fila?.[refIdx], tipoDePestana(pestana))
+        if (!ref || esperadas.has(ref) || vistas.has(ref)) continue
+        vistas.add(ref)
+        out.porPestana[clave].huerfanas.push(ref)
+      }
+    }
+  } catch (err) {
+    out.errores.push((err as Error)?.message ?? String(err))
+  }
+  return out
 }

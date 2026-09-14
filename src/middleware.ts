@@ -66,9 +66,12 @@ const PUBLIC_API_PREFIXES = [
   // sub-path: /api/expedientes y /api/expedientes/[id] siguen con sesión.
   '/api/expedientes/recalcular',
   '/api/admin/webhook-outbox/retry',
+  '/api/admin/check-sheets-vehiculos',
+  '/api/admin/sheets-vehiculos/aviso',
   // Cron de Vercel (self-auth por CRON_SECRET / X-Admin-Secret).
   '/api/cron/costobeneficio',
   '/api/cron/alertas',
+  '/api/cron/sheets-vehiculos',
   // Health-check para monitor externo: SELECT 1 + versión, sin datos sensibles.
   '/api/health',
   // Bandeja de revisión: POST lo llama n8n (X-Webhook-Secret) y /sync es

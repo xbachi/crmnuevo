@@ -51,7 +51,8 @@ export interface VehiculoSheets {
   abonado?: string | null
   comprobante?: string | null
   porteSolicitado?: string | null
-  recibido?: string | null
+  recibido?: string | boolean | null
+  recibidoFecha?: unknown
   createdAt?: unknown
 }
 
@@ -76,6 +77,8 @@ export type Getter = (ctx: CtxVehiculoSheets) => ValorCelda | null
 
 export function texto(v: unknown): string | null {
   if (v == null) return null
+  // Columnas booleanas heredadas (p. ej. Vehiculo.recibido): true = "SI", false = desconocido.
+  if (typeof v === 'boolean') return v ? 'SI' : null
   const s = String(v).trim()
   return s ? s : null
 }
@@ -84,8 +87,13 @@ export function titleCase(v: unknown): string | null {
   const s = texto(v)
   if (!s) return null
   return s
-    .toLowerCase()
-    .replace(/(^|[\s\-/])(\p{L})/gu, (m, sep, l) => sep + l.toUpperCase())
+    .split(/(\s+|[-/])/)
+    .map((tok) =>
+      /^\p{Lu}{1,3}$/u.test(tok)
+        ? tok
+        : tok.toLowerCase().replace(/^\p{L}/u, (l) => l.toUpperCase())
+    )
+    .join('')
 }
 
 export function fmtNumero(v: unknown): number | null {
@@ -93,6 +101,12 @@ export function fmtNumero(v: unknown): number | null {
   if (typeof v === 'number') return Number.isFinite(v) ? v : null
   const n = parseNumeroCelda(String(v))
   return n
+}
+
+/** Número > 0; 0 / negativo = desconocido en el CRM (no se escribe). */
+export function fmtNumeroPositivo(v: unknown): number | null {
+  const n = fmtNumero(v)
+  return n != null && n > 0 ? n : null
 }
 
 /** Date / ISO / 'YYYY-MM-DD' → 'dd/mm/yyyy'. */
@@ -163,7 +177,7 @@ const matricula: Getter = ({ vehiculo: v }) =>
   texto(normalizarMatricula(v.matricula))
 const bastidor: Getter = ({ vehiculo: v }) =>
   texto(v.bastidor)?.toUpperCase() ?? null
-const kms: Getter = ({ vehiculo: v }) => fmtNumero(v.kms)
+const kms: Getter = ({ vehiculo: v }) => fmtNumeroPositivo(v.kms)
 const fechaMatr: Getter = ({ vehiculo: v }) => fmtFecha(v.fechaMatriculacion)
 const fechaCompra: Getter = ({ vehiculo: v }) => fmtFecha(v.fechaCompra)
 const campo =
@@ -229,26 +243,27 @@ export const mapeoColumnas: Record<ClavePestana, Record<string, Getter>> = {
     FECHACOMPRA: fechaCompra,
     PROVEEDOR: campo('proveedor'),
     KMS: kms,
-    MONTO: ({ vehiculo: v }) => fmtNumero(v.precioCompra),
-    PORTECOMI: ({ vehiculo: v }) => fmtNumero(v.gastosTransporte),
+    MONTO: ({ vehiculo: v }) => fmtNumeroPositivo(v.precioCompra),
+    PORTECOMI: ({ vehiculo: v }) => fmtNumeroPositivo(v.gastosTransporte),
     ABONADO: campo('abonado'),
     COMPROBANTE: campo('comprobante'),
     PORTESOLICITADO: campo('porteSolicitado'),
-    RECIBIDO: campo('recibido'),
+    RECIBIDO: ({ vehiculo: v }) =>
+      fmtFecha(v.recibidoFecha) ?? texto(v.recibido),
     ...CHECKLIST_VEHICULO,
     ...CHECKLIST_PASOS,
   },
   'COMPRAS/R': {
     ...BASE,
     FECHA: fechaMatr,
-    MONTO: ({ vehiculo: v }) => fmtNumero(v.precioCompra),
+    MONTO: ({ vehiculo: v }) => fmtNumeroPositivo(v.precioCompra),
     VENDIDOA: ({ deal }) => texto(deal?.clienteNombre),
-    MONTOVENTA: ({ deal }) => fmtNumero(deal?.importeTotal),
+    MONTOVENTA: ({ deal }) => fmtNumeroPositivo(deal?.importeTotal),
   },
   'COMPRAS/Deposito': {
     ...BASE,
     KMS: kms,
-    MONTOCLIENTE: ({ deposito }) => fmtNumero(deposito?.precio_venta),
+    MONTOCLIENTE: ({ deposito }) => fmtNumeroPositivo(deposito?.precio_venta),
   },
 }
 
@@ -363,13 +378,18 @@ export function parseNumeroCelda(s: string): number | null {
 
 export function normalizarCelda(v: unknown): string {
   if (v == null) return ''
+  if (typeof v === 'boolean') return v ? 'SI' : ''
   if (typeof v === 'number') return Number.isFinite(v) ? String(v) : ''
   const s = String(v).trim()
   if (!s) return ''
   const n = parseNumeroCelda(s)
   if (n != null) return String(n)
-  if (/^S[IÍ]$/i.test(s)) return 'SI'
+  // Texto: sin acentos ni mayúsculas ("Sí" = "SI", "opel" = "Opel", "no fue" = "NO FUE").
   return s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .toUpperCase()
 }
 
 function esFechaLarga(s: string): boolean {
