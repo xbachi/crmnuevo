@@ -195,7 +195,7 @@ export function calcularPresupuesto(e: EntradaCalculo): ResultadoCalculo {
   const entregaEfectiva: ModoEntrega =
     tarifa === 'SIN_DTO' ||
     opciones.modoPlazo === 'CORTO' ||
-    !financia ||
+    !financiable ||
     !coche
       ? 'SEPARADO'
       : coche.modo
@@ -493,7 +493,12 @@ function checksDe(
   }
   return {
     sin_premium: [
-      { texto: 'Sin Garantía Premium', ok: false },
+      {
+        texto: extension
+          ? 'Sin Extensión Garantía Premium'
+          : 'Sin Garantía Premium',
+        ok: false,
+      },
       ...(financiable
         ? [{ texto: '24 meses de permanencia', ok: false }, seguro]
         : []),

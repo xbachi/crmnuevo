@@ -120,6 +120,23 @@ type PatchPresupuesto = Partial<
 >
 
 const COLUMNAS_JSONB = new Set(['opciones', 'calculo', 'version_parametros'])
+const COLUMNAS_PATCH = new Set<string>([
+  'nombre_cliente',
+  'telefono',
+  'email',
+  'opciones',
+  'calculo',
+  'version_parametros',
+  'pdf_url',
+  'estado',
+  'valido_hasta',
+  'enviado_at',
+  'aceptado_at',
+  'deal_id',
+  'cliente_id',
+  'tarifa_id',
+  'tarifa_sin_premium_id',
+])
 const CLAVES_PARAMETROS = Object.keys(PARAMETROS_DEFECTO) as Array<
   keyof ParametrosPresupuesto
 >
@@ -500,6 +517,7 @@ export async function actualizarPresupuesto(
   const vals: unknown[] = []
   for (const [k, v] of Object.entries(patch)) {
     if (v === undefined) continue
+    if (!COLUMNAS_PATCH.has(k)) throw new Error(`Columna no permitida: ${k}`)
     vals.push(COLUMNAS_JSONB.has(k) ? JSON.stringify(v) : v)
     sets.push(`${k} = $${vals.length}${COLUMNAS_JSONB.has(k) ? '::jsonb' : ''}`)
   }

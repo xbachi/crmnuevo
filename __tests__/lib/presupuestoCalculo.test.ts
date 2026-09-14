@@ -240,6 +240,21 @@ describe('modos de plazo y tarifa', () => {
     expect(r.columnas.sin_premium.total).toBe(33375)
   })
 
+  it('CONSULTAR + coche JUNTO: el coche se resta como entrega separada', () => {
+    const r = calc(
+      { tarifa_financiacion: 'CONSULTAR' },
+      { cocheEntrega: { valor: 5000, modo: 'JUNTO' } }
+    )
+    expect(r.derivados.entregaEfectiva).toBe('SEPARADO')
+    const entrega = r.columnas.sin_premium.lineas.find(
+      (l) => l.clave === 'entrega_vehiculo'
+    )
+    expect(entrega?.visible).toBe(true)
+    expect(entrega?.importe).toBe(-5000)
+    expect(r.columnas.sin_premium.total).toBe(33375 - 5000)
+    expect(r.columnas.premium.total).toBe(34365 - 5000)
+  })
+
   it('ficha sin tarifa → CONSULTAR', () => {
     expect(calc({ tarifa_financiacion: null }).derivados.tarifa).toBe(
       'CONSULTAR'
