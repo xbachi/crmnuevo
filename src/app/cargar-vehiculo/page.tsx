@@ -51,12 +51,13 @@ const REGLAS_VEHICULO: Record<string, Regla> = {
   gastosPintura: { etiqueta: 'pintura', tipo: 'numero', min: 0 },
   gastosLimpieza: { etiqueta: 'limpieza', tipo: 'numero', min: 0 },
   gastosOtros: { etiqueta: 'otros gastos', tipo: 'numero', min: 0 },
+  // Mismos rangos que validarFicha (el alta no falla si la ficha se rechaza).
   fichaPrecioContado: {
     etiqueta: 'el precio contado',
     tipo: 'numero',
-    min: 0,
+    min: 0.01,
   },
-  fichaGp: { etiqueta: 'el GP', tipo: 'numero', min: 0 },
+  fichaGp: { etiqueta: 'el GP', tipo: 'numero', min: 0, max: 2000 },
 }
 
 const FICHA_VACIA = {

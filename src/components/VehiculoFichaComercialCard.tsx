@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FichaComercial } from '@/lib/fichaComercial'
 
 /** Campos editables en el orden del bloque; precio_contado = precioPublicacion. */
@@ -72,24 +72,29 @@ export default function VehiculoFichaComercialCard({
   const [draft, setDraft] = useState<Draft | null>(null)
   const [guardando, setGuardando] = useState(false)
 
-  const cargar = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/vehiculos/${vehiculoId}/ficha-comercial`)
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const d = draftDe((await res.json()) as FichaComercial)
-      setBase(d)
-      setDraft(d)
-    } catch (err) {
-      console.error('ficha comercial:', err)
-      const d = draftDe(null)
-      setBase(d)
-      setDraft(d)
-    }
-  }, [vehiculoId])
-
   useEffect(() => {
-    void cargar()
-  }, [cargar])
+    let cancelado = false
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/vehiculos/${vehiculoId}/ficha-comercial`)
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const d = draftDe((await res.json()) as FichaComercial)
+        if (cancelado) return
+        setBase(d)
+        setDraft(d)
+      } catch (err) {
+        if (cancelado) return
+        console.error('ficha comercial:', err)
+        showToast('Error al cargar la ficha comercial', 'error')
+        const d = draftDe(null)
+        setBase(d)
+        setDraft(d)
+      }
+    })()
+    return () => {
+      cancelado = true
+    }
+  }, [vehiculoId, showToast])
 
   const set = (k: Campo, v: string) =>
     setDraft((prev) => (prev ? { ...prev, [k]: v } : prev))
