@@ -565,7 +565,6 @@ describe('BASE_DATOS/Datos: valoresEsperados', () => {
     expect(porHeader(ctxDatos({ estado: 'vendido' }))).toEqual({
       '0:300': '1088',
       '3:MATRICULA': '0046LLR',
-      '4:FECHA MATRICULACION': '01/12/2020',
       '30:bastidor': 'VR3USHNKKLJ927403',
     })
   })

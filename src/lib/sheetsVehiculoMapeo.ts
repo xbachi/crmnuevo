@@ -248,12 +248,12 @@ const FICHA_COMERCIAL: Record<string, Getter> = {
   BASTIDOR: bastidor,
   COMBUSTIBLE: fichaTexto('combustible'),
 }
-/** Columnas de Base_Datos que se mantienen aunque el vehículo esté VENDIDO. */
-export const COLUMNAS_IDENTIDAD_BASE_DATOS = [
-  'MATRICULA',
-  'BASTIDOR',
-  'FECHAMATRICULACION',
-]
+/**
+ * Columnas de Base_Datos que se mantienen aunque el vehículo esté VENDIDO.
+ * Sin FECHA MATRICULACION: de ella cuelgan las fórmulas de tarifa/garantía y
+ * en los vendidos la hoja y el CRM discrepan (fechas aproximadas "1/mm/aaaa").
+ */
+export const COLUMNAS_IDENTIDAD_BASE_DATOS = ['MATRICULA', 'BASTIDOR']
 
 const CHECKLIST_VEHICULO: Record<string, Getter> = {
   CARPETA: campo('carpeta'),
