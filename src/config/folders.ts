@@ -39,7 +39,7 @@ export function generateFolderName(
     .toString()
     .padStart(2, '0')
   const numeroCarpeta =
-    refCarpeta(normalizarReferencia(ref, tipo)) ?? fallbackLegacy
+    refCarpeta(normalizarReferencia(ref, tipo), { tipo }) ?? fallbackLegacy
 
   // Convertir a CamelCase: primera letra de cada palabra en mayúscula
   const marcaCamelCase = String(marca ?? '')

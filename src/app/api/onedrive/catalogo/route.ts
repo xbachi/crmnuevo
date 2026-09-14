@@ -58,6 +58,7 @@ export async function GET(request: NextRequest) {
       matriculaNorm: v.matricula_norm,
       ref: refCarpeta(normalizarReferencia(v.referencia, v.tipo), {
         pad: false,
+        tipo: v.tipo,
       }),
       marca: String(v.marca ?? '').trim(),
       modelo: String(v.modelo ?? '').trim(),

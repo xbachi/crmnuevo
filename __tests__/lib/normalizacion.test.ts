@@ -29,7 +29,8 @@ describe('normalizarReferencia', () => {
     ['11', 'R', '#R-11'],
     ['11', 'Coche R', '#R-11'],
     ['D-28', 'R', '#D-28'],
-    ['#1038', 'Deposito Venta', '#D-38'],
+    ['#1038', 'Deposito Venta', '#1038'],
+    ['1038', 'R', '#1038'],
     ['1088', 'Compra', '#1088'],
     ['1088', 'M', '#1088'],
     ['1088', undefined, '#1088'],
@@ -123,6 +124,13 @@ describe('refCarpeta', () => {
     ['#1200', undefined, null],
     ['MAN-E9961BDJ-15169', undefined, null],
     [null, undefined, null],
+    ['#1038', { tipo: 'D' }, 'D-38'],
+    ['#1038', { tipo: 'Deposito Venta', pad: false }, 'D-38'],
+    ['#1005', { tipo: 'R' }, 'R-05'],
+    ['#1005', { tipo: 'R', pad: false }, 'R-5'],
+    ['#1088', { tipo: 'C' }, '88'],
+    ['#D-28', { tipo: 'C' }, 'D-28'],
+    ['#1250', { tipo: 'D' }, null],
   ])('%p %p → %p', (ref, opts, esperado) => {
     expect(refCarpeta(ref, opts)).toBe(esperado)
   })

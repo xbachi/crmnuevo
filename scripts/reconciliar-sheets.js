@@ -224,13 +224,19 @@ async function main() {
               valor: refRaw,
             })
           } else if (refRaw && refRaw !== canon) {
+            // Sólo es cambio de formato si el número no cambia ('1038' → '#1038');
+            // '1038' → '#D-38' sería otra identidad y no se propone.
+            const mismoNumero =
+              parseInt(refRaw.replace(/\D/g, ''), 10) ===
+              parseInt(canon.replace(/\D/g, ''), 10)
             informe.referenciasFueraDeFormato.push({
               ...loc,
               celda: celdaRef,
               valor: refRaw,
               canonica: canon,
+              ...(mismoNumero ? {} : { fixOmitido: 'cambia el numero' }),
             })
-            if (FIX_FORMATO) {
+            if (FIX_FORMATO && mismoNumero) {
               informe.fixFormato.push({
                 spreadsheetId: hoja.id,
                 ...loc,

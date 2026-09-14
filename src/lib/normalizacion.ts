@@ -33,7 +33,7 @@ export function validarMatricula(
 
 export function refCarpeta(
   referencia: unknown,
-  opts?: { pad?: boolean }
+  opts?: { pad?: boolean; tipo?: string | null }
 ): string | null {
   return impl.refCarpeta(referencia, opts)
 }

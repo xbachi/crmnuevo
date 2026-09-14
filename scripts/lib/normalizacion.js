@@ -54,10 +54,10 @@ function normalizarReferencia(input, tipo) {
   if (!/^\d+$/.test(s)) return null
   const n = parseInt(s, 10)
   const t = letraTipo(tipo)
-  if (!t) return `#${n}`
-  // Depósito/R con numeración legacy '#1038' → carpeta 38 → '#D-38'.
-  const carpeta = numeroCarpeta(n)
-  return `#${t}-${pad2(carpeta ?? n)}`
+  // n >= 1000 es la serie numérica aunque el tipo sea D/R: no se inventa
+  // letra (cambiaría la identidad, no el formato). La carpeta la resuelve refCarpeta.
+  if (!t || n >= 1000) return `#${n}`
+  return `#${t}-${pad2(n)}`
 }
 
 /**
@@ -100,8 +100,10 @@ function validarMatricula(norm, opts) {
 
 /**
  * Nº de carpeta de expediente a partir de la referencia; null si no mapea.
+ * Con opts.tipo D/R, una referencia numérica legacy ('#1038') va a la
+ * carpeta con letra ('D-38') sin alterar la referencia.
  * @param {unknown} referencia
- * @param {{ pad?: boolean }} [opts]
+ * @param {{ pad?: boolean, tipo?: unknown }} [opts]
  * @returns {string|null}
  */
 function refCarpeta(referencia, opts) {
@@ -117,7 +119,9 @@ function refCarpeta(referencia, opts) {
 
   const n = numeroCarpeta(parseInt(c.slice(1), 10))
   if (n === null) return null
-  return pad ? pad2(n) : String(n)
+  const numero = pad ? pad2(n) : String(n)
+  const t = opts ? letraTipo(opts.tipo) : null
+  return t ? `${t}-${numero}` : numero
 }
 
 module.exports = {
