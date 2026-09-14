@@ -6,7 +6,7 @@ export const SHEETS_CONFIG = {
   SPREADSHEET_IDS: {
     VENTAS: '1RwnqBYlPMXj2rUJ3XqegrSQ-kM5RIJG61uGALy-pEH8',
     COMPRAS: '1asyKq66_4_GUwkYQdgjSIOLR5wY3ur06ebgleFFWiW0',
-    // Hoja histórica de Sevencars; no alimenta el CRM, sólo la reconciliación.
+    // Ficha comercial (web y presupuesto): la mantiene el CRM en la pestaña Datos.
     BASE_DATOS: '1pm2KiO1vXy5Zn7OGe8wjOXhKzUub2QIG5Tjv4GDqEBI',
   },
 
@@ -22,6 +22,7 @@ export const SHEETS_CONFIG = {
       'Coche R': 'R', // Tipo "Coche R" → Hoja "R"
       'Deposito Venta': 'Deposito', // Tipo "Deposito Venta" → Hoja "Deposito"
     },
+    BASE_DATOS: { Datos: 'Datos' }, // Una sola pestaña para C/I/D
   },
 
   // Encabezados de las columnas (REALES)

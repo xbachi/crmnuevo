@@ -10,16 +10,21 @@
  */
 import {
   claveHeader,
+  desplazarFormula,
   encontrarFila,
   filaParaAppend,
+  formulasParaFilaNueva,
   iguales,
   indiceReferencia,
   indiceVendido,
   letraColumna,
   normalizarCelda,
   planUpsert,
+  recortarFilasDatos,
   referenciaCanonica,
   titleCase,
+  tipoDePestana,
+  valorUserEntered,
   valoresEsperados,
   type CtxVehiculoSheets,
 } from '@/lib/sheetsVehiculoMapeo'
@@ -419,5 +424,245 @@ describe('encontrarFila / referenciaCanonica', () => {
     expect(referenciaCanonica({ referencia: '1088', tipo: 'C' })).toBe('#1088')
     expect(referenciaCanonica({ referencia: 'R-11', tipo: 'R' })).toBe('#R-11')
     expect(referenciaCanonica({ referencia: null, tipo: 'C' })).toBeNull()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Base_Datos/Datos (ficha comercial)
+// ---------------------------------------------------------------------------
+
+const HEADERS_DATOS = [
+  '300',
+  'IVA',
+  'MODELO',
+  'MATRICULA',
+  'FECHA MATRICULACION',
+  'PRECIO CONTADO',
+  'URL IMAGEN',
+  'QR',
+  'MANTENIMIENTOS',
+  'TARIFA FINANCIACION',
+  'GARANTIA',
+  'GP',
+  '% DTO',
+  'PRECIO CAMPAÑA',
+  'MESES GARANTIA FABRICA',
+  'MODELO',
+  'FIN FABRICA',
+  'HOY',
+  'FIN LEGAL',
+  'QUEDA OFICIAL?',
+  'MESES QUEDAN FABRICA',
+  'EXTENSION O LEGAL',
+  'PRECIO EXTENSION',
+  'kms',
+  'motor cv',
+  'cubicaje',
+  'caja',
+  'matriculacion',
+  'matriculacion num',
+  'cuota',
+  'bastidor',
+  'combustible',
+]
+const FICHA = {
+  regimen: 'IVA21' as const,
+  nombre_comercial: 'Peugeot 2008 1.2 PureTech 130CV Allure',
+  url_imagen: 'https://www.sevencars.es/img.jpg',
+  url_qr: 'https://www.sevencars.es/qr.png',
+  mantenimientos: 'H-L VIC 10-06-24\n>> ITV',
+  tarifa_financiacion: 'SIN_DTO' as const,
+  garantia: false,
+  gp: 490,
+  pct_dto: 0.07,
+  meses_garantia_fabrica: 36,
+  motor_cv: 130,
+  cubicaje: 1199,
+  caja: 'Manual',
+  combustible: 'Gasolina',
+}
+const ctxDatos = (
+  over: Partial<CtxVehiculoSheets['vehiculo']> = {},
+  ficha: CtxVehiculoSheets['ficha'] = FICHA
+) =>
+  ctx(
+    { referencia: '#1088', precioPublicacion: '12485.00', ...over },
+    { ficha }
+  )
+
+describe('BASE_DATOS/Datos: valoresEsperados', () => {
+  const porHeader = (ctx: CtxVehiculoSheets) => {
+    const out: Record<string, unknown> = {}
+    for (const e of valoresEsperados('BASE_DATOS/Datos', HEADERS_DATOS, ctx))
+      out[`${e.col}:${e.header}`] = e.valor
+    return out
+  }
+
+  it('stock con ficha: referencia sin # (sólo append) y columnas de la ficha', () => {
+    const esperados = valoresEsperados(
+      'BASE_DATOS/Datos',
+      HEADERS_DATOS,
+      ctxDatos()
+    )
+    expect(esperados[0]).toEqual({
+      col: 0,
+      header: '300',
+      valor: '1088',
+      soloAppend: true,
+    })
+    expect(porHeader(ctxDatos())).toEqual({
+      '0:300': '1088',
+      '1:IVA': 'iva 21',
+      '2:MODELO': 'Peugeot 2008 1.2 PureTech 130CV Allure',
+      '3:MATRICULA': '0046LLR',
+      '4:FECHA MATRICULACION': '01/12/2020',
+      '5:PRECIO CONTADO': 12485,
+      '6:URL IMAGEN': 'https://www.sevencars.es/img.jpg',
+      '7:QR': 'https://www.sevencars.es/qr.png',
+      '8:MANTENIMIENTOS': 'H-L VIC 10-06-24\n>> ITV',
+      '9:TARIFA FINANCIACION': 'SIN DTO',
+      '10:GARANTIA': 'NO',
+      '11:GP': 490,
+      '12:% DTO': 0.07,
+      '14:MESES GARANTIA FABRICA': 36,
+      '24:motor cv': 130,
+      '25:cubicaje': 1199,
+      '26:caja': 'Manual',
+      '30:bastidor': 'VR3USHNKKLJ927403',
+      '31:combustible': 'Gasolina',
+    })
+    // Nunca: kms, PRECIO CAMPAÑA, 2ª MODELO, HOY, cuota, marca VENDIDO.
+    expect(esperados.some((e) => e.marcaVendido)).toBe(false)
+  })
+
+  it('REBU / Consultanos / sin ficha → marca+modelo; garantia null y pct 0', () => {
+    const v = porHeader(
+      ctxDatos(
+        {},
+        {
+          ...FICHA,
+          regimen: 'REBU',
+          tarifa_financiacion: 'CONSULTAR',
+          garantia: null,
+          pct_dto: 0,
+          gp: 0,
+        }
+      )
+    )
+    expect(v['1:IVA']).toBe('REBU')
+    expect(v['9:TARIFA FINANCIACION']).toBe('Consultanos')
+    expect(v['10:GARANTIA']).toBeUndefined()
+    expect(v['12:% DTO']).toBe(0)
+    expect(v['11:GP']).toBeUndefined()
+
+    const sin = porHeader(ctxDatos({}, null))
+    expect(sin['2:MODELO']).toBe('Peugeot 2008')
+    expect(sin['1:IVA']).toBeUndefined()
+    expect(sin['5:PRECIO CONTADO']).toBe(12485)
+  })
+
+  it('VENDIDO: sólo referencia (append) + columnas de identidad', () => {
+    expect(porHeader(ctxDatos({ estado: 'vendido' }))).toEqual({
+      '0:300': '1088',
+      '3:MATRICULA': '0046LLR',
+      '4:FECHA MATRICULACION': '01/12/2020',
+      '30:bastidor': 'VR3USHNKKLJ927403',
+    })
+  })
+
+  it('planUpsert: la columna A existente no se reescribe; las fórmulas no se pisan', () => {
+    const esperados = valoresEsperados(
+      'BASE_DATOS/Datos',
+      HEADERS_DATOS,
+      ctxDatos()
+    )
+    const fila: (string | number)[] = new Array(32).fill('')
+    fila[0] = 1088
+    fila[1] = 'REBU'
+    fila[11] = 590
+    fila[3] = '0046LLR'
+    const formulas = new Array(32).fill(false)
+    formulas[11] = true
+    const plan = planUpsert(HEADERS_DATOS, fila, esperados, 2026, formulas)
+    expect(plan.append).toBe(false)
+    expect(plan.celdas.map((c) => c.letra)).not.toContain('A')
+    expect(plan.celdas.map((c) => c.letra)).not.toContain('L')
+    expect(plan.celdas.find((c) => c.letra === 'B')).toMatchObject({
+      anterior: 'REBU',
+      nuevo: 'iva 21',
+    })
+    // Sin máscara, GP sí se corregiría (celda literal).
+    const sinMascara = planUpsert(HEADERS_DATOS, fila, esperados, 2026)
+    expect(sinMascara.celdas.find((c) => c.letra === 'L')).toMatchObject({
+      anterior: '590',
+      nuevo: 490,
+    })
+    // Fila nueva: la referencia va en A sin '#'.
+    expect(filaParaAppend(HEADERS_DATOS, esperados)[0]).toBe('1088')
+  })
+
+  it('encontrarFila en Datos: "D5" es #D-05 y "1001" es #1001', () => {
+    const filas = [['1001'], ['D5'], ['R23'], [3000]]
+    expect(tipoDePestana('Datos')).toBeNull()
+    expect(encontrarFila(filas, 0, '#D-05', null)).toBe(1)
+    expect(encontrarFila(filas, 0, '#1001', null)).toBe(0)
+    expect(encontrarFila(filas, 0, '#R-23', null)).toBe(2)
+    expect(encontrarFila(filas, 0, '#3000', null)).toBe(3)
+  })
+})
+
+describe('BASE_DATOS/Datos: comparación y utilidades', () => {
+  it('"12.485 €" == 12485; "1/01/2020" y "10/2020" == fecha del CRM', () => {
+    expect(iguales('12.485 €', 12485, 2026)).toBe(true)
+    expect(iguales(12485, 12485, 2026)).toBe(true)
+    expect(iguales('1/01/2020', '01/01/2020', 2026)).toBe(true)
+    expect(iguales('10/2020', '01/10/2020', 2026)).toBe(true)
+    expect(iguales('10/2020', '01/11/2020', 2026)).toBe(false)
+    expect(iguales('iva 21', 'iva 21', 2026)).toBe(true)
+    expect(iguales('IVA 21', 'iva 21', 2026)).toBe(true)
+  })
+
+  it('desplazarFormula: sólo las referencias relativas a la fila origen', () => {
+    expect(desplazarFormula('= IF(J2="NORMAL";0,07;0)', 2, 3)).toBe(
+      '= IF(J3="NORMAL";0,07;0)'
+    )
+    expect(desplazarFormula('=DATE(YEAR(E2);MONTH(E2)+O2;DAY(E2))', 2, 9)).toBe(
+      '=DATE(YEAR(E9);MONTH(E9)+O9;DAY(E9))'
+    )
+    expect(desplazarFormula('=$E$2+E$2+$E2', 2, 3)).toBe('=$E$2+E$2+$E3')
+    expect(desplazarFormula('=TODAY()', 2, 3)).toBe('=TODAY()')
+    expect(desplazarFormula('=F12-850', 2, 3)).toBe('=F12-850')
+  })
+
+  it('formulasParaFilaNueva: sólo fórmulas, sin las ARRAYFORMULA de kms/matriculacion', () => {
+    const fila = new Array(32).fill('')
+    fila[9] = '=IF(E2<1;"NORMAL";"ESPECIAL")'
+    fila[15] = '=C2'
+    fila[17] = '=TODAY()'
+    fila[23] = '=ARRAYFORMULA(IF(D2:D501="";"";"x"))'
+    fila[27] = '=ARRAYFORMULA(x)'
+    fila[28] = '=ARRAYFORMULA(y)'
+    fila[29] = 214
+    fila[3] = '0046LLR'
+    expect(formulasParaFilaNueva(fila, 2, 7, HEADERS_DATOS)).toEqual([
+      { col: 9, formula: '=IF(E7<1;"NORMAL";"ESPECIAL")' },
+      { col: 15, formula: '=C7' },
+      { col: 17, formula: '=TODAY()' },
+    ])
+  })
+
+  it('valorUserEntered y recortarFilasDatos', () => {
+    expect(valorUserEntered('=x')).toBe("'=x")
+    expect(valorUserEntered('+34')).toBe("'+34")
+    expect(valorUserEntered('1234BCD')).toBe('1234BCD')
+    expect(valorUserEntered(12485)).toBe(12485)
+    expect(
+      recortarFilasDatos([['1001', 'a'], ['D5'], ['BASE', 'x'], ['1002']])
+    ).toEqual([['1001', 'a'], ['D5']])
+    expect(
+      recortarFilasDatos([['1001'], ['Copia Seguridad'], ['1002']])
+    ).toEqual([['1001']])
+    expect(recortarFilasDatos([['1001'], [''], ['1002']])).toEqual([['1001']])
+    expect(recortarFilasDatos([['1001'], [], ['1002']])).toEqual([['1001']])
   })
 })

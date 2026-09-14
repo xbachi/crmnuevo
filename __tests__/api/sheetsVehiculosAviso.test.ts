@@ -41,6 +41,7 @@ const SHEET_IDS: Record<string, number> = {
   Deposito: 1589175432,
   R: 755811500,
   Compras: 0,
+  Datos: 1423934348,
 }
 
 beforeEach(() => {
@@ -65,24 +66,30 @@ describe('POST /api/admin/sheets-vehiculos/aviso', () => {
     expect(mockGetSheetId).not.toHaveBeenCalled()
   })
 
-  it('escribe la nota en A1 de las 6 pestañas con un batchUpdate por hoja', async () => {
+  it('escribe la nota en A1 de las 7 pestañas con un batchUpdate por hoja', async () => {
     mockBatchUpdate.mockResolvedValue({ data: {} })
     const res = await POST(makeRequest())
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json.ok).toBe(true)
-    expect(json.pestanas).toHaveLength(6)
+    expect(json.pestanas).toHaveLength(7)
+    expect(json.pestanas).toContainEqual({
+      hoja: 'BASE_DATOS',
+      pestana: 'Datos',
+      sheetId: 1423934348,
+    })
 
-    expect(mockBatchUpdate).toHaveBeenCalledTimes(2)
+    expect(mockBatchUpdate).toHaveBeenCalledTimes(3)
     const ids = mockBatchUpdate.mock.calls.map((c) => c[0].spreadsheetId)
     expect(ids).toEqual([
       SHEETS_CONFIG.SPREADSHEET_IDS.VENTAS,
       SHEETS_CONFIG.SPREADSHEET_IDS.COMPRAS,
+      SHEETS_CONFIG.SPREADSHEET_IDS.BASE_DATOS,
     ])
 
     for (const call of mockBatchUpdate.mock.calls) {
       const requests = call[0].requestBody.requests
-      expect(requests).toHaveLength(3)
+      expect(requests.length).toBeGreaterThanOrEqual(1)
       for (const r of requests) {
         expect(r.updateCells.fields).toBe('note')
         expect(r.updateCells.range).toMatchObject({
@@ -114,8 +121,8 @@ describe('POST /api/admin/sheets-vehiculos/aviso', () => {
     const json = await res.json()
     expect(json.ok).toBe(false)
     expect(json.errores).toEqual(["VENTAS/R: Hoja 'R' no encontrada"])
-    expect(json.pestanas).toHaveLength(5)
-    expect(mockBatchUpdate).toHaveBeenCalledTimes(2)
+    expect(json.pestanas).toHaveLength(6)
+    expect(mockBatchUpdate).toHaveBeenCalledTimes(3)
     expect(mockBatchUpdate.mock.calls[0][0].requestBody.requests).toHaveLength(
       2
     )

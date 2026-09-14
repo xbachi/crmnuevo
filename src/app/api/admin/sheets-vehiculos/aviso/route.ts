@@ -20,11 +20,12 @@ export const maxDuration = 60
 export const NOTA_AVISO_CRM =
   'Hoja generada por el CRM. Los cambios se hacen en el CRM.'
 
-type Hoja = 'VENTAS' | 'COMPRAS'
+type Hoja = 'VENTAS' | 'COMPRAS' | 'BASE_DATOS'
 
 const PESTANAS_GESTIONADAS: Record<Hoja, string[]> = {
   VENTAS: ['Expo', 'Deposito', 'R'],
   COMPRAS: ['Compras', 'Deposito', 'R'],
+  BASE_DATOS: ['Datos'],
 }
 
 function requestNotaA1(sheetId: number): sheets_v4.Schema$Request {
@@ -79,7 +80,7 @@ export async function POST(request: NextRequest) {
     }
     if (requests.length === 0) continue
     try {
-      // Una sola llamada por spreadsheet con las 3 notas.
+      // Una sola llamada por spreadsheet con todas sus notas.
       await sheets.spreadsheets.batchUpdate({
         spreadsheetId,
         requestBody: { requests },

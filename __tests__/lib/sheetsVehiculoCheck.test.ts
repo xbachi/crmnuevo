@@ -52,6 +52,17 @@ const H_R_V = [
 const H_COMPRAS = ['R', 'MARCA', 'MODELO', 'MATRICULA', 'PROVEEDOR', 'TOTAL']
 const H_DEPO_C = ['REFERENCIA', 'MARCA', 'MODELO', 'MATRICULA']
 const H_R_C = ['REFERENCIA', 'MARCA', 'MODELO', 'MATRICULA', 'GANANCI']
+const H_DATOS = [
+  '300',
+  'IVA',
+  'MODELO',
+  'MATRICULA',
+  'FECHA MATRICULACION',
+  'PRECIO CONTADO',
+  'TARIFA FINANCIACION',
+  'GP',
+  'bastidor',
+]
 
 const V1 = {
   id: 1,
@@ -89,7 +100,7 @@ const V4 = {
   createdAt: new Date(2026, 2, 12),
 }
 
-const VALORES: Record<string, string[][]> = {}
+const VALORES: Record<string, (string | number)[][]> = {}
 
 function hojas() {
   VALORES["'Expo'"] = [
@@ -119,6 +130,24 @@ function hojas() {
   ]
   VALORES["'Deposito'/COMPRAS"] = [H_DEPO_C]
   VALORES["'R'/COMPRAS"] = [H_R_C]
+  // #1002 igual; D2 (VENDIDO) con matrícula distinta pero sólo identidad;
+  // R23 sin vehículo (huérfana); #D-03 sin fila → append.
+  VALORES["'Datos'"] = [
+    H_DATOS,
+    [
+      1002,
+      'iva 21',
+      'Peugeot 2008',
+      '0046LLR',
+      '',
+      12485,
+      'NORMAL',
+      490,
+      'VR3USHNKKLJ927403',
+    ],
+    ['D2', 'REBU', 'Nissan Qashqai', '0000AAA', '', 9000, 'NORMAL', 490, ''],
+    ['R23', 'iva 21', 'Seat Ibiza', '2222BBB', '', 5000, 'NORMAL', 490, ''],
+  ]
   mockSheets.spreadsheets.values.get.mockImplementation(
     async ({
       range,
@@ -131,14 +160,24 @@ function hojas() {
       const hoja =
         spreadsheetId === '1RwnqBYlPMXj2rUJ3XqegrSQ-kM5RIJG61uGALy-pEH8'
           ? 'VENTAS'
-          : 'COMPRAS'
+          : spreadsheetId === '1pm2KiO1vXy5Zn7OGe8wjOXhKzUub2QIG5Tjv4GDqEBI'
+            ? 'BASE_DATOS'
+            : 'COMPRAS'
       const values = VALORES[tab] ?? VALORES[`${tab}/${hoja}`]
       return { data: { values: values.map((r) => [...r]) } }
     }
   )
-  mockSheets.spreadsheets.values.append.mockResolvedValue({
-    data: { updates: { updatedRange: "'Deposito'!A2:D2" } },
-  })
+  mockSheets.spreadsheets.values.append.mockImplementation(
+    async ({ range }: { range: string }) => ({
+      data: {
+        updates: {
+          updatedRange: range.startsWith("'Datos'")
+            ? "'Datos'!A5:I5"
+            : "'Deposito'!A2:D2",
+        },
+      },
+    })
+  )
   mockSheets.spreadsheets.values.batchUpdate.mockResolvedValue({ data: {} })
   mockSheets.spreadsheets.get.mockResolvedValue({
     data: { sheets: [{ properties: { title: 'Deposito', sheetId: 5 } }] },
@@ -176,11 +215,12 @@ beforeEach(() => {
 })
 
 describe('checkSheetsVehiculos', () => {
-  it('dryRun: 6 lecturas, sin escrituras, reporta faltante + diferencia + huérfana', async () => {
+  it('dryRun: 8 lecturas, sin escrituras, reporta faltante + diferencia + huérfana', async () => {
     const r = await checkSheetsVehiculos({ dryRun: true, sinEsperas: true })
     expect(r.errores).toEqual([])
     expect(r.vehiculos).toBe(3) // el tipo M no cuenta
-    expect(mockSheets.spreadsheets.values.get).toHaveBeenCalledTimes(6)
+    // 6 pestañas + Datos leída dos veces (valores y fórmulas)
+    expect(mockSheets.spreadsheets.values.get).toHaveBeenCalledTimes(8)
     expect(mockSheets.spreadsheets.values.append).not.toHaveBeenCalled()
     expect(mockSheets.spreadsheets.values.batchUpdate).not.toHaveBeenCalled()
     expect(
@@ -193,7 +233,23 @@ describe('checkSheetsVehiculos', () => {
     expect(r.porPestana['COMPRAS/Deposito'].faltantesVendidos).toEqual([
       '#D-02',
     ])
-    expect(r.appends).toBe(1)
+    // Base_Datos: #D-03 tampoco tiene fila → append; #D-02 vendido con fila
+    // sólo actualiza identidad (MATRICULA), nunca la columna A; R23 huérfana.
+    expect(r.porPestana['BASE_DATOS/Datos'].faltantes).toEqual(['#D-03'])
+    expect(r.porPestana['BASE_DATOS/Datos'].huerfanas).toEqual(['#R-23'])
+    expect(
+      r.porPestana['BASE_DATOS/Datos'].diferencias.filter(
+        (d) => d.referencia === '#D-02'
+      )
+    ).toEqual([
+      expect.objectContaining({
+        referencia: '#D-02',
+        celda: 'D3',
+        columna: 'MATRICULA',
+        nuevo: '8722MZK',
+      }),
+    ])
+    expect(r.appends).toBe(2)
     // PROVEEDOR 'hertz' ≠ 'ayvens' en COMPRAS/Compras; TOTAL no se toca
     const difs = r.porPestana['COMPRAS/Compras'].diferencias
     expect(difs).toEqual([
@@ -223,9 +279,11 @@ describe('checkSheetsVehiculos', () => {
   it('apply: repara con batchUpdate + append y registra el log', async () => {
     const r = await checkSheetsVehiculos({ dryRun: false, sinEsperas: true })
     expect(r.errores).toEqual([])
-    expect(mockSheets.spreadsheets.values.get).toHaveBeenCalledTimes(6)
-    expect(mockSheets.spreadsheets.values.append).toHaveBeenCalledTimes(1)
-    expect(mockSheets.spreadsheets.values.batchUpdate).toHaveBeenCalledTimes(2)
+    // 8 lecturas + la fila anterior de Datos para heredar sus fórmulas
+    expect(mockSheets.spreadsheets.values.get).toHaveBeenCalledTimes(9)
+    expect(mockSheets.spreadsheets.values.append).toHaveBeenCalledTimes(2)
+    // PROVEEDOR (Compras) + marca VENDIDO (Ventas/Deposito) + MATRICULA (Datos)
+    expect(mockSheets.spreadsheets.values.batchUpdate).toHaveBeenCalledTimes(3)
     const logs = mockQuery.mock.calls.filter(([s]) =>
       String(s).includes('sheets_sync_log')
     )
@@ -241,8 +299,9 @@ describe('checkSheetsVehiculos', () => {
     const r = await checkSheetsVehiculos({ dryRun: false, sinEsperas: true })
     warn.mockRestore()
     expect(r.errores).toEqual([])
-    expect(r.appends).toBe(1)
-    expect(mockSheets.spreadsheets.values.get).toHaveBeenCalledTimes(7)
+    expect(r.appends).toBe(2)
+    // 8 + fila anterior de Datos + relectura de Ventas/Deposito (1) y de Datos (2)
+    expect(mockSheets.spreadsheets.values.get).toHaveBeenCalledTimes(12)
   })
 
   it('kill switch: apply no hace nada, dryRun sigue leyendo', async () => {
@@ -252,7 +311,7 @@ describe('checkSheetsVehiculos', () => {
     expect(mockSheets.spreadsheets.values.get).not.toHaveBeenCalled()
     const d = await checkSheetsVehiculos({ dryRun: true, sinEsperas: true })
     expect(d.errores).toEqual([])
-    expect(mockSheets.spreadsheets.values.get).toHaveBeenCalledTimes(6)
+    expect(mockSheets.spreadsheets.values.get).toHaveBeenCalledTimes(8)
   })
 
   it('vehículo sin referencia: se lista en sinReferencia, no es error ni se sincroniza', async () => {

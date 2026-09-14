@@ -1,7 +1,13 @@
 /**
- * Upsert de vehículos en las hojas COMPRAS y Ventas-Sevencars: el CRM es la
- * fuente y mantiene al día TODAS las columnas mapeadas (sheetsVehiculoMapeo.ts)
- * de la fila del vehículo, localizada por referencia canónica en la columna A.
+ * Upsert de vehículos en las hojas COMPRAS, Ventas-Sevencars y Base_Datos
+ * (ficha comercial): el CRM es la fuente y mantiene al día TODAS las columnas
+ * mapeadas (sheetsVehiculoMapeo.ts) de la fila del vehículo, localizada por
+ * referencia canónica en la columna A.
+ *
+ *  - Base_Datos/Datos: se lee sin formato + máscara de fórmulas; las celdas
+ *    con fórmula son del dueño de la hoja y nunca se pisan; la columna A de
+ *    una fila existente no se reescribe; una fila nueva hereda las fórmulas
+ *    (y el formato) de la fila anterior.
  *
  *  - Fila existente → values.batchUpdate SOLO con las celdas que difieren.
  *  - Fila inexistente → values.append de la fila completa.
@@ -37,13 +43,17 @@ import {
   anioReferencia,
   encontrarFila,
   filaParaAppend,
+  formulasParaFilaNueva,
   indiceReferencia,
   letraColumna,
   planUpsert,
+  recortarFilasDatos,
   refDeCelda,
   referenciaCanonica,
   tipoDePestana,
+  valorUserEntered,
   valoresEsperados,
+  type Celda,
   type ClavePestana,
   type CtxVehiculoSheets,
   type Hoja,
@@ -63,6 +73,7 @@ export type MotivoSheets =
   | 'cron'
   | 'retry'
   | 'admin'
+  | 'ficha'
 
 export interface SheetsVehiculoPayload {
   vehiculoId: number
@@ -95,7 +106,9 @@ export interface ResultadoUpsert {
 
 export interface PestanaLeida {
   headers: string[]
-  filas: string[][]
+  filas: Celda[][]
+  /** Sólo Base_Datos: true donde la celda es una fórmula. */
+  formulas?: boolean[][]
 }
 export type CacheLectura = Map<ClavePestana, PestanaLeida>
 
@@ -128,9 +141,19 @@ export async function cargarCtx(
             v."gastosTransporte", v."segundaLlave", v.carpeta, v.master, v."hojasA",
             v.documentacion, v.itv, v.seguro, v.proveedor, v.abonado, v.comprobante,
             v."porteSolicitado", v.recibido, v."recibidoTexto", v."recibidoFecha", v."createdAt",
+            v."precioPublicacion",
+            f.regimen AS ficha_regimen, f.nombre_comercial AS ficha_nombre_comercial,
+            f.url_imagen AS ficha_url_imagen, f.url_qr AS ficha_url_qr,
+            f.mantenimientos AS ficha_mantenimientos,
+            f.tarifa_financiacion AS ficha_tarifa_financiacion, f.garantia AS ficha_garantia,
+            f.gp AS ficha_gp, f.pct_dto AS ficha_pct_dto,
+            f.meses_garantia_fabrica AS ficha_meses_garantia_fabrica,
+            f.motor_cv AS ficha_motor_cv, f.cubicaje AS ficha_cubicaje,
+            f.caja AS ficha_caja, f.combustible AS ficha_combustible,
             d."importeTotal" AS deal_importe,
             TRIM(CONCAT_WS(' ', c.nombre, c.apellidos)) AS deal_cliente
        FROM "Vehiculo" v
+       LEFT JOIN vehiculo_ficha_comercial f ON f.vehiculo_id = v.id
        LEFT JOIN LATERAL (
          SELECT dd."importeTotal", dd."clienteId"
            FROM "Deal" dd
@@ -170,11 +193,19 @@ export async function cargarCtx(
     deposito = dep.rows[0] ? { precio_venta: dep.rows[0].precio_venta } : null
   }
 
-  const { deal_importe, deal_cliente, ...vehiculo } = row
+  const { deal_importe, deal_cliente, ...resto } = row
+  const vehiculo: Record<string, unknown> = {}
+  const ficha: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(resto)) {
+    if (k.startsWith('ficha_')) ficha[k.slice(6)] = v
+    else vehiculo[k] = v
+  }
+  const hayFicha = Object.values(ficha).some((v) => v != null)
   return {
-    vehiculo,
+    vehiculo: vehiculo as unknown as CtxVehiculoSheets['vehiculo'],
     pasos,
     deposito,
+    ficha: hayFicha ? (ficha as CtxVehiculoSheets['ficha']) : null,
     deal:
       deal_importe != null || deal_cliente
         ? { importeTotal: deal_importe, clienteNombre: deal_cliente || null }
@@ -191,15 +222,49 @@ export async function leerPestana(
   hoja: Hoja,
   pestana: Pestana
 ): Promise<PestanaLeida> {
+  const spreadsheetId = spreadsheetIdDe(hoja)
+  const range = `'${pestana}'!A:AZ`
+  if (hoja !== 'BASE_DATOS') {
+    const res = await retryWithBackoff(() =>
+      sheets.spreadsheets.values.get({ spreadsheetId, range })
+    )
+    const rows = (res.data.values ?? []) as string[][]
+    const headers = (rows[0] ?? []).map((h) => String(h ?? ''))
+    return { headers, filas: rows.slice(1) }
+  }
+  // Base_Datos: números sin formato ("12.485 €" → 12485), fechas como texto
+  // según el formato de la celda ("1/01/2020"), y máscara de fórmulas.
   const res = await retryWithBackoff(() =>
     sheets.spreadsheets.values.get({
-      spreadsheetId: spreadsheetIdDe(hoja),
-      range: `'${pestana}'!A:AZ`,
+      spreadsheetId,
+      range,
+      valueRenderOption: 'UNFORMATTED_VALUE',
+      dateTimeRenderOption: 'FORMATTED_STRING',
     })
   )
-  const rows = (res.data.values ?? []) as string[][]
+  const rows = (res.data.values ?? []) as Celda[][]
   const headers = (rows[0] ?? []).map((h) => String(h ?? ''))
-  return { headers, filas: rows.slice(1) }
+  const filas = recortarFilasDatos(rows.slice(1))
+  const resF = await retryWithBackoff(() =>
+    sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range,
+      valueRenderOption: 'FORMULA',
+    })
+  )
+  const rowsF = (resF.data.values ?? []) as unknown[][]
+  const formulas = filas.map((_, i) =>
+    (rowsF[i + 1] ?? []).map((c) => typeof c === 'string' && c.startsWith('='))
+  )
+  return { headers, filas, formulas }
+}
+
+/** Base_Datos tiene columnas tipadas (fecha, moneda): se escribe interpretado. */
+function valueInputDe(hoja: Hoja): 'RAW' | 'USER_ENTERED' {
+  return hoja === 'BASE_DATOS' ? 'USER_ENTERED' : 'RAW'
+}
+function valorParaHoja(hoja: Hoja, v: ValorCelda): ValorCelda {
+  return hoja === 'BASE_DATOS' ? valorUserEntered(v) : v
 }
 
 async function leerConCache(
@@ -249,13 +314,20 @@ async function registrarLog(
   }
 }
 
-/** Pestañas (hoja, pestaña) donde vive un vehículo según su tipo. */
+/**
+ * Pestañas (hoja, pestaña) donde vive un vehículo según su tipo. Base_Datos
+ * (ficha comercial) sólo para C/I/D; los VENDIDO con fila conservan sólo las
+ * columnas de identidad (valoresEsperados) y sin fila no se reinsertan.
+ */
 export function pestanasDe(tipo: string | null | undefined): [Hoja, Pestana][] {
   const { ventas, compras } = resolverTipoSheets(tipo)
-  return [
+  const out: [Hoja, Pestana][] = [
     ['VENTAS', ventas as Pestana],
     ['COMPRAS', compras as Pestana],
   ]
+  const t = normalizarTipo(tipo)
+  if (t === 'C' || t === 'I' || t === 'D') out.push(['BASE_DATOS', 'Datos'])
+  return out
 }
 
 export interface OpcionesUpsert {
@@ -325,12 +397,8 @@ export async function upsertVehiculoEnHojas(
   for (const [hoja, pestana] of pestanasDe(ctx.vehiculo.tipo)) {
     const clave = `${hoja}/${pestana}` as ClavePestana
     try {
-      const { headers, filas } = await leerConCache(
-        sheets,
-        cache,
-        hoja,
-        pestana
-      )
+      const leida = await leerConCache(sheets, cache, hoja, pestana)
+      const { headers, filas } = leida
       const refIdx = indiceReferencia(headers)
       const esperados = valoresEsperados(clave, headers, ctx)
       const i = encontrarFila(filas, refIdx, refCanon, tipoDePestana(pestana))
@@ -338,7 +406,8 @@ export async function upsertVehiculoEnHojas(
         headers,
         i >= 0 ? filas[i] : null,
         esperados,
-        anioRef
+        anioRef,
+        i >= 0 ? leida.formulas?.[i] : undefined
       )
 
       if (plan.append) {
@@ -362,25 +431,38 @@ export async function upsertVehiculoEnHojas(
             sheets.spreadsheets.values.append({
               spreadsheetId: spreadsheetIdDe(hoja),
               range: `'${pestana}'!A1`,
-              valueInputOption: 'RAW',
+              valueInputOption: valueInputDe(hoja),
               insertDataOption: 'INSERT_ROWS',
-              requestBody: { values: [fila] },
+              requestBody: {
+                values: [fila.map((v) => valorParaHoja(hoja, v))],
+              },
             })
           )
           const esperadaFila = filas.length + 2
           const filaNum = res.data.updates?.updatedRange?.match(/!A?(\d+)/)?.[1]
           if (filaNum) {
             for (const c of escritas) c.celda = c.celda.replace('?', filaNum)
-            await formatearFilaBlanca(
-              sheets,
-              hoja,
-              pestana,
-              parseInt(filaNum, 10),
-              fila.length
-            )
+            if (hoja === 'BASE_DATOS') {
+              await heredarFilaAnterior(
+                sheets,
+                hoja,
+                pestana,
+                parseInt(filaNum, 10),
+                headers
+              )
+            } else {
+              await formatearFilaBlanca(
+                sheets,
+                hoja,
+                pestana,
+                parseInt(filaNum, 10),
+                fila.length
+              )
+            }
           }
           if (filaNum && parseInt(filaNum, 10) === esperadaFila) {
             filas.push(fila.map((v) => String(v)))
+            leida.formulas?.push([])
           } else {
             // Sheets insertó la fila en otro sitio (hueco en la tabla): los
             // índices cacheados ya no valen, se relee la pestaña la próxima vez.
@@ -412,10 +494,10 @@ export async function upsertVehiculoEnHojas(
           sheets.spreadsheets.values.batchUpdate({
             spreadsheetId: spreadsheetIdDe(hoja),
             requestBody: {
-              valueInputOption: 'RAW',
+              valueInputOption: valueInputDe(hoja),
               data: escritas.map((c) => ({
                 range: `'${pestana}'!${c.celda}`,
-                values: [[c.nuevo]],
+                values: [[valorParaHoja(hoja, c.nuevo)]],
               })),
             },
           })
@@ -437,6 +519,84 @@ export async function upsertVehiculoEnHojas(
     out.error = errores.join(' | ')
   }
   return out
+}
+
+/**
+ * Base_Datos: la fila nueva hereda las fórmulas (desplazadas) y el formato de
+ * la fila anterior, para que calcule igual que el resto. Best-effort.
+ */
+async function heredarFilaAnterior(
+  sheets: sheets_v4.Sheets,
+  hoja: Hoja,
+  pestana: Pestana,
+  filaNum: number,
+  headers: string[]
+): Promise<void> {
+  const previa = filaNum - 1
+  if (previa < 2) return
+  const spreadsheetId = spreadsheetIdDe(hoja)
+  try {
+    const res = await retryWithBackoff(() =>
+      sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `'${pestana}'!A${previa}:AZ${previa}`,
+        valueRenderOption: 'FORMULA',
+      })
+    )
+    const formulas = formulasParaFilaNueva(
+      (res.data.values?.[0] ?? []) as unknown[],
+      previa,
+      filaNum,
+      headers
+    )
+    if (formulas.length) {
+      await retryWithBackoff(() =>
+        sheets.spreadsheets.values.batchUpdate({
+          spreadsheetId,
+          requestBody: {
+            valueInputOption: 'USER_ENTERED',
+            data: formulas.map((f) => ({
+              range: `'${pestana}'!${letraColumna(f.col)}${filaNum}`,
+              values: [[f.formula]],
+            })),
+          },
+        })
+      )
+    }
+    const sheetId = await getSheetId(spreadsheetId, pestana)
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        requests: [
+          {
+            copyPaste: {
+              source: {
+                sheetId,
+                startRowIndex: previa - 1,
+                endRowIndex: previa,
+                startColumnIndex: 0,
+                endColumnIndex: headers.length,
+              },
+              destination: {
+                sheetId,
+                startRowIndex: filaNum - 1,
+                endRowIndex: filaNum,
+                startColumnIndex: 0,
+                endColumnIndex: headers.length,
+              },
+              pasteType: 'PASTE_FORMAT',
+              pasteOrientation: 'NORMAL',
+            },
+          },
+        ],
+      },
+    })
+  } catch (err) {
+    console.error(
+      '[sheetsVehiculo] heredar fila anterior:',
+      (err as Error)?.message ?? err
+    )
+  }
 }
 
 /** Mismo formato blanco que aplicaba el append antiguo; best-effort. */
@@ -655,6 +815,7 @@ export const CLAVES_PESTANA: ClavePestana[] = [
   'COMPRAS/Compras',
   'COMPRAS/Deposito',
   'COMPRAS/R',
+  'BASE_DATOS/Datos',
 ]
 
 export interface DiferenciaCheck {
@@ -720,7 +881,7 @@ function resumenVacio(dryRun: boolean): ResumenCheck {
 }
 
 /**
- * Recorre todos los vehículos C/I/D/R, compara su fila esperada con las 6
+ * Recorre todos los vehículos C/I/D/R, compara su fila esperada con las 7
  * pestañas (leídas UNA vez) y, salvo dryRun, repara las celdas propiedad del
  * CRM con el mismo upsert. Las filas de la hoja sin vehículo se listan como
  * huérfanas (nunca se crean vehículos ni se borran filas). Nunca lanza.

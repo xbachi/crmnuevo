@@ -15,9 +15,10 @@ import { normalizarMatricula, normalizarReferencia } from '@/lib/normalizacion'
 import { interpretarFechaCorta } from '@/lib/fechaCorta'
 import { normalizarEstado } from '@/lib/vehiculoEstado'
 import type { PasoVehiculo } from '@/lib/vehiculoPasos'
+import type { FichaComercial } from '@/lib/fichaComercial'
 
-export type Hoja = 'VENTAS' | 'COMPRAS'
-export type Pestana = 'Expo' | 'Deposito' | 'R' | 'Compras'
+export type Hoja = 'VENTAS' | 'COMPRAS' | 'BASE_DATOS'
+export type Pestana = 'Expo' | 'Deposito' | 'R' | 'Compras' | 'Datos'
 export type ClavePestana =
   | 'VENTAS/Expo'
   | 'VENTAS/Deposito'
@@ -25,6 +26,10 @@ export type ClavePestana =
   | 'COMPRAS/Compras'
   | 'COMPRAS/Deposito'
   | 'COMPRAS/R'
+  | 'BASE_DATOS/Datos'
+
+/** Celda leída de la hoja (Base_Datos se lee sin formato: números como números). */
+export type Celda = string | number
 
 export interface VehiculoSheets {
   id: number
@@ -55,6 +60,7 @@ export interface VehiculoSheets {
   recibidoTexto?: string | null
   recibidoFecha?: unknown
   createdAt?: unknown
+  precioPublicacion?: number | string | null
 }
 
 export interface CtxVehiculoSheets {
@@ -67,6 +73,7 @@ export interface CtxVehiculoSheets {
     importeTotal: number | string | null
     clienteNombre: string | null
   } | null
+  ficha?: Partial<FichaComercial> | null
 }
 
 export type ValorCelda = string | number
@@ -102,6 +109,13 @@ export function fmtNumero(v: unknown): number | null {
   if (typeof v === 'number') return Number.isFinite(v) ? v : null
   const n = parseNumeroCelda(String(v))
   return n
+}
+
+/** true → 'SI', false → 'NO', null → desconocido. */
+export function fmtSiNo(v: unknown): string | null {
+  if (v === true) return 'SI'
+  if (v === false) return 'NO'
+  return null
 }
 
 /** Número > 0; 0 / negativo = desconocido en el CRM (no se escribe). */
@@ -190,6 +204,57 @@ const paso =
   ({ pasos }) =>
     texto(pasos[p]?.texto)
 
+const fichaTexto =
+  (
+    k: 'url_imagen' | 'url_qr' | 'mantenimientos' | 'caja' | 'combustible'
+  ): Getter =>
+  ({ ficha }) =>
+    texto(ficha?.[k])
+const TARIFA_HOJA: Record<string, string> = {
+  NORMAL: 'NORMAL',
+  ESPECIAL: 'ESPECIAL',
+  SIN_DTO: 'SIN DTO',
+  CONSULTAR: 'Consultanos',
+}
+
+/** Base_Datos/Datos: valores que ve la web y el presupuesto. */
+const FICHA_COMERCIAL: Record<string, Getter> = {
+  IVA: ({ ficha }) =>
+    ficha?.regimen === 'REBU'
+      ? 'REBU'
+      : ficha?.regimen === 'IVA21'
+        ? 'iva 21'
+        : null,
+  MODELO: ({ ficha, vehiculo: v }) =>
+    texto(ficha?.nombre_comercial) ??
+    titleCase([texto(v.marca), texto(v.modelo)].filter(Boolean).join(' ')),
+  MATRICULA: matricula,
+  FECHAMATRICULACION: fechaMatr,
+  PRECIOCONTADO: ({ vehiculo: v }) => fmtNumeroPositivo(v.precioPublicacion),
+  URLIMAGEN: fichaTexto('url_imagen'),
+  QR: fichaTexto('url_qr'),
+  MANTENIMIENTOS: fichaTexto('mantenimientos'),
+  TARIFAFINANCIACION: ({ ficha }) =>
+    TARIFA_HOJA[String(ficha?.tarifa_financiacion ?? '')] ?? null,
+  GARANTIA: ({ ficha }) => fmtSiNo(ficha?.garantia),
+  GP: ({ ficha }) => fmtNumeroPositivo(ficha?.gp),
+  // 0 % es un valor real (sin descuento), no un desconocido.
+  DTO: ({ ficha }) => fmtNumero(ficha?.pct_dto),
+  MESESGARANTIAFABRICA: ({ ficha }) =>
+    fmtNumeroPositivo(ficha?.meses_garantia_fabrica),
+  MOTORCV: ({ ficha }) => fmtNumeroPositivo(ficha?.motor_cv),
+  CUBICAJE: ({ ficha }) => fmtNumeroPositivo(ficha?.cubicaje),
+  CAJA: fichaTexto('caja'),
+  BASTIDOR: bastidor,
+  COMBUSTIBLE: fichaTexto('combustible'),
+}
+/** Columnas de Base_Datos que se mantienen aunque el vehículo esté VENDIDO. */
+export const COLUMNAS_IDENTIDAD_BASE_DATOS = [
+  'MATRICULA',
+  'BASTIDOR',
+  'FECHAMATRICULACION',
+]
+
 const CHECKLIST_VEHICULO: Record<string, Getter> = {
   CARPETA: campo('carpeta'),
   MASTER: campo('master'),
@@ -268,6 +333,7 @@ export const mapeoColumnas: Record<ClavePestana, Record<string, Getter>> = {
     KMS: kms,
     MONTOCLIENTE: ({ deposito }) => fmtNumeroPositivo(deposito?.precio_venta),
   },
+  'BASE_DATOS/Datos': FICHA_COMERCIAL,
 }
 
 /** Columnas que el CRM no escribe jamás (claves normalizadas). */
@@ -278,6 +344,23 @@ export const NO_ESCRIBIR: Record<ClavePestana, string[]> = {
   'COMPRAS/Compras': ['TOTAL', 'ESTADO'],
   'COMPRAS/R': ['GANANCI'],
   'COMPRAS/Deposito': [],
+  // Fórmulas del dueño de la hoja (kms/matriculacion son ARRAYFORMULA en la
+  // fila 2; cuota es manual). "=C1" es la cabecera literal de la 2ª MODELO.
+  'BASE_DATOS/Datos': [
+    'KMS',
+    'PRECIOCAMPANA',
+    'C1',
+    'FINFABRICA',
+    'HOY',
+    'FINLEGAL',
+    'QUEDAOFICIAL',
+    'MESESQUEDANFABRICA',
+    'EXTENSIONOLEGAL',
+    'PRECIOEXTENSION',
+    'MATRICULACION',
+    'MATRICULACIONNUM',
+    'CUOTA',
+  ],
 }
 
 /** Pestañas donde existe la marca VENDIDO y qué valor lleva. */
@@ -288,8 +371,12 @@ const MARCA_VENDIDO: Partial<Record<ClavePestana, 'VENDIDO' | 'SI'>> = {
   'COMPRAS/Compras': 'VENDIDO',
 }
 
-/** Tipo implícito de la pestaña (para normalizar la referencia de la celda). */
-export function tipoDePestana(pestana: Pestana): 'C' | 'D' | 'R' {
+/**
+ * Tipo implícito de la pestaña (para normalizar la referencia de la celda).
+ * Datos mezcla tipos ("1001", "D5", "R23"): null = que lo deduzca la referencia.
+ */
+export function tipoDePestana(pestana: Pestana): 'C' | 'D' | 'R' | null {
+  if (pestana === 'Datos') return null
   if (pestana === 'Deposito') return 'D'
   if (pestana === 'R') return 'R'
   return 'C'
@@ -322,6 +409,8 @@ export interface ValorEsperado {
   valor: ValorCelda
   /** true para la marca VENDIDO: sólo se pone si la celda está vacía / distinta. */
   marcaVendido?: boolean
+  /** Sólo en filas nuevas (la columna A de Base_Datos nunca se reescribe). */
+  soloAppend?: boolean
 }
 
 /** Valores NO vacíos que el CRM espera en la fila (referencia incluida). */
@@ -332,11 +421,29 @@ export function valoresEsperados(
 ): ValorEsperado[] {
   const out: ValorEsperado[] = []
   const deny = new Set(NO_ESCRIBIR[clave])
-  const mapeo = mapeoColumnas[clave]
+  const esBaseDatos = clave === 'BASE_DATOS/Datos'
+  const vendido = normalizarEstado(ctx.vehiculo.estado) === 'VENDIDO'
+  const mapeo =
+    esBaseDatos && vendido
+      ? Object.fromEntries(
+          COLUMNAS_IDENTIDAD_BASE_DATOS.map((k) => [k, mapeoColumnas[clave][k]])
+        )
+      : mapeoColumnas[clave]
   const refIdx = indiceReferencia(headers)
   const r = ref(ctx)
-  if (r != null)
-    out.push({ col: refIdx, header: String(headers[refIdx] ?? ''), valor: r })
+  if (r != null) {
+    // Presupuesto_2025 busca en Base_Datos por la columna A sin '#'.
+    if (esBaseDatos) {
+      out.push({
+        col: refIdx,
+        header: String(headers[refIdx] ?? ''),
+        valor: String(r).replace(/^#/, ''),
+        soloAppend: true,
+      })
+    } else {
+      out.push({ col: refIdx, header: String(headers[refIdx] ?? ''), valor: r })
+    }
+  }
 
   const vistas = new Set<string>()
   headers.forEach((h, col) => {
@@ -352,7 +459,7 @@ export function valoresEsperados(
   })
 
   const vend = indiceVendido(clave, headers)
-  if (vend.idx >= 0 && normalizarEstado(ctx.vehiculo.estado) === 'VENDIDO') {
+  if (vend.idx >= 0 && vendido) {
     out.push({
       col: vend.idx,
       header: String(headers[vend.idx] ?? ''),
@@ -369,7 +476,7 @@ export function valoresEsperados(
 
 /** "78.364" → 78364, "8.100" → 8100, "1.234,5" → 1234.5, "12" → 12; no numérico → null. */
 export function parseNumeroCelda(s: string): number | null {
-  const t = s.trim()
+  const t = s.trim().replace(/\s*€$/, '')
   if (!t) return null
   if (/^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(t)) {
     return Number(t.replace(/\./g, '').replace(',', '.'))
@@ -421,6 +528,14 @@ export function iguales(
       pad2(+corta[2]) === e.slice(3, 5)
     )
       return true
+    // "10/2020" sin día (Base_Datos): basta mes y año.
+    const mesAnio = /^(\d{1,2})\/(\d{4})$/.exec(a)
+    if (
+      mesAnio &&
+      pad2(+mesAnio[1]) === e.slice(3, 5) &&
+      mesAnio[2] === e.slice(6, 10)
+    )
+      return true
   }
   return false
 }
@@ -440,14 +555,17 @@ export interface PlanUpsert {
 
 export function planUpsert(
   headers: string[],
-  filaActual: string[] | null,
+  filaActual: Celda[] | null,
   esperados: ValorEsperado[],
-  anioRef: number
+  anioRef: number,
+  /** Celdas con fórmula en la fila (dueño: la hoja): nunca se pisan. */
+  formulasFila?: boolean[]
 ): PlanUpsert {
   if (!filaActual) return { append: true, celdas: [] }
   const celdas: CeldaDiff[] = []
   for (const e of esperados) {
     if (e.col >= headers.length && !e.marcaVendido) continue
+    if (e.soloAppend || formulasFila?.[e.col]) continue
     const actual = filaActual[e.col] ?? ''
     if (e.marcaVendido) {
       // La marca sólo se pone en celda vacía: nunca pisa texto libre
@@ -493,7 +611,7 @@ export function refDeCelda(cell: unknown, tipo: string | null): string | null {
 
 /** Índice (0-based sobre `filas`) de la fila cuya referencia es `refCanon`, o -1. */
 export function encontrarFila(
-  filas: string[][],
+  filas: Celda[][],
   refIdx: number,
   refCanon: string,
   tipo: string | null
@@ -502,4 +620,61 @@ export function encontrarFila(
     if (refDeCelda(filas[i]?.[refIdx], tipo) === refCanon) return i
   }
   return -1
+}
+
+// ---------------------------------------------------------------------------
+// Base_Datos/Datos: filas nuevas con las fórmulas de la fila anterior
+// ---------------------------------------------------------------------------
+
+/** Filas de datos de Datos: hasta la primera con columna A vacía o plantilla (BASE / COPIA SEGURIDAD). */
+export function recortarFilasDatos<T extends unknown[]>(filas: T[]): T[] {
+  const out: T[] = []
+  for (const f of filas) {
+    const a = claveHeader(f?.[0])
+    if (!a || a === 'BASE' || a === 'COPIASEGURIDAD') break
+    out.push(f)
+  }
+  return out
+}
+
+/** Referencias relativas a `filaOrigen` (E2, J2) → `filaDestino`; $2 (fila absoluta) no se toca. */
+export function desplazarFormula(
+  formula: string,
+  filaOrigen: number,
+  filaDestino: number
+): string {
+  return formula.replace(
+    /(\$?[A-Z]{1,3})(\$?)(\d+)(?![\d(])/g,
+    (m, col: string, abs: string, fila: string) =>
+      !abs && Number(fila) === filaOrigen ? `${col}${filaDestino}` : m
+  )
+}
+
+/** Columnas de Datos con ARRAYFORMULA en la fila 2: no se copian a filas nuevas. */
+const COLUMNAS_ARRAYFORMULA = new Set([
+  'KMS',
+  'MATRICULACION',
+  'MATRICULACIONNUM',
+])
+
+/** Fórmulas de la fila anterior (leída con FORMULA) trasladadas a la fila nueva. */
+export function formulasParaFilaNueva(
+  filaAnterior: unknown[],
+  filaOrigen: number,
+  filaDestino: number,
+  headers: string[]
+): { col: number; formula: string }[] {
+  const out: { col: number; formula: string }[] = []
+  filaAnterior.forEach((c, col) => {
+    if (typeof c !== 'string' || !c.startsWith('=')) return
+    if (COLUMNAS_ARRAYFORMULA.has(claveHeader(headers[col]))) return
+    out.push({ col, formula: desplazarFormula(c, filaOrigen, filaDestino) })
+  })
+  return out
+}
+
+/** USER_ENTERED: un texto que Sheets interpretaría (fórmula, signo) va como texto literal. */
+export function valorUserEntered(v: ValorCelda): ValorCelda {
+  if (typeof v === 'string' && /^[=+\-']/.test(v)) return `'${v}`
+  return v
 }

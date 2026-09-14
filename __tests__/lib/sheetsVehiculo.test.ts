@@ -146,6 +146,103 @@ const FILA_COMPRAS = [
   '9/4',
 ]
 
+// Base_Datos/Datos tal y como la devuelve UNFORMATTED_VALUE + FORMATTED_STRING
+// (la 2ª MODELO es la cabecera "=C1" ya calculada).
+const HEADERS_DATOS = [
+  '300',
+  'IVA',
+  'MODELO',
+  'MATRICULA',
+  'FECHA MATRICULACION',
+  'PRECIO CONTADO',
+  'URL IMAGEN',
+  'QR',
+  'MANTENIMIENTOS',
+  'TARIFA FINANCIACION',
+  'GARANTIA',
+  'GP',
+  '% DTO',
+  'PRECIO CAMPAÑA',
+  'MESES GARANTIA FABRICA',
+  'MODELO',
+  'FIN FABRICA',
+  'HOY',
+  'FIN LEGAL',
+  'QUEDA OFICIAL?',
+  'MESES QUEDAN FABRICA',
+  'EXTENSION O LEGAL',
+  'PRECIO EXTENSION',
+  'kms',
+  'motor cv',
+  'cubicaje',
+  'caja',
+  'matriculacion',
+  'matriculacion num',
+  'cuota',
+  'bastidor',
+  'combustible',
+]
+const FILA_DATOS: (string | number)[] = [
+  1002,
+  'iva 21',
+  'Peugeot 2008',
+  '0046LLR',
+  '1/12/2020',
+  12485,
+  '',
+  '',
+  '',
+  'NORMAL',
+  'SI',
+  490,
+  0.07,
+  11295,
+  24,
+  'Peugeot 2008',
+  '1/12/2022',
+  '14/09/2026',
+  '14/09/2027',
+  'NO',
+  '#NUM!',
+  'LEGAL',
+  690,
+  '',
+  '',
+  '',
+  '',
+  'Dic 2020',
+  202012,
+  214,
+  'VR3USHNKKLJ927403',
+  '',
+]
+const FILA_DATOS_FORMULA: (string | number)[] = [
+  ...FILA_DATOS.slice(0, 9),
+  '=IF(((DAYS360(E2;TODAY()))/30)<72;"NORMAL";"ESPECIAL")',
+  '=IF (J2="NORMAL";"SI";"NO")',
+  '=IFS(F2 < 13000; 490; F2 > 20000; 790)',
+  '= IF(J2="NORMAL";0,07;0)',
+  '= F2 - 850',
+  24,
+  '=C2',
+  '=DATE(YEAR(E2);MONTH(E2)+O2;DAY(E2))',
+  '=TODAY()',
+  '=DATE(YEAR(R2);MONTH(R2)+12;DAY(R2))',
+  '=IF (R2-Q2>1;"NO";"SI")',
+  '=DATEDIF(R2; Q2; "M")',
+  '=IF (T2="SI";"EXTENSION";"LEGAL")',
+  '=IF (+F2<20000;690;890)',
+  '=ARRAYFORMULA(IF(D2:D501="";"";"x"))',
+  '',
+  '',
+  '',
+  '=ARRAYFORMULA(IF(E2:E501="";"";"y"))',
+  '=ARRAYFORMULA(IF(E2:E501="";"";"z"))',
+  214,
+  'VR3USHNKKLJ927403',
+  '',
+]
+
 const VEHICULO = {
   id: 7,
   referencia: '#1002',
@@ -195,18 +292,44 @@ function dbConVehiculo(v: Record<string, unknown> | null = VEHICULO) {
   })
 }
 
-function hojas(expo: string[][], compras: string[][]) {
+function hojas(
+  expo: string[][],
+  compras: string[][],
+  datos: (string | number)[][] = [FILA_DATOS],
+  datosFormula: (string | number)[][] = [FILA_DATOS_FORMULA]
+) {
   mockSheets.spreadsheets.values.get.mockImplementation(
-    async ({ range }: { range: string }) => ({
+    async ({
+      range,
+      valueRenderOption,
+    }: {
+      range: string
+      valueRenderOption?: string
+    }) => {
+      if (range.startsWith("'Datos'")) {
+        const rows = valueRenderOption === 'FORMULA' ? datosFormula : datos
+        // Lectura de UNA fila (heredar fórmulas de la fila anterior).
+        const una = /!A(\d+):AZ\d+$/.exec(range)
+        if (una) return { data: { values: [rows[Number(una[1]) - 2] ?? []] } }
+        return { data: { values: [HEADERS_DATOS, ...rows.map((r) => [...r])] } }
+      }
       // Copias: el upsert actualiza la fila leída in situ (caché) y los fixtures se comparten.
-      data: {
-        values: range.startsWith("'Expo'")
-          ? [HEADERS_EXPO, ...expo.map((r) => [...r])]
-          : [HEADERS_COMPRAS, ...compras.map((r) => [...r])],
-      },
-    })
+      return {
+        data: {
+          values: range.startsWith("'Expo'")
+            ? [HEADERS_EXPO, ...expo.map((r) => [...r])]
+            : [HEADERS_COMPRAS, ...compras.map((r) => [...r])],
+        },
+      }
+    }
   )
 }
+
+const CACHE_DATOS = () => ({
+  headers: HEADERS_DATOS,
+  filas: [FILA_DATOS],
+  formulas: [FILA_DATOS_FORMULA.map((c) => String(c).startsWith('='))],
+})
 
 beforeEach(() => {
   jest.clearAllMocks()
@@ -223,6 +346,7 @@ beforeEach(() => {
       sheets: [
         { properties: { title: 'Expo', sheetId: 0 } },
         { properties: { title: 'Compras', sheetId: 0 } },
+        { properties: { title: 'Datos', sheetId: 1423934348 } },
       ],
     },
   })
@@ -326,6 +450,7 @@ describe('upsertVehiculoEnHojas', () => {
     const cache: CacheLectura = new Map([
       ['VENTAS/Expo', { headers: HEADERS_EXPO, filas: [] }],
       ['COMPRAS/Compras', { headers: HEADERS_COMPRAS, filas: [FILA_COMPRAS] }],
+      ['BASE_DATOS/Datos', CACHE_DATOS()],
     ])
     await upsertVehiculoEnHojas(7, 'cron', { cache })
     expect(mockSheets.spreadsheets.values.get).not.toHaveBeenCalled()
@@ -339,6 +464,7 @@ describe('upsertVehiculoEnHojas', () => {
     const cache: CacheLectura = new Map([
       ['VENTAS/Expo', { headers: HEADERS_EXPO, filas: [] }],
       ['COMPRAS/Compras', { headers: HEADERS_COMPRAS, filas: [FILA_COMPRAS] }],
+      ['BASE_DATOS/Datos', CACHE_DATOS()],
     ])
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
     const r = await upsertVehiculoEnHojas(7, 'cron', { cache })
@@ -347,6 +473,118 @@ describe('upsertVehiculoEnHojas', () => {
     expect(r.detalle[0].celda).toBe('A88')
     expect(cache.has('VENTAS/Expo')).toBe(false)
     expect(cache.has('COMPRAS/Compras')).toBe(true)
+  })
+
+  it('Base_Datos: la columna A de una fila existente y las celdas con fórmula nunca se pisan', async () => {
+    dbConVehiculo({
+      ...VEHICULO,
+      precioPublicacion: '13985.00',
+      ficha_regimen: 'REBU',
+      ficha_tarifa_financiacion: 'ESPECIAL',
+      ficha_gp: '590.00',
+      ficha_pct_dto: '0.0300',
+      ficha_motor_cv: 130,
+    })
+    hojas([FILA_EXPO], [FILA_COMPRAS])
+    const r = await upsertVehiculoEnHojas(7, 'ficha')
+    expect(r.ok).toBe(true)
+    expect(r.appends).toBe(0)
+    const datos = mockSheets.spreadsheets.values.batchUpdate.mock.calls
+      .map((c) => c[0])
+      .filter(
+        (c) =>
+          c.spreadsheetId === '1pm2KiO1vXy5Zn7OGe8wjOXhKzUub2QIG5Tjv4GDqEBI'
+      )
+    expect(datos).toHaveLength(1)
+    expect(datos[0].requestBody.valueInputOption).toBe('USER_ENTERED')
+    const rangos = datos[0].requestBody.data.map(
+      (d: { range: string; values: unknown[][] }) => [d.range, d.values[0][0]]
+    )
+    // IVA, PRECIO CONTADO y motor cv cambian; TARIFA/GP/% DTO son fórmulas
+    // en la hoja (no se tocan) y A2 nunca se reescribe.
+    expect(rangos).toEqual([
+      ["'Datos'!B2", 'REBU'],
+      ["'Datos'!F2", 13985],
+      ["'Datos'!Y2", 130],
+    ])
+  })
+
+  it('Base_Datos: fila nueva → append USER_ENTERED sin "#", fórmulas y formato de la fila anterior', async () => {
+    dbConVehiculo({ ...VEHICULO, precioPublicacion: 13985 })
+    hojas([FILA_EXPO], [FILA_COMPRAS], [[1001, 'iva 21', 'Otro', '1111AAA']])
+    mockSheets.spreadsheets.values.append.mockImplementation(
+      async ({ range }: { range: string }) => ({
+        data: {
+          updates: {
+            updatedRange: range.startsWith("'Datos'")
+              ? "'Datos'!A3:AF3"
+              : "'Expo'!A88:U88",
+          },
+        },
+      })
+    )
+    const r = await upsertVehiculoEnHojas(7, 'create')
+    expect(r.ok).toBe(true)
+    expect(r.faltantes).toEqual(['BASE_DATOS/Datos'])
+    const ap = mockSheets.spreadsheets.values.append.mock.calls[0][0]
+    expect(ap.range).toBe("'Datos'!A1")
+    expect(ap.valueInputOption).toBe('USER_ENTERED')
+    expect(ap.requestBody.values[0][0]).toBe('1002')
+    expect(ap.requestBody.values[0][2]).toBe('Peugeot 2008')
+    expect(ap.requestBody.values[0][4]).toBe('01/12/2020')
+    expect(ap.requestBody.values[0][5]).toBe(13985)
+    // Fórmulas de la fila 2 desplazadas a la 3 (sin las ARRAYFORMULA de kms/matriculacion).
+    const formulas = mockSheets.spreadsheets.values.batchUpdate.mock.calls
+      .map((c) => c[0])
+      .find(
+        (c) =>
+          c.spreadsheetId === '1pm2KiO1vXy5Zn7OGe8wjOXhKzUub2QIG5Tjv4GDqEBI'
+      )
+    expect(formulas.requestBody.valueInputOption).toBe('USER_ENTERED')
+    const porRango = Object.fromEntries(
+      formulas.requestBody.data.map(
+        (d: { range: string; values: unknown[][] }) => [d.range, d.values[0][0]]
+      )
+    )
+    expect(porRango["'Datos'!J3"]).toBe(
+      '=IF(((DAYS360(E3;TODAY()))/30)<72;"NORMAL";"ESPECIAL")'
+    )
+    expect(porRango["'Datos'!P3"]).toBe('=C3')
+    expect(porRango["'Datos'!R3"]).toBe('=TODAY()')
+    expect(porRango["'Datos'!X3"]).toBeUndefined()
+    expect(porRango["'Datos'!AB3"]).toBeUndefined()
+    const cp = mockSheets.spreadsheets.batchUpdate.mock.calls.find(
+      (c) => c[0].requestBody.requests?.[0]?.copyPaste
+    )
+    expect(cp[0].requestBody.requests[0].copyPaste).toMatchObject({
+      pasteType: 'PASTE_FORMAT',
+      source: { sheetId: 1423934348, startRowIndex: 1, endRowIndex: 2 },
+      destination: { sheetId: 1423934348, startRowIndex: 2, endRowIndex: 3 },
+    })
+    expect(r.detalle.find((d) => d.pestana === 'Datos')?.celda).toBe('A3')
+  })
+
+  it('Base_Datos: vendido con fila → sólo columnas de identidad; tipo R no va', async () => {
+    dbConVehiculo({
+      ...VEHICULO,
+      estado: 'VENDIDO',
+      matricula: '9999ZZZ',
+      ficha_regimen: 'REBU',
+      precioPublicacion: 20000,
+    })
+    hojas([FILA_EXPO], [FILA_COMPRAS])
+    const r = await upsertVehiculoEnHojas(7, 'estado')
+    const datos = r.detalle.filter((d) => d.pestana === 'Datos')
+    expect(datos.map((d) => d.columna)).toEqual(['MATRICULA'])
+
+    jest.clearAllMocks()
+    dbConVehiculo({ ...VEHICULO, tipo: 'R', referencia: '#R-05' })
+    hojas([FILA_EXPO], [FILA_COMPRAS])
+    await upsertVehiculoEnHojas(7, 'update')
+    const rangos = mockSheets.spreadsheets.values.get.mock.calls.map(
+      (c) => c[0].range
+    )
+    expect(rangos.some((x: string) => x.startsWith("'Datos'"))).toBe(false)
   })
 
   it('SHEETS_VEHICULO_DISABLED=1 → no-op', async () => {
@@ -465,7 +703,8 @@ describe('encolarSheetsVehiculo / procesarOutboxSheetsVehiculo', () => {
     )
     expect(r.ok).toBe(true)
     expect(r.skip).toBeUndefined()
-    expect(mockSheets.spreadsheets.values.get).toHaveBeenCalledTimes(2)
+    // Expo + Compras + Datos (valores y fórmulas)
+    expect(mockSheets.spreadsheets.values.get).toHaveBeenCalledTimes(4)
   })
 
   it('writeVehiculoToSheets sin id: no lanza ni encola', async () => {
