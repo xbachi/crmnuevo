@@ -290,6 +290,20 @@ describe('upsertVehiculoEnHojas', () => {
     expect(r.detalle[0].celda).toBe('A88')
   })
 
+  it('vendido sin fila: no se reinserta (ni append ni log), se informa en omitidasVendido', async () => {
+    dbConVehiculo({ ...VEHICULO, estado: 'VENDIDO' })
+    hojas([['#1001', 'Citroen']], [FILA_COMPRAS])
+    const r = await upsertVehiculoEnHojas(7, 'cron')
+    expect(r.ok).toBe(true)
+    expect(r.appends).toBe(0)
+    expect(r.faltantes).toEqual([])
+    expect(r.omitidasVendido).toEqual(['VENTAS/Expo'])
+    expect(mockSheets.spreadsheets.values.append).not.toHaveBeenCalled()
+    expect(
+      mockQuery.mock.calls.some((c) => String(c[0]).includes('sheets_sync_log'))
+    ).toBe(r.escritas > 0) // la fila existente de Compras sí se actualiza (marca VENDIDO)
+  })
+
   it('dryRun: devuelve el plan sin escribir ni loguear', async () => {
     dbConVehiculo({ ...VEHICULO, kms: 80000 })
     hojas([], [FILA_COMPRAS])

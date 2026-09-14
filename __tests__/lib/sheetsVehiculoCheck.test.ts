@@ -77,6 +77,17 @@ const V2 = {
   createdAt: new Date(2026, 2, 12),
 }
 const V3 = { id: 3, referencia: '#M-01', tipo: 'M', marca: 'X' }
+// Depósito NO vendido sin fila en COMPRAS/Deposito: sí se hace append.
+const V4 = {
+  id: 4,
+  referencia: '#D-03',
+  tipo: 'D',
+  marca: 'Audi',
+  modelo: 'A4',
+  matricula: '1187MGT',
+  estado: 'PUBLICADO',
+  createdAt: new Date(2026, 2, 12),
+}
 
 const VALORES: Record<string, string[][]> = {}
 
@@ -96,6 +107,7 @@ function hojas() {
   VALORES["'Deposito'/VENTAS"] = [
     H_DEPO_V,
     ['#D-02', 'Nissan', 'Qashqai', '8722MZK'],
+    ['#D-03', 'Audi', 'A4', '1187MGT'],
   ]
   VALORES["'R'/VENTAS"] = [
     H_R_V,
@@ -135,7 +147,7 @@ function hojas() {
 }
 
 function db(extra: Record<string, unknown>[] = []) {
-  const vehiculos = [V1, V2, V3, ...extra]
+  const vehiculos = [V1, V2, V3, V4, ...extra]
   mockQuery.mockImplementation(async (sql: string, params?: unknown[]) => {
     if (sql.startsWith('SELECT id, referencia, tipo FROM "Vehiculo"'))
       return {
@@ -166,7 +178,7 @@ describe('checkSheetsVehiculos', () => {
   it('dryRun: 6 lecturas, sin escrituras, reporta faltante + diferencia + huérfana', async () => {
     const r = await checkSheetsVehiculos({ dryRun: true, sinEsperas: true })
     expect(r.errores).toEqual([])
-    expect(r.vehiculos).toBe(2) // el tipo M no cuenta
+    expect(r.vehiculos).toBe(3) // el tipo M no cuenta
     expect(mockSheets.spreadsheets.values.get).toHaveBeenCalledTimes(6)
     expect(mockSheets.spreadsheets.values.append).not.toHaveBeenCalled()
     expect(mockSheets.spreadsheets.values.batchUpdate).not.toHaveBeenCalled()
@@ -174,8 +186,12 @@ describe('checkSheetsVehiculos', () => {
       mockQuery.mock.calls.some(([s]) => String(s).includes('sheets_sync_log'))
     ).toBe(false)
 
-    // #D-02 no está en COMPRAS/Deposito
-    expect(r.porPestana['COMPRAS/Deposito'].faltantes).toEqual(['#D-02'])
+    // #D-03 no está en COMPRAS/Deposito → append; #D-02 (VENDIDO) tampoco,
+    // pero un vendido sin fila nunca se reinserta: sólo se informa.
+    expect(r.porPestana['COMPRAS/Deposito'].faltantes).toEqual(['#D-03'])
+    expect(r.porPestana['COMPRAS/Deposito'].faltantesVendidos).toEqual([
+      '#D-02',
+    ])
     expect(r.appends).toBe(1)
     // PROVEEDOR 'hertz' ≠ 'ayvens' en COMPRAS/Compras; TOTAL no se toca
     const difs = r.porPestana['COMPRAS/Compras'].diferencias
@@ -239,13 +255,13 @@ describe('checkSheetsVehiculos', () => {
   })
 
   it('vehículo sin referencia: se lista en sinReferencia, no es error ni se sincroniza', async () => {
-    db([{ id: 4, referencia: null, tipo: 'C', marca: 'Sin ref' }])
+    db([{ id: 5, referencia: null, tipo: 'C', marca: 'Sin ref' }])
     const r = await checkSheetsVehiculos({ dryRun: true, sinEsperas: true })
     expect(r.errores).toEqual([])
-    expect(r.sinReferencia).toEqual(['#4'])
-    expect(r.vehiculos).toBe(3)
+    expect(r.sinReferencia).toEqual(['#5'])
+    expect(r.vehiculos).toBe(4)
     expect(
-      mockQuery.mock.calls.some(([, p]) => Array.isArray(p) && p[0] === 4)
+      mockQuery.mock.calls.some(([, p]) => Array.isArray(p) && p[0] === 5)
     ).toBe(false)
   })
 

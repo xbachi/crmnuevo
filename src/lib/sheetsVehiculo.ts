@@ -23,7 +23,7 @@ import {
   retryWithBackoff,
 } from '@/lib/googleSheets'
 import { SHEETS_CONFIG, resolverTipoSheets } from '@/lib/sheetsConfig'
-import { normalizarTipo } from '@/lib/vehiculoEstado'
+import { normalizarEstado, normalizarTipo } from '@/lib/vehiculoEstado'
 import { dateToYMD } from '@/lib/fechas'
 import {
   insertOutboxPending,
@@ -88,6 +88,8 @@ export interface ResultadoUpsert {
   detalle: CeldaEscrita[]
   /** Pestañas donde no había fila y se hizo (o haría) append. */
   faltantes: ClavePestana[]
+  /** Pestañas sin fila de un vehículo VENDIDO: no se reinsertan (ya salieron de la pestaña). */
+  omitidasVendido: ClavePestana[]
 }
 
 export interface PestanaLeida {
@@ -273,6 +275,7 @@ export async function upsertVehiculoEnHojas(
     appends: 0,
     detalle: [],
     faltantes: [],
+    omitidasVendido: [],
   }
   if (sheetsVehiculoDeshabilitado() && !dryRun) return vacio
 
@@ -299,7 +302,13 @@ export async function upsertVehiculoEnHojas(
   const cache = opts.cache ?? new Map()
   const anioRef = anioReferencia(ctx.vehiculo)
   const errores: string[] = []
-  const out: ResultadoUpsert = { ...vacio, detalle: [], faltantes: [] }
+  const out: ResultadoUpsert = {
+    ...vacio,
+    detalle: [],
+    faltantes: [],
+    omitidasVendido: [],
+  }
+  const vendido = normalizarEstado(ctx.vehiculo.estado) === 'VENDIDO'
 
   for (const [hoja, pestana] of pestanasDe(ctx.vehiculo.tipo)) {
     const clave = `${hoja}/${pestana}` as ClavePestana
@@ -321,6 +330,11 @@ export async function upsertVehiculoEnHojas(
       )
 
       if (plan.append) {
+        // Los vendidos los mueven a mano a "Vendidos": sin fila no se reinsertan.
+        if (vendido) {
+          out.omitidasVendido.push(clave)
+          continue
+        }
         out.faltantes.push(clave)
         const fila = filaParaAppend(headers, esperados)
         const escritas: CeldaEscrita[] = esperados.map((e) => ({
@@ -516,6 +530,7 @@ export async function procesarOutboxSheetsVehiculo(
             appends: 0,
             detalle: [],
             faltantes: [],
+            omitidasVendido: [],
           }),
         TIMEOUT_MS
       )
@@ -642,6 +657,8 @@ export interface ResumenPestana {
   filas: number
   /** Referencias de vehículos sin fila en la pestaña (append hecho o pendiente). */
   faltantes: string[]
+  /** Vehículos VENDIDO sin fila: sólo informe, nunca se reinsertan. */
+  faltantesVendidos: string[]
   diferencias: DiferenciaCheck[]
   /** Referencias de la hoja sin vehículo en el CRM (sólo informe). */
   huerfanas: string[]
@@ -671,7 +688,13 @@ const dormir = (ms: number) =>
 function resumenVacio(dryRun: boolean): ResumenCheck {
   const porPestana = {} as Record<ClavePestana, ResumenPestana>
   for (const k of CLAVES_PESTANA)
-    porPestana[k] = { filas: 0, faltantes: [], diferencias: [], huerfanas: [] }
+    porPestana[k] = {
+      filas: 0,
+      faltantes: [],
+      faltantesVendidos: [],
+      diferencias: [],
+      huerfanas: [],
+    }
   return {
     dryRun,
     porPestana,
@@ -765,6 +788,8 @@ export async function checkSheetsVehiculos(opts: {
       out.appends += r.appends
       for (const clave of r.faltantes)
         out.porPestana[clave].faltantes.push(refCanon)
+      for (const clave of r.omitidasVendido)
+        out.porPestana[clave].faltantesVendidos.push(refCanon)
       for (const c of r.detalle) {
         out.diferenciasTotal++
         if (out.diferenciasTotal <= MAX_DIFERENCIAS) {
