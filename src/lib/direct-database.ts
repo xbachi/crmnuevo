@@ -22,9 +22,13 @@ function loadEnvFile() {
       const content = fs.readFileSync(envPath, 'utf8')
       const lines = content.split('\n')
       lines.forEach((line: string) => {
-        const [key, value] = line.split('=')
-        if (key && value) {
-          process.env[key] = value.replace(/"/g, '')
+        // Sólo el primer '=': la URL de la base y la clave privada llevan '=' dentro.
+        const idx = line.indexOf('=')
+        if (idx <= 0) return
+        const key = line.slice(0, idx).trim()
+        const value = line.slice(idx + 1).trim()
+        if (key && value && !key.startsWith('#')) {
+          process.env[key] = value.replace(/^"|"$/g, '')
         }
       })
     }
