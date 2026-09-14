@@ -228,12 +228,13 @@ export async function POST(request: NextRequest) {
     // Sincronizar con Google Sheets (opcional)
     try {
       await writeVehiculoToSheets({
-        referencia,
+        referencia: referenciaCanon,
         marca,
         modelo,
-        matricula,
+        matricula: matriculaNorm,
         bastidor,
-        kms: kms.toString(),
+        kms: parseInt(kms),
+        tipo,
       })
     } catch (sheetsError) {
       console.error('Error sincronizando con Google Sheets:', sheetsError)

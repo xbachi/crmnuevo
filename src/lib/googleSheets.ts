@@ -1,5 +1,10 @@
 import { google } from 'googleapis'
-import { SHEETS_CONFIG, validateSheetsConfig } from './sheetsConfig'
+import {
+  SHEETS_CONFIG,
+  resolverTipoSheets,
+  validateSheetsConfig,
+} from './sheetsConfig'
+import { normalizarMatricula, normalizarReferencia } from '@/lib/normalizacion'
 
 // Configuración de Google Sheets
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
@@ -127,30 +132,21 @@ export async function writeToGoogleSheets(
     const rowData = new Array(maxColumn + 1).fill('')
 
     // Formatear datos para envío a Google Sheets
-    const marcaCamelCase = vehiculoData.marca
+    const marcaCamelCase = String(vehiculoData.marca ?? '')
       .toLowerCase()
       .replace(/\b\w/g, (l: string) => l.toUpperCase())
-    const modeloCamelCase = vehiculoData.modelo
+    const modeloCamelCase = String(vehiculoData.modelo ?? '')
       .toLowerCase()
       .replace(/\b\w/g, (l: string) => l.toUpperCase())
-    const matriculaMayuscula = vehiculoData.matricula.toUpperCase()
+    const matriculaMayuscula = normalizarMatricula(vehiculoData.matricula)
 
-    // Formatear referencia según el tipo
-    let referenciaFormateada = vehiculoData.referencia
-    if (vehiculoData.tipo === 'Coche R') {
-      // Si es Coche R, formatear como #R-XX
-      const numero = vehiculoData.referencia.replace(/^#?R?/i, '') // Remover #, R si existen
-      referenciaFormateada = `#R-${numero.padStart(2, '0')}` // Asegurar 2 dígitos con ceros a la izquierda
-    } else if (vehiculoData.tipo === 'Deposito Venta') {
-      // Si es Deposito Venta, formatear como #D-XX
-      const numero = vehiculoData.referencia.replace(/^#?D?/i, '') // Remover #, D si existen
-      referenciaFormateada = `#D-${numero.padStart(2, '0')}` // Asegurar 2 dígitos con ceros a la izquierda
-    } else {
-      // Para otros tipos, mantener el formato original con #
-      referenciaFormateada = vehiculoData.referencia.startsWith('#')
-        ? vehiculoData.referencia
-        : `#${vehiculoData.referencia}`
-    }
+    // Referencia canónica; si no se interpreta, al menos con '#' delante.
+    const referenciaFormateada =
+      normalizarReferencia(vehiculoData.referencia, vehiculoData.tipo) ??
+      `#${String(vehiculoData.referencia ?? '').replace(/^#/, '')}`
+    const kms = Number.isFinite(Number(vehiculoData.kms))
+      ? Number(vehiculoData.kms)
+      : vehiculoData.kms
 
     // Colocar los datos en las posiciones correctas
     if (positions.REFERENCIA >= 0)
@@ -161,7 +157,7 @@ export async function writeToGoogleSheets(
       rowData[positions.MATRICULA] = matriculaMayuscula
     if (positions.BASTIDOR >= 0)
       rowData[positions.BASTIDOR] = vehiculoData.bastidor
-    if (positions.KMS >= 0) rowData[positions.KMS] = vehiculoData.kms
+    if (positions.KMS >= 0) rowData[positions.KMS] = kms
 
     // Escribir en la hoja
     const result = await sheets.spreadsheets.values.append({
@@ -220,15 +216,11 @@ export async function writeToGoogleSheets(
 // Función para escribir vehículo en ambas hojas de cálculo según el tipo
 export async function writeVehiculoToSheets(vehiculo: any) {
   try {
-    const { SPREADSHEET_IDS, SHEET_NAMES } = SHEETS_CONFIG
+    const { SPREADSHEET_IDS } = SHEETS_CONFIG
 
-    // Obtener el nombre de las hojas según el tipo
-    const ventasSheetName =
-      SHEET_NAMES.VENTAS[vehiculo.tipo as keyof typeof SHEET_NAMES.VENTAS] ||
-      SHEET_NAMES.VENTAS['Compra']
-    const comprasSheetName =
-      SHEET_NAMES.COMPRAS[vehiculo.tipo as keyof typeof SHEET_NAMES.COMPRAS] ||
-      SHEET_NAMES.COMPRAS['Compra']
+    // Pestañas según el tipo (letra canónica o palabra legacy)
+    const { ventas: ventasSheetName, compras: comprasSheetName } =
+      resolverTipoSheets(vehiculo.tipo)
 
     // Escribir en ambas hojas de cálculo separadas
     const promises = [

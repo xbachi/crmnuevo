@@ -1,4 +1,5 @@
 import { normalizarReferencia, refCarpeta } from '@/lib/normalizacion'
+import { normalizarTipo } from '@/lib/vehiculoEstado'
 
 // Configuración de rutas para carpetas de vehículos según tipo
 export const FOLDER_PATHS = {
@@ -59,18 +60,20 @@ export function getFolderPathsByTipo(
   tipo: string,
   folderName: string
 ): string[] {
-  switch (tipo) {
-    case 'Compra':
+  switch (normalizarTipo(tipo)) {
+    case 'C':
+    case 'I':
+    case 'M':
       return [
         `${FOLDER_PATHS.COMPRA.COMPRAS}\\${folderName}`,
         `${FOLDER_PATHS.COMPRA.VENTAS}\\${folderName}`,
       ]
-    case 'Coche R':
+    case 'R':
       return [
         `${FOLDER_PATHS.COCHE_R.VENTAS}\\${folderName}`,
         `${FOLDER_PATHS.COCHE_R.COMPRAS}\\${folderName}`,
       ]
-    case 'Deposito Venta':
+    case 'D':
       return [
         `${FOLDER_PATHS.DEPOSITO_VENTA.COMPRAS}\\${folderName}`,
         `${FOLDER_PATHS.DEPOSITO_VENTA.VENTAS}\\${folderName}`,
