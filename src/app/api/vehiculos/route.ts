@@ -13,6 +13,11 @@ import { promises as fs } from 'fs'
 import { generateFolderName, getFolderPathsByTipo } from '@/config/folders'
 import { writeVehiculoToSheets } from '@/lib/googleSheets'
 import { normalizarTipo } from '@/lib/vehiculoEstado'
+import {
+  extraerMatriculaEntrada,
+  normalizarReferencia,
+  validarMatricula,
+} from '@/lib/normalizacion'
 
 export async function POST(request: NextRequest) {
   try {
@@ -84,8 +89,34 @@ export async function POST(request: NextRequest) {
     }
     console.log('🔄 Tipo mapeado:', { original: tipo, mapeado: tipoLetra })
 
+    const referenciaCanon = normalizarReferencia(referencia, tipoLetra)
+    if (!referenciaCanon) {
+      return NextResponse.json(
+        {
+          error: `Referencia no reconocida: '${referencia}' (esperado #1088, #D-28 o #R-11)`,
+        },
+        { status: 400 }
+      )
+    }
+    const matriculaNorm = extraerMatriculaEntrada(matricula)
+    const val = validarMatricula(matriculaNorm, {
+      extranjera: body.matriculaExtranjera === true,
+    })
+    if (!val.ok) {
+      return NextResponse.json(
+        {
+          error: `Matrícula '${matricula}' no válida (formato 1234BCD o V-1234-GT). Si es extranjera, marca matriculaExtranjera.`,
+        },
+        { status: 400 }
+      )
+    }
+
     // Verificar campos únicos
-    const uniqueCheck = await checkUniqueFields(referencia, matricula, bastidor)
+    const uniqueCheck = await checkUniqueFields(
+      referenciaCanon,
+      matriculaNorm,
+      bastidor
+    )
     if (uniqueCheck) {
       return NextResponse.json(
         { error: `Ya existe un vehículo con este ${uniqueCheck.field}` },
@@ -96,10 +127,10 @@ export async function POST(request: NextRequest) {
     // Crear el vehículo en la base de datos
     // console.log('💾 Guardando vehículo en la base de datos...')
     const vehiculo = await saveVehiculo({
-      referencia,
+      referencia: referenciaCanon,
       marca,
       modelo,
-      matricula,
+      matricula: matriculaNorm,
       bastidor,
       kms: parseInt(kms),
       tipo: tipoLetra,
@@ -125,10 +156,10 @@ export async function POST(request: NextRequest) {
 
     // Crear nombre de carpeta en camelCase
     const folderName = generateFolderName(
-      referencia,
+      referenciaCanon,
       marca,
       modelo,
-      matricula,
+      matriculaNorm,
       tipoLetra
     )
 

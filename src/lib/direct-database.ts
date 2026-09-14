@@ -1472,9 +1472,9 @@ export async function checkUniqueFields(
   const client = await pool.connect()
   try {
     let query = `
-      SELECT referencia, matricula, bastidor 
-      FROM "Vehiculo" 
-      WHERE (referencia = $1 OR matricula = $2 OR bastidor = $3)
+      SELECT referencia, matricula, matricula_norm, bastidor
+      FROM "Vehiculo"
+      WHERE (referencia = $1 OR matricula = $2 OR matricula_norm = $2 OR bastidor = $3)
     `
     const params = [referencia, matricula, bastidor]
 
@@ -1490,7 +1490,10 @@ export async function checkUniqueFields(
       if (existing.referencia === referencia) {
         return { field: 'referencia', value: referencia }
       }
-      if (existing.matricula === matricula) {
+      if (
+        existing.matricula === matricula ||
+        existing.matricula_norm === matricula
+      ) {
         return { field: 'matrícula', value: matricula }
       }
       if (existing.bastidor === bastidor) {

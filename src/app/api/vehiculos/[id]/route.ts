@@ -12,7 +12,7 @@ import {
   normalizarTipo,
   transicionValida,
 } from '@/lib/vehiculoEstado'
-import { normPlate } from '@/lib/gastoMapping'
+import { normalizarMatricula, normalizarReferencia } from '@/lib/normalizacion'
 import { esFechaYMD } from '@/lib/fechas'
 
 const CAMPOS_FECHA_VENCIMIENTO = [
@@ -106,7 +106,10 @@ export async function PUT(
     // campos internos como dealActivoId/orden, o cualquier cosa inesperada).
     const { data: updateData, ignorados } = filtrarCamposEditables(body)
     if (ignorados.length > 0) {
-      console.warn('⚠️ Campos no editables ignorados en PUT vehículo:', ignorados)
+      console.warn(
+        '⚠️ Campos no editables ignorados en PUT vehículo:',
+        ignorados
+      )
     }
 
     // Fechas de vencimiento: 'YYYY-MM-DD' o null ('' cuenta como null).
@@ -161,8 +164,10 @@ export async function PUT(
         .trim()
         .replace(/\s+/g, ' ')
         .toUpperCase()
-      matriculaNorm = normPlate(matriculaLimpia)
-      if (matriculaNorm !== normPlate(vehiculoExistente.matricula ?? '')) {
+      matriculaNorm = normalizarMatricula(matriculaLimpia)
+      if (
+        matriculaNorm !== normalizarMatricula(vehiculoExistente.matricula ?? '')
+      ) {
         return NextResponse.json(
           {
             error: 'La matrícula no se cambia por este endpoint',
@@ -172,6 +177,21 @@ export async function PUT(
         )
       }
       updateData.matricula = matriculaLimpia
+    }
+
+    if (typeof updateData.referencia === 'string') {
+      const tipoEf = (body.tipo as string | undefined) ?? vehiculoExistente.tipo
+      const referenciaCanon = normalizarReferencia(
+        updateData.referencia,
+        tipoEf
+      )
+      if (!referenciaCanon) {
+        return NextResponse.json(
+          { error: `Referencia no reconocida: '${updateData.referencia}'` },
+          { status: 400 }
+        )
+      }
+      updateData.referencia = referenciaCanon
     }
 
     // Si el tipo es 'I' (Inversor), gestionar inversorId y esCocheInversor.
@@ -245,7 +265,9 @@ export async function PUT(
       (estadoNuevoNorm === 'RESERVADO' || estadoNuevoNorm === 'VENDIDO')
     ) {
       try {
-        const { notifyInversorVehiculoEvento } = await import('@/lib/inversorNotify')
+        const { notifyInversorVehiculoEvento } = await import(
+          '@/lib/inversorNotify'
+        )
         await notifyInversorVehiculoEvento(
           id,
           estadoNuevoNorm === 'RESERVADO' ? 'reservado' : 'vendido'

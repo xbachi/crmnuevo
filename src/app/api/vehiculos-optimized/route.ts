@@ -11,6 +11,13 @@ import {
 import { writeVehiculoToSheets } from '@/lib/googleSheets'
 import { generateFolderName, getFolderPathsByTipo } from '@/config/folders'
 import { promises as fs } from 'fs'
+import { normalizarTipo } from '@/lib/vehiculoEstado'
+import {
+  extraerMatriculaEntrada,
+  normalizarMatricula,
+  normalizarReferencia,
+  validarMatricula,
+} from '@/lib/normalizacion'
 
 export async function GET(request: NextRequest) {
   try {
@@ -112,12 +119,39 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const referenciaCanon = normalizarReferencia(
+      referencia,
+      normalizarTipo(tipo) ?? tipo
+    )
+    if (!referenciaCanon) {
+      return NextResponse.json(
+        {
+          error: `Referencia no reconocida: '${referencia}' (esperado #1088, #D-28 o #R-11)`,
+        },
+        { status: 400 }
+      )
+    }
+    const matriculaNorm = extraerMatriculaEntrada(matricula)
+    const val = validarMatricula(matriculaNorm, {
+      extranjera: body.matriculaExtranjera === true,
+    })
+    if (!val.ok) {
+      return NextResponse.json(
+        {
+          error: `Matrícula '${matricula}' no válida (formato 1234BCD o V-1234-GT). Si es extranjera, marca matriculaExtranjera.`,
+        },
+        { status: 400 }
+      )
+    }
+
     // Verificar campos únicos (simplificado)
     const existingVehiculos = await getVehiculos()
     const existingRef = existingVehiculos.find(
-      (v) => v.referencia === referencia
+      (v) => normalizarReferencia(v.referencia, v.tipo) === referenciaCanon
     )
-    const existingMat = existingVehiculos.find((v) => v.matricula === matricula)
+    const existingMat = existingVehiculos.find(
+      (v) => normalizarMatricula(v.matricula) === matriculaNorm
+    )
     const existingBast = existingVehiculos.find((v) => v.bastidor === bastidor)
 
     if (existingRef) {
@@ -141,10 +175,10 @@ export async function POST(request: NextRequest) {
 
     // Preparar datos para crear
     const vehiculoData = {
-      referencia,
+      referencia: referenciaCanon,
       marca,
       modelo,
-      matricula,
+      matricula: matriculaNorm,
       bastidor,
       kms: parseInt(kms),
       tipo,
@@ -175,10 +209,10 @@ export async function POST(request: NextRequest) {
     // Crear carpetas del vehículo
     try {
       const folderName = generateFolderName(
-        referencia,
+        referenciaCanon,
         marca,
         modelo,
-        matricula,
+        matriculaNorm,
         tipo
       )
       const folderPaths = getFolderPathsByTipo(tipo, folderName)

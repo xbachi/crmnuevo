@@ -1,3 +1,5 @@
+import { normalizarMatricula } from '@/lib/normalizacion'
+
 /**
  * Piezas puras de la sincronización con la hoja "CB 2026" (Google Sheets).
  *
@@ -13,8 +15,18 @@
 export const CN_INFORME = 120
 
 export const MESES = [
-  'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',
-  'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE',
+  'ENERO',
+  'FEBRERO',
+  'MARZO',
+  'ABRIL',
+  'MAYO',
+  'JUNIO',
+  'JULIO',
+  'AGOSTO',
+  'SEPTIEMBRE',
+  'OCTUBRE',
+  'NOVIEMBRE',
+  'DICIEMBRE',
 ] as const
 
 // Locale es_ES: separador de argumentos ';' y decimal ',' (validado en vivo).
@@ -24,7 +36,8 @@ export const COSTE_FORMULA = (r: number) => `=SUM(G${r}:M${r})`
 // IVA sobre el margen (misma convención que la planilla "2026": (precio - coste) * 21%),
 // uniforme para iva 21 y rebu.
 export const IVA_FORMULA = (r: number) => `=IF(O${r}="";"";(O${r}-N${r})*0,21)`
-export const MARGEN_FORMULA = (r: number) => `=IF(O${r}="";"";O${r}-N${r}-P${r})`
+export const MARGEN_FORMULA = (r: number) =>
+  `=IF(O${r}="";"";O${r}-N${r}-P${r})`
 export const PCT_FORMULA = (r: number) => `=IF(N${r}=0;"";Q${r}/N${r})`
 export const SUBTOTAL = (col: string, mes: string) =>
   `=SUMIFS(${col}$2:${col}$400;$B$2:$B$400;"${mes}")`
@@ -35,7 +48,7 @@ export function toEsDate(iso: string): string {
   return m ? `${m[3]}/${m[2]}/${m[1]}` : iso
 }
 
-export const normPlate = (s: string) => s.replace(/[\s.\-]/g, '').toUpperCase()
+export const normPlate = (s: string) => normalizarMatricula(s)
 export const normRef = (s: string) => s.replace(/[#\s.\-]/g, '').toUpperCase()
 // Nº de factura: sólo saca espacios (conserva '/' y guiones, que son parte del número).
 export const normInvoice = (s: string) => s.replace(/\s/g, '').toUpperCase()
@@ -107,7 +120,11 @@ export function reconcileCostCells(
     a != null && b != null && Math.abs(a - b) < 0.01
 
   const targets: { col: string; idx: number; val: number | null }[] = [
-    { col: 'G', idx: 6, val: computeCompra(costs.precioCompra, costs.gastosTransporte) },
+    {
+      col: 'G',
+      idx: 6,
+      val: computeCompra(costs.precioCompra, costs.gastosTransporte),
+    },
     { col: 'J', idx: 9, val: costs.gastosMecanica },
     { col: 'K', idx: 10, val: costs.gastosPintura },
     { col: 'L', idx: 11, val: costs.gastosLimpieza },
@@ -117,17 +134,28 @@ export function reconcileCostCells(
   for (const t of targets) {
     if (t.val == null || t.val === 0) continue
     if (mode === 'fill') {
-      if (raw(t.idx) === '') updates.push({ col: t.col, value: t.val, prev: String(row[t.idx] ?? '') })
+      if (raw(t.idx) === '')
+        updates.push({
+          col: t.col,
+          value: t.val,
+          prev: String(row[t.idx] ?? ''),
+        })
     } else if (!near(parseEsCell(row[t.idx]), t.val)) {
       updates.push({ col: t.col, value: t.val, prev: String(row[t.idx] ?? '') })
     }
   }
-  if (mode === 'overwrite' && raw(7) !== '') updates.push({ col: 'H', value: '', prev: String(row[7] ?? '') })
+  if (mode === 'overwrite' && raw(7) !== '')
+    updates.push({ col: 'H', value: '', prev: String(row[7] ?? '') })
   return updates
 }
 
 export const isBand = (row: string[] | undefined) =>
-  !!row && (MESES as readonly string[]).includes(String(row[0] ?? '').trim().toUpperCase())
+  !!row &&
+  (MESES as readonly string[]).includes(
+    String(row[0] ?? '')
+      .trim()
+      .toUpperCase()
+  )
 export const isSubtotal = (row: string[] | undefined) =>
   !!row && /^TOTAL\b/i.test(String(row?.[3] ?? '').trim())
 

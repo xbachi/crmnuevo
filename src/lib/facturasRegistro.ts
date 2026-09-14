@@ -1,3 +1,5 @@
+import { normalizarMatricula } from '@/lib/normalizacion'
+
 /**
  * Piezas puras del registro unificado de facturas (sin pg/googleapis, testeables).
  *
@@ -9,13 +11,32 @@
  * El ruteo se calcula por la FECHA de la factura (no la de archivado) → nunca mal ubicada.
  */
 
-export const CATEGORIAS = ['gestoria', 'coche-servicio', 'coche-compra'] as const
+export const CATEGORIAS = [
+  'gestoria',
+  'coche-servicio',
+  'coche-compra',
+] as const
 export type Categoria = (typeof CATEGORIAS)[number]
 
-export const QNAMES = ['1re trimestre', '2do trimestre', '3er trimestre', '4to trimestre'] as const
+export const QNAMES = [
+  '1re trimestre',
+  '2do trimestre',
+  '3er trimestre',
+  '4to trimestre',
+] as const
 export const MES_NOM = [
-  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+  'enero',
+  'febrero',
+  'marzo',
+  'abril',
+  'mayo',
+  'junio',
+  'julio',
+  'agosto',
+  'septiembre',
+  'octubre',
+  'noviembre',
+  'diciembre',
 ] as const
 
 export interface Periodo {
@@ -35,7 +56,10 @@ export function periodoFromDate(iso: string | null | undefined): Periodo {
 }
 
 /** Ruta de la carpeta gestoría del mes en OneDrive. null si falta período. */
-export function gestoriaFolder(anio: number | null, mes: number | null): string | null {
+export function gestoriaFolder(
+  anio: number | null,
+  mes: number | null
+): string | null {
   if (!anio || !mes) return null
   const q = QNAMES[Math.floor((mes - 1) / 3)]
   return `GESTORIA/${anio}/${q}/Facturas/${MES_NOM[mes - 1]}`
@@ -54,12 +78,24 @@ export interface Destino {
  * consumidor: las carpetas por-coche viven en Google Drive, la gestoría en OneDrive).
  * Para gestoría igual archivamos una copia por mes.
  */
-export function carpetaDestino(cat: Categoria, matricula: string | null, anio: number | null, mes: number | null): Destino {
+export function carpetaDestino(
+  cat: Categoria,
+  matricula: string | null,
+  anio: number | null,
+  mes: number | null
+): Destino {
   const gest = gestoriaFolder(anio, mes)
-  if (cat === 'coche-compra') return { tipo: 'coche', ruta: gest, matricula, subcarpeta: 'compras' }
-  if (cat === 'coche-servicio') return { tipo: 'coche', ruta: gest, matricula, subcarpeta: 'servicios' }
+  if (cat === 'coche-compra')
+    return { tipo: 'coche', ruta: gest, matricula, subcarpeta: 'compras' }
+  if (cat === 'coche-servicio')
+    return { tipo: 'coche', ruta: gest, matricula, subcarpeta: 'servicios' }
   // gestoria
-  return { tipo: gest ? 'gestoria-mes' : 'sin-periodo', ruta: gest, matricula: null, subcarpeta: null }
+  return {
+    tipo: gest ? 'gestoria-mes' : 'sin-periodo',
+    ruta: gest,
+    matricula: null,
+    subcarpeta: null,
+  }
 }
 
-export const normPlate = (s: string) => s.replace(/[\s.\-]/g, '').toUpperCase()
+export const normPlate = (s: string) => normalizarMatricula(s)

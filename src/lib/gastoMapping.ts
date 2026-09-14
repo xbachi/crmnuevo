@@ -1,3 +1,5 @@
+import { normalizarMatricula } from '@/lib/normalizacion'
+
 /**
  * Mapeo puro tipo-de-factura → columna de gastos del Vehiculo.
  *
@@ -20,7 +22,7 @@ export const TIPO_A_CAMPO: Record<string, string> = {
   itv: 'gastosOtros',
 }
 
-export const normPlate = (s: string) => s.replace(/[\s.\-]/g, '').toUpperCase()
+export const normPlate = (s: string) => normalizarMatricula(s)
 
 /** Columna del Vehiculo para un tipo (case/space-insensitive), o null si no existe. */
 export function campoParaTipo(tipoRaw: string): string | null {
