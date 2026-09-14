@@ -20,6 +20,11 @@ export async function sendMail(opts: {
   subject: string
   html: string
   text?: string
+  attachments?: Array<{
+    filename: string
+    content: Buffer
+    contentType?: string
+  }>
 }): Promise<MailResult> {
   const pass = process.env.SMTP_PASS
   if (!pass) return { sent: false, reason: 'SMTP_PASS no configurada' }
@@ -36,6 +41,7 @@ export async function sendMail(opts: {
       subject: opts.subject,
       html: opts.html,
       text: opts.text,
+      attachments: opts.attachments,
     })
     return { sent: true }
   } catch (err) {

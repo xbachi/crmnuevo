@@ -23,6 +23,7 @@ import {
   type ErrorDetector,
 } from '@/lib/alertas'
 import { destinatarioAlertas, notificarFalloCron } from '@/lib/cronNotify'
+import { marcarVencidos } from '@/lib/presupuesto/repo'
 
 export const maxDuration = 60
 export const dynamic = 'force-dynamic'
@@ -52,6 +53,7 @@ async function handler(request: NextRequest) {
     total: number
     porTipo: Record<string, number>
     bandeja: { nuevos: number; existentes: number }
+    presupuestosVencidos: number
     email: 'enviado' | 'omitido' | 'error'
     emailMotivo?: string
     errores: ErrorDetector[]
@@ -61,6 +63,7 @@ async function handler(request: NextRequest) {
     total: alertas.length,
     porTipo: contarPorTipo(alertas) as Record<string, number>,
     bandeja: { nuevos: 0, existentes: 0 },
+    presupuestosVencidos: 0,
     email: 'omitido',
     errores,
   }
@@ -70,6 +73,15 @@ async function handler(request: NextRequest) {
   } catch (err) {
     errores.push({
       tipo: 'bandeja',
+      error: (err as Error).message ?? String(err),
+    })
+  }
+
+  try {
+    out.presupuestosVencidos = await marcarVencidos()
+  } catch (err) {
+    errores.push({
+      tipo: 'presupuestos-vencidos',
       error: (err as Error).message ?? String(err),
     })
   }

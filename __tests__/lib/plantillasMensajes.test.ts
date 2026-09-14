@@ -1,6 +1,7 @@
 import {
   ctxDesdeDeal,
   enlaceWhatsApp,
+  esPlantillaId,
   normalizarTelefono,
   PLANTILLA_IDS,
   PLANTILLAS,
@@ -131,6 +132,23 @@ describe('renderPlantilla', () => {
     expect(r.texto).not.toContain('null')
     expect(r.texto).not.toContain('undefined')
     expect(r.texto).toContain('escríbenos y te respondemos enseguida')
+  })
+
+  it('presupuesto: frase exacta con enlace y fecha, fuera de las plantillas del deal', () => {
+    const r = renderPlantilla('presupuesto', {
+      ...ctx,
+      enlacePresupuesto: 'https://x/p/t',
+      validoHasta: '21/09/2026',
+    })
+    expect(r.texto).toBe(
+      'Hola Marta, te paso el presupuesto del Mazda 6 (3593HXM): https://x/p/t. Válido hasta 21/09/2026.'
+    )
+    expect(r.asunto).toBe('Presupuesto de tu Mazda 6 (3593HXM) — Sevencars')
+    expect(esPlantillaId('presupuesto')).toBe(false)
+    expect(PLANTILLA_IDS).not.toContain('presupuesto')
+    expect(
+      plantillasQueAplican({ estado: 'reservado' }).map((p) => p.id)
+    ).not.toContain('presupuesto')
   })
 
   it('no usa voseo en ninguna plantilla', () => {

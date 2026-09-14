@@ -10,7 +10,9 @@ export type PlantillaId =
   | 'documentacion_cambio_nombre'
   | 'coche_listo'
   | 'recordatorio_pago'
+  | 'presupuesto'
 
+/** Plantillas del deal. `presupuesto` queda fuera: se envía desde /api/presupuestos. */
 export const PLANTILLA_IDS: readonly PlantillaId[] = [
   'reserva_confirmada',
   'documentacion_cambio_nombre',
@@ -54,6 +56,9 @@ export interface PlantillaCtx {
   fechaReservaExpira?: string | null
   empresa: string
   telefonoEmpresa?: string | null
+  enlacePresupuesto?: string | null
+  /** Ya formateada (dd/mm/yyyy) o null. */
+  validoHasta?: string | null
 }
 
 export interface Plantilla {
@@ -213,6 +218,15 @@ export const PLANTILLAS: Record<PlantillaId, Plantilla> = {
         despedida(c),
       ].join('\n\n')
     },
+  },
+
+  presupuesto: {
+    id: 'presupuesto',
+    titulo: 'Presupuesto',
+    cuandoAplica: () => false,
+    asunto: (c) => `Presupuesto de tu ${c.vehiculo} — ${c.empresa}`,
+    texto: (c) =>
+      `${saludo(c)} te paso el presupuesto del ${c.vehiculo}: ${c.enlacePresupuesto ?? ''}. Válido hasta ${c.validoHasta ?? ''}.`,
   },
 }
 
