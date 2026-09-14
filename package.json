@@ -23,6 +23,7 @@
     "verify:crm": "node scripts/verify-crm-functions.js",
     "check:database": "node scripts/check-database.js",
     "reconciliar:sheets": "node scripts/reconciliar-sheets.js",
+    "importar:checklist": "node scripts/importar-checklist-sheets.js",
     "setup:vehiculo-tables": "node scripts/setup-vehiculo-tables.js",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
