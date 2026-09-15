@@ -12,13 +12,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { google, type sheets_v4 } from 'googleapis'
 import { getGoogleSheetsAuth, getSheetId } from '@/lib/googleSheets'
-import { SHEETS_CONFIG } from '@/lib/sheetsConfig'
+import { NOTA_AVISO_CRM, SHEETS_CONFIG } from '@/lib/sheetsConfig'
 import { safeEqual } from '@/lib/secrets'
 
 export const maxDuration = 60
-
-export const NOTA_AVISO_CRM =
-  'Hoja generada por el CRM. Los cambios se hacen en el CRM.'
 
 type Hoja = 'VENTAS' | 'COMPRAS' | 'BASE_DATOS'
 

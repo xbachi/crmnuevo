@@ -20,11 +20,8 @@ jest.mock('@/lib/googleSheets', () => ({
 
 import { NextRequest } from 'next/server'
 import { getSheetId } from '@/lib/googleSheets'
-import { SHEETS_CONFIG } from '@/lib/sheetsConfig'
-import {
-  POST,
-  NOTA_AVISO_CRM,
-} from '@/app/api/admin/sheets-vehiculos/aviso/route'
+import { NOTA_AVISO_CRM, SHEETS_CONFIG } from '@/lib/sheetsConfig'
+import { POST } from '@/app/api/admin/sheets-vehiculos/aviso/route'
 
 const mockGetSheetId = getSheetId as jest.Mock
 const ADMIN_SECRET = 'test-admin-secret'

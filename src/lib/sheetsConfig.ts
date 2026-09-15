@@ -65,3 +65,7 @@ export function resolverTipoSheets(tipo: string | null | undefined): {
   if (t === 'R') return { ventas: 'R', compras: 'R' }
   return { ventas: 'Expo', compras: 'Compras' }
 }
+
+/** Nota en A1 de cada pestaña gestionada; un route.ts no puede exportarla. */
+export const NOTA_AVISO_CRM =
+  'Hoja generada por el CRM. Los cambios se hacen en el CRM.'
