@@ -359,6 +359,20 @@ export async function PUT(
       } catch (err) {
         console.error('registrar paso:', (err as Error)?.message ?? err)
       }
+      // Carpeta de OneDrive a VENDIDOS (en background).
+      if (estadoNuevoNorm === 'VENDIDO') {
+        try {
+          const { encolarCarpetasOneDrive } = await import(
+            '@/lib/onedriveCarpetas'
+          )
+          await encolarCarpetasOneDrive(id, 'vendido')
+        } catch (err) {
+          console.error(
+            'encolar carpetas OneDrive:',
+            (err as Error)?.message ?? err
+          )
+        }
+      }
     }
     // Fila del vehículo en las hojas (upsert por referencia, en background).
     if (Object.keys(updateData).length > 0 || (pasosBody?.length ?? 0) > 0) {

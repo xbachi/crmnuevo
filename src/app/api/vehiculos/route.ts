@@ -9,9 +9,11 @@ import {
   getInversores,
   type Vehiculo,
 } from '@/lib/direct-database'
-import { promises as fs } from 'fs'
-import { generateFolderName, getFolderPathsByTipo } from '@/config/folders'
 import { encolarSheetsVehiculo } from '@/lib/sheetsVehiculo'
+import {
+  encolarCarpetasOneDrive,
+  nombreCarpetaCanonico,
+} from '@/lib/onedriveCarpetas'
 import { guardarFicha, validarFicha } from '@/lib/fichaComercial'
 import { normalizarTipo } from '@/lib/vehiculoEstado'
 import {
@@ -166,14 +168,15 @@ export async function POST(request: NextRequest) {
     } as Omit<Vehiculo, 'id' | 'createdAt' | 'updatedAt'>)
     // console.log('✅ Vehículo guardado:', vehiculo)
 
-    // Crear nombre de carpeta en camelCase
-    const folderName = generateFolderName(
-      referenciaCanon,
-      marca,
-      modelo,
-      matriculaNorm,
-      tipoLetra
-    )
+    const folderName =
+      nombreCarpetaCanonico({
+        referencia: referenciaCanon,
+        tipo: tipoLetra,
+        marca,
+        modelo,
+        matriculaNorm,
+        aliases: [],
+      }) ?? ''
 
     // Ficha comercial (web y presupuesto) del alta; un fallo no deshace el alta.
     if (fichaComercial && typeof fichaComercial === 'object') {
@@ -199,24 +202,11 @@ export async function POST(request: NextRequest) {
     } catch (sheetsError) {
       console.error('Error encolando Google Sheets:', sheetsError)
     }
-
-    // Operaciones asíncronas que no bloquean la respuesta
-    Promise.all([
-      // Crear carpetas en background
-      (async () => {
-        try {
-          const folderPaths = getFolderPathsByTipo(tipoLetra, folderName)
-          for (const folderPath of folderPaths) {
-            await fs.mkdir(folderPath, { recursive: true })
-            console.log(`Carpeta creada: ${folderPath}`)
-          }
-        } catch (folderError) {
-          console.error('Error creando carpetas:', folderError)
-        }
-      })(),
-    ]).catch((error) => {
-      console.error('Error en operaciones background:', error)
-    })
+    try {
+      await encolarCarpetasOneDrive(vehiculo.id, 'crear')
+    } catch (err) {
+      console.error('Error encolando carpetas OneDrive:', err)
+    }
 
     return NextResponse.json({
       success: true,

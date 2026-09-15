@@ -25,6 +25,10 @@ import {
   type SheetsVehiculoPayload,
 } from '@/lib/sheetsVehiculo'
 import {
+  reenviarCarpetasOneDrive,
+  type CarpetasPayload,
+} from '@/lib/onedriveCarpetas'
+import {
   markOutboxEnviado,
   markOutboxFallo,
   markOutboxAgotado,
@@ -61,6 +65,8 @@ async function reenviar(row: PendingRow): Promise<Reenvio> {
         row.payload as SheetsVehiculoPayload,
         row.id
       )
+    case 'onedrive_carpetas':
+      return reenviarCarpetasOneDrive(row.payload as CarpetasPayload, row.id)
     default:
       return {
         ok: false,
@@ -82,10 +88,10 @@ export async function POST(request: NextRequest) {
          FROM webhook_outbox
         WHERE intentos < max_intentos
           AND (
-            (tipo <> 'sheets_vehiculo' AND estado = 'pendiente')
-            -- sheets_vehiculo: las recién encoladas (< 2 min) están en curso
-            -- vía after(); un 'procesando' de > 10 min es un job muerto.
-            OR (tipo = 'sheets_vehiculo' AND (
+            (tipo NOT IN ('sheets_vehiculo','onedrive_carpetas') AND estado = 'pendiente')
+            -- sheets_vehiculo / onedrive_carpetas: las recién encoladas (< 2 min)
+            -- están en curso vía after(); un 'procesando' de > 10 min es un job muerto.
+            OR (tipo IN ('sheets_vehiculo','onedrive_carpetas') AND (
                  (estado = 'pendiente' AND updated_at < NOW() - INTERVAL '2 minutes')
               OR (estado = 'procesando' AND updated_at < NOW() - INTERVAL '10 minutes')))
           )

@@ -40,8 +40,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const id = parseInt((await params).id, 10)
-  if (isNaN(id)) return NextResponse.json({ error: 'ID inválido' }, { status: 400 })
-  if (!(await tablaExiste())) return NextResponse.json({ historial: [], anterior: null })
+  if (isNaN(id))
+    return NextResponse.json({ error: 'ID inválido' }, { status: 400 })
+  if (!(await tablaExiste()))
+    return NextResponse.json({ historial: [], anterior: null })
 
   const res = await pool.query<FilaHistorial>(
     `SELECT matricula, matricula_norm, desde::text, hasta::text, motivo, es_actual
@@ -59,17 +61,48 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const id = parseInt((await params).id, 10)
-  if (isNaN(id)) return NextResponse.json({ error: 'ID inválido' }, { status: 400 })
+  if (isNaN(id))
+    return NextResponse.json({ error: 'ID inválido' }, { status: 400 })
 
   const body = await request.json().catch(() => ({}))
-  const nueva = String(body?.matricula ?? '').trim().replace(/\s+/g, ' ').toUpperCase()
+  const nueva = String(body?.matricula ?? '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toUpperCase()
   const motivo = body?.motivo ? String(body.motivo).trim() : null
   const desde = body?.desde ? String(body.desde) : null
   const nuevaNorm = normPlate(nueva)
   if (!nuevaNorm) {
-    return NextResponse.json({ error: 'matricula es obligatoria' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'matricula es obligatoria' },
+      { status: 400 }
+    )
   }
-  if (!(await tablaExiste())) return NextResponse.json(SIN_TABLA, { status: 409 })
+  if (!(await tablaExiste()))
+    return NextResponse.json(SIN_TABLA, { status: 409 })
+
+  // Nombre de la carpeta de OneDrive ANTES del cambio, para renombrarla después.
+  const {
+    cargarVehiculoCarpeta,
+    nombreCarpetaCanonico,
+    encolarCarpetasOneDrive,
+  } = await import('@/lib/onedriveCarpetas')
+  let de: string | null = null
+  try {
+    const vPrev = await cargarVehiculoCarpeta(id)
+    de = vPrev
+      ? nombreCarpetaCanonico({
+          referencia: vPrev.referencia,
+          tipo: vPrev.tipo,
+          marca: vPrev.marca,
+          modelo: vPrev.modelo,
+          matriculaNorm: vPrev.matriculas[0],
+          aliases: vPrev.matriculas.slice(1),
+        })
+      : null
+  } catch (err) {
+    console.error('carpeta previa OneDrive:', (err as Error)?.message ?? err)
+  }
 
   const client = await pool.connect()
   try {
@@ -81,7 +114,10 @@ export async function POST(
     )
     if (veh.rows.length === 0) {
       await client.query('ROLLBACK')
-      return NextResponse.json({ error: 'Vehículo no encontrado' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'Vehículo no encontrado' },
+        { status: 404 }
+      )
     }
     const actual = veh.rows[0].matricula ?? ''
     const actualNorm = normPlate(actual)
@@ -108,7 +144,9 @@ export async function POST(
     if (conflicto) {
       await client.query('ROLLBACK')
       return NextResponse.json(
-        { error: `La matrícula ${nueva} ya pertenece al vehículo ${conflicto}` },
+        {
+          error: `La matrícula ${nueva} ya pertenece al vehículo ${conflicto}`,
+        },
         { status: 409 }
       )
     }
@@ -148,7 +186,10 @@ export async function POST(
       [id, nueva, desde, motivo]
     )
 
-    await client.query(`UPDATE "Vehiculo" SET matricula = $1 WHERE id = $2`, [nueva, id])
+    await client.query(`UPDATE "Vehiculo" SET matricula = $1 WHERE id = $2`, [
+      nueva,
+      id,
+    ])
 
     const hist = await client.query<FilaHistorial>(
       `SELECT matricula, matricula_norm, desde::text, hasta::text, motivo, es_actual
@@ -158,6 +199,19 @@ export async function POST(
       [id]
     )
     await client.query('COMMIT')
+
+    try {
+      await encolarCarpetasOneDrive(
+        id,
+        de ? 'renombrar' : 'crear',
+        de ?? undefined
+      )
+    } catch (err) {
+      console.error(
+        'encolar carpetas OneDrive:',
+        (err as Error)?.message ?? err
+      )
+    }
 
     return NextResponse.json({
       ok: true,

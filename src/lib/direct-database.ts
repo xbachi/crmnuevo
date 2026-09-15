@@ -1005,6 +1005,17 @@ export async function updateDeal(
           (err as Error)?.message ?? err
         )
       }
+      if (vehiculoEstado === 'vendido') {
+        try {
+          const { encolarCarpetasOneDrive } = await import('./onedriveCarpetas')
+          await encolarCarpetasOneDrive(vehiculoId, 'vendido')
+        } catch (err) {
+          console.error(
+            '[updateDeal] encolar carpetas:',
+            (err as Error)?.message ?? err
+          )
+        }
+      }
     }
 
     return await getDealById(id)
@@ -2213,6 +2224,19 @@ export async function updateVehiculosOrden(updates: unknown[]) {
           await encolarSheetsVehiculo((update as { id: number }).id, 'kanban')
         } catch (err) {
           console.error('encolar sheets:', (err as Error)?.message ?? err)
+        }
+        if (normalizarEstado(estadoNuevo) === 'VENDIDO') {
+          try {
+            const { encolarCarpetasOneDrive } = await import(
+              './onedriveCarpetas'
+            )
+            await encolarCarpetasOneDrive(
+              (update as { id: number }).id,
+              'vendido'
+            )
+          } catch (err) {
+            console.error('encolar carpetas:', (err as Error)?.message ?? err)
+          }
         }
       }
     }

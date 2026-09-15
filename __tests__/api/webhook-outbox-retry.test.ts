@@ -86,7 +86,7 @@ describe('POST /api/admin/webhook-outbox/retry', () => {
     // `tipo` — without it every row would be sent to the gestoria webhook.
     expect(mockQuery.mock.calls[0][0]).toMatch(/intentos < max_intentos/)
     expect(mockQuery.mock.calls[0][0]).toMatch(
-      /tipo <> 'sheets_vehiculo' AND estado = 'pendiente'/
+      /tipo NOT IN \('sheets_vehiculo','onedrive_carpetas'\) AND estado = 'pendiente'/
     )
     // sheets_vehiculo: las recién encoladas están en curso; los 'procesando' viejos se recuperan
     expect(mockQuery.mock.calls[0][0]).toMatch(

@@ -9,8 +9,7 @@ import {
   type Vehiculo,
 } from '@/lib/direct-database'
 import { encolarSheetsVehiculo } from '@/lib/sheetsVehiculo'
-import { generateFolderName, getFolderPathsByTipo } from '@/config/folders'
-import { promises as fs } from 'fs'
+import { encolarCarpetasOneDrive } from '@/lib/onedriveCarpetas'
 import { normalizarTipo } from '@/lib/vehiculoEstado'
 import {
   extraerMatriculaEntrada,
@@ -206,31 +205,17 @@ export async function POST(request: NextRequest) {
       vehiculoData as Omit<Vehiculo, 'id' | 'createdAt' | 'updatedAt'>
     )
 
-    // Crear carpetas del vehículo
-    try {
-      const folderName = generateFolderName(
-        referenciaCanon,
-        marca,
-        modelo,
-        matriculaNorm,
-        tipo
-      )
-      const folderPaths = getFolderPathsByTipo(tipo, folderName)
-
-      for (const folderPath of folderPaths) {
-        await fs.mkdir(folderPath, { recursive: true })
-      }
-    } catch (folderError) {
-      console.error('Error creando carpetas:', folderError)
-      // No fallar la operación por errores de carpetas
-    }
-
     // Sincronizar con Google Sheets (opcional)
     try {
       await encolarSheetsVehiculo(vehiculo.id, 'create')
     } catch (sheetsError) {
       console.error('Error sincronizando con Google Sheets:', sheetsError)
       // No fallar la operación por errores de Google Sheets
+    }
+    try {
+      await encolarCarpetasOneDrive(vehiculo.id, 'crear')
+    } catch (err) {
+      console.error('Error encolando carpetas OneDrive:', err)
     }
 
     return NextResponse.json({
