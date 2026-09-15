@@ -76,6 +76,7 @@ const PUBLIC_API_PREFIXES = [
   '/api/cron/alertas',
   '/api/cron/sheets-vehiculos',
   '/api/cron/fichas-tecnicas',
+  '/api/cron/onedrive-carpetas',
   // Health-check para monitor externo: SELECT 1 + versión, sin datos sensibles.
   '/api/health',
   // Bandeja de revisión: POST lo llama n8n (X-Webhook-Secret) y /sync es
