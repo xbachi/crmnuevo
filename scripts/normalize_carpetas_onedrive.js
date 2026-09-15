@@ -26,66 +26,24 @@ const { execFileSync } = require('child_process')
 const fs = require('fs')
 
 const REMOTE = process.env.REMOTE || 'onedrive-sevencars:'
-const ROOTS = (process.env.ROOTS || '1_Ventas,3_Compras').split(',').map((s) => s.trim()).filter(Boolean)
+const ROOTS = (process.env.ROOTS || '1_Ventas,3_Compras')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean)
 const APPLY = process.env.APPLY === '1'
 const MAX_RENAMES = parseInt(process.env.MAX_RENAMES || '40', 10)
 const LOG_FILE = process.env.LOG_FILE || '/var/log/normalize_carpetas.jsonl'
 const AS_JSON = process.env.JSON === '1'
 const MAX_DEPTH = 4
 
-// --------------------------------------------------------------------------
-// Diccionarios. Editables: son la unica fuente de "como se escribe cada cosa".
-// --------------------------------------------------------------------------
-
-// alias (lowercase, sin acentos) -> marca canonica
-const MARCAS = {
-  vw: 'Volkswagen', volkswagen: 'Volkswagen', wolkswagen: 'Volkswagen', wv: 'Volkswagen',
-  bmw: 'BMW',
-  mercedes: 'Mercedes-Benz', 'mercedes-benz': 'Mercedes-Benz', mercedesbenz: 'Mercedes-Benz', mb: 'Mercedes-Benz',
-  citroen: 'Citroen', citron: 'Citroen',
-  hyundai: 'Hyundai', hiunday: 'Hyundai', hiundai: 'Hyundai', hunday: 'Hyundai',
-  kia: 'Kia', seat: 'Seat', opel: 'Opel', ford: 'Ford', nissan: 'Nissan',
-  peugeot: 'Peugeot', renault: 'Renault', audi: 'Audi', fiat: 'Fiat',
-  dacia: 'Dacia', jeep: 'Jeep', mazda: 'Mazda', smart: 'Smart', mini: 'Mini',
-  tesla: 'Tesla', yamaha: 'Yamaha', toyota: 'Toyota', honda: 'Honda',
-  skoda: 'Skoda', volvo: 'Volvo', suzuki: 'Suzuki', mitsubishi: 'Mitsubishi',
-  lexus: 'Lexus', porsche: 'Porsche', chevrolet: 'Chevrolet', jaguar: 'Jaguar',
-  ds: 'DS', cupra: 'Cupra', abarth: 'Abarth', iveco: 'Iveco',
-}
-// marcas de dos palabras: se prueban antes que las de una
-const MARCAS_2 = {
-  'land rover': 'Land Rover', 'alfa romeo': 'Alfa Romeo', 'range rover': 'Range Rover',
-  'mercedes benz': 'Mercedes-Benz', 'aston martin': 'Aston Martin',
-}
-
-// alias de modelo (lowercase, sin acentos) -> modelo canonico
-const MODELOS = {
-  xcreed: 'Xceed', xcedd: 'Xceed', xced: 'Xceed', xceed: 'Xceed', 'x-ceed': 'Xceed',
-  troc: 'T-Roc', tcross: 'T-Cross',
-  moka: 'Mokka', taygo: 'Taigo',
-  granland: 'Grandland', grandland: 'Grandland', crossland: 'Crossland',
-  forttwo: 'Fortwo', fortwo: 'Fortwo', forfour: 'Forfour',
-  compas: 'Compass', compass: 'Compass',
-  qq: 'Qashqai', qashqai: 'Qashqai',
-  bayo: 'Bayon', bayon: 'Bayon',
-  insignia: 'Insignia', trailhaw: 'Trailhawk',
-  granlandx: 'Grandland',
-}
-
-// tokens de modelo que van SIEMPRE en mayusculas
-const ACRONIMOS = new Set([
-  'GT', 'GTI', 'GTD', 'GTE', 'TDI', 'TSI', 'TFSI', 'CDI', 'HDI', 'AMG', 'RS', 'ST',
-  'SW', 'XL', 'FR', 'TT', 'TTS', 'SQ', 'CLA', 'GLA', 'GLC', 'GLE', 'GLB', 'CX',
-  'R', 'S', 'X', 'N', 'II', 'III', 'IV', 'VI', 'VII', 'VIII', '4X4', 'AT', 'DSG',
-])
-
-// tokens que NO son modelo: se conservan como sufijo al final del nombre
-const EXTRAS = new Set([
-  'alemania', 'alemana', 'aleman', 'alemanas', 'alemanes', 'importacion', 'importado',
-  'gris', 'rojo', 'roja', 'azul', 'blanco', 'blanca', 'negro', 'negra', 'verde',
-  'amarillo', 'naranja', 'plata', 'marron', 'beige', 'dorado',
-  'inversor',
-])
+const {
+  MARCAS,
+  MARCAS_2,
+  MODELOS,
+  EXTRAS,
+  clave,
+  casearToken,
+} = require('./lib/carpetaNombre')
 
 // carpetas de trabajo: no se tocan ni se entra en ellas
 function esIgnorada(nombre) {
@@ -98,21 +56,14 @@ function esContenedor(nombre) {
   if (n.startsWith('-')) return true
   if (/-{4,}/.test(n)) return true
   if (/^coches[\s_-]*r$/i.test(n)) return true
-  if (/^(consignacion|consignación|importacion|importación|vendidos)$/i.test(n)) return true
+  if (/^(consignacion|consignación|importacion|importación|vendidos)$/i.test(n))
+    return true
   return false
 }
 
 // --------------------------------------------------------------------------
 // Utilidades
 // --------------------------------------------------------------------------
-
-function sinAcentos(s) {
-  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-}
-
-function clave(s) {
-  return sinAcentos(String(s)).toLowerCase().trim()
-}
 
 function rclone(args, opts = {}) {
   return execFileSync('rclone', args, {
@@ -123,9 +74,17 @@ function rclone(args, opts = {}) {
 }
 
 function listarDirs(root) {
-  const out = rclone([
-    'lsf', '-R', '--dirs-only', '--max-depth', String(MAX_DEPTH), `${REMOTE}${root}`,
-  ], { timeout: 300000 })
+  const out = rclone(
+    [
+      'lsf',
+      '-R',
+      '--dirs-only',
+      '--max-depth',
+      String(MAX_DEPTH),
+      `${REMOTE}${root}`,
+    ],
+    { timeout: 300000 }
+  )
   return out
     .split('\n')
     .map((l) => l.replace(/\/$/, '').trim())
@@ -139,11 +98,20 @@ function listarDirs(root) {
 // Devuelve { ref, resto } o { ref: null, resto: nombre }
 function extraerRef(nombre) {
   let m = nombre.match(/^\s*([DRIC])\s*-\s*(\d{1,3})(?=[\s\-_]|$)/i)
-  if (m) return { ref: `${m[1].toUpperCase()}-${parseInt(m[2], 10)}`, resto: nombre.slice(m[0].length) }
+  if (m)
+    return {
+      ref: `${m[1].toUpperCase()}-${parseInt(m[2], 10)}`,
+      resto: nombre.slice(m[0].length),
+    }
   m = nombre.match(/^\s*([DRI])(\d{1,3})(?=[\s\-_]|$)/i)
-  if (m) return { ref: `${m[1].toUpperCase()}-${parseInt(m[2], 10)}`, resto: nombre.slice(m[0].length) }
+  if (m)
+    return {
+      ref: `${m[1].toUpperCase()}-${parseInt(m[2], 10)}`,
+      resto: nombre.slice(m[0].length),
+    }
   m = nombre.match(/^\s*(\d{1,3})(?=[\s\-_]|$)/)
-  if (m) return { ref: String(parseInt(m[1], 10)), resto: nombre.slice(m[0].length) }
+  if (m)
+    return { ref: String(parseInt(m[1], 10)), resto: nombre.slice(m[0].length) }
   return { ref: null, resto: nombre }
 }
 
@@ -155,15 +123,25 @@ function extraerMatricula(s) {
   let best = null
   let m
   // el match puede empezar con 1 caracter separador consumido por la alternancia
-  const inicioReal = (mm) => (mm.index === 0 && /[A-Z0-9]/.test(mm[0][0]) ? mm.index : mm.index + 1)
+  const inicioReal = (mm) =>
+    mm.index === 0 && /[A-Z0-9]/.test(mm[0][0]) ? mm.index : mm.index + 1
   while ((m = re1.exec(up)) !== null) {
-    best = { plate: `${m[1]}${m[2]}${m[3]}`, start: inicioReal(m), end: m.index + m[0].length }
+    best = {
+      plate: `${m[1]}${m[2]}${m[3]}`,
+      start: inicioReal(m),
+      end: m.index + m[0].length,
+    }
   }
   if (best) return best
   // antigua (1-2 letras + 4 digitos + 1-2 letras): V4892-GT
-  const re2 = /(?:^|[^A-Z0-9])([A-Z]{1,2})[\s-]*(\d{4})[\s-]*([A-Z]{1,2})(?![A-Z0-9])/g
+  const re2 =
+    /(?:^|[^A-Z0-9])([A-Z]{1,2})[\s-]*(\d{4})[\s-]*([A-Z]{1,2})(?![A-Z0-9])/g
   while ((m = re2.exec(up)) !== null) {
-    best = { plate: `${m[1]}${m[2]}${m[3]}`, start: inicioReal(m), end: m.index + m[0].length }
+    best = {
+      plate: `${m[1]}${m[2]}${m[3]}`,
+      start: inicioReal(m),
+      end: m.index + m[0].length,
+    }
   }
   return best
 }
@@ -175,20 +153,18 @@ function tokenizar(s) {
     .filter((t) => t.length > 0)
 }
 
-function casearToken(t) {
-  const up = t.toUpperCase()
-  if (/\d/.test(t)) return up // I10, CX5, A180, 3008, 250E
-  if (ACRONIMOS.has(up)) return up
-  return up.charAt(0) + t.slice(1).toLowerCase()
-}
-
 // Une "I" + "10" -> "I10", "I" + "20" -> "I20"
 function unirLetraNumero(tokens) {
   const out = []
   for (let i = 0; i < tokens.length; i++) {
     const t = tokens[i]
     const sig = tokens[i + 1]
-    if (t.length === 1 && /^[A-Za-z]$/.test(t) && sig && /^\d{1,3}$/.test(sig)) {
+    if (
+      t.length === 1 &&
+      /^[A-Za-z]$/.test(t) &&
+      sig &&
+      /^\d{1,3}$/.test(sig)
+    ) {
       out.push(t + sig)
       i++
     } else {
@@ -263,7 +239,8 @@ function analizar(nombreOriginal, catalogo) {
     }
   }
   if (!marca) {
-    if (restantes.length === 0) return { ok: false, motivo: 'sin-marca-ni-modelo', avisos }
+    if (restantes.length === 0)
+      return { ok: false, motivo: 'sin-marca-ni-modelo', avisos }
     marca = casearToken(restantes[0])
     idx = 1
     avisos.push(`marca no reconocida: "${restantes[0]}"`)
@@ -289,7 +266,13 @@ function analizar(nombreOriginal, catalogo) {
 
   const extrasCaseadas = extras.map((t) => casearToken(t)).filter(Boolean)
 
-  const partes = [ref, marca, ...modeloTokens, matricula, ...extrasCaseadas].filter(Boolean)
+  const partes = [
+    ref,
+    marca,
+    ...modeloTokens,
+    matricula,
+    ...extrasCaseadas,
+  ].filter(Boolean)
   let propuesto = partes.join('-')
   // saneado: caracteres no validos en OneDrive y guiones repetidos
   propuesto = propuesto
@@ -297,7 +280,16 @@ function analizar(nombreOriginal, catalogo) {
     .replace(/-{2,}/g, '-')
     .replace(/^-+|-+$/g, '')
 
-  return { ok: true, propuesto, ref, marca, modelo: modeloTokens.join('-'), matricula, extras: extrasCaseadas, avisos }
+  return {
+    ok: true,
+    propuesto,
+    ref,
+    marca,
+    modelo: modeloTokens.join('-'),
+    matricula,
+    extras: extrasCaseadas,
+    avisos,
+  }
 }
 
 // --------------------------------------------------------------------------
@@ -309,9 +301,14 @@ async function cargarCatalogo() {
   const secret = process.env.ADMIN_SECRET
   if (!url || !secret) return null
   try {
-    const r = await fetch(url, { headers: { 'x-admin-secret': secret }, signal: AbortSignal.timeout(20000) })
+    const r = await fetch(url, {
+      headers: { 'x-admin-secret': secret },
+      signal: AbortSignal.timeout(20000),
+    })
     if (!r.ok) {
-      console.error(`[aviso] catalogo CRM devolvio HTTP ${r.status}; sigo sin el`)
+      console.error(
+        `[aviso] catalogo CRM devolvio HTTP ${r.status}; sigo sin el`
+      )
       return null
     }
     const data = await r.json()
@@ -321,7 +318,9 @@ async function cargarCatalogo() {
     }
     return map
   } catch (e) {
-    console.error(`[aviso] no pude leer el catalogo del CRM (${e.message}); sigo sin el`)
+    console.error(
+      `[aviso] no pude leer el catalogo del CRM (${e.message}); sigo sin el`
+    )
     return null
   }
 }
@@ -335,7 +334,9 @@ function candidatos(root) {
   const contenedores = new Set()
   const res = []
   // ordenar por profundidad para poder decidir de arriba hacia abajo
-  paths.sort((a, b) => a.split('/').length - b.split('/').length || a.localeCompare(b))
+  paths.sort(
+    (a, b) => a.split('/').length - b.split('/').length || a.localeCompare(b)
+  )
   const esHijoDeCandidato = (p) => {
     for (const c of res) if (p.startsWith(c.rel + '/')) return true
     return false
@@ -395,7 +396,11 @@ function revertirUltima() {
     console.error('No hay log de renombrados')
     process.exit(1)
   }
-  const lineas = fs.readFileSync(LOG_FILE, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l))
+  const lineas = fs
+    .readFileSync(LOG_FILE, 'utf8')
+    .split('\n')
+    .filter(Boolean)
+    .map((l) => JSON.parse(l))
   const aplicados = lineas.filter((l) => l.evento === 'renombrado')
   if (aplicados.length === 0) {
     console.log('No hay renombrados que revertir')
@@ -403,12 +408,22 @@ function revertirUltima() {
   }
   const ultimoRun = aplicados[aplicados.length - 1].run
   const delRun = aplicados.filter((l) => l.run === ultimoRun).reverse()
-  console.log(`Revirtiendo ${delRun.length} renombrados de la corrida ${ultimoRun}`)
+  console.log(
+    `Revirtiendo ${delRun.length} renombrados de la corrida ${ultimoRun}`
+  )
   for (const r of delRun) {
     try {
       renombrar(r.root, r.padre, r.to, r.from)
       console.log(`  ok  ${r.to} -> ${r.from}`)
-      logear({ ts: new Date().toISOString(), run: `revert-${ultimoRun}`, evento: 'revertido', root: r.root, padre: r.padre, from: r.to, to: r.from })
+      logear({
+        ts: new Date().toISOString(),
+        run: `revert-${ultimoRun}`,
+        evento: 'revertido',
+        root: r.root,
+        padre: r.padre,
+        from: r.to,
+        to: r.from,
+      })
     } catch (e) {
       console.error(`  ERR ${r.to}: ${e.message}`)
     }
@@ -462,7 +477,9 @@ async function main() {
         if (lista.length > 1) {
           for (const c of lista) {
             revisar.push({
-              root: c.root, carpeta: c.rel, motivo: 'colision',
+              root: c.root,
+              carpeta: c.rel,
+              motivo: 'colision',
               detalle: `${lista.length} carpetas apuntan al mismo nombre: ${analisis.get(c.rel).propuesto}`,
             })
           }
@@ -474,14 +491,20 @@ async function main() {
         const chocaCon = existentes.get(k)
         if (chocaCon && chocaCon !== c.rel) {
           revisar.push({
-            root: c.root, carpeta: c.rel, motivo: 'destino-ocupado',
+            root: c.root,
+            carpeta: c.rel,
+            motivo: 'destino-ocupado',
             detalle: `"${a.propuesto}" ya existe (${chocaCon})`,
           })
           continue
         }
         acciones.push({
-          root: c.root, padre: c.padreRel, from: c.base, to: a.propuesto,
-          rel: c.rel, avisos: a.avisos,
+          root: c.root,
+          padre: c.padreRel,
+          from: c.base,
+          to: a.propuesto,
+          rel: c.rel,
+          avisos: a.avisos,
         })
       }
 
@@ -489,14 +512,26 @@ async function main() {
       for (const c of grupo) {
         const a = analisis.get(c.rel)
         if (a.ok && c.base === a.propuesto && a.avisos.length) {
-          revisar.push({ root: c.root, carpeta: c.rel, motivo: 'aviso', detalle: a.avisos.join('; ') })
+          revisar.push({
+            root: c.root,
+            carpeta: c.rel,
+            motivo: 'aviso',
+            detalle: a.avisos.join('; '),
+          })
         }
       }
     }
   }
 
   // ------------------------------------------------------------------ salida
-  const resultado = { run: runId, apply: APPLY, total: acciones.length, renombrados: [], fallidos: [], revisar }
+  const resultado = {
+    run: runId,
+    apply: APPLY,
+    total: acciones.length,
+    renombrados: [],
+    fallidos: [],
+    revisar,
+  }
 
   let hechos = 0
   for (const a of acciones) {
@@ -505,18 +540,42 @@ async function main() {
       continue
     }
     if (hechos >= MAX_RENAMES) {
-      resultado.fallidos.push({ ...a, error: `tope de ${MAX_RENAMES} renombrados por corrida` })
+      resultado.fallidos.push({
+        ...a,
+        error: `tope de ${MAX_RENAMES} renombrados por corrida`,
+      })
       continue
     }
     try {
       renombrar(a.root, a.padre, a.from, a.to)
       hechos++
       resultado.renombrados.push({ ...a, aplicado: true })
-      logear({ ts: new Date().toISOString(), run: runId, evento: 'renombrado', root: a.root, padre: a.padre, from: a.from, to: a.to })
+      logear({
+        ts: new Date().toISOString(),
+        run: runId,
+        evento: 'renombrado',
+        root: a.root,
+        padre: a.padre,
+        from: a.from,
+        to: a.to,
+      })
     } catch (e) {
-      const msg = String(e.stderr || e.message || e).split('\n').slice(-3).join(' ').trim()
+      const msg = String(e.stderr || e.message || e)
+        .split('\n')
+        .slice(-3)
+        .join(' ')
+        .trim()
       resultado.fallidos.push({ ...a, error: msg })
-      logear({ ts: new Date().toISOString(), run: runId, evento: 'fallido', root: a.root, padre: a.padre, from: a.from, to: a.to, error: msg })
+      logear({
+        ts: new Date().toISOString(),
+        run: runId,
+        evento: 'fallido',
+        root: a.root,
+        padre: a.padre,
+        from: a.from,
+        to: a.to,
+        error: msg,
+      })
     }
   }
 
@@ -527,7 +586,9 @@ async function main() {
 
   const modo = APPLY ? 'APLICANDO' : 'SIMULACION (dry-run, no se toca nada)'
   console.log(`\n=== Normalizacion de carpetas OneDrive — ${modo} ===`)
-  console.log(`Raices: ${ROOTS.join(', ')}   |   catalogo CRM: ${catalogo ? `${catalogo.size} vehiculos` : 'no disponible'}\n`)
+  console.log(
+    `Raices: ${ROOTS.join(', ')}   |   catalogo CRM: ${catalogo ? `${catalogo.size} vehiculos` : 'no disponible'}\n`
+  )
 
   if (resultado.renombrados.length === 0) {
     console.log('Todo en orden: ningun nombre para corregir.\n')
@@ -541,7 +602,9 @@ async function main() {
         rootActual = ruta
       }
       console.log(`    ${r.from}`)
-      console.log(`      -> ${r.to}${r.avisos.length ? `   (${r.avisos.join('; ')})` : ''}`)
+      console.log(
+        `      -> ${r.to}${r.avisos.length ? `   (${r.avisos.join('; ')})` : ''}`
+      )
     }
     console.log('')
   }
@@ -558,7 +621,8 @@ async function main() {
     for (const r of revisar) (porMotivo[r.motivo] ||= []).push(r)
     for (const [motivo, lista] of Object.entries(porMotivo)) {
       console.log(`\n  ${motivo} (${lista.length}):`)
-      for (const r of lista) console.log(`    ${r.carpeta}${r.detalle ? `  — ${r.detalle}` : ''}`)
+      for (const r of lista)
+        console.log(`    ${r.carpeta}${r.detalle ? `  — ${r.detalle}` : ''}`)
     }
     console.log('')
   }
@@ -571,4 +635,11 @@ if (require.main === module) {
   })
 }
 
-module.exports = { analizar, extraerMatricula, extraerRef, esContenedor, esIgnorada, candidatos }
+module.exports = {
+  analizar,
+  extraerMatricula,
+  extraerRef,
+  esContenedor,
+  esIgnorada,
+  candidatos,
+}
