@@ -3,6 +3,7 @@
  * sólo muestra lo que expone `aPublico` (sin ids, PII de contacto ni params).
  */
 import type { Metadata } from 'next'
+import { cache } from 'react'
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import PresupuestoTabla from '@/components/presupuesto/PresupuestoTabla'
@@ -22,9 +23,13 @@ const RE_TOKEN = /^[A-Za-z0-9_-]{16,64}$/
 
 type Params = { params: Promise<{ token: string }> }
 
+// Una sola lectura por request, compartida entre generateMetadata y la página
+const buscarPorToken = cache(async (token: string) =>
+  RE_TOKEN.test(token) ? leerPorToken(token) : null
+)
+
 async function cargar(token: string): Promise<PresupuestoPublico | null> {
-  if (!RE_TOKEN.test(token)) return null
-  const p = await leerPorToken(token)
+  const p = await buscarPorToken(token)
   if (!p || p.estado === 'anulado') return null
   const [v, f, parametros] = await Promise.all([
     cargarVehiculoPresupuesto(p.vehiculo_id),
@@ -37,7 +42,7 @@ async function cargar(token: string): Promise<PresupuestoPublico | null> {
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { token } = await params
-  const p = RE_TOKEN.test(token) ? await leerPorToken(token) : null
+  const p = await buscarPorToken(token)
   return {
     title: p
       ? `Presupuesto ${p.numero} · Seven Cars`
@@ -188,7 +193,7 @@ export default async function PresupuestoPublicoPage({ params }: Params) {
             href={p.reservaUrl}
             target="_blank"
             rel="noreferrer"
-            className="flex-1 text-center px-4 py-2.5 rounded-lg bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700"
+            className="flex-1 text-center px-4 py-3 rounded-lg bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700"
           >
             Reservar
           </a>
@@ -197,7 +202,7 @@ export default async function PresupuestoPublicoPage({ params }: Params) {
               href={enlaceWhatsApp}
               target="_blank"
               rel="noreferrer"
-              className="flex-1 text-center px-4 py-2.5 rounded-lg border border-primary-600 text-primary-700 text-sm font-semibold hover:bg-primary-50"
+              className="flex-1 text-center px-4 py-3 rounded-lg border border-primary-600 text-primary-700 text-sm font-semibold hover:bg-primary-50"
             >
               WhatsApp
             </a>

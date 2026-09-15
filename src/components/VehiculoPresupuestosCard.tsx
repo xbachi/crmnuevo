@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation'
 import { useConfirmModal } from '@/components/ConfirmModal'
 import EstadoPresupuestoBadge from '@/components/presupuesto/EstadoPresupuestoBadge'
 import PresupuestoOpcionesForm from '@/components/presupuesto/PresupuestoOpcionesForm'
-import PresupuestoTabla from '@/components/presupuesto/PresupuestoTabla'
+import PresupuestoTabla, {
+  cuotaTexto,
+} from '@/components/presupuesto/PresupuestoTabla'
 import { dateToYMD } from '@/lib/fechas'
 import type { FichaComercial } from '@/lib/fichaComercial'
 import { downloadPdf } from '@/lib/pdf/download'
@@ -105,7 +107,6 @@ export default function VehiculoPresupuestosCard({
 
   const abrirPanel = async () => {
     setPanel(true)
-    if (contexto && ficha) return
     setCargandoPanel(true)
     try {
       const [rc, rf] = await Promise.all([
@@ -226,26 +227,37 @@ export default function VehiculoPresupuestosCard({
       })
     })
 
-  const enviar = (f: Fila, canal: 'whatsapp' | 'email') =>
-    conFila(f.id, async () => {
-      const res = await fetch(`/api/presupuestos/${f.id}/enviar`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ canal }),
-      })
-      if (!res.ok) {
-        showToast(await leerError(res, 'Error al enviar'), 'error')
-        return
+  const enviar = (f: Fila, canal: 'whatsapp' | 'email') => {
+    // La pestaña se abre dentro del gesto del usuario; si no, el navegador la bloquea tras el await
+    const w = canal === 'whatsapp' ? window.open('', '_blank') : null
+    if (w) w.opener = null
+    let navegado = false
+    return conFila(f.id, async () => {
+      try {
+        const res = await fetch(`/api/presupuestos/${f.id}/enviar`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ canal }),
+        })
+        if (!res.ok) {
+          showToast(await leerError(res, 'Error al enviar'), 'error')
+          return
+        }
+        const json = (await res.json()) as { enlace?: string }
+        if (canal === 'whatsapp' && json.enlace) {
+          if (w) w.location.href = json.enlace
+          else window.location.href = json.enlace
+          navegado = true
+          showToast('WhatsApp preparado', 'success')
+        } else {
+          showToast('Email enviado con el PDF adjunto', 'success')
+        }
+        await cargarLista()
+      } finally {
+        if (w && !navegado) w.close()
       }
-      const json = (await res.json()) as { enlace?: string }
-      if (canal === 'whatsapp' && json.enlace) {
-        window.open(json.enlace, '_blank', 'noopener')
-        showToast('WhatsApp preparado', 'success')
-      } else {
-        showToast('Email enviado con el PDF adjunto', 'success')
-      }
-      await cargarLista()
     })
+  }
 
   const aceptar = (f: Fila) => {
     const columna = columnaAceptar[f.id] ?? 'premium'
@@ -255,19 +267,24 @@ export default function VehiculoPresupuestosCard({
       `Aceptar ${f.numero}`,
       `Se aceptará el presupuesto con la columna "${label}". Si tiene cliente asociado se creará un deal reservado; si no, irás al asistente de nueva venta.`,
       async () => {
-        const res = await fetch(`/api/presupuestos/${f.id}/aceptar`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ columna }),
-        })
-        if (!res.ok) {
-          showToast(await leerError(res, 'No se pudo aceptar'), 'error')
-          return
+        try {
+          const res = await fetch(`/api/presupuestos/${f.id}/aceptar`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ columna }),
+          })
+          if (!res.ok) {
+            showToast(await leerError(res, 'No se pudo aceptar'), 'error')
+            return
+          }
+          const json = (await res.json()) as { url?: string }
+          showToast('Presupuesto aceptado', 'success')
+          if (json.url) router.push(json.url)
+          else await cargarLista()
+        } catch (err) {
+          console.error('aceptar presupuesto:', err)
+          showToast('Error de red', 'error')
         }
-        const json = (await res.json()) as { url?: string }
-        showToast('Presupuesto aceptado', 'success')
-        if (json.url) router.push(json.url)
-        else await cargarLista()
       },
       { type: 'info', confirmText: 'Aceptar', loadingText: 'Aceptando…' }
     )
@@ -278,17 +295,22 @@ export default function VehiculoPresupuestosCard({
       `Anular ${f.numero}`,
       'El enlace público dejará de funcionar. Esta acción no se puede deshacer.',
       async () => {
-        const res = await fetch(`/api/presupuestos/${f.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ estado: 'anulado' }),
-        })
-        if (!res.ok) {
-          showToast(await leerError(res, 'No se pudo anular'), 'error')
-          return
+        try {
+          const res = await fetch(`/api/presupuestos/${f.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ estado: 'anulado' }),
+          })
+          if (!res.ok) {
+            showToast(await leerError(res, 'No se pudo anular'), 'error')
+            return
+          }
+          showToast('Presupuesto anulado', 'success')
+          await cargarLista()
+        } catch (err) {
+          console.error('anular presupuesto:', err)
+          showToast('Error de red', 'error')
         }
-        showToast('Presupuesto anulado', 'success')
-        await cargarLista()
       },
       { confirmText: 'Anular', loadingText: 'Anulando…' }
     )
@@ -450,21 +472,23 @@ export default function VehiculoPresupuestosCard({
                     {formatearEuros(f.total_premium)}
                   </td>
                   <td className="py-2 pr-3 text-right tabular-nums whitespace-nowrap">
-                    {f.desde_premium != null ? `${f.desde_premium} €/mes` : '—'}
+                    {cuotaTexto(f.desde_premium)}
                   </td>
                   <td className="py-2 pr-3 whitespace-nowrap">
                     {formatearFecha(f.valido_hasta)}
                   </td>
                   <td className="py-2">
                     <div className="flex flex-wrap items-center gap-1">
-                      <a
-                        href={f.urlPublica}
-                        target="_blank"
-                        rel="noreferrer"
-                        className={CLASE_BTN}
-                      >
-                        Abrir
-                      </a>
+                      {f.estado !== 'anulado' ? (
+                        <a
+                          href={f.urlPublica}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={CLASE_BTN}
+                        >
+                          Abrir
+                        </a>
+                      ) : null}
                       <button
                         type="button"
                         onClick={() => descargarPdf(f)}

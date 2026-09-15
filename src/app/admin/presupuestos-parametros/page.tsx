@@ -71,6 +71,15 @@ function draftDe(params: ParametroApi[]): Draft {
   return d
 }
 
+function errorJson(texto: string): string | null {
+  try {
+    JSON.parse(texto)
+    return null
+  } catch (err) {
+    return err instanceof Error ? err.message : 'JSON inválido'
+  }
+}
+
 function valorDe(clave: Clave, texto: string): unknown {
   if (NUMERICOS.has(clave)) return Number(texto.replace(',', '.'))
   if (clave === 'gp_bandas') return JSON.parse(texto)
@@ -158,9 +167,17 @@ export default function PresupuestosParametrosPage() {
 
   const cambios =
     draft && base ? CLAVES.filter((k) => draft[k] !== base[k]) : []
+  const errorGpBandas = draft ? errorJson(draft.gp_bandas) : null
 
   const guardarParametros = async () => {
-    if (!draft || !cambios.length) return
+    if (!draft || !cambios.length || errorGpBandas) return
+    const vacios = cambios.filter(
+      (k) => NUMERICOS.has(k) && draft[k].trim() === ''
+    )
+    if (vacios.length) {
+      showToast(`Campos numéricos vacíos: ${vacios.join(', ')}`, 'error')
+      return
+    }
     const patch: Record<string, unknown> = {}
     try {
       for (const k of cambios) patch[k] = valorDe(k, draft[k])
@@ -237,13 +254,22 @@ export default function PresupuestosParametrosPage() {
     if (!draft) return null
     if (k === 'gp_bandas') {
       return (
-        <textarea
-          id={`param-${k}`}
-          value={draft[k]}
-          onChange={(e) => set(k, e.target.value)}
-          rows={2}
-          className={`${CLASE_INPUT} font-mono text-xs`}
-        />
+        <>
+          <textarea
+            id={`param-${k}`}
+            value={draft[k]}
+            onChange={(e) => set(k, e.target.value)}
+            rows={2}
+            aria-invalid={errorGpBandas ? true : undefined}
+            aria-describedby={errorGpBandas ? `param-${k}-error` : undefined}
+            className={`${CLASE_INPUT} font-mono text-xs${errorGpBandas ? ' border-red-400' : ''}`}
+          />
+          {errorGpBandas ? (
+            <p id={`param-${k}-error`} className="mt-1 text-xs text-red-600">
+              JSON inválido: {errorGpBandas}
+            </p>
+          ) : null}
+        </>
       )
     }
     if (k === 'tarifa_sin_premium_id') {
@@ -307,7 +333,7 @@ export default function PresupuestosParametrosPage() {
               <button
                 type="button"
                 onClick={guardarParametros}
-                disabled={guardando || cambios.length === 0}
+                disabled={guardando || cambios.length === 0 || !!errorGpBandas}
                 className={CLASE_BTN_PRIMARIO}
               >
                 {guardando ? 'Guardando…' : 'Guardar'}

@@ -7,6 +7,7 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 import EstadoPresupuestoBadge, {
   ESTADO_PRESUPUESTO_LABEL,
 } from '@/components/presupuesto/EstadoPresupuestoBadge'
+import { cuotaTexto } from '@/components/presupuesto/PresupuestoTabla'
 import { useAuth } from '@/contexts/AuthContext'
 import { LIMIT_POR_DEFECTO, type Pagination } from '@/lib/listPagination'
 import { formatearEuros, formatearFecha } from '@/lib/plantillasMensajes'
@@ -94,12 +95,14 @@ export default function PresupuestosPage() {
           >
             <input
               type="search"
+              aria-label="Buscar presupuestos"
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Buscar por nº, cliente, matrícula o vehículo…"
               className={`${CLASE_INPUT} flex-1 min-w-[200px]`}
             />
             <select
+              aria-label="Filtrar por estado"
               value={estado}
               onChange={(e) => {
                 setPage(1)
@@ -186,7 +189,7 @@ export default function PresupuestosPage() {
                         {formatearEuros(f.total_premium)}
                         {f.desde_premium != null ? (
                           <span className="block text-xs text-slate-500">
-                            desde {f.desde_premium} €/mes
+                            desde {cuotaTexto(f.desde_premium)}
                           </span>
                         ) : null}
                       </td>
