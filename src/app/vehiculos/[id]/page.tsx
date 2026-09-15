@@ -21,6 +21,7 @@ import {
 import NotasSection from '@/components/NotasSection'
 import EstadoBadge from '@/components/EstadoBadge'
 import VehiculoFichaComercialCard from '@/components/VehiculoFichaComercialCard'
+import VehiculoPresupuestosCard from '@/components/VehiculoPresupuestosCard'
 import VehiculoPreparacionCard, {
   type PasoVehiculoUI,
 } from '@/components/VehiculoPreparacionCard'
@@ -3681,6 +3682,18 @@ export default function VehiculoDetailPage() {
                 vehiculoId={vehiculo.id}
                 showToast={showToast}
                 onSaved={fetchVehiculo}
+              />
+
+              {/* Presupuestos premium (lista + nuevo con vista previa) */}
+              <VehiculoPresupuestosCard
+                vehiculoId={vehiculo.id}
+                vehiculo={{
+                  marca: vehiculo.marca,
+                  modelo: vehiculo.modelo,
+                  matricula: vehiculo.matricula,
+                  fechaMatriculacion: vehiculo.fechaMatriculacion,
+                }}
+                showToast={showToast}
               />
 
               {/* Estado de Compra */}

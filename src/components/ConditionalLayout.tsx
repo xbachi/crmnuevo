@@ -20,8 +20,8 @@ export default function ConditionalLayout({
   // Páginas que no deben mostrar la navegación
   const authPages = ['/login', '/logininv']
 
-  if (authPages.includes(pathname)) {
-    // Para páginas de autenticación, solo mostrar el contenido
+  // Auth y página pública del presupuesto (/p/[token]): sin menú CRM
+  if (authPages.includes(pathname) || pathname.startsWith('/p/')) {
     return <>{children}</>
   }
 

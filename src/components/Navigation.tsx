@@ -268,6 +268,12 @@ export default function Navigation() {
       roles: ['admin', 'asesor'],
     },
     {
+      href: '/presupuestos',
+      label: 'Presupuestos',
+      icon: ContratosIcon,
+      roles: ['admin', 'asesor'],
+    },
+    {
       href: '/clientes',
       label: 'Clientes',
       icon: ClientesIcon,
