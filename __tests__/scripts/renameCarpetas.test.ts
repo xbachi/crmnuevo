@@ -3,6 +3,7 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import {
+  esNombreCanonico,
   RAICES,
   claveBusqueda,
   extraerMatriculaNombre,
@@ -578,5 +579,82 @@ describe('log', () => {
     expect(lineas[2]).toMatchObject({ op: 'listar', ok: true })
     expect(lineas[3]).toMatchObject({ op: 'crear', ok: false, nombre: '-x' })
     expect(typeof lineas[0].ts).toBe('string')
+  })
+})
+
+describe('sufijos del nombre real', () => {
+  it('esNombreCanonico tolera sufijos pero no otros nombres', () => {
+    expect(
+      esNombreCanonico(
+        '14-Hyundai-I10-7793LPD-Rojo-Inversor-Juan',
+        '14-Hyundai-I10-7793LPD'
+      )
+    ).toBe(true)
+    expect(
+      esNombreCanonico('14-Hyundai-I10-7793LPD', '14-Hyundai-I10-7793LPD')
+    ).toBe(true)
+    expect(
+      esNombreCanonico('14-Hyundai-I10-7793LPDX', '14-Hyundai-I10-7793LPD')
+    ).toBe(false)
+  })
+
+  it('crear no renombra una carpeta canónica con sufijos', async () => {
+    mk('1_Ventas', '14-Hyundai-I10-7793LPD-Rojo-Inversor-Juan')
+    mk('3_Compras', '14-Hyundai-I10-7793LPD-Rojo-Inversor-Juan')
+    const r = await procesarCarpetas(
+      {
+        accion: 'carpetas',
+        op: 'crear',
+        nombre: '14-Hyundai-I10-7793LPD',
+        tipo: 'C',
+        matricula: '7793LPD',
+      },
+      ctx
+    )
+    expect(r.resultado).toBe('sin_cambios')
+    expect(hay('1_Ventas', '14-Hyundai-I10-7793LPD-Rojo-Inversor-Juan')).toBe(
+      true
+    )
+  })
+
+  it('vendido conserva los sufijos al mover', async () => {
+    mk('1_Ventas', '14-Hyundai-I10-7793LPD-Rojo-Inversor-Juan')
+    mk('3_Compras', '14-Hyundai-I10-7793LPD-Rojo-Inversor-Juan')
+    const r = await procesarCarpetas(
+      {
+        accion: 'carpetas',
+        op: 'vendido',
+        nombre: '14-Hyundai-I10-7793LPD',
+        tipo: 'C',
+        matricula: '7793LPD',
+      },
+      ctx
+    )
+    expect(r.resultado).toBe('movido')
+    expect(
+      hay(
+        '1_Ventas',
+        '----VENDIDOS',
+        '14-Hyundai-I10-7793LPD-Rojo-Inversor-Juan'
+      )
+    ).toBe(true)
+    expect(
+      hay(
+        '3_Compras',
+        '----VENDIDOS',
+        '14-Hyundai-I10-7793LPD-Rojo-Inversor-Juan'
+      )
+    ).toBe(true)
+    const r2 = await procesarCarpetas(
+      {
+        accion: 'carpetas',
+        op: 'vendido',
+        nombre: '14-Hyundai-I10-7793LPD',
+        tipo: 'C',
+        matricula: '7793LPD',
+      },
+      ctx
+    )
+    expect(r2.resultado).toBe('sin_cambios')
   })
 })

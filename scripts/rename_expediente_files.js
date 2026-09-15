@@ -364,6 +364,10 @@ function extraerMatriculaNombre(nombre) {
   return null
 }
 
+/** El nombre real es el canónico o el canónico con sufijos ('…-Rojo-Inversor-Juan'): no se toca. */
+const esNombreCanonico = (actual, canonico) =>
+  actual === canonico || actual.startsWith(`${canonico}-`)
+
 /** Nombre de carpeta de coche válido; lanza si no lo es (→ 400). */
 function nombreCarpetaSeguro(nombre) {
   const n = nombreSeguro(nombre)
@@ -541,7 +545,7 @@ async function opCrear(body, ctx) {
       }
       continue
     }
-    if (c.nombre === nombre) {
+    if (esNombreCanonico(c.nombre, nombre)) {
       porRaiz[root] = { resultado: 'sin_cambios', ruta: c.rel, motivo: null }
       continue
     }
@@ -575,8 +579,6 @@ async function opVendido(body, ctx) {
   for (const root of Object.keys(RAICES)) {
     await raizExiste(ctx.root, root)
     const contenedor = RAICES[root].vendidos[tipo]
-    const destinoRel = path.posix.join(root, contenedor, nombre)
-    const destinoAbs = path.join(ctx.root, destinoRel)
     const coincidencias = await localizar(ctx.root, root, nombre, matricula)
     const existentes = coincidencias.map((c) => c.rel)
 
@@ -598,13 +600,17 @@ async function opVendido(body, ctx) {
       continue
     }
     const c = coincidencias[0]
-    if (c.contenedor === contenedor && c.nombre === nombre) {
+    // Los sufijos del nombre real se conservan al mover.
+    const nombreFinal = esNombreCanonico(c.nombre, nombre) ? c.nombre : nombre
+    const destinoRel = path.posix.join(root, contenedor, nombreFinal)
+    const destinoAbs = path.join(ctx.root, destinoRel)
+    if (c.contenedor === contenedor && c.nombre === nombreFinal) {
       porRaiz[root] = { resultado: 'sin_cambios', ruta: c.rel, motivo: null }
       continue
     }
     const soloCase =
       c.contenedor === contenedor &&
-      c.nombre.toLowerCase() === nombre.toLowerCase()
+      c.nombre.toLowerCase() === nombreFinal.toLowerCase()
     if (!soloCase && (await existe(destinoAbs))) {
       porRaiz[root] = {
         resultado: 'conflicto',
@@ -859,6 +865,7 @@ if (require.main === module) {
 module.exports = {
   RAICES,
   claveBusqueda,
+  esNombreCanonico,
   extraerMatriculaNombre,
   nombreCarpetaSeguro,
   listarCarpetasRaiz,
