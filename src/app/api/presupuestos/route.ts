@@ -20,6 +20,10 @@ import {
 
 const LIMIT_SIN_PAGINACION = 200
 const MAX_NOMBRE = 120
+const MAX_TELEFONO = 40
+const MAX_EMAIL = 254
+const MAX_Q = 100
+const RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 /** Nombre visible de quien crea; best-effort, nunca bloquea. */
 async function nombreUsuario(uid: number): Promise<string> {
@@ -56,13 +60,20 @@ export async function GET(request: NextRequest) {
       : undefined
   const vehiculoId = enteroPositivo(sp.get('vehiculoId')) ?? undefined
   const pag = leerPaginacion(sp)
+  const q = sp.get('q')?.trim() || undefined
+  if (q && q.length > MAX_Q) {
+    return NextResponse.json(
+      { error: 'Datos inválidos', errores: [`q: máximo ${MAX_Q} caracteres`] },
+      { status: 400 }
+    )
+  }
 
   try {
     const { rows, total } = await listarPresupuestos({
       estado,
       vencidos: sp.get('vencidos') === 'true',
       vehiculoId,
-      q: sp.get('q')?.trim() || undefined,
+      q,
       limit: pag?.limit ?? LIMIT_SIN_PAGINACION,
       offset: pag?.offset ?? 0,
     })
@@ -105,6 +116,12 @@ export async function POST(request: NextRequest) {
   if (!nombreCliente) errores.push('nombreCliente: obligatorio')
   else if (nombreCliente.length > MAX_NOMBRE)
     errores.push(`nombreCliente: máximo ${MAX_NOMBRE} caracteres`)
+  const telefono = textoOpcional(body.telefono)
+  if (telefono && telefono.length > MAX_TELEFONO)
+    errores.push(`telefono: máximo ${MAX_TELEFONO} caracteres`)
+  const email = textoOpcional(body.email)
+  if (email && (email.length > MAX_EMAIL || !RE_EMAIL.test(email)))
+    errores.push('email: formato inválido')
   const interesadoId =
     body.interesadoId == null ? null : enteroPositivo(body.interesadoId)
   if (body.interesadoId != null && !interesadoId)
@@ -143,8 +160,8 @@ export async function POST(request: NextRequest) {
       interesadoId,
       clienteId,
       nombreCliente,
-      telefono: textoOpcional(body.telefono),
-      email: textoOpcional(body.email),
+      telefono,
+      email,
       opciones: opciones.opciones,
       calculo: c.calculo,
       version: versionDe(c.contexto),

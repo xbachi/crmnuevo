@@ -71,7 +71,7 @@ export default async function PresupuestoPublicoPage({ params }: Params) {
   const enlaceWhatsApp = p.whatsapp.telefono
     ? `https://wa.me/${p.whatsapp.telefono}?text=${encodeURIComponent(textoWhatsApp)}`
     : null
-  const garantia = calculo.derivados.garantia.textoOficial
+  const garantia = calculo.garantia.textoOficial
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-800 pb-24">

@@ -3,16 +3,14 @@
  * Presentacional puro: lo usan la vista previa del CRM y la página pública.
  */
 import { formatearEuros } from '@/lib/plantillasMensajes'
-import type {
-  ChequeoPresupuesto,
-  ColumnaCalculo,
-  ResultadoCalculo,
+import {
+  AVISO_INTERNO,
+  type CalculoTabla,
+  type ChequeoPresupuesto,
+  type ColumnaPublica,
 } from '@/lib/presupuesto/tipos'
 
-/** Aviso interno del CRM: nunca se enseña al cliente. */
-export const AVISO_INTERNO = 'FINANCIA MÁS 70%'
-
-export function avisosPublicos(calculo: ResultadoCalculo): string[] {
+export function avisosPublicos(calculo: CalculoTabla): string[] {
   return calculo.avisos.filter((a) => a !== AVISO_INTERNO)
 }
 
@@ -21,7 +19,8 @@ export function cuotaTexto(cuota: number | null): string {
 }
 
 interface Props {
-  calculo: ResultadoCalculo
+  /** ResultadoCalculo completo (CRM) o la proyección pública. */
+  calculo: CalculoTabla
   /** Menos aire (card del CRM). */
   compacto?: boolean
   /** Página pública: oculta los avisos internos. */
@@ -33,7 +32,7 @@ function Columna({
   checks,
   compacto,
 }: {
-  col: ColumnaCalculo
+  col: ColumnaPublica
   checks: ChequeoPresupuesto[]
   compacto: boolean
 }) {

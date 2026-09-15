@@ -45,6 +45,7 @@ const FOOTER_Y = PAGE_H - 15
 const QR_MM = 24
 /** Aviso interno de la hoja: no se imprime al cliente. */
 const AVISOS_INTERNOS = new Set(['FINANCIA MÁS 70%'])
+const MAX_IMAGEN_BYTES = 8 * 1024 * 1024
 
 const fill = (doc: Doc, c: RGB) => doc.setFillColor(c[0], c[1], c[2])
 const stroke = (doc: Doc, c: RGB) => doc.setDrawColor(c[0], c[1], c[2])
@@ -94,9 +95,13 @@ export async function cargarImagenJpegDataUrl(
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), timeoutMs)
   try {
-    const res = await fetch(url, { signal: ctrl.signal })
+    const res = await fetch(url, { signal: ctrl.signal, redirect: 'follow' })
     if (!res.ok) return null
-    const buf = Buffer.from(await res.arrayBuffer())
+    const declarado = Number(res.headers.get('content-length'))
+    if (Number.isFinite(declarado) && declarado > MAX_IMAGEN_BYTES) return null
+    const ab = await res.arrayBuffer()
+    if (ab.byteLength > MAX_IMAGEN_BYTES) return null
+    const buf = Buffer.from(ab)
     const sharp = (await import('sharp')).default
     const jpeg = await sharp(buf)
       .rotate()

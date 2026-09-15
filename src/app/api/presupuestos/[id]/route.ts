@@ -15,6 +15,9 @@ import {
 } from '@/lib/presupuesto/servicio'
 
 const MAX_NOMBRE = 120
+const MAX_TELEFONO = 40
+const MAX_EMAIL = 254
+const RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 function parseId(raw: string): number | null {
   const id = parseInt(raw, 10)
@@ -111,8 +114,18 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
         errores.push(`nombreCliente: máximo ${MAX_NOMBRE} caracteres`)
       else patch.nombre_cliente = n
     }
-    if ('telefono' in body) patch.telefono = textoOpcional(body.telefono)
-    if ('email' in body) patch.email = textoOpcional(body.email)
+    if ('telefono' in body) {
+      const t = textoOpcional(body.telefono)
+      if (t && t.length > MAX_TELEFONO)
+        errores.push(`telefono: máximo ${MAX_TELEFONO} caracteres`)
+      else patch.telefono = t
+    }
+    if ('email' in body) {
+      const e = textoOpcional(body.email)
+      if (e && (e.length > MAX_EMAIL || !RE_EMAIL.test(e)))
+        errores.push('email: formato inválido')
+      else patch.email = e
+    }
     if ('opciones' in body) {
       const op = normalizarOpciones(body.opciones)
       if (!op.ok) errores.push(...op.errores)
@@ -137,6 +150,8 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
         patch.tarifa_id = c.contexto.tarifaPremium.id
         patch.tarifa_sin_premium_id = c.contexto.tarifaSinPremium.id
         patch.pdf_url = null
+        // Recalculado → nueva validez: un vencido vuelve a borrador.
+        if (actual.estado === 'vencido') patch.estado = 'borrador'
       }
     }
     if (anular) patch.estado = 'anulado'

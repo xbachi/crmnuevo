@@ -537,7 +537,7 @@ export async function marcarVisto(token: string): Promise<boolean> {
         SET visto_at = COALESCE(visto_at, NOW()),
             estado = CASE WHEN estado = 'enviado' THEN 'visto' ELSE estado END,
             updated_at = NOW()
-      WHERE token_publico = $1 RETURNING id`,
+      WHERE token_publico = $1 AND estado <> 'anulado' RETURNING id`,
     [token]
   )
   return r.rows.length > 0

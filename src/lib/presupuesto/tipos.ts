@@ -209,6 +209,29 @@ export interface ResultadoCalculo {
   textos: { legal: string; validez: string }
 }
 
+/** Aviso interno del CRM: nunca se enseña al cliente (tabla, PDF, API pública). */
+export const AVISO_INTERNO = 'FINANCIA MÁS 70%'
+
+/** Columna sin el nombre de la tarifa (proyección pública). */
+export type ColumnaPublica = Omit<ColumnaCalculo, 'tarifaNombre'>
+
+/** Lo mínimo que necesita la tabla; lo cumplen ResultadoCalculo y CalculoPublico. */
+export interface CalculoTabla {
+  columnas: { sin_premium: ColumnaPublica; premium: ColumnaPublica }
+  checks: { sin_premium: ChequeoPresupuesto[]; premium: ChequeoPresupuesto[] }
+  avisos: string[]
+}
+
+/** Proyección pública del cálculo: sin entrada, derivados ni nombres de tarifa. */
+export interface CalculoPublico extends CalculoTabla {
+  hoy: string
+  validoHasta: string
+  financiable: boolean
+  plazosMostrados: Plazo[]
+  textos: { legal: string; validez: string }
+  garantia: { textoOficial: string | null }
+}
+
 export const TEXTO_LEGAL =
   'Validez del precio del vehículo 7 días, salvo que no esté disponible. ' +
   'Consúltanos para confirmar disponibilidad. Financiación con valor orientativo ' +

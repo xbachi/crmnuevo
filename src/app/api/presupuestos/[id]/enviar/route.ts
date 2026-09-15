@@ -78,6 +78,12 @@ export async function POST(
         { status: 409 }
       )
     }
+    if (p.estado === 'vencido') {
+      return NextResponse.json(
+        { error: 'Presupuesto vencido: recalcúlalo antes de enviarlo' },
+        { status: 409 }
+      )
+    }
     const v = await cargarVehiculoPresupuesto(p.vehiculo_id)
     const urlPublica = urlPublicaPresupuesto(p.token_publico)
     const { asunto, texto, html } = renderPlantilla('presupuesto', {

@@ -27,7 +27,11 @@ import {
 } from './repo'
 import { subirPdfPresupuesto } from './storage'
 import {
+  AVISO_INTERNO,
   OPCIONES_DEFECTO,
+  type CalculoPublico,
+  type ColumnaCalculo,
+  type ColumnaPublica,
   type EstadoPresupuesto,
   type ModoEntrega,
   type OpcionesPresupuesto,
@@ -75,7 +79,7 @@ export interface PresupuestoPublico {
     url_imagen: string | null
     mantenimientos: string | null
   }
-  calculo: ResultadoCalculo
+  calculo: CalculoPublico
   reservaUrl: string
   whatsapp: { telefono: string | null }
   pdfDisponible: boolean
@@ -299,6 +303,36 @@ export function versionDe(c: ContextoCalculo): VersionParametros {
 
 // ── Proyección pública ──────────────────────────────────────────────────────
 
+function columnaPublica(c: ColumnaCalculo): ColumnaPublica {
+  return {
+    clave: c.clave,
+    titulo: c.titulo,
+    lineas: c.lineas,
+    importe: c.importe,
+    total: c.total,
+    cuotas: c.cuotas,
+    desde: c.desde,
+  }
+}
+
+/** Sin `entrada`, `derivados`, nombres de tarifa ni avisos internos. */
+export function calculoPublico(c: ResultadoCalculo): CalculoPublico {
+  return {
+    hoy: c.hoy,
+    validoHasta: c.validoHasta,
+    financiable: c.financiable,
+    plazosMostrados: c.plazosMostrados,
+    columnas: {
+      sin_premium: columnaPublica(c.columnas.sin_premium),
+      premium: columnaPublica(c.columnas.premium),
+    },
+    checks: c.checks,
+    avisos: c.avisos.filter((a) => a !== AVISO_INTERNO),
+    textos: c.textos,
+    garantia: { textoOficial: c.derivados.garantia.textoOficial },
+  }
+}
+
 export function aPublico(
   p: PresupuestoRow,
   v: VehiculoPresupuesto,
@@ -331,7 +365,7 @@ export function aPublico(
       url_imagen: f?.url_imagen ?? null,
       mantenimientos: f?.mantenimientos ?? null,
     },
-    calculo: p.calculo,
+    calculo: calculoPublico(p.calculo),
     reservaUrl: urlReserva(f?.url_qr, params.reserva_url_defecto),
     whatsapp: { telefono: telefonoWhatsAppEmpresa(params.whatsapp_empresa) },
     pdfDisponible: !!p.pdf_url,

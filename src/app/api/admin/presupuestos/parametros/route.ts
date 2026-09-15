@@ -36,6 +36,7 @@ const NUMERICOS: ReadonlyArray<keyof ParametrosPresupuesto> = [
 ]
 const CLAVES = Object.keys(PARAMETROS_DEFECTO)
 const MAX_NOMBRE_TARIFA = 80
+const MAX_WHATSAPP = 30
 
 function numeroFinito(v: unknown): number | null {
   const n = typeof v === 'string' ? Number(v.replace(',', '.')) : Number(v)
@@ -95,7 +96,10 @@ async function validarParametros(
         errores.push('reserva_url_defecto: debe ser una URL http(s)')
       } else patch[k] = s
     } else if (k === 'whatsapp_empresa') {
-      patch[k] = String(v ?? '').trim()
+      const s = String(v ?? '').trim()
+      if (s.length > MAX_WHATSAPP) {
+        errores.push(`whatsapp_empresa: máximo ${MAX_WHATSAPP} caracteres`)
+      } else patch[k] = s
     }
   }
   return { patch, errores }

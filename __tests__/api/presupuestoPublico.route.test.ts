@@ -161,6 +161,14 @@ describe('GET /api/public/presupuesto/[token]', () => {
       pdfDisponible: true,
     })
     expect(json.calculo.columnas.premium.total).toBe(32965)
+    expect(json.calculo).not.toHaveProperty('derivados')
+    expect(json.calculo).not.toHaveProperty('entrada')
+    expect(json.calculo.columnas.premium).not.toHaveProperty('tarifaNombre')
+    expect(json.calculo.columnas.sin_premium).not.toHaveProperty('tarifaNombre')
+    expect(JSON.stringify(json)).not.toContain('FINANCIA MÁS 70%')
+    expect(json.calculo.garantia).toEqual({
+      textoOficial: CALCULO.derivados.garantia.textoOficial,
+    })
     expect(mockLeerPorToken).toHaveBeenCalledWith(TOKEN)
   })
 

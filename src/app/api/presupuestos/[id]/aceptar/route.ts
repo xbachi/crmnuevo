@@ -75,6 +75,12 @@ export async function POST(
         { status: 409 }
       )
     }
+    if (p.deal_id != null) {
+      return NextResponse.json(
+        { error: 'Ya tiene un deal asociado', dealId: p.deal_id },
+        { status: 409 }
+      )
+    }
     const v = await cargarVehiculoPresupuesto(p.vehiculo_id)
     if (!v) {
       return NextResponse.json(
@@ -107,14 +113,27 @@ export async function POST(
       })
     }
 
-    const deal = await createDeal({
-      clienteId,
-      vehiculoId: p.vehiculo_id,
-      importeTotal: p.calculo.columnas[columna].total,
-      financiacion: p.calculo.financiable,
-      observaciones: `Presupuesto ${p.numero} (${columna})`,
-      responsableComercial: await nombreUsuario(auth.session.uid),
-    })
+    let deal: Awaited<ReturnType<typeof createDeal>>
+    try {
+      deal = await createDeal({
+        clienteId,
+        vehiculoId: p.vehiculo_id,
+        importeTotal: p.calculo.columnas[columna].total,
+        financiacion: p.calculo.financiable,
+        observaciones: `Presupuesto ${p.numero} (${columna})`,
+        responsableComercial: await nombreUsuario(auth.session.uid),
+      })
+    } catch (e) {
+      if ((e as { code?: string }).code === '23503') {
+        return NextResponse.json(
+          { error: 'Cliente no encontrado' },
+          { status: 404 }
+        )
+      }
+      throw e
+    }
+    // Enlazar ya el deal: si la reserva falla no se puede volver a crear otro.
+    await actualizarPresupuesto(id, { deal_id: deal.id })
     try {
       // updateDeal lee `estado` del patch aunque DealCreateData no lo tipa.
       await updateDeal(deal.id, {
