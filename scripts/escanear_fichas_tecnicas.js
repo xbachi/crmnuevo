@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * escanear_fichas_tecnicas.js — extrae los datos de la ficha tecnica (tarjeta
- * ITV) de cada coche publicado y los empuja al CRM.
+ * escanear_fichas_tecnicas.js — extrae los datos tecnicos de cada coche
+ * publicado (permiso de circulacion y/o ficha tecnica) y los empuja al CRM.
  *
  * Corre en el SERVER (Hetzner, deploy en /root/escanear_fichas_tecnicas.js; el
  * CRM en Vercel no puede leer el mount rclone). Una vez al dia:
@@ -9,12 +9,19 @@
  *   1. GET  {CRM}/api/onedrive/catalogo        (X-Admin-Secret)  → coches
  *   2. busca la carpeta de cada coche bajo /mnt/onedrive/{1_Ventas,3_Compras}
  *      (y sus subcarpetas contenedoras: Coches R, Consignacion, Vendidos...)
- *   3. busca dentro el archivo de ficha tecnica (el mas reciente si hay varios)
- *   4. si el MD5 de ese archivo YA se extrajo alguna vez → se salta (no se
- *      llama a la API). Esto es lo que hace que el coste sea de centimos:
- *      cada documento se lee UNA vez en su vida, no una vez por dia.
- *   5. si no, lo manda a la API de Claude (imagen redimensionada con sharp, o
- *      el PDF tal cual) y parsea el JSON de campos + confianzas
+ *   3. elige los documentos por prioridad: (a) permiso de circulacion
+ *      definitivo, (b) ficha tecnica / tarjeta ITV (si viene en "cara 1" y
+ *      "cara 2" se mandan las dos caras juntas), (c) permiso provisional.
+ *      Dentro de cada grupo, el mas reciente.
+ *   4. si el MD5 de los documentos usados YA se extrajo alguna vez → se salta
+ *      (no se llama a la API). Esto es lo que hace que el coste sea de
+ *      centimos: cada documento se lee UNA vez en su vida, no una vez por dia.
+ *   5. si no, manda (a) a la API de Claude (imagen redimensionada con sharp, o
+ *      el PDF tal cual). Si a (a) le falta algun campo clave (combustible,
+ *      bastidor, cilindrada, potencia, fecha de matriculacion) con confianza
+ *      < 0,5 y existe (b), lee tambien (b) y fusiona campo a campo quedandose
+ *      con el de mayor confianza. Sin (a) ni (b) se usa (c). Maximo 2
+ *      llamadas por coche y corrida.
  *   6. POST {CRM}/api/fichas-tecnicas/snapshot (X-Webhook-Secret)
  *
  * Nunca aborta por un coche: los fallos se cuentan y se reportan al final
@@ -24,6 +31,7 @@
  *   node escanear_fichas_tecnicas.js
  *   DRY_RUN=1 node escanear_fichas_tecnicas.js          # ni API ni POST
  *   SOLO=3429LHT node escanear_fichas_tecnicas.js       # un solo coche
+ *   REFRESCAR=1 node escanear_fichas_tecnicas.js        # ignora la cache
  *
  * Env:
  *   ANTHROPIC_API_KEY           obligatoria (salvo DRY_RUN=1)
@@ -38,6 +46,7 @@
  *   HASH_CACHE                  default /root/.fichas_tecnicas_cache.json ('' = sin cache)
  *   MAX_COCHES                  tope de extracciones nuevas por corrida (default 60)
  *   ESFUERZO                    output_config.effort (default 'medium')
+ *   REFRESCAR=1                 ignora la cache de extraidos (vuelve a pagar)
  *
  * Instalacion en el server:
  *   npm install --prefix /root sharp @anthropic-ai/sdk
@@ -74,6 +83,7 @@ const CACHE_FILE =
     ? null
     : process.env.HASH_CACHE || '/root/.fichas_tecnicas_cache.json'
 const DRY_RUN = process.env.DRY_RUN === '1'
+const REFRESCAR = process.env.REFRESCAR === '1'
 const SOLO = (process.env.SOLO || '').trim()
 const MAX_COCHES = parseInt(process.env.MAX_COCHES || '60', 10)
 const MODELO_IA = process.env.MODELO_IA || 'claude-sonnet-5'
@@ -85,7 +95,25 @@ const CALIDAD_JPEG = 85
 const MAX_BYTES_DOC = 20 * 1024 * 1024 // el request de la API tope 32MB; base64 infla 4/3
 
 const EXT_OK = new Set(['.jpg', '.jpeg', '.png', '.pdf', '.heic'])
-const RE_FICHA = /ficha[-_ ]?t[eé]cnica|tarjeta[-_ ]?itv|\bitv\b/i
+const RE_PERMISO = /permiso[-_ ]?(?:de[-_ ]?)?circulaci[oó]n/i
+const RE_PROVISIONAL = /provisional/i
+const RE_CIRCULACION = /circulaci[oó]n/i
+// sin el `\bitv\b` suelto: "factura-itv.pdf" es una factura, no una ficha
+const RE_FICHA = /ficha[-_ ]?t[eé]cnica|tarjeta[-_ ]?itv/i
+// facturas, impuesto/recibo de circulacion, solicitudes: no son el documento
+const RE_FACTURA = /factura|impuesto|recibo|solicitud|tasa/i
+const RE_CARA = /\bcara[-_ ]?(\d)\b/i
+
+// campos que, si el permiso no los trae con confianza suficiente, justifican
+// leer tambien la ficha tecnica
+const CAMPOS_CLAVE = [
+  'combustible',
+  'bastidor',
+  'cilindrada_cc',
+  'potencia_kw',
+  'fecha_primera_matriculacion',
+]
+const CONFIANZA_COMPLEMENTO = 0.5
 
 // ---------------------------------------------------------------- utilidades
 
@@ -153,12 +181,18 @@ function secretoWebhook() {
 // { md5:       { "path|size|mtime": "<hash>" },                   // evita releer bytes
 //   extraidos: { "<hash>|<matricula>": { at, archivo, ok, dry? } } } // evita repagar la API
 //
+// `hash` es el de los documentos USADOS: el del permiso solo, o el combinado
+// permiso+ficha si hubo que leer la ficha (y el de las dos caras juntas cuando
+// la ficha viene partida). Un coche leido antes solo por ficha tecnica tiene
+// otra clave → se vuelve a leer por permiso una sola vez.
+//
 // La clave lleva la matricula ademas del hash: dos coches distintos con el
 // mismo contenido (una plantilla, un escaneo duplicado) tienen que extraerse
 // cada uno por su lado, o el segundo se perderia en silencio.
 //
 // Las entradas `dry` las escribe DRY_RUN=1: valen como cache SOLO en dry-run
 // (para poder probar la segunda pasada) y una corrida real las ignora.
+// REFRESCAR=1 ignora la cache de extraidos (la de md5 se sigue usando).
 
 let cache = { md5: {}, extraidos: {} }
 
@@ -184,11 +218,20 @@ function guardarCache() {
 const claveExtraido = (hash, plate) => `${hash}|${plate}`
 
 function yaExtraido(hash, plate) {
+  if (REFRESCAR) return null
   const prev = cache.extraidos[claveExtraido(hash, plate)]
   if (!prev) return null
   if (prev.dry && !DRY_RUN) return null
   return prev
 }
+
+/** Hash de un conjunto de documentos: el md5 del archivo si es uno solo
+ *  (compatible con la cache y con las filas ya guardadas), o el md5 de los
+ *  md5 concatenados si son varios (dos caras, permiso+ficha). */
+const hashCombinado = (hashes) =>
+  hashes.length === 1
+    ? hashes[0]
+    : crypto.createHash('md5').update(hashes.join('|')).digest('hex')
 
 /** MD5 del contenido, en streaming (mismo algoritmo que scan_expedientes.js). */
 function md5Archivo(file) {
@@ -287,15 +330,38 @@ async function archivosDeCarpeta(dir) {
   return out
 }
 
-/** La ficha tecnica de un coche: la mas reciente entre todas sus carpetas. */
-async function buscarFicha(carpetas) {
-  let mejor = null
+/**
+ * Tipo de documento segun el nombre del archivo: 'permiso' (permiso de
+ * circulacion definitivo), 'provisional', 'ficha' (ficha tecnica / tarjeta
+ * ITV) o null (cualquier otra cosa: facturas, contratos, fotos...).
+ */
+function tipoDeArchivo(nombre) {
+  const n = sinAcentos(nombre)
+  if (RE_FACTURA.test(n)) return null
+  if (RE_PERMISO.test(n) || RE_CIRCULACION.test(n)) {
+    return RE_PROVISIONAL.test(n) ? 'provisional' : 'permiso'
+  }
+  if (RE_FICHA.test(n)) return 'ficha'
+  return null
+}
+
+/**
+ * Documentos de un coche, agrupados por tipo y elegidos por prioridad:
+ * { permiso, ficha, provisional }, cada uno { tipo, archivos: [...], carpeta }
+ * o null. Dentro de cada grupo se queda con el mas reciente; si la ficha
+ * tecnica mas reciente es una "cara N", se juntan todas las caras de esa
+ * misma ficha (mismo directorio, mismo nombre salvo el numero de cara) para
+ * mandarlas como un unico documento.
+ */
+async function buscarDocumentos(carpetas) {
+  const candidatos = { permiso: [], ficha: [], provisional: [] }
   for (const c of carpetas) {
     for (const file of await archivosDeCarpeta(c.dir)) {
       const nombre = path.basename(file)
       const ext = path.extname(nombre).toLowerCase()
       if (!EXT_OK.has(ext)) continue
-      if (!RE_FICHA.test(sinAcentos(nombre))) continue
+      const tipo = tipoDeArchivo(nombre)
+      if (!tipo) continue
       let stat
       try {
         stat = await fsp.stat(file)
@@ -303,20 +369,65 @@ async function buscarFicha(carpetas) {
         console.error(`[stat] ${file}: ${err.message}`)
         continue
       }
-      if (!mejor || stat.mtimeMs > mejor.stat.mtimeMs) {
-        mejor = { file, nombre, ext, stat, carpeta: c.carpeta }
-      }
+      candidatos[tipo].push({ file, nombre, ext, stat, carpeta: c.carpeta })
     }
   }
-  return mejor
+
+  const masReciente = (lista) =>
+    lista.reduce(
+      (m, a) => (!m || a.stat.mtimeMs > m.stat.mtimeMs ? a : m),
+      null
+    )
+
+  // "Ficha técnica cara 1.jpeg" → { base: "ficha tecnica .jpeg", cara: 1 }
+  const claveCara = (a) => {
+    const m = RE_CARA.exec(sinAcentos(a.nombre))
+    if (!m) return null
+    return {
+      cara: parseInt(m[1], 10),
+      base: `${path.dirname(a.file)}|${sinAcentos(a.nombre).replace(RE_CARA, '').toLowerCase()}`,
+    }
+  }
+
+  function elegir(tipo) {
+    const lista = candidatos[tipo]
+    const mejor = masReciente(lista)
+    if (!mejor) return null
+    const cc = claveCara(mejor)
+    let archivos = [mejor]
+    if (cc) {
+      const porCara = new Map()
+      for (const a of lista) {
+        const k = claveCara(a)
+        if (!k || k.base !== cc.base) continue
+        const prev = porCara.get(k.cara)
+        if (!prev || a.stat.mtimeMs > prev.stat.mtimeMs) porCara.set(k.cara, a)
+      }
+      archivos = [...porCara.entries()]
+        .sort((x, y) => x[0] - y[0])
+        .map(([, a]) => a)
+    }
+    return { tipo, archivos, carpeta: mejor.carpeta }
+  }
+
+  return {
+    permiso: elegir('permiso'),
+    ficha: elegir('ficha'),
+    provisional: elegir('provisional'),
+  }
 }
+
+const nombreDoc = (doc) => doc.archivos.map((a) => a.nombre).join(' + ')
 
 // -------------------------------------------------------------------- prompt
 
-const PROMPT = `Eres un extractor de datos de fichas tecnicas (tarjeta ITV) espanolas.
+const PROMPT = `Eres un extractor de datos tecnicos de vehiculos a partir de documentos
+espanoles: el Permiso de Circulacion (definitivo o provisional) y la ficha
+tecnica (tarjeta ITV).
 
-Te paso la foto o el escaneo de un documento de un coche. Devuelve EXACTAMENTE
-este JSON y nada mas (sin texto alrededor, sin bloques de codigo):
+Te paso la foto o el escaneo de UN documento de un coche (si son dos imagenes,
+son las dos caras del mismo documento: leelas como una sola). Devuelve
+EXACTAMENTE este JSON y nada mas (sin texto alrededor, sin bloques de codigo):
 
 { "matricula": {"valor": "...", "confianza": 0.0},
   "bastidor": {"valor": "...", "confianza": 0.0},
@@ -329,9 +440,10 @@ este JSON y nada mas (sin texto alrededor, sin bloques de codigo):
   "plazas": {"valor": 0, "confianza": 0.0},
   "fecha_primera_matriculacion": {"valor": "YYYY-MM-DD", "confianza": 0.0},
   "color": {"valor": "...", "confianza": 0.0},
-  "legibilidad": {"nota": "texto corto", "es_ficha_tecnica": true} }
+  "legibilidad": {"nota": "texto corto", "tipo_documento": "permiso",
+                  "es_documento_vehiculo": true} }
 
-Donde mirar en la tarjeta ITV espanola (casillas):
+Donde mirar (casillas armonizadas, iguales en ambos documentos):
   A    matricula
   B    fecha de primera matriculacion
   D.1  marca
@@ -344,6 +456,11 @@ Donde mirar en la tarjeta ITV espanola (casillas):
   S.1  numero de plazas
   R    color (no siempre esta)
 
+Permiso de Circulacion: suele traer A, B, D.1, D.2, D.3, E y P.3. Con
+frecuencia NO trae cilindrada, potencia, plazas ni color: entonces esos campos
+van con "valor": null y confianza 0, sin deducirlos de la marca o el modelo.
+Tarjeta ITV: trae todas las casillas de arriba.
+
 Reglas:
 - NO inventes. Lo que no puedas LEER va con "valor": null y confianza 0.
 - "confianza" es de 0 a 1 por campo. Bajala si hay brillo, reflejo, sombra,
@@ -353,11 +470,17 @@ Reglas:
   documento. Si cuentas menos de 17 o hay una I/O/Q, baja la confianza.
 - cilindrada_cc, potencia_kw, potencia_cv y plazas son NUMEROS (sin unidades).
 - fecha_primera_matriculacion SIEMPRE en formato YYYY-MM-DD.
+- El permiso de circulacion lleva datos personales del titular (casilla C:
+  nombre, DNI/NIF, domicilio). NO los extraigas, NO los transcribas ni los
+  menciones en ninguna parte del JSON, tampoco en "legibilidad.nota".
 - "legibilidad.nota": una frase corta en espanol sobre la calidad de la lectura
   (p.ej. "foto con reflejo sobre la casilla E").
-- "legibilidad.es_ficha_tecnica": false si la imagen NO es una ficha tecnica /
-  tarjeta ITV (permiso de circulacion, factura, contrato, foto del coche...).
-  En ese caso pon todos los campos a null y explica que documento parece.
+- "legibilidad.tipo_documento": "permiso" (permiso de circulacion definitivo),
+  "provisional" (permiso provisional de circulacion), "ficha" (ficha tecnica /
+  tarjeta ITV) u "otro".
+- "legibilidad.es_documento_vehiculo": false si la imagen NO es ninguno de esos
+  documentos (factura, contrato, foto del coche...). En ese caso pon todos los
+  campos a null, tipo_documento "otro" y explica que documento parece.
 
 Responde solo con el JSON.`
 
@@ -418,8 +541,8 @@ async function prepararPdf(file, stat) {
   }
 }
 
-function bloqueDocumento(ficha, doc) {
-  return ficha.ext === '.pdf'
+function bloqueDocumento(archivo, doc) {
+  return archivo.ext === '.pdf'
     ? {
         type: 'document',
         source: { type: 'base64', media_type: doc.media_type, data: doc.data },
@@ -430,11 +553,39 @@ function bloqueDocumento(ficha, doc) {
       }
 }
 
+/** Todos los archivos de un documento (una o dos caras) listos para la API:
+ *  { bloques, bytes, media_types }. */
+async function prepararDocumento(doc) {
+  const bloques = []
+  let bytes = 0
+  const media_types = []
+  for (const a of doc.archivos) {
+    let prep
+    try {
+      prep =
+        a.ext === '.pdf'
+          ? await prepararPdf(a.file, a.stat)
+          : await prepararImagen(a.file)
+    } catch (err) {
+      throw new Error(`preparando ${a.nombre}: ${err.message}`)
+    }
+    bloques.push(bloqueDocumento(a, prep))
+    bytes += prep.bytes
+    media_types.push(prep.media_type)
+  }
+  return { bloques, bytes, media_types }
+}
+
 /** El primer bloque de texto: los modelos con razonamiento devuelven antes un
  *  bloque `thinking`, asi que content[0] no sirve. */
 function textoDeRespuesta(resp) {
   const bloque = (resp.content || []).find((b) => b.type === 'text')
-  if (!bloque) throw new Error('la respuesta no trae ningun bloque de texto')
+  if (!bloque) {
+    const tipos = (resp.content || []).map((b) => b.type).join(',') || 'nada'
+    throw new Error(
+      `la respuesta no trae ningun bloque de texto (stop_reason ${resp.stop_reason}, bloques: ${tipos})`
+    )
+  }
   return bloque.text
 }
 
@@ -495,28 +646,69 @@ function normalizarCampos(json) {
   return campos
 }
 
-async function extraer(ficha, doc) {
+const TIPOS_DOC = new Set(['permiso', 'ficha', 'provisional', 'otro'])
+
+async function extraer(preparado, esfuerzo = ESFUERZO) {
   const resp = await cliente().messages.create({
     model: MODELO_IA,
-    max_tokens: 4096,
-    output_config: { effort: ESFUERZO },
+    // el razonamiento adaptativo cuenta contra max_tokens: con 4096 un PDF
+    // escaneado se quedaba sin sitio para el JSON
+    max_tokens: 16000,
+    output_config: { effort: esfuerzo },
     messages: [
       {
         role: 'user',
-        content: [bloqueDocumento(ficha, doc), { type: 'text', text: PROMPT }],
+        content: [...preparado.bloques, { type: 'text', text: PROMPT }],
       },
     ],
   })
   if (resp.stop_reason === 'refusal')
     throw new Error('la API rechazo el documento (stop_reason: refusal)')
+  // Con una tabla de codigos desordenada (ficha reducida) el modelo a veces se
+  // queda razonando hasta agotar max_tokens sin escribir el JSON. Un reintento
+  // con effort 'low' lo resuelve (sin razonamiento largo) y es mas barato.
+  if (resp.stop_reason === 'max_tokens' && esfuerzo !== 'low') {
+    console.error(
+      `[api] max_tokens agotado razonando (effort ${esfuerzo}) — reintento con effort low`
+    )
+    return extraer(preparado, 'low')
+  }
   const json = parsearJSON(textoDeRespuesta(resp))
   const leg = json.legibilidad || {}
+  const tipo = TIPOS_DOC.has(leg.tipo_documento) ? leg.tipo_documento : null
+  // `es_ficha_tecnica` es el nombre del prompt anterior: se tolera por si el
+  // modelo lo devuelve igualmente.
+  const esValido =
+    leg.es_documento_vehiculo !== false &&
+    leg.es_ficha_tecnica !== false &&
+    tipo !== 'otro'
   return {
     campos: normalizarCampos(json),
     nota: typeof leg.nota === 'string' ? leg.nota.trim() : '',
-    esFicha: leg.es_ficha_tecnica !== false,
+    tipo,
+    esValido,
     uso: resp.usage || null,
   }
+}
+
+/** true si algun campo clave falta o viene con poca confianza. */
+const faltanClave = (campos) =>
+  CAMPOS_CLAVE.some(
+    (c) =>
+      !campos[c] ||
+      campos[c].valor === null ||
+      campos[c].confianza < CONFIANZA_COMPLEMENTO
+  )
+
+/** Campo a campo, el de mayor confianza; en empate gana el principal. */
+function fusionarCampos(principal, complemento) {
+  const out = {}
+  for (const c of CAMPOS) {
+    const a = principal[c] || { valor: null, confianza: 0 }
+    const b = complemento[c] || { valor: null, confianza: 0 }
+    out[c] = b.valor !== null && b.confianza > a.confianza ? b : a
+  }
+  return out
 }
 
 // ---------------------------------------------------------------- POST al CRM
@@ -586,26 +778,48 @@ async function main() {
       continue
     }
 
-    const ficha = await buscarFicha(carpetas)
-    if (!ficha) {
+    const docs = await buscarDocumentos(carpetas)
+    // (a) permiso definitivo, complementado por (b) la ficha si hace falta;
+    // sin (a), (b) sola; sin (a) ni (b), (c) el provisional.
+    const principal = docs.permiso || docs.ficha || docs.provisional
+    const complemento = docs.permiso ? docs.ficha : null
+    if (!principal) {
       r.sinFicha++
-      sinFicha.push(`${plate} — ${carpetas[0].carpeta}: sin ficha tecnica`)
+      sinFicha.push(
+        `${plate} — ${carpetas[0].carpeta}: sin permiso de circulacion ni ficha tecnica`
+      )
       continue
     }
     r.conFicha++
 
-    const hash = await hashConCache(ficha.file, ficha.stat)
-    if (!hash) {
+    const hashDeDoc = async (doc) => {
+      const hs = []
+      for (const a of doc.archivos) {
+        const h = await hashConCache(a.file, a.stat)
+        if (!h) return null
+        hs.push(h)
+      }
+      return hashCombinado(hs)
+    }
+    const hashPrincipal = await hashDeDoc(principal)
+    const hashComplemento = complemento ? await hashDeDoc(complemento) : null
+    if (!hashPrincipal || (complemento && !hashComplemento)) {
       r.fallos++
-      fallos.push(`${plate} — no se pudo leer ${ficha.nombre}`)
+      fallos.push(`${plate} — no se pudo leer ${nombreDoc(principal)}`)
       continue
     }
+    const hashAmbos = hashComplemento
+      ? hashCombinado([hashPrincipal, hashComplemento])
+      : null
 
-    const prev = yaExtraido(hash, plate)
+    // ya leido: por el principal solo, o por principal+complemento
+    const prev =
+      yaExtraido(hashPrincipal, plate) ||
+      (hashAmbos && yaExtraido(hashAmbos, plate))
     if (prev) {
       r.saltadas++
       console.error(
-        `[${plate}] ${ficha.nombre}: ya extraida el ${prev.at} — se salta`
+        `[${plate}] ${prev.archivo}: ya extraida el ${prev.at} — se salta`
       )
       continue
     }
@@ -617,27 +831,22 @@ async function main() {
       continue
     }
 
-    const base = {
+    const extraidoAt = new Date().toISOString()
+    const basePara = (usados, hash) => ({
       origen: 'onedrive',
-      carpeta: ficha.carpeta,
-      referencia: v.ref || refDeCarpeta(ficha.carpeta),
+      carpeta: principal.carpeta,
+      referencia: v.ref || refDeCarpeta(principal.carpeta),
       matricula_carpeta: plate,
-      archivo: ficha.nombre,
+      archivo: usados.map(nombreDoc).join(' + '),
       hash,
-      extraido_at: new Date().toISOString(),
+      extraido_at: extraidoAt,
       modelo_ia: MODELO_IA,
-    }
+    })
+    const etiqueta = (doc) => `${nombreDoc(doc)} (${doc.tipo})`
+    const descDocs = (usados) => usados.map(etiqueta).join(' + ')
 
     try {
-      let doc
-      try {
-        doc =
-          ficha.ext === '.pdf'
-            ? await prepararPdf(ficha.file, ficha.stat)
-            : await prepararImagen(ficha.file)
-      } catch (err) {
-        throw new Error(`preparando ${ficha.nombre}: ${err.message}`)
-      }
+      const prep = await prepararDocumento(principal)
 
       if (DRY_RUN) {
         if (!promptImpreso) {
@@ -646,24 +855,37 @@ async function main() {
           console.error('----- fin del prompt -----\n')
           promptImpreso = true
         }
+        const kb = (doc) =>
+          Math.round(doc.archivos.reduce((s, a) => s + a.stat.size, 0) / 1024)
         console.error(
-          `[${plate}] ${ficha.carpeta}/${ficha.nombre} → ${Math.round(ficha.stat.size / 1024)} KB` +
-            ` → ${Math.round(doc.bytes / 1024)} KB (${doc.media_type}), hash ${hash}`
+          `[${plate}] principal: ${principal.carpeta}/${etiqueta(principal)} → ${kb(principal)} KB` +
+            ` → ${Math.round(prep.bytes / 1024)} KB (${prep.media_types.join(', ')}), hash ${hashPrincipal}`
+        )
+        console.error(
+          `[${plate}] complemento: ${complemento ? `${etiqueta(complemento)} → ${kb(complemento)} KB, hash ${hashComplemento}` : '(ninguno)'}`
+        )
+        console.error(
+          `[${plate}] descartados: ${
+            [docs.ficha, docs.provisional]
+              .filter((d) => d && d !== principal && d !== complemento)
+              .map(etiqueta)
+              .join(', ') || '(ninguno)'
+          }`
         )
         console.log(
           JSON.stringify(
             {
-              ...base,
+              ...basePara([principal], hashPrincipal),
               campos: camposVacios(),
-              notas: '(DRY_RUN: sin llamada a la API)',
+              notas: `(DRY_RUN: sin llamada a la API) docs: ${descDocs([principal])}`,
             },
             null,
             2
           )
         )
-        cache.extraidos[claveExtraido(hash, plate)] = {
-          at: base.extraido_at,
-          archivo: ficha.nombre,
+        cache.extraidos[claveExtraido(hashPrincipal, plate)] = {
+          at: extraidoAt,
+          archivo: nombreDoc(principal),
           ok: true,
           dry: true,
         }
@@ -671,28 +893,58 @@ async function main() {
         continue
       }
 
-      const out = await extraer(ficha, doc)
-      if (!out.esFicha) {
+      let usados = [principal]
+      let hash = hashPrincipal
+      let out = await extraer(prep)
+      let notas = `docs: ${etiqueta(principal)}`
+      if (out.nota) notas += ` · ${principal.tipo}: ${out.nota}`
+      if (out.tipo && out.tipo !== principal.tipo)
+        notas += ` · la IA lo ve como "${out.tipo}"`
+
+      if (complemento && (!out.esValido || faltanClave(out.campos))) {
+        const motivo = !out.esValido
+          ? 'no es un documento valido'
+          : 'faltan campos clave'
+        console.error(
+          `[${plate}] ${nombreDoc(principal)}: ${motivo} — se lee tambien ${nombreDoc(complemento)}`
+        )
+        const out2 = await extraer(await prepararDocumento(complemento))
+        usados = [principal, complemento]
+        hash = hashAmbos
+        notas = `docs: ${descDocs(usados)}`
+        if (out.nota) notas += ` · ${principal.tipo}: ${out.nota}`
+        if (out2.nota) notas += ` · ${complemento.tipo}: ${out2.nota}`
+        if (!out.esValido && out2.esValido) {
+          out = out2
+        } else if (out2.esValido) {
+          out = { ...out, campos: fusionarCampos(out.campos, out2.campos) }
+        } else {
+          notas += ` · ${complemento.tipo}: descartado, no es un documento valido`
+        }
+      }
+
+      const base = basePara(usados, hash)
+      if (!out.esValido) {
         cache.extraidos[claveExtraido(hash, plate)] = {
-          at: base.extraido_at,
-          archivo: ficha.nombre,
+          at: extraidoAt,
+          archivo: base.archivo,
           ok: false,
-          motivo: out.nota || 'no es una ficha tecnica',
+          motivo: out.nota || 'no es un documento valido',
         }
         sinFicha.push(
-          `${plate} — ${ficha.nombre}: no es una ficha tecnica (${out.nota})`
+          `${plate} — ${base.archivo}: no es un documento valido (${out.nota})`
         )
         r.sinFicha++
         console.error(
-          `[${plate}] ${ficha.nombre}: NO es ficha tecnica (${out.nota}) — no se empuja`
+          `[${plate}] ${base.archivo}: NO es permiso ni ficha (${out.nota}) — no se empuja`
         )
         continue
       }
 
-      await postear({ ...base, campos: out.campos, notas: out.nota })
+      const resp = await postear({ ...base, campos: out.campos, notas })
       cache.extraidos[claveExtraido(hash, plate)] = {
-        at: base.extraido_at,
-        archivo: ficha.nombre,
+        at: extraidoAt,
+        archivo: base.archivo,
         ok: true,
       }
       r.extraidas++
@@ -700,12 +952,18 @@ async function main() {
       const media = conf.length
         ? conf.reduce((a, b) => a + b, 0) / conf.length
         : 0
+      let nueva = ''
+      try {
+        nueva = JSON.parse(resp).nueva === false ? ', fila ya existente' : ''
+      } catch {
+        /* respuesta no JSON: da igual */
+      }
       console.error(
-        `[${plate}] ${ficha.nombre}: extraida y empujada (confianza media ${media.toFixed(2)})`
+        `[${plate}] ${base.archivo}: extraida y empujada (confianza media ${media.toFixed(2)}${nueva})`
       )
     } catch (err) {
       r.fallos++
-      fallos.push(`${plate} — ${ficha.nombre}: ${err.message}`)
+      fallos.push(`${plate} — ${nombreDoc(principal)}: ${err.message}`)
       console.error(`[${plate}] ERROR: ${err.message}`)
     }
   }
@@ -741,5 +999,9 @@ module.exports = {
   refDeCarpeta,
   parsearJSON,
   normalizarCampos,
+  tipoDeArchivo,
+  fusionarCampos,
+  faltanClave,
+  hashCombinado,
   PROMPT,
 }
