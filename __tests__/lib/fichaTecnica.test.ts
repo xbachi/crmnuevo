@@ -195,7 +195,9 @@ describe('decidir', () => {
   })
 
   it('un conflicto real lo decide una persona', () => {
-    expect(decidir(d({ tipo: 'conflicto', valorActual: 'Gris' }))).toBe('revisar')
+    expect(decidir(d({ tipo: 'conflicto', valorActual: 'Gris' }))).toBe(
+      'revisar'
+    )
   })
 
   it('nada de la web se corrige automáticamente', () => {
@@ -305,6 +307,33 @@ describe('compararConWeb', () => {
     // Ninguno se corrige solo: la web la edita el cliente a mano.
     expect(out.every((d) => decidir(d) === 'revisar')).toBe(true)
     expect(out.every((d) => d.fuente === 'web')).toBe(true)
+  })
+
+  it('la matriculación sólo tiene que cuadrar en mes y año, con cualquier formato', () => {
+    const web: FichaWeb = {
+      ...WEB_LIMPIA,
+      matriculacion: 'Julio 2020',
+      fecha_matriculacion: '2020-07-01',
+    }
+    expect(compararConWeb(web, CAMPOS_LIMPIOS)).toEqual([])
+  })
+
+  it('caza el texto «Mayo 2018» de un coche matriculado el 5 de diciembre', () => {
+    const campos: CamposFicha = {
+      ...CAMPOS_LIMPIOS,
+      fecha_primera_matriculacion: campo('2018-12-05', 0.75),
+    }
+    const web: FichaWeb = {
+      ...WEB_LIMPIA,
+      matriculacion: 'Mayo 2018',
+      fecha_matriculacion: '2018-12-05',
+    }
+    const out = compararConWeb(web, campos)
+    expect(out.map((d) => d.campo)).toEqual(['matriculacion_texto'])
+    expect(out[0].tipo).toBe('conflicto')
+    expect(out[0].valorActual).toBe('Mayo 2018')
+    expect(out[0].valorFicha).toBe('Diciembre 2018')
+    expect(decidir(out[0])).toBe('revisar')
   })
 })
 

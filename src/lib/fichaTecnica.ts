@@ -95,6 +95,8 @@ export type CampoWeb =
   | 'potencia_cv'
   | 'plazas'
   | 'cambio'
+  | 'matriculacion_texto'
+  | 'matriculacion_fecha'
 
 export type FuenteDato = 'crm' | 'web'
 export type Decision = 'corregir' | 'revisar'
@@ -130,7 +132,10 @@ export const COLUMNA_CRM: Record<CampoCrm, string> = {
   modelo: 'modelo',
 }
 
-export const CAMPOS_CORREGIBLES: readonly CampoCrm[] = ['color', 'fechaMatriculacion']
+export const CAMPOS_CORREGIBLES: readonly CampoCrm[] = [
+  'color',
+  'fechaMatriculacion',
+]
 export const CONFIANZA_MINIMA = 0.9
 
 // ── Normalizadores ──────────────────────────────────────────────────────────
@@ -153,7 +158,12 @@ export function normalizarBastidor(v: unknown): string {
 }
 
 /** Vocabulario de combustible de la web (es el que publica WordPress). */
-export type Combustible = 'Gasolina' | 'Diésel' | 'Híbrido' | 'Eléctrico' | 'GLP'
+export type Combustible =
+  | 'Gasolina'
+  | 'Diésel'
+  | 'Híbrido'
+  | 'Eléctrico'
+  | 'GLP'
 
 /**
  * Lo que dice la ITV → el vocabulario de la web. La tarjeta escribe «GASÓLEO»,
@@ -176,8 +186,23 @@ export function normalizarCombustible(v: unknown): Combustible | null {
 }
 
 const MESES: Record<string, number> = {
-  ENE: 1, JAN: 1, FEB: 2, MAR: 3, ABR: 4, APR: 4, MAY: 5, JUN: 6,
-  JUL: 7, AGO: 8, AUG: 8, SEP: 9, SET: 9, OCT: 10, NOV: 11, DIC: 12, DEC: 12,
+  ENE: 1,
+  JAN: 1,
+  FEB: 2,
+  MAR: 3,
+  ABR: 4,
+  APR: 4,
+  MAY: 5,
+  JUN: 6,
+  JUL: 7,
+  AGO: 8,
+  AUG: 8,
+  SEP: 9,
+  SET: 9,
+  OCT: 10,
+  NOV: 11,
+  DIC: 12,
+  DEC: 12,
 }
 
 /**
@@ -270,9 +295,10 @@ function leer(campos: CamposFicha, clave: string): CampoExtraido | null {
   const c = campos?.[clave]
   if (!c || typeof c !== 'object') return null
   if (c.valor === null || c.valor === undefined || c.valor === '') return null
-  const confianza = typeof c.confianza === 'number' && Number.isFinite(c.confianza)
-    ? Math.max(0, Math.min(1, c.confianza))
-    : 0
+  const confianza =
+    typeof c.confianza === 'number' && Number.isFinite(c.confianza)
+      ? Math.max(0, Math.min(1, c.confianza))
+      : 0
   return { valor: c.valor, confianza }
 }
 
@@ -355,9 +381,31 @@ export function compararConCrm(
     if (!ficha) continue
 
     if (!actual) {
-      out.push(disc('crm', def.campo, def.etiqueta, 'vacio', null, guardar, crudo(c), c.confianza))
+      out.push(
+        disc(
+          'crm',
+          def.campo,
+          def.etiqueta,
+          'vacio',
+          null,
+          guardar,
+          crudo(c),
+          c.confianza
+        )
+      )
     } else if (actual !== ficha) {
-      out.push(disc('crm', def.campo, def.etiqueta, 'conflicto', String(actualRaw ?? ''), guardar, crudo(c), c.confianza))
+      out.push(
+        disc(
+          'crm',
+          def.campo,
+          def.etiqueta,
+          'conflicto',
+          String(actualRaw ?? ''),
+          guardar,
+          crudo(c),
+          c.confianza
+        )
+      )
     }
   }
 
@@ -370,12 +418,48 @@ export function compararConCrm(
     const isoActual = normalizarFecha(actualRaw)
     const etiqueta = 'Fecha de matriculación'
     if (!isoActual) {
-      out.push(disc('crm', 'fechaMatriculacion', etiqueta, 'vacio', actualRaw ? String(actualRaw) : null, isoFicha, crudo(cf), cf.confianza))
+      out.push(
+        disc(
+          'crm',
+          'fechaMatriculacion',
+          etiqueta,
+          'vacio',
+          actualRaw ? String(actualRaw) : null,
+          isoFicha,
+          crudo(cf),
+          cf.confianza
+        )
+      )
     } else if (!mismaFecha(isoActual, isoFicha)) {
-      out.push(disc('crm', 'fechaMatriculacion', etiqueta, 'conflicto', String(actualRaw), isoFicha, crudo(cf), cf.confianza))
-    } else if (String(actualRaw) !== isoFicha && isoFicha.length >= isoActual.length) {
+      out.push(
+        disc(
+          'crm',
+          'fechaMatriculacion',
+          etiqueta,
+          'conflicto',
+          String(actualRaw),
+          isoFicha,
+          crudo(cf),
+          cf.confianza
+        )
+      )
+    } else if (
+      String(actualRaw) !== isoFicha &&
+      isoFicha.length >= isoActual.length
+    ) {
       // Misma fecha peor escrita (o menos precisa) en el CRM: se canoniza.
-      out.push(disc('crm', 'fechaMatriculacion', etiqueta, 'formato', String(actualRaw), isoFicha, crudo(cf), cf.confianza))
+      out.push(
+        disc(
+          'crm',
+          'fechaMatriculacion',
+          etiqueta,
+          'formato',
+          String(actualRaw),
+          isoFicha,
+          crudo(cf),
+          cf.confianza
+        )
+      )
     }
   }
 
@@ -396,6 +480,36 @@ interface DefWeb {
 const numeroTexto = (v: unknown) => {
   const n = normalizarNumero(v)
   return n === null ? '' : String(n)
+}
+
+const MESES_NOMBRE = [
+  'Enero',
+  'Febrero',
+  'Marzo',
+  'Abril',
+  'Mayo',
+  'Junio',
+  'Julio',
+  'Agosto',
+  'Septiembre',
+  'Octubre',
+  'Noviembre',
+  'Diciembre',
+]
+
+// La web escribe la matriculación como «Mayo 2018» y la ordena por 201805: el
+// formato da igual, lo que tiene que cuadrar con el documento es el mes y el año.
+const mesAnio = (v: unknown) => {
+  const s = String(v ?? '').trim()
+  const num = /^(\d{4})(\d{2})$/.exec(s)
+  const f = num ? `${num[1]}-${num[2]}` : normalizarFecha(s)
+  return f ? f.slice(0, 7) : ''
+}
+
+const mesAnioTexto = (v: unknown) => {
+  const m = mesAnio(v)
+  if (!m) return String(v ?? '').trim()
+  return `${MESES_NOMBRE[parseInt(m.slice(5, 7), 10) - 1]} ${m.slice(0, 4)}`
 }
 
 const DEF_WEB: DefWeb[] = [
@@ -439,6 +553,22 @@ const DEF_WEB: DefWeb[] = [
     comparable: normalizarTexto,
     aTexto: (v) => String(v ?? '').trim(),
   },
+  {
+    campo: 'matriculacion_texto',
+    etiqueta: 'Matriculación (texto de la ficha)',
+    claveFicha: 'fecha_primera_matriculacion',
+    claveWeb: 'matriculacion',
+    comparable: mesAnio,
+    aTexto: mesAnioTexto,
+  },
+  {
+    campo: 'matriculacion_fecha',
+    etiqueta: 'Matriculación (fecha)',
+    claveFicha: 'fecha_primera_matriculacion',
+    claveWeb: 'fecha_matriculacion',
+    comparable: mesAnio,
+    aTexto: mesAnioTexto,
+  },
 ]
 
 /**
@@ -466,9 +596,31 @@ export function compararConWeb(
     const texto = def.aTexto(crudo(c))
 
     if (!actual) {
-      out.push(disc('web', def.campo, def.etiqueta, 'vacio', null, texto, crudo(c), c.confianza))
+      out.push(
+        disc(
+          'web',
+          def.campo,
+          def.etiqueta,
+          'vacio',
+          null,
+          texto,
+          crudo(c),
+          c.confianza
+        )
+      )
     } else if (actual !== ficha) {
-      out.push(disc('web', def.campo, def.etiqueta, 'conflicto', String(actualRaw ?? ''), texto, crudo(c), c.confianza))
+      out.push(
+        disc(
+          'web',
+          def.campo,
+          def.etiqueta,
+          'conflicto',
+          String(actualRaw ?? ''),
+          texto,
+          crudo(c),
+          c.confianza
+        )
+      )
     }
   }
 
@@ -485,7 +637,16 @@ function disc(
   valorFichaCrudo: string,
   confianza: number
 ): Discrepancia {
-  return { fuente, campo, etiqueta, tipo, valorActual, valorFicha, valorFichaCrudo, confianza }
+  return {
+    fuente,
+    campo,
+    etiqueta,
+    tipo,
+    valorActual,
+    valorFicha,
+    valorFichaCrudo,
+    confianza,
+  }
 }
 
 // ── Decisión ────────────────────────────────────────────────────────────────
