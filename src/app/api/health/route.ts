@@ -28,6 +28,22 @@ async function pingDb(): Promise<boolean> {
   }
 }
 
+// Sólo booleanos: si cada integración está encendida en este despliegue. Se leen
+// las variables directamente (misma semántica que sheetsVehiculo/onedriveCarpetas/
+// webSync) para no cargar googleapis en un endpoint que debe ser instantáneo.
+function integraciones() {
+  const env = process.env
+  return {
+    hojas:
+      env.SHEETS_VEHICULO_DISABLED !== '1' &&
+      env.SHEETS_VEHICULO_ENABLED === '1',
+    carpetasOneDrive: env.ONEDRIVE_CARPETAS_ENABLED === '1',
+    webSync: Boolean(env.SEVEN_WEB_SYNC_URL && env.SEVEN_WEB_SYNC_SECRET),
+    n8n: Boolean(env.N8N_RENAME_WEBHOOK_URL || env.N8N_INVOICE_WEBHOOK_URL),
+    appUrl: Boolean(env.NEXT_PUBLIC_APP_URL),
+  }
+}
+
 export async function GET() {
   const dbOk = await pingDb()
   const body = {
@@ -36,6 +52,7 @@ export async function GET() {
     version: (pkg as { version?: string }).version ?? null,
     commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null,
     sessionSecret: getSessionSecretSource(),
+    integraciones: integraciones(),
     ts: new Date().toISOString(),
   }
   return NextResponse.json(body, {

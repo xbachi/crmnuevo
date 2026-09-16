@@ -34,4 +34,41 @@ describe('GET /api/health', () => {
     expect(json).toMatchObject({ ok: false, db: 'error', commit: null })
     expect(JSON.stringify(json)).not.toContain('db.internal')
   })
+
+  it('informa qué integraciones están encendidas, sólo con booleanos', async () => {
+    const claves = [
+      'SHEETS_VEHICULO_ENABLED',
+      'SHEETS_VEHICULO_DISABLED',
+      'ONEDRIVE_CARPETAS_ENABLED',
+      'SEVEN_WEB_SYNC_URL',
+      'SEVEN_WEB_SYNC_SECRET',
+      'N8N_RENAME_WEBHOOK_URL',
+      'N8N_INVOICE_WEBHOOK_URL',
+      'NEXT_PUBLIC_APP_URL',
+    ]
+    const previo = Object.fromEntries(claves.map((k) => [k, process.env[k]]))
+    for (const k of claves) delete process.env[k]
+    process.env.SHEETS_VEHICULO_ENABLED = '1'
+    process.env.SEVEN_WEB_SYNC_URL = 'https://web.test/estado'
+    process.env.SEVEN_WEB_SYNC_SECRET = 'secreto-que-no-debe-salir'
+    mockQuery.mockResolvedValue({ rows: [] })
+
+    const json = await (await GET()).json()
+    expect(json.integraciones).toEqual({
+      hojas: true,
+      carpetasOneDrive: false,
+      webSync: true,
+      n8n: false,
+      appUrl: false,
+    })
+    expect(JSON.stringify(json)).not.toContain('secreto-que-no-debe-salir')
+
+    process.env.SHEETS_VEHICULO_DISABLED = '1'
+    expect((await (await GET()).json()).integraciones.hojas).toBe(false)
+
+    for (const k of claves) {
+      if (previo[k] === undefined) delete process.env[k]
+      else process.env[k] = previo[k]
+    }
+  })
 })
