@@ -778,3 +778,19 @@ def test_probar_mail_con_config(entorno, mail, capsys):
     out = capsys.readouterr().out
     assert mail.asuntos == ["[Sevencars] Vigilante: mail de prueba"] and "enviado" in out
     assert CONFIG["SMTP_PASS"] not in out
+
+
+FICHA = "Ficha: /1_Ventas/82-Kia Xceed-9028LXG/ficha-expo.pdf"
+
+
+def test_la_linea_ficha_va_a_resultado_y_al_mail(entorno, publicar_falso, mail):
+    salida = SALIDA_OK.replace(f"{LUNA}\n", f"{LUNA}\n{FICHA}\n")
+    publicar_falso((0, salida))
+    carpeta = coche(entorno)
+    vig = vigilante(entorno)
+    punto_de_partida(vig)
+    assert vig.ciclo().resultado == "publicado"
+    assert f"Enlace: {URL}\n{LUNA}\n{FICHA}\n" in resultado_txt(carpeta)
+    assert FICHA in mail.enviados[0].get_content()
+    assert vigilar.linea_ficha(salida) == FICHA and vigilar.linea_ficha(SALIDA_OK) == ""
+    assert vigilar.linea_ficha("⚠ Ficha de exposición: no se pudo descargar (x).") == ""

@@ -36,8 +36,9 @@ TIMEOUT_S = 600
 HERRAMIENTAS = ("Read", "WebSearch", "WebFetch")    # solo esta generación busca en la web
 MIN_VINETAS, MAX_VINETAS = 4, 10
 MAX_FUENTES = 8
+MIN_DESTACADOS, MAX_DESTACADOS = 3, 4   # puntos fuertes de la ficha de exposición (meta _destacados_ficha)
 # Subilo cuando cambie lo que se le pide al modelo: una caché con otro esquema no se reutiliza.
-ESQUEMA_CACHE = 3
+ESQUEMA_CACHE = 4
 AVISO_VERIFICAR = "descripción: generada automáticamente, repasá el equipamiento antes de publicar"
 AVISO_ETIQUETA = "confirmar etiqueta en dgt.es con la matrícula"
 
@@ -160,10 +161,11 @@ SCHEMA = {
                         "motor": _TEXTO, "cambio": _TEXTO, "color": _TEXTO,
                         "puertas": {"type": "integer"},
                         "traccion": {"type": "string", "enum": list(TRACCIONES_IA)},
-                        "reclamo": _TEXTO, "parrafo": _TEXTO, "cierre": _TEXTO},
+                        "reclamo": _TEXTO, "parrafo": _TEXTO, "cierre": _TEXTO,
+                        "destacados": {"type": "array", "items": _TEXTO}},
                        **{clave: {"type": "array", "items": _TEXTO} for clave, _ in APARTADOS}),
     "required": ["version_identificada", "confianza", "fuentes", "motor", "cambio", "color", "puertas", "traccion",
-                 "reclamo", "parrafo", "cierre"] + [clave for clave, _ in APARTADOS],
+                 "reclamo", "parrafo", "cierre", "destacados"] + [clave for clave, _ in APARTADOS],
     "additionalProperties": False,
 }
 
@@ -230,6 +232,11 @@ Qué tenés que devolver además:
 - "puertas": número de puertas de la carrocería contando el portón (3, 4 o 5), según las fotos y la versión; 0 si
   no se puede saber.
 - "traccion": "delantera", "trasera" o "total", según la versión identificada (siempre uno de los tres).
+- "destacados": de {min_dest} a {max_dest} puntos fuertes para la ficha de exposición del coche: lo más vendedor del
+  equipamiento que YA pusiste en "tecnologia", "confort", "exterior" o "seguridad", copiado con las mismas palabras
+  de esa viñeta. Nada que no esté en esas listas, nada de obviedades y nada de lo que la ficha ya muestra
+  (kilómetros, potencia, combustible, cambio, etiqueta, año, precio). Estilo: "Android Auto y Apple CarPlay",
+  "Faros LED", "Control de crucero".
 
 CADA VIÑETA NOMBRA UNA PIEZA: tiene que decir un elemento identificable y concreto del coche ("cámara de visión
 trasera", "barras de techo", "asientos calefactables"). Prohibidos los adjetivos vacíos solos, sin la pieza que
@@ -664,6 +671,8 @@ class Piezas:
     tecnicos: list[str] = field(default_factory=list)          # «Campo: valor» (coches.net)
     secciones: list[tuple[str, list[str]]] = field(default_factory=list)
     tecnicos_web: list[str] = field(default_factory=list)      # «Lo técnico» de la web (sobrevive al tema)
+    motor: str = ""                                            # denominación comercial del motor (meta _motor_comercial)
+    destacados: list[str] = field(default_factory=list)        # 3-4 puntos fuertes del equipamiento listado
     version_identificada: str = ""
     confianza: str = ""
     fuentes: list[str] = field(default_factory=list)
@@ -764,6 +773,80 @@ def _vinetas(items, vistas: set[str] | None = None) -> list[str]:
     return salida[:MAX_VINETAS]
 
 
+# ------------------------------------------------ destacados de la ficha de exposición
+_PALABRAS_VACIAS = frozenset("a al con de del el en la las lo los o para por sin su sus un una y".split())
+_NO_DESTACADO = re.compile(r"\bkms?\b|kilometr|\bcv\b|potencia|combustible|\betiqueta\b|garantia|precio|financia")
+_CANONICOS = frozenset(nombre for nombre, _ in CONCEPTOS)
+_PISO_TEXTOS = frozenset(norm_text(texto) for _, texto, _ in PISO_SEGURIDAD)
+
+
+def _raiz(palabra: str) -> str:
+    """Singular aproximado para comparar viñetas: «sensores» y «sensor», «calefactables» y «calefactable»."""
+    for final in ("s", "e"):
+        if len(palabra) > 3 and palabra.endswith(final):
+            palabra = palabra[:-1]
+    return palabra
+
+
+def _palabras(texto) -> set[str]:
+    return {_raiz(p) for p in re.findall(r"[a-z0-9]+", norm_text(texto)) if p not in _PALABRAS_VACIAS}
+
+
+def _respaldo(destacado: str, items: list[str]) -> str | None:
+    """El texto publicable de un destacado de la IA: el suyo si todas sus palabras están en una viñeta ya listada;
+    la viñeta listada si solo coincide el concepto canónico (así no se cuela un «LED» que la lista no dice); None si
+    no está en ninguna lista."""
+    palabras = _palabras(destacado)
+    if not palabras:
+        return None
+    if any(palabras <= _palabras(item) for item in items):
+        return destacado
+    clave = concepto(destacado)
+    if clave in _CANONICOS:
+        return next((item for item in items if concepto(item) == clave), None)
+    return None
+
+
+def elegir_destacados(propuestos, secciones: list[tuple[str, list[str]]]) -> tuple[list[str], list[str]]:
+    """(destacados, descartados). Los de la IA solo si existen (por palabras o concepto) en el equipamiento listado;
+    si quedan menos de MIN_DESTACADOS se completa con los primeros de tecnología, confort y seguridad, alternando
+    (sin el piso normativo, que lo lleva cualquier coche de su fecha). Como mucho MAX_DESTACADOS."""
+    por_nombre = dict(secciones)
+    items = [v for _, vs in secciones for v in vs]
+    elegidos: list[str] = []
+    descartados: list[str] = []
+    vistas: set[str] = set()
+
+    def agregar(texto: str) -> bool:
+        clave = concepto(texto)
+        if clave in vistas or len(elegidos) >= MAX_DESTACADOS:
+            return False
+        vistas.add(clave)
+        elegidos.append(texto)
+        return True
+
+    for item in propuestos if isinstance(propuestos, list) else []:
+        valor = _una_linea(item).lstrip("*-• ").rstrip(".").strip()
+        if not valor:
+            continue
+        texto = None if (_NO_DESTACADO.search(norm_text(valor)) or es_trivial(valor) or es_relleno(valor)) \
+            else _respaldo(valor, items)
+        if texto is None:
+            descartados.append(valor)
+        else:
+            agregar(texto)
+    if len(elegidos) < MIN_DESTACADOS:
+        columnas = [[v for v in por_nombre.get(nombre, []) if norm_text(v) not in _PISO_TEXTOS]
+                    for clave, nombre in APARTADOS if clave in ("tecnologia", "confort", "seguridad")]
+        for fila in range(max((len(c) for c in columnas), default=0)):
+            for columna in columnas:
+                if len(elegidos) >= MIN_DESTACADOS:
+                    break
+                if fila < len(columna):
+                    agregar(columna[fila])
+    return elegidos, descartados
+
+
 def despiezar(datos: DatosCoche, partes: dict) -> Piezas:
     """Lo que devolvió el modelo, ya limpio y deduplicado, junto a los datos técnicos que arma Python."""
     ia = leer_tecnico(datos, partes)
@@ -771,14 +854,24 @@ def despiezar(datos: DatosCoche, partes: dict) -> Piezas:
     vistas = {concepto(t) for t in tecnicos}          # lo técnico manda: el equipamiento no lo repite
     secciones = completar_equipamiento(datos, [(nombre, _vinetas(partes.get(clave), vistas))
                                                for clave, nombre in APARTADOS])
+    destacados, descartados = elegir_destacados(partes.get("destacados"), secciones)
+    para_verificar = verificar_ia(datos, partes, ia)
+    if descartados:
+        para_verificar.append("descripción: destacados de la IA descartados por no estar en el equipamiento: "
+                              + " · ".join(descartados))
     confianza = norm_text(partes.get("confianza"))
     return Piezas(titulo=datos.titulo, reclamo=_una_linea(partes.get("reclamo")).upper(),
                   parrafo=_una_linea(partes.get("parrafo")), cierre=_una_linea(partes.get("cierre")),
                   tecnicos=tecnicos, secciones=[(n, vs) for n, vs in secciones if vs],
-                  tecnicos_web=datos.tecnicos_web(ia),
+                  tecnicos_web=datos.tecnicos_web(ia), motor=ia.motor, destacados=destacados,
                   version_identificada=_una_linea(partes.get("version_identificada")),
                   confianza=confianza if confianza in CONFIANZAS else "", fuentes=_fuentes(partes.get("fuentes")),
-                  para_verificar=verificar_ia(datos, partes, ia))
+                  para_verificar=para_verificar)
+
+
+def destacados_ficha(pz: Piezas) -> str:
+    """Meta _destacados_ficha: los destacados, uno por línea."""
+    return "\n".join(pz.destacados)
 
 
 def montar_bloque(datos: DatosCoche, partes: dict) -> str:
@@ -859,7 +952,7 @@ def prompt_para(datos: DatosCoche, nombres: list[str]) -> str:
     ficha = "\n".join(f"- {t}" for t in ([f"Coche: {datos.titulo}"] + datos.tecnicos()))
     identificacion = "\n".join(f"- {t}" for t in datos.identificacion()) or "- (sin datos)"
     return PROMPT.format(identificacion=identificacion, datos=ficha, n=len(nombres), archivos=", ".join(nombres),
-                         min=MIN_VINETAS, max=MAX_VINETAS)
+                         min=MIN_VINETAS, max=MAX_VINETAS, min_dest=MIN_DESTACADOS, max_dest=MAX_DESTACADOS)
 
 
 def _pedir(datos: DatosCoche, fotos: list[Path]) -> dict:

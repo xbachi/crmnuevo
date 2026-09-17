@@ -3,6 +3,7 @@ sesión falsa. Las credenciales se leen del entorno por nombre y nunca se imprim
 from __future__ import annotations
 
 import os
+import time
 from pathlib import Path
 
 from common import PROJECT_DIR, normalize_plate
@@ -14,6 +15,10 @@ PRECIO_RESERVA = "300"          # todos los coches se "compran" online con una r
 TIMEOUT = 120
 PER_PAGE = 100
 MAX_PAGES = 30
+# Ficha de exposición: PDF que genera el tema (dompdf) en GET {WC_URL}/?pdf=<id>, sin credenciales.
+TIMEOUT_FICHA = 60
+MIN_FICHA_BYTES = 10 * 1024     # un PDF más chico es una página de error, no la ficha
+PAUSA_REINTENTO_FICHA = 3       # segundos antes del único reintento
 
 # Campos ACF de la ficha (clave de valor -> clave de campo), copiados de un producto real (editor-fotos-seven)
 CAMPOS_ACF = {
@@ -116,6 +121,35 @@ class WcClient:
 
     def admin_url(self, product_id: int) -> str:
         return f"{self.url}/wp-admin/post.php?post={product_id}&action=edit"
+
+    def url_ficha(self, product_id: int) -> str:
+        return f"{self.url}/?pdf={product_id}"
+
+    def descargar_ficha_pdf(self, product_id: int) -> bytes:
+        """La ficha de exposición en PDF del producto (GET /?pdf=<id>, sin credenciales). Si falla la conexión, la
+        web responde un error o lo que llega no es un PDF de verdad (empieza por %PDF y pesa más de 10 KB), un
+        reintento; después WcError con el motivo."""
+        motivo = ""
+        for intento in range(2):
+            if intento and PAUSA_REINTENTO_FICHA:
+                time.sleep(PAUSA_REINTENTO_FICHA)
+            try:
+                r = self.session.request("GET", self.url_ficha(product_id), auth=None, timeout=TIMEOUT_FICHA)
+            except Exception as exc:          # network
+                motivo = (f"la web no respondió en {TIMEOUT_FICHA} s" if "timeout" in type(exc).__name__.lower()
+                          else f"no se pudo conectar con la web: {exc}")
+                continue
+            if r.status_code >= 400:
+                motivo = f"la web respondió con error HTTP {r.status_code}"
+                continue
+            datos = r.content or b""
+            if not datos.startswith(b"%PDF"):
+                motivo = "la web no devolvió un PDF"
+            elif len(datos) <= MIN_FICHA_BYTES:
+                motivo = f"el PDF pesa solo {len(datos)} bytes"
+            else:
+                return datos
+        raise WcError(motivo)
 
     # ------------------------------------------------------- productos
     def _resumen(self, p: dict) -> dict:

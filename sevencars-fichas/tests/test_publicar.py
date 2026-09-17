@@ -4,6 +4,7 @@ import json
 from datetime import date
 
 import pytest
+import requests
 from PIL import Image
 
 import caja_fotos
@@ -14,6 +15,7 @@ import locate
 import luna
 import publicar
 import verificar
+import wc_client
 from caja_fotos import CajaVerdict
 from sheet import SheetData
 from tests.conftest import write_jpeg
@@ -31,6 +33,7 @@ IDX = {"modelo": 2, "matricula": 3, "fecha_matriculacion": 4, "precio_contado": 
 VIN = "U5YH5811AGL123456"
 FOLDER_NAME = "82-Kia Xceed-9028LXG"
 PORTADA = "https://x/1.jpg"
+PDF_FICHA = b"%PDF-1.7\n" + b"0" * 20_000        # la ficha de exposición que devuelve la web (> 10 KB)
 
 # Financiación del Kia con «hoy» = 08/09/2026 (conftest.hoy_fijo), regla de Presupuesto_2025:
 #   tarifa: DAYS360(11/04/2022, 08/09/2026) = 1587 → 52,9 meses < 72 → NORMAL (M = 7 %)
@@ -69,10 +72,12 @@ def ai_kia(plate="9028LXG", combustible="GASOLINA - HÍBRIDO ENCHUFABLE (PHEV)")
 class FakeClient:
     url = "https://example.test"
 
-    def __init__(self, existente=None, fallo_subida=None, fallo_crear=False, producto=None):
+    def __init__(self, existente=None, fallo_subida=None, fallo_crear=False, producto=None, ficha=PDF_FICHA):
         self.existente, self.fallo_subida, self.fallo_crear = existente, fallo_subida, fallo_crear
         self.producto = producto or {}
+        self.ficha = ficha                  # bytes que devuelve la descarga, o la excepción que levanta
         self.calls, self.subidas, self.borrados = [], [], []
+        self.fichas = []                    # descargas de la ficha de exposición (aparte de `calls`)
 
     def nombres(self):
         return [c[0] for c in self.calls]
@@ -92,6 +97,15 @@ class FakeClient:
 
     def admin_url(self, product_id):
         return f"{self.url}/wp-admin/post.php?post={product_id}&action=edit"
+
+    def url_ficha(self, product_id):
+        return f"{self.url}/?pdf={product_id}"
+
+    def descargar_ficha_pdf(self, product_id):
+        self.fichas.append(product_id)
+        if isinstance(self.ficha, BaseException):
+            raise self.ficha
+        return self.ficha
 
     def obtener_producto(self, product_id):
         self.calls.append(("obtener", product_id))
@@ -142,7 +156,8 @@ class FakeSheetSrc:
 def make_args(**over):
     base = dict(referencia="82", matricula=[], fila=[], simular=False, categoria=None, publicar_directo=False,
                 forzar=False, sin_hoja=False, sin_fotos_caja=True, motor=None, actualizar=False, si=False,
-                sin_normalizar_fotos=False, solo_fotos=False, solo_financiacion=False, sin_luna=False)
+                sin_normalizar_fotos=False, solo_fotos=False, solo_financiacion=False, sin_luna=False,
+                sin_ficha=False, solo_ficha=False)
     base.update(over)
     return argparse.Namespace(**base)
 
@@ -744,7 +759,7 @@ def acf_base(carpeta):
     """La meta y las categorías que produciría el borrador actual: el punto de partida para simular la web."""
     global KIA_ACF_BASE, KIA_CATS
     b = borrador(carpeta)
-    KIA_ACF_BASE = {m["key"]: m["value"] for m in construir_meta(b.campos_acf())}
+    KIA_ACF_BASE = {m["key"]: m["value"] for m in construir_meta(publicar.campos_web(b))}
     KIA_CATS = list(b.categoria_ids)
     return KIA_ACF_BASE
 
@@ -1149,3 +1164,236 @@ def test_piso_de_seguridad_con_la_b_del_permiso_y_los_importados(caja, carpeta, 
     assert recibidos[-1].fecha_primera == date(2013, 6, 1)
     assert "ABS" in b.equipamiento and "Control electrónico de estabilidad" not in b.equipamiento
     assert desc_mod.AVISO_IMPORTADO not in b.para_verificar
+
+
+# ------------------------------------------------- metas de la ficha de exposición
+PARTES_FICHA = dict(PARTES_DESC, motor="1.6 GDi PHEV",
+                    tecnologia=["Pantalla táctil de gran formato", "Android Auto y Apple CarPlay"],
+                    destacados=["Apple CarPlay y Android Auto", "Techo solar panorámico", "Climatizador bizona",
+                                "Cámara de visión trasera"])
+
+
+def _generar_con(monkeypatch, partes):
+    def fake_generar(datos, fotos, folder_name, force=False, cache_dir=None, plantilla=None):
+        return desc_mod.Descripcion("texto", "bloque", "ia", piezas=desc_mod.despiezar(datos, partes))
+    monkeypatch.setattr(desc_mod, "generar", fake_generar)
+
+
+def test_metas_ficha_en_el_payload_de_creacion(lectura, caja, carpeta, registro, monkeypatch):
+    """Etiqueta, motor, gas y destacados viajan como meta plano (sin fila field_xxx); los destacados que no están en
+    el equipamiento listado se caen."""
+    _generar_con(monkeypatch, PARTES_FICHA)
+    lectura["ai"] = ai_kia(combustible="GAS LICUADO DE PETROLEO")
+    rc, client, _, _ = run(make_args(), datos(modelo="Dacia Sandero 1.0 TCe 100 GLP Essential"), carpeta, registro)
+    assert rc == 0
+    meta = meta_dict(client.payload())
+    assert meta["_etiqueta_dgt"] == "ECO" and meta["_motor_comercial"] == "1.6 GDi PHEV" and meta["_gas"] == "GLP"
+    assert meta["_destacados_ficha"] == "Apple CarPlay y Android Auto\nClimatizador bizona\nCámara de visión trasera"
+    assert not any(k in meta for k in ("__etiqueta_dgt", "__motor_comercial", "__gas", "__destacados_ficha"))
+    assert meta["_combustible"] == "Gasolina"                 # el gas sigue aparte
+
+
+def test_metas_ficha_vacios_no_se_mandan(lectura, caja, carpeta, registro):
+    """Sin descripción no hay motor ni destacados, y el Kia no es de gas: solo va la etiqueta."""
+    rc, client, _, _ = run(make_args(sin_descripcion=True), datos(), carpeta, registro)
+    assert rc == 0
+    meta = meta_dict(client.payload())
+    assert meta["_etiqueta_dgt"] == "CERO"
+    assert not {"_motor_comercial", "_gas", "_destacados_ficha"} & set(meta)
+    b = publicar.construir_borrador(datos().rows[0], carpeta, None, ai_kia(), sin_fotos_caja=True, sin_descripcion=True)
+    assert b.metas_ficha() == {"_etiqueta_dgt": "CERO"} and "_etiqueta_dgt" not in b.campos_acf()
+
+
+def test_actualizar_rellena_metas_ficha_vacios_y_no_pisa_los_que_tienen_valor(lectura, caja, carpeta, registro,
+                                                                              acf_base, capsys, monkeypatch):
+    """Regla del dueño: los borradores se retocan a mano. Un meta de la ficha con valor en la web no se pisa ni con
+    --si; uno vacío se rellena sin preguntar."""
+    web = dict(acf_base, _etiqueta_dgt="", _destacados_ficha="Escrito a mano en WordPress")
+    registro.write_text(json.dumps({"9028LXG": {"product_id": PRODUCTO_ID}}), encoding="utf-8")
+    for si in (True, False):
+        monkeypatch.setattr("builtins.input", lambda *a: (_ for _ in ()).throw(AssertionError("no debe preguntar")))
+        cliente = FakeClient(producto=producto_web(web))
+        rc, client, _ = run_actualizar(make_args(actualizar=True, si=si), datos(), carpeta, registro, cliente)
+        assert rc == 0
+        enviado = next(c for c in client.calls if c[0] == "actualizar")[2]
+        assert {m["key"]: m["value"] for m in enviado["meta_data"]} == {"_etiqueta_dgt": "CERO"}
+        salida = capsys.readouterr().out
+        assert "_destacados_ficha ya tienen valor en la web: se conservan" in salida
+    # sin diferencias en los metas de la ficha no se envía nada
+    cliente = FakeClient(producto=producto_web(dict(web, _etiqueta_dgt="CERO")))
+    rc, client, _ = run_actualizar(make_args(actualizar=True, si=True), datos(), carpeta, registro, cliente)
+    assert rc == 0 and not any(c[0] == "actualizar" for c in client.calls)
+
+
+# ------------------------------------------------- ficha de exposición en PDF
+class SesionFicha:
+    """Sesión HTTP falsa para WcClient.descargar_ficha_pdf: devuelve (o levanta) cada elemento de `respuestas`."""
+
+    def __init__(self, *respuestas):
+        self.respuestas, self.calls = list(respuestas), []
+
+    def request(self, method, url, auth=None, timeout=None, **kwargs):
+        self.calls.append((method, url, auth, timeout))
+        r = self.respuestas.pop(0)
+        if isinstance(r, BaseException):
+            raise r
+        status, content = r
+        return argparse.Namespace(status_code=status, content=content, text="")
+
+
+def cliente_con_descarga(*respuestas, monkeypatch) -> FakeClient:
+    """FakeClient cuya descarga de la ficha es la de verdad (WcClient) sobre una sesión falsa."""
+    monkeypatch.setattr(wc_client, "PAUSA_REINTENTO_FICHA", 0)
+    cliente = FakeClient()
+    real = wc_client.WcClient(FakeClient.url, ("k", "s"), ("u", "p"), session=SesionFicha(*respuestas))
+    cliente.descargar_ficha_pdf = real.descargar_ficha_pdf
+    return cliente
+
+
+def test_publicar_descarga_la_ficha_de_exposicion(lectura, caja, carpeta, registro, capsys):
+    ficha = carpeta.path / "ficha-expo.pdf"
+    ficha.write_bytes(b"%PDF vieja")
+    rc, client, _, src = run(make_args(), datos(), carpeta, registro)
+    assert rc == 0 and client.fichas == [555] and ficha.read_bytes() == PDF_FICHA        # pisa la anterior
+    assert not [p.name for p in carpeta.path.iterdir() if p.name.endswith(".tmp")]
+    out = capsys.readouterr().out
+    assert f"\nFicha: {ficha}\n" in out and "ficha de exposición" not in out
+    assert out.index("Luna: ") < out.index("Ficha: ") < out.index("== PARA VERIFICAR") and len(src.writes) == 1
+
+
+@pytest.mark.parametrize("respuestas, motivo", [
+    ([(200, b"<html>error</html>"), (200, b"<html>error</html>")], "la web no devolvió un PDF"),
+    ([(200, b"%PDF-1.7 corto"), (200, b"%PDF-1.7 corto")], "el PDF pesa solo 14 bytes"),
+    ([requests.exceptions.ReadTimeout("x"), requests.exceptions.ReadTimeout("x")], "la web no respondió en 60 s"),
+    ([(500, b""), (502, b"")], "la web respondió con error HTTP 502"),
+])
+def test_si_la_ficha_falla_avisa_y_la_publicacion_sigue(lectura, caja, carpeta, registro, capsys, monkeypatch,
+                                                         respuestas, motivo):
+    cliente = cliente_con_descarga(*respuestas, monkeypatch=monkeypatch)
+    rc, client, _, src = run(make_args(), datos(), carpeta, registro, cliente)
+    assert rc == 0 and client.nombres()[-1] == "crear" and len(src.writes) == 1
+    assert not (carpeta.path / "ficha-expo.pdf").exists()
+    assert json.loads(registro.read_text(encoding="utf-8"))["9028LXG"]["product_id"] == 555
+    out = capsys.readouterr().out
+    verificar_txt = out[out.index("== PARA VERIFICAR"):]
+    assert (f"ficha de exposición: no se pudo descargar ({motivo}); generala con el botón en WordPress"
+            in verificar_txt)
+    assert "\nFicha: " not in out
+
+
+def test_la_ficha_reintenta_una_vez(lectura, caja, carpeta, registro, capsys, monkeypatch):
+    cliente = cliente_con_descarga(requests.exceptions.ConnectionError("caída"), (200, PDF_FICHA),
+                                   monkeypatch=monkeypatch)
+    rc, _, _, _ = run(make_args(), datos(), carpeta, registro, cliente)
+    assert rc == 0 and (carpeta.path / "ficha-expo.pdf").read_bytes() == PDF_FICHA
+    assert "no se pudo descargar" not in capsys.readouterr().out
+
+
+def test_ficha_escritura_atomica(tmp_path, monkeypatch, capsys):
+    """Si el renombrado falla (el PDF abierto en Windows), la ficha anterior queda entera y no queda el temporal."""
+    ficha = tmp_path / "ficha-expo.pdf"
+    ficha.write_bytes(b"%PDF anterior")
+    reemplazos = []
+    real_replace = publicar.os.replace
+
+    def replace_espia(origen, destino):
+        reemplazos.append((origen, destino))
+        return real_replace(origen, destino)
+    monkeypatch.setattr(publicar.os, "replace", replace_espia)
+    assert publicar.descargar_ficha(FakeClient(), 555, tmp_path) == ""
+    assert ficha.read_bytes() == PDF_FICHA and len(reemplazos) == 1
+    origen = reemplazos[0][0]
+    assert str(origen) != str(ficha) and publicar.Path(origen).parent == tmp_path and not publicar.Path(origen).exists()
+
+    def roto(origen, destino):
+        raise PermissionError("el archivo está abierto")
+    monkeypatch.setattr(publicar.os, "replace", roto)
+    ficha.write_bytes(b"%PDF anterior")
+    aviso = publicar.descargar_ficha(FakeClient(), 555, tmp_path)
+    assert aviso.startswith("ficha de exposición: no se pudo descargar (el archivo está abierto)")
+    assert ficha.read_bytes() == b"%PDF anterior" and sorted(p.name for p in tmp_path.iterdir()) == ["ficha-expo.pdf"]
+    assert publicar.descargar_ficha(FakeClient(), 555, None).startswith("ficha de exposición: no se pudo descargar "
+                                                                         "(sin carpeta del coche)")
+
+
+def test_sin_ficha_y_simular_no_descargan(lectura, caja, carpeta, registro, capsys):
+    rc, client, _, _ = run(make_args(sin_ficha=True), datos(), carpeta, registro)
+    assert rc == 0 and client.fichas == [] and not (carpeta.path / "ficha-expo.pdf").exists()
+    assert "Ficha" not in capsys.readouterr().out
+    registro.unlink()
+    rc, client, _, _ = run(make_args(simular=True), datos(), carpeta, registro)
+    assert rc == 0 and client.fichas == [] and not (carpeta.path / "ficha-expo.pdf").exists()
+    args = publicar.build_parser().parse_args(["82", "--sin-ficha"])
+    assert args.sin_ficha and not args.solo_ficha
+
+
+# ------------------------------------------------------------- --solo-ficha
+EXISTENTE = {"id": 555, "name": "Kia XCeed", "status": "draft", "sku": "9028LXG",
+             "admin_url": "https://example.test/wp-admin/post.php?post=555&action=edit"}
+
+
+@pytest.fixture
+def sin_lecturas(monkeypatch):
+    """--solo-ficha no lee documentos, ni detecta la caja, ni genera la descripción."""
+    def boom(*a, **k):
+        raise AssertionError("--solo-ficha no debe leer documentos ni llamar a la IA")
+    for modulo, nombre in ((verificar, "read_documents"), (caja_fotos, "detectar_caja"), (desc_mod, "generar")):
+        monkeypatch.setattr(modulo, nombre, boom)
+
+
+def run_solo_ficha(args, data, carpeta, client):
+    factory = Factory(client)
+    return publicar.solo_ficha(args, data, [carpeta], client_factory=factory), client, factory
+
+
+def test_solo_ficha_encontrado_descarga_a_la_carpeta(sin_lecturas, carpeta, capsys):
+    ficha = carpeta.path / "ficha-expo.pdf"
+    ficha.write_bytes(b"%PDF vieja")
+    rc, client, _ = run_solo_ficha(make_args(solo_ficha=True), datos(), carpeta, FakeClient(existente=EXISTENTE))
+    assert rc == 0 and client.nombres() == ["buscar"] and client.calls[0] == ("buscar", "9028LXG")
+    assert client.fichas == [555] and ficha.read_bytes() == PDF_FICHA
+    out = capsys.readouterr().out
+    assert "Identidad: OK" in out and "Modelo: OK" in out and f"\nFicha: {ficha}\n" in out
+
+
+def test_solo_ficha_no_encontrado(sin_lecturas, carpeta, capsys):
+    rc, client, _ = run_solo_ficha(make_args(solo_ficha=True), datos(), carpeta, FakeClient(existente=None))
+    assert rc == 1 and client.fichas == [] and not (carpeta.path / "ficha-expo.pdf").exists()
+    assert "9028LXG no está publicado en la web" in capsys.readouterr().out
+
+
+def test_solo_ficha_simular_no_descarga(sin_lecturas, carpeta, capsys):
+    rc, client, _ = run_solo_ficha(make_args(solo_ficha=True, simular=True), datos(), carpeta,
+                                   FakeClient(existente=EXISTENTE))
+    assert rc == 0 and client.fichas == [] and not (carpeta.path / "ficha-expo.pdf").exists()
+    out = capsys.readouterr().out
+    assert (f"Simulación: se descargaría https://example.test/?pdf=555 a {carpeta.path / 'ficha-expo.pdf'}. "
+            "No se descarga nada.") in out
+
+
+def test_solo_ficha_guardas(sin_lecturas, carpeta, tmp_path, capsys):
+    # la marca de la hoja no aparece en el producto: no se descarga (con --forzar sí)
+    ajeno = dict(EXISTENTE, name="Hyundai I10")
+    rc, client, _ = run_solo_ficha(make_args(solo_ficha=True), datos(), carpeta, FakeClient(existente=ajeno))
+    assert rc == 1 and client.fichas == [] and "Modelo: el producto 555 se llama «Hyundai I10»" in capsys.readouterr().out
+    rc, client, _ = run_solo_ficha(make_args(solo_ficha=True, forzar=True), datos(), carpeta, FakeClient(existente=ajeno))
+    assert rc == 0 and client.fichas == [555]
+    # sin matrícula en la hoja o sin carpeta: ni se llama a la web
+    rc, client, factory = run_solo_ficha(make_args(solo_ficha=True), datos(matricula=""), carpeta, FakeClient())
+    assert rc == 1 and factory.calls == 0 and "Sin matrícula en la hoja (D)" in capsys.readouterr().out
+    otra = locate.make_car_folder(tmp_path / "99-Otro coche-1111AAA", "1_Ventas")
+    rc, client, factory = run_solo_ficha(make_args(solo_ficha=True), datos(), otra, FakeClient())
+    assert rc == 1 and factory.calls == 0 and "Sin carpeta del coche" in capsys.readouterr().out
+    # la descarga falla: código 1 y PARA VERIFICAR
+    rc, client, _ = run_solo_ficha(make_args(solo_ficha=True), datos(), carpeta,
+                                   FakeClient(existente=EXISTENTE, ficha=WcError("la web no devolvió un PDF")))
+    out = capsys.readouterr().out
+    assert rc == 1 and "== PARA VERIFICAR" in out and "no se pudo descargar (la web no devolvió un PDF)" in out
+
+
+def test_solo_ficha_en_el_parser():
+    args = publicar.build_parser().parse_args(["82", "--solo-ficha", "--simular"])
+    assert args.solo_ficha and args.simular
+    for extra in (["--actualizar"], ["--solo-fotos"]):
+        with pytest.raises(SystemExit):
+            publicar.main(["82", "--solo-ficha"] + extra)

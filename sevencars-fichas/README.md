@@ -308,6 +308,8 @@ $PY publicar.py D29                      # crea el BORRADOR en sevencars.es (fot
 $PY publicar.py 1082 --categoria suv-4x4,familiar   # categorías a mano para modelos desconocidos
 $PY publicar.py D29 --actualizar --simular          # anuncio ya publicado: diferencias con la web, sin enviar nada
 $PY publicar.py D29 --actualizar --solo-financiacion --si   # solo precio, precio financiado, cuota, tipo y fecha
+$PY publicar.py D29 --solo-ficha                    # vuelve a bajar la ficha de exposición (PDF) a la carpeta
+$PY publicar.py D29 --solo-ficha --simular          # dice qué producto y qué URL usaría, sin descargar
 ```
 
 Flujo: hoja en vivo → fila → carpeta (`locate`) → lectura liviana del permiso (caché) → **puerta de identidad**
@@ -320,11 +322,26 @@ matriculación «Abril 2022» / 202204, garantía, precio, precio financiado, cu
 fotos en orden (si una falla se borran las ya subidas) → producto WooCommerce simple en **borrador** (`sku` =
 matrícula, `regular_price` 300 = reserva online, categorías, galería con 1.jpg de portada, campos ACF con sus
 `field_xxx`, `_precio_financiado`, `_yoast_wpseo_primary_product_cat`) → registro en `data/publicados.json` →
-hoja: AD cuota y G URL IMAGEN solo si están vacías → URL de edición. `--publicar-directo` publica en vez de
-borrador; `--sin-hoja` no toca la hoja; `--forzar` ignora las cachés; `--sin-fotos-caja` omite las fotos para la
+imágenes de la luna → **ficha de exposición** → hoja: AD cuota y G URL IMAGEN solo si están vacías → URL de edición.
+`--publicar-directo` publica en vez de borrador; `--sin-hoja` no toca la hoja; `--forzar` ignora las cachés; `--sin-fotos-caja` omite las fotos para la
 caja. Descripción y equipamiento: punto de extensión `descripcion.py` (`plantillas/descripcion.html` con
 placeholders `{marca} {modelo} {version} {kms} {cv} {cubicaje} {caja} {combustible} {matriculacion} {garantia}
 {precio} {precio_financiado} {cuota} {matricula}`); sin plantilla no se envía el campo.
+
+**Ficha de exposición** (`<carpeta del coche>/ficha-expo.pdf`): justo después de crear el producto se descarga el
+PDF que genera la web en `{WC_URL}/?pdf=<id>` (sin credenciales; 60 s de espera y un reintento; tiene que empezar
+por `%PDF` y pesar más de 10 KB) y se guarda pisando la anterior (temporal + renombrado, nunca queda a medias).
+Imprime `Ficha: <ruta>`. Si falla, avisa y deja en PARA VERIFICAR «ficha de exposición: no se pudo descargar
+(motivo); generala con el botón en WordPress»: la publicación sigue. `--sin-ficha` no la descarga. `--solo-ficha`
+la vuelve a bajar para un coche ya publicado (p. ej. tras retocar el borrador): fila de la hoja → carpeta →
+producto por matrícula (`buscar_por_matricula`) con la guarda de modelo; no lee documentos ni llama a la IA y
+sale con código 1 si no está publicado o la descarga falla. `ficha-expo` nunca es fuente de datos (`docs.py` la
+reconoce por nombre y, en un `ficha-*.pdf`, por el diseño viejo «Potencia:»/«Cubicaje:» o el nuevo con rótulos
+POTENCIA, KILÓMETROS, PRECIO BASE, OCASIÓN SELECCIONADA). El PDF lee cuatro metas simples que se mandan al crear
+(los vacíos no van): `_etiqueta_dgt` (CERO/ECO/C/B), `_motor_comercial` (el motor que identifica la IA), `_gas`
+(GLP/GNC/GNL) y `_destacados_ficha` (3-4 puntos fuertes, uno por línea: la IA los elige del equipamiento ya
+listado y Python descarta los que no están en esas listas y completa con los primeros de tecnología, confort y
+seguridad). En `--actualizar` esos metas solo se rellenan si en la web están vacíos: nunca se pisan.
 
 `--actualizar` completa un anuncio ya publicado (campos ACF y, si cambiaron, título y categorías; nunca las
 fotos, el estado, el sku ni el precio de reserva): busca el producto por `data/publicados.json` o por matrícula,
@@ -451,7 +468,8 @@ vuelve a subir: si le llegan fotos nuevas solo se ordenan (`--solo-fotos`). inot
 por eso se sondea.
 
 **RESULTADO.txt** (en la carpeta del coche, se reescribe en cada intento): fecha, qué pasó, el enlace del
-borrador, el bloque PARA VERIFICAR tal cual lo imprime `publicar.py` y el próximo paso. Al final, un historial
+borrador, las líneas `Luna:` y `Ficha:` (dónde quedaron las imágenes de la luna y `ficha-expo.pdf`), el bloque
+PARA VERIFICAR tal cual lo imprime `publicar.py` y el próximo paso. Al final, un historial
 con los últimos 3 intentos. Resultados posibles:
 
 - `publicado`: borrador creado → revisarlo en WordPress y publicarlo.

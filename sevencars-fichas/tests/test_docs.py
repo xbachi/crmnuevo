@@ -75,3 +75,34 @@ def test_load_document_images_from_pdf(tmp_path):
     assert len(images) == 1
     assert images[0].page == 1 and images[0].label == "permiso-circulacion.pdf (pág. 1)"
     assert images[0].width > 0 and images[0].jpeg[:2] == b"\xff\xd8"
+
+
+# ------------------------------------------------------ ficha-expo: diseño viejo y nuevo
+EXPO_NUEVA = """Kia XCeed GDi PHEV 140cv Edrive
+OCASIÓN SELECCIONADA
+POTENCIA
+140 CV
+KILÓMETROS
+88.858
+PRECIO BASE
+16.900 €
+"""
+
+
+def test_looks_like_expo_text_reconoce_los_dos_disenos():
+    assert looks_like_expo_text(EXPO_TEXT)                                    # viejo: «Potencia:» y «Cubicaje:»
+    assert looks_like_expo_text(EXPO_NUEVA)                                   # nuevo: rótulos sin dos puntos
+    assert looks_like_expo_text(EXPO_NUEVA.replace("OCASIÓN SELECCIONADA\n", ""))    # basta con tres
+    assert looks_like_expo_text("POTENCIA 140 CV\nKILÓMETROS 88.858\nPRECIO BASE 16.900 €")
+    # una ficha técnica o un permiso no lo son
+    assert not looks_like_expo_text("TARJETA ITV\nP.2 POTENCIA 77 KW\nKILOMETROS\nF.1 MASA")
+    assert not looks_like_expo_text("Potencia: 77 kW\nKilómetros: 1000\nPrecio base: 3")
+    assert not looks_like_expo_text("")
+
+
+def test_find_documents_ficha_expo_nueva_no_es_fuente(tmp_path):
+    write_pdf(tmp_path / "ficha-expo.pdf", EXPO_NUEVA)
+    write_pdf(tmp_path / "ficha-kia.pdf", EXPO_NUEVA)
+    write_pdf(tmp_path / "ficha-tecnica.pdf", "TARJETA ITV\nP.2 POTENCIA 77 KW")
+    assert [(d.name, d.kind) for d in find_documents(tmp_path)] == [
+        ("ficha-tecnica.pdf", KIND_FICHA), ("ficha-expo.pdf", KIND_EXPO), ("ficha-kia.pdf", KIND_EXPO)]

@@ -445,3 +445,51 @@ def test_los_dos_destinos_comparten_contenido_y_cambian_el_formato():
     assert "* Potencia combinada: 240 CV" in bloque and "Potencia combinada" not in equipo
     assert "* Plazas: 5" in bloque and "\n5 plazas" in equipo
     assert "🎯 Exterior" in bloque and "//// Exterior" in equipo
+
+
+# --------------------------------------------- destacados de la ficha de exposición
+def test_el_esquema_y_el_prompt_piden_destacados():
+    assert "destacados" in desc.SCHEMA["required"] and desc.SCHEMA["properties"]["destacados"]["type"] == "array"
+    assert desc.ESQUEMA_CACHE >= 4                      # la caché anterior no traía destacados
+    prompt = desc.prompt_para(DatosCoche(**COMPASS), ["1.jpg"])
+    assert '"destacados": de 3 a 4 puntos fuertes' in prompt and "Nada que no esté en esas listas" in prompt
+
+
+def test_destacados_validados_contra_el_equipamiento_listado():
+    """Solo los que están en las listas; lo inventado o lo que ya dice la ficha se cae (y queda en PARA VERIFICAR),
+    y si quedan menos de 3 se completa con los primeros de tecnología / confort / seguridad."""
+    partes = dict(PARTES, motor="1.3 T4 PHEV 240",
+                  destacados=["Android Auto y Apple CarPlay", "Techo solar panorámico", "Faros LED",
+                              "Potencia de 240 CV", "* Asientos calefactables."])
+    pz = despiezar(DatosCoche(**COMPASS), partes)
+    assert pz.motor == "1.3 T4 PHEV 240"
+    assert pz.destacados == ["Android Auto y Apple CarPlay", "Asientos calefactables", "Pantalla táctil Uconnect"]
+    assert desc.destacados_ficha(pz) == "Android Auto y Apple CarPlay\nAsientos calefactables\nPantalla táctil Uconnect"
+    aviso = next(x for x in pz.para_verificar if x.startswith("descripción: destacados de la IA descartados"))
+    assert "Techo solar panorámico" in aviso and "Faros LED" in aviso and "Potencia de 240 CV" in aviso
+    assert "Android Auto" not in aviso
+
+
+def test_un_destacado_que_solo_coincide_por_concepto_publica_la_vineta_listada():
+    """«Sensores delanteros y traseros» con la lista diciendo solo «Sensores de aparcamiento»: se publica lo listado,
+    así no se cuela un detalle que el equipamiento no confirma."""
+    partes = dict(PARTES, destacados=["Climatización automática de dos zonas",
+                                      "Sensores de aparcamiento delanteros y traseros", "Navegador GPS"])
+    pz = despiezar(DatosCoche(**COMPASS), partes)
+    assert pz.destacados == ["Climatizador bizona", "Sensores de aparcamiento", "Navegador integrado"]
+    assert not any("destacados" in x for x in pz.para_verificar)
+
+
+def test_destacados_sin_propuesta_como_mucho_cuatro_y_sin_repetir():
+    # sin destacados (o todos inválidos): los primeros de cada lista, alternando y sin el piso normativo (ABS…)
+    pz = despiezar(DatosCoche(**COMPASS), PARTES)
+    assert pz.destacados == ["Pantalla táctil Uconnect", "Climatizador bizona", "Cámara de marcha atrás"]
+    # obviedades y datos que ya muestra la ficha se caen aunque se parezcan a una viñeta listada
+    assert desc.elegir_destacados(["Freno de mano", "Etiqueta CERO"],
+                                  [("Confort / Interior", ["Freno de mano eléctrico"])]) == \
+        (["Freno de mano eléctrico"], ["Freno de mano", "Etiqueta CERO"])
+    muchos = ["Pantalla táctil Uconnect", "Apple CarPlay y Android Auto", "Android Auto y Apple CarPlay",
+              "Climatizador bizona", "Barras de techo", "Asientos calefactables"]
+    pz = despiezar(DatosCoche(**COMPASS), dict(PARTES, destacados=muchos))
+    assert pz.destacados == ["Pantalla táctil Uconnect", "Apple CarPlay y Android Auto", "Climatizador bizona",
+                             "Barras de techo"]

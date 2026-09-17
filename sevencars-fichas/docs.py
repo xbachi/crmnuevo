@@ -74,10 +74,20 @@ def classify_filename(filename: str) -> str | None:
     return None
 
 
+# Rótulos de la ficha de exposición nueva (tema de la web, dompdf): en mayúsculas y sin dos puntos.
+EXPO_ROTULOS_NUEVOS = ("POTENCIA", "KILÓMETROS", "PRECIO BASE", "OCASIÓN SELECCIONADA")
+
+
 def looks_like_expo_text(text: str) -> bool:
-    """The dealer's exposition PDF has 'Potencia:' and 'Cubicaje:' lines."""
+    """The dealer's exposition PDF: old design with 'Potencia:' and 'Cubicaje:' lines, or the new one with labels
+    in capitals and no colon (POTENCIA, KILÓMETROS, PRECIO BASE, OCASIÓN SELECCIONADA) starting a line; at least
+    three of the four, so a small label change in the theme still counts and an official document never does."""
     n = norm_text(text)
-    return "potencia:" in n and "cubicaje:" in n
+    if "potencia:" in n and "cubicaje:" in n:
+        return True
+    lineas = [norm_text(linea) for linea in str(text or "").splitlines()]
+    rotulos = [re.compile(rf"^{re.escape(norm_text(r))}(?![\w:])(?!\s*:)") for r in EXPO_ROTULOS_NUEVOS]
+    return sum(any(r.match(linea) for linea in lineas) for r in rotulos) >= 3
 
 
 def pdf_text(path: Path) -> str:

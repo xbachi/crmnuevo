@@ -89,6 +89,7 @@ MARCA_FALTA_HOJA = "no está en la hoja Base_Datos"
 MARCAS_GOOGLE = ("Please visit this URL", "Hace falta autorizar el acceso a Google")
 MARCA_VERIFICAR = "== PARA VERIFICAR"
 MARCA_LUNA = "Luna:"          # «Luna: precio1.jpg (12.) · … → <carpeta>/precios»: dónde quedaron las imágenes
+MARCA_FICHA = "Ficha:"        # «Ficha: <carpeta>/ficha-expo.pdf»: la ficha de exposición descargada de la web
 _RE_URL = re.compile(r"https?://[^\s»)]+")
 ORDEN_AUTORIZAR = "../.venv/bin/python verificar.py --probar-sheet"
 
@@ -187,12 +188,21 @@ def bloque_verificar(salida: str) -> str:
     return "\n".join(lineas)
 
 
-def linea_luna(salida: str) -> str:
-    """La línea «Luna: …» de publicar.py (las imágenes para la hoja de precios de la luna), o '' si no la hay."""
+def _linea(salida: str, marca: str) -> str:
     for linea in salida.splitlines():
-        if linea.startswith(MARCA_LUNA):
+        if linea.startswith(marca):
             return linea.strip()
     return ""
+
+
+def linea_luna(salida: str) -> str:
+    """La línea «Luna: …» de publicar.py (las imágenes para la hoja de precios de la luna), o '' si no la hay."""
+    return _linea(salida, MARCA_LUNA)
+
+
+def linea_ficha(salida: str) -> str:
+    """La línea «Ficha: …» de publicar.py (dónde quedó la ficha de exposición en PDF), o '' si no la hay."""
+    return _linea(salida, MARCA_FICHA)
 
 
 def ruta_windows(path: Path) -> str:
@@ -707,9 +717,7 @@ class Vigilante:
         url = entry.get("url") if etiq in FINALES else ""
         if url:
             partes.append(f"Enlace: {url}")
-        luna = linea_luna(salida)
-        if luna:
-            partes.append(luna)
+        partes += [linea for linea in (linea_luna(salida), linea_ficha(salida)) if linea]
         bloque = bloque_verificar(salida)
         if bloque:
             partes += ["", bloque]

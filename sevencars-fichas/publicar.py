@@ -7,18 +7,24 @@ Uso: publicar.py <ref> [--simular] [--categoria x,y] [--publicar-directo] [--for
      publicar.py <ref> --actualizar --solo-financiacion  → solo precio, precio financiado, cuota, tipo de vehículo y
                                                             fecha de matriculación, desde la hoja (sin leer documentos)
      publicar.py <ref> --solo-fotos                      → solo deja fotos/ como 1.jpg…N.jpg ≤ 400 KB (ni web ni hoja)
+     publicar.py <ref> --solo-ficha [--simular]          → vuelve a descargar la ficha de exposición (PDF de la web)
+                                                            a <coche>/ficha-expo.pdf (sin leer documentos ni IA)
 
 Antes de listar las fotos, la carpeta fotos/ del coche se normaliza (descargas de ChatGPT en PNG/WEBP incluidas):
 1.jpg…N.jpg, JPEG ≤ 400 KB; los originales quedan en fotos/originales/. `--sin-normalizar-fotos` lo omite.
 Al crear el producto (y en --actualizar --solo-financiacion) genera las imágenes de la luna en <coche>/precios/
 (luna.py: precio en miles y cientos, y cuota). `--sin-luna` lo evita.
+Al crear el producto descarga también la ficha de exposición que genera la web (GET /?pdf=<id>) a
+<coche>/ficha-expo.pdf; si falla, avisa en PARA VERIFICAR y la publicación sigue. `--sin-ficha` lo evita.
 """
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
+import tempfile
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
@@ -51,6 +57,10 @@ EXTRACTO_LINEAS = 4
 EXIT_OK, EXIT_ERROR = 0, 1
 # Metas que el tema de la web usa para la financiación y la edad del coche: lo único que toca --solo-financiacion.
 METAS_FINANCIACION = ("_precio", "_precio_financiado", "_cuota", "_tipo_vehiculo", "_fecha_matriculacion")
+# Metas simples (no ACF) que lee la ficha de exposición en PDF del tema. Al crear van si tienen valor; en
+# --actualizar solo se rellenan si en la web están vacíos (el usuario los retoca a mano en el borrador).
+METAS_FICHA = ("_etiqueta_dgt", "_motor_comercial", "_gas", "_destacados_ficha")
+FICHA_EXPO = "ficha-expo.pdf"
 RECORDATORIO_PRECIO_FINANCIADO = ("Recordá: la web recalcula _precio_financiado ella sola en el próximo guardado desde "
                                   "wp-admin, a partir de _precio, _dto_renove y _tipo_vehiculo.")
 
@@ -116,6 +126,9 @@ class Borrador:
     gas: str | None = None                     # GLP/GNC/GNL: solo descripción y etiqueta (en la web y la hoja, Gasolina)
     destacado: str = ""              # ACF _destacado: parte narrativa
     equipamiento: str = ""           # ACF _equipamiento: datos técnicos y equipamiento
+    etiqueta_dgt: str = ""           # CERO | ECO | C | B | "" (descripcion_cochesnet.etiqueta_dgt)
+    motor_comercial: str = ""        # denominación del motor según la IA («1.0 TCe 100 GLP»)
+    destacados_ficha: str = ""       # 3-4 puntos fuertes del equipamiento, uno por línea
     avisos: list[str] = field(default_factory=list)
     para_verificar: list[str] = field(default_factory=list)
 
@@ -147,6 +160,12 @@ class Borrador:
         if self.categoria_ids:
             campos["_yoast_wpseo_primary_product_cat"] = str(self.categoria_ids[0])
         return campos
+
+    def metas_ficha(self) -> dict:
+        """METAS_FICHA con valor (los vacíos no se mandan)."""
+        valores = dict(zip(METAS_FICHA, (self.etiqueta_dgt, self.motor_comercial, self.gas or "",
+                                         self.destacados_ficha)))
+        return {clave: valor for clave, valor in valores.items() if valor}
 
 
 def _precio_web(valor) -> str:
@@ -317,11 +336,12 @@ def construir_borrador(row: VehicleRow, folder: locate.CarFolder, permiso: idm.P
                                      cilindrada=cubicaje or None, cv=cv, caja=caja or "",
                                      anio=mat_num // 100 if mat_num else None, fecha=fecha, gas=gas or "",
                                      importado=desc_mod.es_importado(folder.name, folder.group, row.modelo), **doc_desc)
-    destacado = equipamiento = ""
+    destacado = equipamiento = motor_comercial = destacados_ficha = ""
     if not sin_descripcion:
         d = desc_mod.generar(datos_desc, fotos, folder.name, force=force or forzar_descripcion)
         if d.piezas is not None:
             destacado, equipamiento = desc_mod.destacado(d.piezas), desc_mod.equipamiento(d.piezas)
+            motor_comercial, destacados_ficha = d.piezas.motor, desc_mod.destacados_ficha(d.piezas)
             verificar_items.append(desc_mod.AVISO_VERIFICAR)
             verificar_items += d.piezas.para_verificar
         else:
@@ -333,7 +353,8 @@ def construir_borrador(row: VehicleRow, folder: locate.CarFolder, permiso: idm.P
                     matriculacion=matriculacion, matriculacion_num=mat_num, garantia=garantia_texto(row), precio=precio,
                     precio_financiado=precio_fin, cuota=cuota, categorias=slugs, categoria_ids=cat_mod.ids_de(slugs),
                     fotos=fotos_plan, financiacion=fin, fecha_matriculacion=fecha, carpeta=folder.path, gas=gas,
-                    destacado=destacado, equipamiento=equipamiento,
+                    destacado=destacado, equipamiento=equipamiento, etiqueta_dgt=datos_desc.etiqueta or "",
+                    motor_comercial=motor_comercial, destacados_ficha=destacados_ficha,
                     avisos=avisos, para_verificar=verificar_items)
 
 
@@ -407,6 +428,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--sin-fotos-caja", action="store_true", help="no detectar la caja por las fotos")
     p.add_argument("--sin-luna", action="store_true",
                    help="no generar las imágenes de la luna (precio1/precio2/cuota.jpg en <coche>/precios/)")
+    p.add_argument("--sin-ficha", action="store_true",
+                   help="no descargar la ficha de exposición (PDF de la web) a <coche>/ficha-expo.pdf")
+    p.add_argument("--solo-ficha", action="store_true",
+                   help="solo volver a descargar la ficha de exposición del producto ya publicado (busca por "
+                        "matrícula; sin leer documentos ni IA)")
     p.add_argument("--sin-descripcion", action="store_true",
                    help="no generar _destacado ni _equipamiento (se envían vacíos)")
     p.add_argument("--sin-normalizar-fotos", action="store_true",
@@ -562,6 +588,78 @@ def _luna_financiado(args, b: Financiado, folders) -> None:
     generar_luna(loc.folder.path if loc.found else None, b.precio, b.fecha, b.row.tarifa_financiacion)
 
 
+def escribir_atomico(destino: Path, datos: bytes) -> Path:
+    """Escribe en un temporal de la misma carpeta y lo renombra encima: nunca queda un archivo a medias."""
+    destino = Path(destino)
+    fd, tmp = tempfile.mkstemp(prefix=f".{destino.stem}.", suffix=".tmp", dir=destino.parent)
+    try:
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(datos)
+        os.replace(tmp, destino)
+    except BaseException:
+        Path(tmp).unlink(missing_ok=True)
+        raise
+    return destino
+
+
+def descargar_ficha(client, product_id, carpeta: Path | None) -> str:
+    """La ficha de exposición que genera la web, a <carpeta>/ficha-expo.pdf (pisando la anterior) e imprime
+    «Ficha: <ruta>». Nunca detiene la publicación: si falla avisa y devuelve la línea para PARA VERIFICAR ('' si
+    salió bien)."""
+    if carpeta is None:
+        motivo = "sin carpeta del coche"
+    else:
+        try:
+            destino = escribir_atomico(Path(carpeta) / FICHA_EXPO, client.descargar_ficha_pdf(product_id))
+        except Exception as exc:            # el producto ya está creado: pase lo que pase, se sigue
+            motivo = str(exc) or type(exc).__name__
+        else:
+            say(f"Ficha: {destino}")
+            return ""
+    warn(f"Ficha de exposición: no se pudo descargar ({motivo}).")
+    return f"ficha de exposición: no se pudo descargar ({motivo}); generala con el botón en WordPress"
+
+
+def solo_ficha(args, data, folders, client_factory=WcClient.desde_env) -> int:
+    """`--solo-ficha`: vuelve a descargar la ficha de exposición del producto a la carpeta del coche. La identidad
+    sale de la hoja (su matrícula es la del producto, igual que --solo-financiacion): sin documentos ni IA."""
+    row, loc = _fila_y_carpeta(args, data, folders)
+    if row is None:
+        return EXIT_ERROR
+    if not row.matricula:
+        warn("Sin matrícula en la hoja (D): con --solo-ficha no se lee el permiso, así que no hay con qué buscar "
+             "el producto.")
+        return EXIT_ERROR
+    if not loc.found:
+        warn("Sin carpeta del coche: no hay dónde guardar la ficha de exposición.")
+        return EXIT_ERROR
+    try:
+        client = client_factory()
+        producto = client.buscar_por_matricula(row.matricula)
+    except WcError as exc:
+        warn(str(exc))
+        return EXIT_ERROR
+    if not producto:
+        warn(f"{row.matricula} no está publicado en la web: no hay ficha que descargar. "
+             f"Publicalo primero con `publicar.py {args.referencia or row.referencia}`.")
+        return EXIT_ERROR
+    product_id = producto["id"]
+    say(f"Producto {product_id} (por búsqueda por matrícula en la web): {client.admin_url(product_id)}")
+    say("Identidad: " + report.paint("OK", "OK") + f" — la matrícula de la hoja ({row.matricula}) es la del producto")
+    if not guarda_modelo(args, producto, row, product_id):
+        return EXIT_ERROR
+    destino = loc.folder.path / FICHA_EXPO
+    if args.simular:
+        say(f"Simulación: se descargaría {client.url_ficha(product_id)} a {destino}"
+            + (" (pisando la que hay)" if destino.exists() else "") + ". No se descarga nada.")
+        return EXIT_OK
+    aviso = descargar_ficha(client, product_id, loc.folder.path)
+    if aviso:
+        report.print_para_verificar([aviso])
+        return EXIT_ERROR
+    return EXIT_OK
+
+
 def publicar(args, sheet_src, data, folders, client_factory=WcClient.desde_env, registro_path: Path = REGISTRO) -> int:
     """Alta completa. `client_factory` se inyecta en los tests."""
     rc, b = preparar_borrador(args, sheet_src, data, folders)
@@ -617,7 +715,8 @@ def publicar(args, sheet_src, data, folders, client_factory=WcClient.desde_env, 
 
     status = "publish" if args.publicar_directo else "draft"
     descripcion = render_plantilla("descripcion", datos_plantilla(b))
-    payload = construir_payload(b.titulo, b.sku, b.campos_acf(), ids, b.categoria_ids, status=status, descripcion=descripcion)
+    payload = construir_payload(b.titulo, b.sku, campos_web(b), ids, b.categoria_ids, status=status,
+                                descripcion=descripcion)
     try:
         product_id, admin_url, producto = client.crear_producto(payload)
     except WcError as exc:
@@ -636,6 +735,10 @@ def publicar(args, sheet_src, data, folders, client_factory=WcClient.desde_env, 
     say(report.paint(f"Producto {product_id} creado como {status}: {admin_url}", "OK"))
     if not getattr(args, "sin_luna", False):
         generar_luna(b.carpeta, b.precio, b.fecha_matriculacion, row.tarifa_financiacion)
+    if not getattr(args, "sin_ficha", False):
+        aviso = descargar_ficha(client, product_id, b.carpeta)
+        if aviso:
+            b.para_verificar.append(aviso)
 
     if not args.sin_hoja:
         escribir_hoja(b, data, sheet_src, portada)
@@ -705,15 +808,32 @@ class Diferencia:
         return bool(self.actual.strip())
 
 
+def campos_web(b: Borrador | Financiado) -> dict:
+    """Todo lo que va a meta_data: los campos ACF y, en un Borrador, los METAS_FICHA con valor."""
+    return {**b.campos_acf(), **(b.metas_ficha() if isinstance(b, Borrador) else {})}
+
+
+def metas_ficha_conservados(b: Borrador | Financiado, producto: dict) -> list[str]:
+    """METAS_FICHA que en la web ya tienen un valor distinto: se conservan (nunca se pisan)."""
+    if not isinstance(b, Borrador):
+        return []
+    actual = meta_actual(producto)
+    return [clave for clave, valor in b.metas_ficha().items()
+            if actual.get(clave, "").strip() and actual.get(clave) != valor]
+
+
 def diferencias(b: Borrador | Financiado, producto: dict, solo_meta: bool = False) -> list[Diferencia]:
-    """Lo que cambiaría: meta ACF y, si difieren, título y categorías. Nunca fotos, estado, sku ni precio.
-    Con `solo_meta` (--solo-financiacion: `b` es un Financiado) solo las metas de campos_acf(), sin título ni
-    categorías."""
+    """Lo que cambiaría: meta ACF, los METAS_FICHA que en la web están vacíos y, si difieren, título y
+    categorías. Nunca fotos, estado, sku ni precio. Con `solo_meta` (--solo-financiacion: `b` es un Financiado) solo
+    las metas de campos_acf(), sin título ni categorías."""
     actual = meta_actual(producto)
     difs = [Diferencia(m["key"], actual.get(m["key"], ""), str(m["value"]))
             for m in construir_meta(b.campos_acf()) if actual.get(m["key"], "") != str(m["value"])]
     if solo_meta:
         return difs
+    if isinstance(b, Borrador):
+        difs += [Diferencia(clave, "", valor) for clave, valor in b.metas_ficha().items()
+                 if not actual.get(clave, "").strip()]
     if (producto.get("name") or "") != b.titulo:
         difs.append(Diferencia("name", producto.get("name") or "", b.titulo))
     cats_web = sorted(c.get("id") for c in (producto.get("categories") or []))
@@ -726,7 +846,7 @@ def payload_actualizacion(b: Borrador | Financiado, difs: list[Diferencia]) -> d
     """Solo los campos que cambian. Si no hay diferencias de meta, no se manda meta_data."""
     cambian = {d.campo for d in difs}
     payload: dict = {}
-    meta = [m for m in construir_meta(b.campos_acf()) if m["key"] in cambian]
+    meta = [m for m in construir_meta(campos_web(b)) if m["key"] in cambian]
     if meta:
         payload["meta_data"] = meta
     if "name" in cambian:
@@ -768,6 +888,21 @@ def comprobar_modelo(producto: dict, row: VehicleRow, product_id) -> tuple[str, 
     if primero and not any(_clave(primero) in t for t in textos):
         return "", f"la marca coincide pero el modelo «{primero}» de la hoja no aparece en el producto «{nombre}»"
     return "", ""
+
+
+def guarda_modelo(args, producto: dict, row: VehicleRow, product_id) -> bool:
+    """comprobar_modelo con sus mensajes: False si no se sigue (la marca no aparece y no hay --forzar)."""
+    error, aviso = comprobar_modelo(producto, row, product_id)
+    if error and not getattr(args, "forzar", False):
+        warn(f"Modelo: {error}. No se toca la web (con --forzar se sigue igual).")
+        return False
+    if error:
+        warn(f"Modelo: {error} (--forzar: se sigue igual).")
+    elif aviso:
+        warn(f"Modelo: {aviso}.")
+    else:
+        say("Modelo: " + report.paint("OK", "OK") + " — la marca de la hoja aparece en el producto")
+    return True
 
 
 def localizar_producto(client, sku: str, registro: dict) -> tuple[int | None, str]:
@@ -820,17 +955,12 @@ def actualizar(args, sheet_src, data, folders, client_factory=WcClient.desde_env
                  "no se toca la web.")
             return EXIT_ERROR
         say("Identidad: " + report.paint("OK", "OK") + f" — la matrícula de la hoja ({b.sku}) es el sku del producto")
-    error, aviso = comprobar_modelo(producto, b.row, product_id)
-    if error and not getattr(args, "forzar", False):
-        warn(f"Modelo: {error}. No se toca la web (con --forzar se actualiza igual).")
+    if not guarda_modelo(args, producto, b.row, product_id):
         return EXIT_ERROR
-    if error:
-        warn(f"Modelo: {error} (--forzar: se sigue igual).")
-    elif aviso:
-        warn(f"Modelo: {aviso}.")
-    else:
-        say("Modelo: " + report.paint("OK", "OK") + " — la marca de la hoja aparece en el producto")
 
+    conservados = metas_ficha_conservados(b, producto)
+    if conservados:
+        say(f"Ficha de exposición: {', '.join(conservados)} ya tienen valor en la web: se conservan (no se pisan).")
     difs = diferencias(b, producto, solo_meta=solo_fin)
     if not difs:
         say(report.paint("El anuncio ya está al día: no hay nada que cambiar.", "OK"))
@@ -886,6 +1016,8 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("indicá la referencia de la hoja o --matricula <matrícula>")
     if args.solo_financiacion and not args.actualizar:
         parser.error("--solo-financiacion va con --actualizar")
+    if args.solo_ficha and (args.actualizar or args.solo_fotos):
+        parser.error("--solo-ficha no va con --actualizar ni con --solo-fotos")
     try:
         sys.stdout.reconfigure(line_buffering=True)
     except (AttributeError, ValueError):
@@ -906,6 +1038,8 @@ def main(argv: list[str] | None = None) -> int:
         return EXIT_ERROR
     if args.solo_fotos:
         return solo_fotos(args, data, folders)
+    if args.solo_ficha:
+        return solo_ficha(args, data, folders)
     if args.actualizar:
         return actualizar(args, sheet_src, data, folders)
     return publicar(args, sheet_src, data, folders)

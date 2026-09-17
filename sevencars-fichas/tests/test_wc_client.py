@@ -296,3 +296,46 @@ def test_meta_actual_normaliza_la_meta_del_producto():
                               {"key": "_destacado", "value": None}]}
     assert meta_actual(producto) == {"_km": "88.858", "_cv": "140", "_destacado": ""}
     assert meta_actual({}) == {}
+
+
+# ------------------------------------------------------ ficha de exposición
+PDF = b"%PDF-1.7\n" + b"x" * 12_000
+
+
+def respuesta_pdf(status=200, content=PDF) -> FakeResponse:
+    r = FakeResponse(status)
+    r.content = content
+    return r
+
+
+def test_descargar_ficha_pdf_sin_credenciales(monkeypatch):
+    monkeypatch.setattr(wc_client, "PAUSA_REINTENTO_FICHA", 0)
+    c, session = client(lambda m, p, k: respuesta_pdf())
+    assert c.url_ficha(555) == URL + "/?pdf=555"
+    assert c.descargar_ficha_pdf(555) == PDF
+    assert [(x["method"], x["path"], x["auth"], x["timeout"]) for x in session.calls] == [
+        ("GET", "/?pdf=555", None, wc_client.TIMEOUT_FICHA)]
+
+
+@pytest.mark.parametrize("respuestas, motivo", [
+    ([respuesta_pdf(content=b"<html>"), respuesta_pdf(content=b"<html>")], "la web no devolvió un PDF"),
+    ([respuesta_pdf(content=b"%PDF-1.7"), respuesta_pdf(content=b"%PDF-1.7" + b"x" * 10_000)],
+     "el PDF pesa solo 10008 bytes"),
+    ([TimeoutError("lento"), type("ReadTimeout", (Exception,), {})("lento")], "la web no respondió en 60 s"),
+    ([ConnectionError("dns"), respuesta_pdf(404, b"")], "la web respondió con error HTTP 404"),
+])
+def test_descargar_ficha_pdf_reintenta_una_vez_y_falla_con_motivo(monkeypatch, respuestas, motivo):
+    monkeypatch.setattr(wc_client, "PAUSA_REINTENTO_FICHA", 0)
+    pendientes = list(respuestas)
+    c, session = client(lambda m, p, k: pendientes.pop(0))
+    with pytest.raises(WcError) as exc:
+        c.descargar_ficha_pdf(555)
+    assert str(exc.value) == motivo and len(session.calls) == 2
+
+
+def test_descargar_ficha_pdf_el_reintento_salva(monkeypatch):
+    pausas = []
+    monkeypatch.setattr(wc_client.time, "sleep", pausas.append)
+    pendientes = [ConnectionError("caída"), respuesta_pdf()]
+    c, session = client(lambda m, p, k: pendientes.pop(0))
+    assert c.descargar_ficha_pdf(7) == PDF and len(session.calls) == 2 and pausas == [wc_client.PAUSA_REINTENTO_FICHA]
