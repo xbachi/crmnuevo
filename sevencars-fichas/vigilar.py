@@ -6,12 +6,16 @@ Uso: vigilar.py                        → bucle sin fin: revisa 1_Ventas cada -
      vigilar.py --ahora <ref|matrícula> → procesa ese coche ya mismo (sin esperas) y termina
      vigilar.py --estado               → tabla con el estado de cada carpeta
      vigilar.py --simular              → muestra qué haría, sin lanzar nada ni escribir archivos
+     vigilar.py --probar-mail          → manda un mail de prueba con la configuración de avisos (.env) y termina
 
 Reglas: solo se publican solas las fotos que aparecen DESPUÉS de la primera ejecución (el punto de partida) y
 cuando la carpeta fotos/ lleva --espera segundos sin cambios (las fotos se bajan por tandas). Un coche por ciclo.
 Cada intento deja RESULTADO.txt en la carpeta del coche; el estado va en data/vigilar.json y el registro en
 logs/vigilar.log. Un coche ya publicado nunca se vuelve a subir: sus fotos nuevas solo se ordenan (--solo-fotos).
 inotify no funciona sobre /mnt/c (OneDrive), por eso se sondea.
+Lo que requiere atención se avisa por mail (avisos.py; `vigilar.py --probar-mail` manda uno de prueba): cada
+resultado que lo merece, solo cuando cambia respecto del intento anterior, y las anomalías (OneDrive sin montar,
+error del ciclo, fotos ilegibles más de 30 min, RESULTADO.txt sin escribir) como mucho una vez cada 6 h por motivo.
 """
 from __future__ import annotations
 
@@ -24,12 +28,14 @@ import re
 import subprocess
 import sys
 import time
+import traceback
 from dataclasses import dataclass, field
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Callable
 
+import avisos
 import fotos as fotos_mod
 import locate
 import report
@@ -52,6 +58,9 @@ LOG_BYTES, LOG_COPIAS = 1_000_000, 3
 LINEAS_DETALLE = 15
 PLACA_COMPLETA = 7            # matrícula completa (4 dígitos + 3 letras): se usa --matricula; si no, la referencia
 EXIT_OK, EXIT_ERROR, EXIT_BLOQUEADO = 0, 1, 2
+AVISO_ANOMALIA = 6 * 3600     # como mucho un mail cada 6 h por el mismo motivo (OneDrive, error del ciclo…)
+AVISO_ILEGIBLES = 30 * 60     # archivos ilegibles durante más de 30 min en una carpeta: aviso por mail
+REINTENTO_MAIL = 30 * 60      # un aviso de anomalía que no se pudo mandar no se reintenta antes
 
 # estados de una carpeta en data/vigilar.json
 PENDIENTE, PUBLICADO, YA_PUBLICADO = "pendiente", "publicado", "ya_publicado"
@@ -60,6 +69,14 @@ FINALES = (PUBLICADO, YA_PUBLICADO)                 # el coche ya está en la we
 REINTENTAN = (FALTA_HOJA, GOOGLE_AUTORIZAR, ERROR)  # el reintento lo decide proximo_intento, no el plan de fotos
 # resultados de una ejecución de publicar.py --solo-fotos
 FOTOS_NORMALIZADAS, FOTOS_ERROR = "fotos_normalizadas", "fotos_error"
+
+# resultados que se avisan por mail (PUBLICADO según AVISOS_BORRADOR; cualquiera con «== PARA VERIFICAR»)
+AVISAN = (ERROR, ABANDONADO, FALTA_HOJA, GOOGLE_AUTORIZAR, FOTOS_ERROR)
+RESUMEN_MAIL = {PUBLICADO: "borrador listo para revisar", YA_PUBLICADO: "ya estaba en la web",
+                FOTOS_NORMALIZADAS: "fotos nuevas ordenadas", ERROR: "falló la publicación",
+                ABANDONADO: f"publicación abandonada tras {MAX_ERRORES} fallos",
+                FALTA_HOJA: "no está cargado en la hoja Base_Datos", GOOGLE_AUTORIZAR: "hay que volver a autorizar Google",
+                FOTOS_ERROR: "no se pudieron ordenar las fotos nuevas"}
 
 # acciones que decide el ciclo para una carpeta
 ACC_PUBLICAR, ACC_SOLO_FOTOS, ACC_FIRMA, ACC_VISTA = "publicar", "solo_fotos", "firma", "vista"
@@ -71,7 +88,7 @@ MARCA_YA_WEB = "El coche ya existe en la web"
 MARCA_FALTA_HOJA = "no está en la hoja Base_Datos"
 MARCAS_GOOGLE = ("Please visit this URL", "Hace falta autorizar el acceso a Google")
 MARCA_VERIFICAR = "== PARA VERIFICAR"
-MARCA_LUNA = "Luna:"          # «Luna: precio1.jpg (12.) · … → <carpeta>/luna»: dónde quedaron las imágenes
+MARCA_LUNA = "Luna:"          # «Luna: precio1.jpg (12.) · … → <carpeta>/precios»: dónde quedaron las imágenes
 _RE_URL = re.compile(r"https?://[^\s»)]+")
 ORDEN_AUTORIZAR = "../.venv/bin/python verificar.py --probar-sheet"
 
@@ -134,12 +151,16 @@ def etiqueta(folder: locate.CarFolder) -> str:
     return obj[-1] if obj else folder.name
 
 
+def pide_google(salida: str) -> bool:
+    return any(m in salida for m in MARCAS_GOOGLE)
+
+
 def clasificar(rc: int, salida: str, solo_fotos: bool = False) -> tuple[str, str]:
     """(resultado, url) a partir del código de salida y la salida de publicar.py."""
-    if any(m in salida for m in MARCAS_GOOGLE):
-        return GOOGLE_AUTORIZAR, ""
-    if solo_fotos:
+    if solo_fotos:            # coche ya publicado: conserva su estado final pase lo que pase (Google va en la explicación)
         return (FOTOS_NORMALIZADAS, "") if rc == 0 else (FOTOS_ERROR, "")
+    if pide_google(salida):
+        return GOOGLE_AUTORIZAR, ""
     m = _RE_CREADO.search(salida)
     if rc == 0 and m:
         return PUBLICADO, m.group(3)
@@ -172,6 +193,14 @@ def linea_luna(salida: str) -> str:
         if linea.startswith(MARCA_LUNA):
             return linea.strip()
     return ""
+
+
+def ruta_windows(path: Path) -> str:
+    """/mnt/c/Users/… → C:\\Users\\… (como la muestra el Explorador de Windows); cualquier otra ruta, tal cual."""
+    partes = Path(path).parts
+    if len(partes) > 3 and partes[:2] == ("/", "mnt") and len(partes[2]) == 1:
+        return partes[2].upper() + ":\\" + "\\".join(partes[3:])
+    return str(path)
 
 
 def ultimas_lineas(salida: str, n: int = LINEAS_DETALLE) -> str:
@@ -209,6 +238,7 @@ class Decision:
     visible: bool = False            # merece una línea en el log / en --simular
     reset: bool = False              # abandonado con fotos nuevas: se reinicia el contador
     esperar_omitidos: bool = False
+    ilegibles: list[str] = field(default_factory=list)   # archivos ilegibles por los que se está esperando
 
     @property
     def lanza(self) -> bool:
@@ -237,9 +267,16 @@ class Vigilante:
     timeout: int = TIMEOUT
     reloj: Callable[[], float] = field(default=time.time)
     log: logging.Logger = field(default_factory=lambda: logging.getLogger("vigilar"))
+    avisador: avisos.Avisador | None = None
     _avisos: dict[str, str] = field(default_factory=dict, repr=False)
     _ultimo_latido: float | None = field(default=None, repr=False)
+    _anomalias: dict | None = field(default=None, repr=False)          # estado["avisos"]: {"enviados", "ilegibles"}
+    _mails_fallidos: dict[str, float] = field(default_factory=dict, repr=False)
     _lock_fd = None
+
+    def __post_init__(self):
+        if self.avisador is None:
+            self.avisador = avisos.Avisador(self.log)
 
     # --------------------------------------------------------------- estado
     def cargar_estado(self) -> dict:
@@ -254,6 +291,8 @@ class Vigilante:
     def guardar_estado(self, estado: dict) -> None:
         path = Path(self.estado_path)
         path.parent.mkdir(parents=True, exist_ok=True)
+        if self._anomalias is not None:
+            estado["avisos"] = self._anomalias
         tmp = path.with_suffix(".json.tmp")
         tmp.write_text(json.dumps(estado, ensure_ascii=False, indent=2), encoding="utf-8")
         tmp.replace(path)
@@ -282,11 +321,15 @@ class Vigilante:
     def tranquilo(self, fotos_dir: Path, now: float) -> bool:
         return now - ultima_modificacion(fotos_dir) >= self.espera
 
+    def _fotos(self, fotos_dir: Path) -> tuple[list, list[str]]:
+        """(fotos utilizables de fotos/ —ordenadas o no; sin originales/ ni ilegibles—, nombres de los ilegibles)."""
+        res = fotos_mod.Resultado(fotos_dir, fotos_mod.planificar_normalizacion(fotos_dir))
+        return res.fotos, [it.origen.name for it in res.omitidos]
+
     def _plan(self, fotos_dir: Path) -> tuple[list, list[str]]:
-        plan = fotos_mod.planificar_normalizacion(fotos_dir)
-        pendientes = [it for it in plan if it.cambia]
-        omitidos = [it.origen.name for it in plan if it.accion == fotos_mod.OMITIR]
-        return pendientes, omitidos
+        """(fotos que habría que ordenar, nombres de los ilegibles)."""
+        fotos, omitidos = self._fotos(fotos_dir)
+        return [it for it in fotos if it.cambia], omitidos
 
     def _preparar(self, d: Decision, entry: dict, accion: str, omitidos: list[str], now: float) -> Decision:
         """Fotos listas para actuar: solo si la carpeta está en calma y no hay archivos ilegibles (o ya se esperó)."""
@@ -294,7 +337,7 @@ class Vigilante:
             d.motivo, d.visible = "fotos nuevas: espero a que terminen de bajar", True
             return d
         if omitidos and entry.get("ciclos_omitidos", 0) < MAX_CICLOS_OMITIDOS:
-            d.esperar_omitidos, d.visible = True, True
+            d.esperar_omitidos, d.visible, d.ilegibles = True, True, omitidos
             d.motivo = (f"hay {len(omitidos)} archivo/s que no se pueden leer (¿sin descargar de OneDrive?): "
                         f"espero un ciclo más ({', '.join(omitidos[:3])})")
             return d
@@ -340,20 +383,109 @@ class Vigilante:
                 d.accion, d.motivo = ACC_FIRMA, "fotos/ cambió pero ya está en orden"
                 return d
             return self._preparar(d, entry, ACC_SOLO_FOTOS, omitidos, now)
-        # pendiente (o abandonado con fotos nuevas)
+        # pendiente (o abandonado con fotos nuevas): dispara cualquier foto posterior al punto de partida, esté o
+        # no ya ordenada (1.jpg…N.jpg); ordenarlas le toca a publicar.py
         if not d.reset and d.firma == entry.get("firma_vista"):
             d.motivo = "sin cambios"
             return d
-        pendientes, omitidos = self._plan(fotos_dir)
-        if not pendientes:
-            d.accion, d.motivo = ACC_VISTA, "fotos en orden"
+        fotos, omitidos = self._fotos(fotos_dir)
+        if not fotos and omitidos:       # sin accion: no se guarda firma_vista y se revisa en el ciclo siguiente
+            d.visible, d.ilegibles = True, omitidos      # (al bajarse de OneDrive la firma puede no cambiar)
+            d.motivo = (f"hay {len(omitidos)} archivo/s que no se pueden leer (¿sin descargar de OneDrive?): "
+                        f"espero a que se puedan leer ({', '.join(omitidos[:3])})")
             return d
-        if inicio is not None and max(it.origen.stat().st_mtime for it in pendientes) <= inicio:
+        if not fotos:
+            d.accion, d.motivo = ACC_VISTA, "fotos/ vacía"
+            return d
+        if inicio is not None and max(it.origen.stat().st_mtime for it in fotos) <= inicio:
             d.accion, d.visible = ACC_VISTA, True
             d.motivo = (f"fotos pendientes anteriores al punto de partida: publicar a mano "
                         f"(publicar.py {' '.join(objetivo(folder))})")
             return d
         return self._preparar(d, entry, ACC_PUBLICAR, omitidos, now)
+
+    # --------------------------------------------------------------- avisos por mail
+    def _estado_avisos(self) -> dict:
+        """Lo que recuerdan los avisos de anomalías entre ejecuciones (estado["avisos"] de data/vigilar.json):
+        {"enviados": {motivo: hora del último mail}, "ilegibles": {carpeta: desde cuándo espera archivos ilegibles}}."""
+        if self._anomalias is None:
+            guardado = self.cargar_estado().get("avisos")
+            guardado = guardado if isinstance(guardado, dict) else {}
+            self._anomalias = {"enviados": dict(guardado.get("enviados") or {}),
+                               "ilegibles": dict(guardado.get("ilegibles") or {})}
+        return self._anomalias
+
+    def _anomalia(self, motivo: str, asunto: str, cuerpo: str, now: float) -> bool:
+        """Mail por una anomalía: como mucho uno cada AVISO_ANOMALIA por motivo. True si salió (hay que guardar)."""
+        av = self._estado_avisos()
+        av["enviados"] = {k: t for k, t in av["enviados"].items() if now - t < AVISO_ANOMALIA}
+        if motivo in av["enviados"]:
+            return False
+        if motivo in self._mails_fallidos and now - self._mails_fallidos[motivo] < REINTENTO_MAIL:
+            return False
+        if not self.avisador.enviar(asunto, cuerpo):
+            self._mails_fallidos[motivo] = now
+            return False
+        self._mails_fallidos.pop(motivo, None)
+        av["enviados"][motivo] = now
+        return True
+
+    def _anomalia_fuera_de_ciclo(self, motivo: str, asunto: str, cuerpo: str) -> None:
+        """Igual que _anomalia, guardando el estado en el momento (el ciclo falló y no lo va a guardar). No lanza."""
+        try:
+            if self._anomalia(motivo, asunto, cuerpo, self.reloj()):
+                self.guardar_estado(self.cargar_estado())
+        except Exception as exc:
+            self.log.warning("No se pudo procesar el aviso por mail «%s» (%s: %s).", motivo, type(exc).__name__, exc)
+
+    def _revisar_ilegibles(self, esperando: dict[str, tuple[locate.CarFolder, list[str]]], now: float) -> bool:
+        """Carpetas que llevan más de AVISO_ILEGIBLES esperando archivos ilegibles: aviso por mail. True si hay que guardar."""
+        av = self._estado_avisos()
+        desde = {clave: av["ilegibles"].get(clave, now) for clave in esperando}
+        cambios = desde != av["ilegibles"]
+        av["ilegibles"] = desde
+        for clave, (folder, nombres) in esperando.items():
+            if now - desde[clave] < AVISO_ILEGIBLES:
+                continue
+            cuerpo = (f"En fotos/ de {folder.name} hay {len(nombres)} archivo/s que no se pueden leer desde el "
+                      f"{hora(desde[clave])} (más de {AVISO_ILEGIBLES // 60} min), y mientras tanto el coche no se "
+                      f"publica solo:\n  " + "\n  ".join(nombres[:20]) + ("\n  …" if len(nombres) > 20 else "") +
+                      "\n\nSuele ser OneDrive que todavía no los descargó: abrir la carpeta en el Explorador de Windows "
+                      "y, sobre fotos/, clic derecho → «Mantener siempre en este dispositivo». Si algún archivo está "
+                      "dañado o no es una foto, borrarlo o reemplazarlo; el vigilante sigue solo en cuanto se puedan leer."
+                      f"\n\n{self._carpeta_mail(folder)}\n\nEste aviso se repite como mucho cada "
+                      f"{AVISO_ANOMALIA // 3600} h mientras siga pasando.\n")
+            cambios |= self._anomalia(f"ilegibles:{clave}", avisos.asunto(
+                folder.name, f"fotos que no se pueden leer desde hace más de {AVISO_ILEGIBLES // 60} min"), cuerpo, now)
+        return cambios
+
+    @staticmethod
+    def _carpeta_mail(folder: locate.CarFolder) -> str:
+        win = ruta_windows(folder.path)
+        return f"Carpeta: {win}" + (f"\n(desde Ubuntu: {folder.path})" if win != str(folder.path) else "")
+
+    def _mail_resultado(self, folder: locate.CarFolder, entry: dict, etiq: str, salida: str, texto: str,
+                        previo: str | None, nota: str = "") -> bool:
+        """Aviso por mail del intento, si lo merece y el resultado cambió respecto del intento anterior (así los
+        reintentos de falta_hoja/google_autorizar/error no repiten el mail). entry["avisado"] guarda el resultado ya
+        avisado (o que no hacía falta avisar); None si el mail no salió, para volver a probar en el próximo intento."""
+        verificar = bool(bloque_verificar(salida))
+        if etiq == PUBLICADO:
+            merece = verificar or self.avisador.config().borrador
+        else:
+            merece = etiq in AVISAN or verificar
+        if not merece:
+            entry["avisado"] = etiq
+            return False
+        if previo == etiq:
+            return False
+        resumen = RESUMEN_MAIL.get(etiq, etiq)
+        if verificar and etiq != PUBLICADO:
+            resumen += " (hay cosas para verificar)"
+        cuerpo = self._carpeta_mail(folder) + (f"\n{nota}" if nota else "") + "\n\n" + texto
+        ok = self.avisador.enviar(avisos.asunto(folder.name, resumen), cuerpo)
+        entry["avisado"] = etiq if ok else None
+        return ok
 
     # --------------------------------------------------------------- ciclo
     def _avisar(self, clave: str, folder: locate.CarFolder, motivo: str) -> None:
@@ -392,6 +524,7 @@ class Vigilante:
         carpetas = estado["carpetas"]
         res = Resumen()
         cambios, lanzada = False, False
+        ilegibles: dict[str, tuple[locate.CarFolder, list[str]]] = {}
         for folder in folders:
             clave = str(folder.path)
             entry = carpetas.get(clave) or nuevo_registro()
@@ -401,6 +534,8 @@ class Vigilante:
             res.decisiones.append(d)
             if simular:
                 continue
+            if d.ilegibles:
+                ilegibles[clave] = (folder, d.ilegibles)
             tocada = d.reset or d.esperar_omitidos or d.accion is not None
             if d.reset:
                 reiniciar(entry)
@@ -425,6 +560,11 @@ class Vigilante:
         for clave in [k for k in carpetas if not Path(k).is_dir()]:
             del carpetas[clave]
             cambios = True
+        if not simular:
+            try:
+                cambios |= self._revisar_ilegibles(ilegibles, now)
+            except Exception as exc:     # un mail nunca corta el ciclo
+                self.log.warning("fallo al revisar los avisos de archivos ilegibles (%s: %s)", type(exc).__name__, exc)
         if cambios and not simular:
             self.guardar_estado(estado)
         if not lanzada and not simular:
@@ -464,17 +604,39 @@ class Vigilante:
         self.log.info("%s: lanzando publicar.py %s", folder.name, " ".join(cmd[2:]))
         rc, salida = self.ejecutar(cmd)
         resultado, url = clasificar(rc, salida, solo)
+        # el intento anterior ya avisado (registros de antes de los mails: el último del historial)
+        previo = entry["avisado"] if "avisado" in entry else (entry.get("historial") or [{}])[0].get("resultado")
         etiq = self.aplicar(entry, resultado, url, now, calcular_firma(d.fotos_dir))
-        que_paso, proximo = self.explicar(etiq, entry, folder, resultado)
+        que_paso, proximo = self.explicar(etiq, entry, folder, salida)
         entry["historial"] = ([{"fecha": hora(now), "resultado": etiq, "resumen": que_paso}]
                               + entry.get("historial", []))[:HISTORIAL]
         texto = self.texto_resultado(folder, entry, etiq, que_paso, proximo, salida, d.omitidos)
+        fallo_txt = None
         try:
             (folder.path / RESULTADO).write_text(texto, encoding="utf-8")
         except OSError as exc:
-            self.log.info("%s: no se pudo escribir %s (%s)", folder.name, RESULTADO, exc)
+            fallo_txt = f"no se pudo escribir {RESULTADO} en la carpeta ({exc})"
+            self.log.info("%s: %s", folder.name, fallo_txt)
         self.log.info("%s: %s (código %s) — %s", folder.name, etiq, rc, que_paso)
+        try:
+            self._avisos_del_intento(folder, entry, etiq, salida, texto, previo, fallo_txt, now)
+        except Exception as exc:         # un mail nunca corta el vigilante
+            self.log.warning("%s: fallo al preparar el aviso por mail (%s: %s)", folder.name, type(exc).__name__, exc)
         return etiq
+
+    def _avisos_del_intento(self, folder: locate.CarFolder, entry: dict, etiq: str, salida: str, texto: str,
+                            previo: str | None, fallo_txt: str | None, now: float) -> None:
+        enviado = self._mail_resultado(folder, entry, etiq, salida, texto, previo, f"Ojo: {fallo_txt}." if fallo_txt else "")
+        if not fallo_txt:
+            return
+        motivo = f"resultado_txt:{folder.path}"
+        if enviado:                      # el aviso ya salió dentro del mail del resultado: cuenta para el tope de 6 h
+            self._estado_avisos()["enviados"][motivo] = now
+            return
+        cuerpo = (f"El vigilante procesó {folder.name} ({etiq}) pero {fallo_txt}. Suele ser OneDrive sin sincronizar "
+                  f"o la carpeta abierta/bloqueada en Windows.\n\n{self._carpeta_mail(folder)}\n\n"
+                  f"Lo que iba en {RESULTADO}:\n\n{texto}")
+        self._anomalia(motivo, avisos.asunto(folder.name, f"no se pudo escribir {RESULTADO}"), cuerpo, now)
 
     def aplicar(self, entry: dict, resultado: str, url: str, now: float, firma_post: list) -> str:
         """Actualiza el registro de la carpeta según el resultado; devuelve la etiqueta final (p. ej. abandonado)."""
@@ -503,7 +665,7 @@ class Vigilante:
         return resultado
 
     # --------------------------------------------------------------- RESULTADO.txt
-    def explicar(self, etiq: str, entry: dict, folder: locate.CarFolder, resultado: str) -> tuple[str, str]:
+    def explicar(self, etiq: str, entry: dict, folder: locate.CarFolder, salida: str = "") -> tuple[str, str]:
         """(qué pasó, próximo paso) en castellano llano para quien no programa."""
         minutos = max(1, self.reintento // 60)
         ident = etiqueta(folder)
@@ -520,7 +682,7 @@ class Vigilante:
                     "Si esas fotos tienen que aparecer en el anuncio, subirlas a mano en WordPress.")
         if etiq == FOTOS_ERROR:
             reintenta = entry.get("proximo_intento") is not None
-            nota = f" Hace falta autorizar Google: ejecutar en la terminal {ORDEN_AUTORIZAR}." if resultado == GOOGLE_AUTORIZAR else ""
+            nota = f" Hace falta autorizar Google: ejecutar en la terminal {ORDEN_AUTORIZAR}." if pide_google(salida) else ""
             return ("Había fotos nuevas en fotos/ pero no se pudieron ordenar (el coche ya estaba publicado; la web no se toca)." + nota,
                     (f"Vuelvo a intentar en {minutos} min." if reintenta else "Dejo de intentar hasta que cambien las fotos.")
                     + f" Para ordenarlas a mano: {mando} --solo-fotos")
@@ -629,14 +791,34 @@ class Vigilante:
     def bucle(self) -> int:
         self.log.info("Vigilante en marcha: %s cada %d s (espera %d s, reintento %d s).",
                       self.ventas_dir, self.intervalo, self.espera, self.reintento)
+        config = self.avisador.config()
+        if self.avisador.comprobar(config):
+            self.log.info("Avisos por mail activos (%d destinatario/s).", len(config.destinatarios))
         while True:
-            try:
-                self.ciclo()
-            except FileNotFoundError as exc:
-                self._avisar("__ventas__", locate.CarFolder(Path(self.ventas_dir), ""), f"{exc} (¿OneDrive sin montar?)")
-            except Exception:
-                self.log.exception("Error inesperado en el ciclo; sigo vigilando")
+            self.vuelta()
             time.sleep(self.intervalo)
+
+    def vuelta(self) -> None:
+        """Un ciclo del bucle: ningún fallo lo corta; OneDrive sin montar y los errores inesperados se avisan por mail."""
+        try:
+            self.ciclo()
+        except FileNotFoundError as exc:
+            self._avisar("__ventas__", locate.CarFolder(Path(self.ventas_dir), ""), f"{exc} (¿OneDrive sin montar?)")
+            self._anomalia_fuera_de_ciclo("ventas_inaccesible", avisos.asunto(
+                "Vigilante", "no puedo entrar en la carpeta de ventas (¿OneDrive sin montar?)"),
+                f"El vigilante no puede leer la carpeta de ventas: {exc}\n\nMientras siga así no se publica nada solo. "
+                "Suele ser OneDrive cerrado o sin sincronizar en Windows: comprobar que está abierto y al día. El "
+                f"vigilante sigue probando cada {max(1, self.intervalo // 60)} min y retoma solo cuando la carpeta "
+                f"vuelva a estar accesible.\n\nCarpeta: {ruta_windows(Path(self.ventas_dir))}\n\nEste aviso se repite "
+                f"como mucho cada {AVISO_ANOMALIA // 3600} h mientras siga pasando.\n")
+        except Exception:
+            self.log.exception("Error inesperado en el ciclo; sigo vigilando")
+            detalle = "\n".join(traceback.format_exc().rstrip().splitlines()[-30:])
+            self._anomalia_fuera_de_ciclo("error_ciclo", avisos.asunto("Vigilante", "error inesperado (sigo vigilando)"),
+                                          "El vigilante tuvo un error inesperado en un ciclo. Sigue vigilando y lo vuelve "
+                                          "a intentar en el próximo, pero si se repite no va a publicar nada solo: revisar "
+                                          f"logs/vigilar.log.\n\nDETALLE\n{detalle}\n\nEste aviso se repite como mucho "
+                                          f"cada {AVISO_ANOMALIA // 3600} h.\n")
 
 
 # ------------------------------------------------------------------ CLI
@@ -647,6 +829,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--ahora", metavar="REF|MATRÍCULA", help="procesar ese coche ya mismo, sin esperas, y salir")
     p.add_argument("--estado", action="store_true", help="mostrar el estado de cada carpeta y salir")
     p.add_argument("--simular", action="store_true", help="mostrar qué se haría en este ciclo sin lanzar nada ni escribir")
+    p.add_argument("--probar-mail", action="store_true",
+                   help="mandar un mail de prueba con la configuración de avisos (.env) y salir")
     p.add_argument("--intervalo", type=int, default=INTERVALO, help=f"segundos entre revisiones (por defecto {INTERVALO})")
     p.add_argument("--espera", type=int, default=ESPERA,
                    help=f"segundos sin cambios en fotos/ antes de actuar (por defecto {ESPERA})")
@@ -658,6 +842,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.probar_mail:
+        return avisos.probar()
     escribe = not (args.estado or args.simular)
     log = configurar_log(LOG_PATH if escribe else None)
     vig = Vigilante(ventas_dir=Path(args.ventas_dir), estado_path=ESTADO_PATH, lock_path=LOCK_PATH,

@@ -358,6 +358,46 @@ El bloque **PARA VERIFICAR** (final del resumen e informe por coche) reúne lo q
 combustible deducido del MODELO, potencia total de híbridos, categoría desconocida, portada dudosa (la primera
 foto no es `1.jpg`), cuota sin plazo posible y precio financiado que la web recalculará distinto.
 
+### Descripción y equipamiento (`descripcion_cochesnet.py`)
+
+`_destacado` y `_equipamiento` (y la descripción de `cochesnet.py preparar`) salen de una sola llamada a Claude
+Code con hasta 10 fotos y **búsqueda web** (`WebSearch`/`WebFetch`, solo en esta llamada; la lectura de documentos y
+la caja por fotos siguen sin web). Recibe marca, modelo, versión, fecha de matriculación, cilindrada, kW y CV,
+combustible (con el gas), caja si se conoce, plazas, bastidor y los códigos del permiso que haya (D.2, D.3, CV, K,
+V.9). Paso 1: identifica la versión comercial exacta en España/Europa ese año (generación, motor, acabado). Paso 2:
+solo equipamiento de serie de esa versión o visible en las fotos. Devuelve además `motor`, `cambio` (solo con el nº
+de marchas confirmado), `color`, `puertas` y `traccion`. **Versión identificada, confianza y fuentes no se
+publican**: van a PARA VERIFICAR, y con confianza media o baja se añade «revisar equipamiento». Con el acabado sin
+confirmar se pide lo de serie común a todos los acabados candidatos (más lo visible), y en seguridad primero los
+sistemas principales. Python además: descarta obviedades (freno de mano, warning, cinturones, toma de 12 V,
+portaobjetos, guantera, parasoles, retrovisor interior, alfombrillas); pone «Bluetooth» si hay mandos de teléfono
+en el volante; y añade al principio de Seguridad el **piso normativo UE** que falte (por concepto) según la fecha
+de primera matriculación (B del permiso; si no, la de matriculación): ABS desde 01/07/2004; control de
+estabilidad, presión de neumáticos e ISOFIX desde 01/11/2014; frenada de emergencia autónoma, asistente
+inteligente de velocidad, detector de fatiga, luz de frenado de emergencia y sensor o cámara de marcha atrás desde
+07/07/2024. Un importado (nombre o grupo de la carpeta, p. ej. `------IMPORTACION`, o MODELO) sin B no lleva piso y avisa en PARA VERIFICAR.
+
+En la web el tema pinta «Lo técnico» con lo que hay bajo `///// Datos técnicos:` y tira los ítems que repiten su
+tabla con un valor corto («Cambio: Manual»). Por eso ahí van ítems que sobreviven al filtro: «Motor 1.0 TCe 100
+GLP», «Cambio manual de 6 velocidades», «Doble combustible: gasolina y GLP», «Color: Granate», «5 puertas / 5
+plazas», «Tracción delantera», «Etiqueta medioambiental ECO». coches.net conserva el formato «Campo: valor».
+
+**Etiqueta DGT** (Python, nunca la IA): CERO eléctrico o enchufable con ≥ 40 km; ECO híbrido no enchufable,
+enchufable < 40 km o gas que cumple la C; C gasolina desde 2006 o diésel desde 01/09/2015; B gasolina 2001-2005 o
+diésel 2006-31/08/2015; antes, sin etiqueta. La norma Euro (V.9) manda sobre la fecha. En gasolina 2000-2005,
+diésel 2014-2015 o enchufable sin autonomía conocida sale por fecha y PARA VERIFICAR pide «confirmar etiqueta en
+dgt.es con la matrícula».
+
+**Gas (GLP/GNC/GNL)**: la hoja (AF) y `_combustible` siguen diciendo Gasolina (el select solo admite los cuatro
+valores y verificar compara AF con ese vocabulario); el gas se detecta aparte (`combustible.gas_web`: P.3 o, sin
+confirmar, el MODELO) y solo cambia la descripción y la etiqueta.
+
+Caché en `data/descripciones/` con `ESQUEMA_CACHE`: las descripciones de un esquema anterior se regeneran.
+Para ver la descripción completa sin escribir nada en la web ni en la hoja: `$PY publicar.py <ref> --simular`
+(imprime `_destacado` y `_equipamiento` enteros y el PARA VERIFICAR; de la web solo consulta si el coche ya existe).
+`--forzar-descripcion` rehace solo la descripción ignorando su caché (`--forzar` además relee el permiso con la IA y
+repite la caja por fotos).
+
 ### Fotos: qué dejar en la carpeta
 
 - Las fotos van en la subcarpeta `fotos/` de la carpeta del coche (`1_Ventas/<n>-<Marca>-<Modelo>-<Matrícula>/fotos/`).
@@ -375,7 +415,7 @@ foto no es `1.jpg`), cuota sin plazo posible y precio financiado que la web reca
 
 ## Imágenes para la luna (`luna.py`)
 
-Al crear el producto, `publicar.py` deja en `<carpeta del coche>/luna/` tres JPEG (A4 apaisado, 3508×2480 a
+Al crear el producto, `publicar.py` deja en `<carpeta del coche>/precios/` tres JPEG (A4 apaisado, 3508×2480 a
 300 ppp) para imprimir y pegar en la hoja de precios de la luna: `precio1.jpg` (los miles con punto, «12.»),
 `precio2.jpg` (los cientos, «120») y `cuota.jpg` (la cuota, «214»). Salen de las plantillas de
 `plantillas/luna/` cambiando solo los dígitos: mismo marco, misma fuente (Arial Bold de Windows) y misma altura
@@ -388,7 +428,7 @@ las genera. `publicar.py` imprime la línea `Luna: precio1.jpg (12.) · precio2.
 y el vigilante la copia a RESULTADO.txt. Un fallo al generarlas avisa pero no detiene la publicación.
 
 ```bash
-$PY luna.py D29                              # rehace las tres imágenes en <carpeta del coche>/luna/
+$PY luna.py D29                              # rehace las tres imágenes en <carpeta del coche>/precios/
 $PY luna.py --matricula 1234ABC --simular    # muestra los textos y las rutas sin escribir nada
 $PY luna.py D29 --salida /tmp/luna           # en otra carpeta
 ```
@@ -432,6 +472,7 @@ $PY vigilar.py --una-vez       # un solo ciclo; la primera vez registra el punto
 $PY vigilar.py --ahora 9028LXG # procesar ese coche (ref o matrícula) ya mismo, sin esperas, y salir
 $PY vigilar.py --estado        # tabla: carpeta, estado, intentos, último y próximo intento
 $PY vigilar.py --simular       # qué haría en este ciclo, sin lanzar nada ni escribir
+$PY vigilar.py --probar-mail   # manda un mail de prueba con la configuración de avisos y sale
 ```
 
 Ajustes: `--intervalo` (segundos entre revisiones, 120), `--espera` (segundos de calma antes de actuar, 180),
@@ -440,6 +481,25 @@ Ajustes: `--intervalo` (segundos entre revisiones, 120), `--espera` (segundos de
 (un solo vigilante a la vez) y registro en `logs/vigilar.log` (rota a 1 MB, 3 copias; solo escribe cuando pasa
 algo y una línea de «sigo vigilando» por hora). `publicar.py` se ejecuta sin navegador (`FICHAS_NO_BROWSER=1`):
 si Google pide autorizar, no se queda colgado, lo anota y avisa.
+
+### Avisos por mail
+
+RESULTADO.txt queda como registro; el aviso llega por mail (`avisos.py`). Asunto `[Sevencars] <carpeta>: <resumen>`
+y, en el cuerpo, la ruta de la carpeta y lo mismo que RESULTADO.txt. Se avisa de `publicado` (borrador listo, si
+`AVISOS_BORRADOR=1`), `error`, `abandonado`, `falta_hoja`, `google_autorizar`, fotos de un coche publicado que no se
+pudieron ordenar y de cualquier resultado con bloque PARA VERIFICAR; no de `ya_publicado` ni de fotos ordenadas sin
+nada que verificar. Un mail por cambio de resultado: los reintentos con el mismo resultado no repiten (el primer
+`error` sí, del 2.º al 4.º no, `abandonado` sí), y lo avisado queda en `data/vigilar.json`, así que reiniciar no
+reenvía. También avisa, como mucho una vez cada 6 h por motivo: carpeta de ventas inaccesible (¿OneDrive sin
+montar?), error inesperado del ciclo, archivos de `fotos/` que siguen ilegibles más de 30 min y RESULTADO.txt que no
+se pudo escribir. Las fotos pendientes de antes del punto de partida no se avisan.
+
+Configuración en `sevencars-fichas/.env` (plantilla en `.env.example`; el entorno manda sobre el archivo y
+`AVISOS_ENV_FILE` puede apuntar a otro `.env`): `SMTP_HOST`, `SMTP_PORT` (465 = SSL, otro = STARTTLS), `SMTP_USER`,
+`SMTP_PASS`, `SMTP_FROM`, `SMTP_FROMNAME`, `AVISOS_TO` (varios separados por coma), `AVISOS_BORRADOR` (1) y
+`AVISOS_ACTIVOS` (1; 0 apaga los mails). Sin configuración el vigilante sigue igual y lo anota una vez en el log;
+si un envío falla, lo anota y sigue. `$PY vigilar.py --probar-mail` dice qué variables faltan o por qué falló, sin
+mostrar la contraseña. El `.env` se relee en cada aviso: cambiarlo no requiere reiniciar el vigilante.
 
 ### Activación en Windows
 

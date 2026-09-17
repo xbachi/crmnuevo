@@ -38,6 +38,7 @@ import locate
 import marcas
 import report
 import verificar
+from combustible import gas_web
 from common import fmt_value
 from compare import CV_TOLERANCE, cv_in_modelo, kw_to_cv
 from cuota import calcular_financiacion, formato_cuota, precio_financiado
@@ -523,11 +524,18 @@ def construir_ficha(row, folder, permiso, ai_result: dict | None, force: bool = 
     if not any(d.kind == docs_mod.KIND_FICHA for d in documentos):
         avisos.append("no hay ficha técnica en la carpeta: el panel pide el escaneo")
 
+    # gas (bifuel GLP/GNC/GNL): solo para la descripción y la etiqueta; el campo Combustible no cambia
+    p3 = _combustible_permiso(ai_result) or ""
+    gas, aviso_gas = (None, None) if combustible in (marcas.DIESEL, marcas.HIBRIDO, marcas.ELECTRICO) \
+        else gas_web(" ".join(x for x in (p3, row.combustible) if x), row.modelo)
+    if aviso_gas:
+        verificar_items.append(aviso_gas)
+    doc_desc = desc_mod.datos_documentos(ai_result)
+    doc_desc.update(p3=p3, bastidor=bastidor)
     datos_desc = desc_mod.DatosCoche(
         marca=m.marca, modelo=m.modelo, version=m.version, combustible=combustible or "",
-        cilindrada=cubicaje or None, cv=cv, caja=caja or "",
-        plazas=permiso_doc.get("plazas") or ficha_doc.get("plazas"), anio=fecha.year if fecha else None,
-        p3=_combustible_permiso(ai_result) or "")
+        cilindrada=cubicaje or None, cv=cv, caja=caja or "", anio=fecha.year if fecha else None,
+        fecha=fecha, gas=gas or "", importado=desc_mod.es_importado(folder.name, folder.group, row.modelo), **doc_desc)
 
     ficha = FichaCoche(
         referencia=row.referencia, fila=row.row_number, marca=m.marca, modelo=m.modelo, version=m.version,
@@ -671,6 +679,7 @@ def preparar(args, sheet_src, data, folders) -> int:
         if d.ok:
             ficha.descripcion = d.texto
             ficha.para_verificar.append(desc_mod.AVISO_VERIFICAR)
+            ficha.para_verificar += d.piezas.para_verificar if d.piezas else []
             say(f"Descripción: {d.fuente}")
         else:
             warn(f"Descripción: no se pudo generar ({d.error}). El resto de la carpeta se prepara igual.")

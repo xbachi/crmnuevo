@@ -324,7 +324,7 @@ def test_flujo_completo(lectura, caja, carpeta, registro, capsys):
     assert "Producto 555 creado como draft" in out and "Hoja: escrito fila 2, columna AD: 244" in out
     assert "== PARA VERIFICAR" in out and "híbrido" in out and "caja: sin confirmar" in out
     # imágenes de la luna: 16900 − 1105 (dto NORMAL) = 15795 → «15.» y «795»; cuota 244
-    luna_dir = carpeta.path / "luna"
+    luna_dir = carpeta.path / luna.CARPETA_SALIDA
     assert f"Luna: precio1.jpg (15.) · precio2.jpg (795) · cuota.jpg (244) → {luna_dir}" in out
     assert sorted(p.name for p in luna_dir.iterdir()) == ["cuota.jpg", "precio1.jpg", "precio2.jpg"]
     with Image.open(luna_dir / "precio1.jpg") as im:
@@ -334,13 +334,13 @@ def test_flujo_completo(lectura, caja, carpeta, registro, capsys):
 def test_sin_luna_no_genera_imagenes(lectura, caja, carpeta, registro, capsys):
     rc, client, _, _ = run(make_args(sin_luna=True), datos(), carpeta, registro)
     assert rc == 0 and client.nombres()[-1] == "crear"
-    assert not (carpeta.path / "luna").exists() and "Luna:" not in capsys.readouterr().out
+    assert not (carpeta.path / luna.CARPETA_SALIDA).exists() and "Luna:" not in capsys.readouterr().out
 
 
 def test_simular_ni_fallo_generan_luna(lectura, caja, carpeta, registro, capsys):
     run(make_args(simular=True), datos(), carpeta, registro)
     run(make_args(), datos(), carpeta, registro, FakeClient(fallo_crear=True))
-    assert not (carpeta.path / "luna").exists() and "Luna:" not in capsys.readouterr().out
+    assert not (carpeta.path / luna.CARPETA_SALIDA).exists() and "Luna:" not in capsys.readouterr().out
 
 
 def test_luna_no_detiene_la_publicacion(lectura, caja, carpeta, registro, capsys, monkeypatch):
@@ -562,6 +562,70 @@ def test_simular_muestra_un_extracto_de_los_dos_campos(lectura, caja, carpeta, r
     assert "== _destacado" in salida and "== _equipamiento" in salida
     assert "líneas" in salida and "caracteres" in salida
     assert "En SEVENCARS llevamos más de 15 años" in salida and "///// Datos técnicos:" in salida
+    # --simular enseña los dos campos enteros (así se previsualiza la descripción sin tocar la web ni la hoja)
+    assert "_destacado (" in salida and "— completo" in salida and "— extracto" not in salida
+    for linea in ("SEVENCARS – Calidad en cada detalle", "//// Seguridad / Asistencia", "Cámara de visión trasera",
+                  "Etiqueta medioambiental CERO", "== PARA VERIFICAR", "versión identificada por la IA"):
+        assert linea in salida, linea
+
+
+def test_sin_simular_el_resumen_sigue_siendo_un_extracto(caja, carpeta, capsys):
+    publicar.imprimir_resumen(borrador(carpeta))
+    salida = capsys.readouterr().out
+    assert "— extracto" in salida and "//// Seguridad / Asistencia" not in salida
+
+
+def test_la_descripcion_recibe_los_datos_de_identificacion(caja, carpeta, monkeypatch):
+    """Marca, modelo, versión, fecha, cilindrada, kW y CV, combustible, caja, plazas, bastidor y códigos del permiso
+    llegan a DatosCoche; versión, confianza y fuentes de la IA van a PARA VERIFICAR."""
+    recibidos = []
+    partes = dict(PARTES_DESC, version_identificada="Kia XCeed (CD) 1.6 GDi PHEV Emotion", confianza="media",
+                  fuentes=["https://www.km77.com/xceed"], motor="1.6 GDi PHEV", cambio="automático de doble "
+                  "embrague de 6 velocidades", color="Blanco", puertas=5, traccion="delantera")
+
+    def fake_generar(datos, fotos, folder_name, force=False, cache_dir=None, plantilla=None):
+        recibidos.append(datos)
+        return desc_mod.Descripcion("texto", "bloque", "ia", piezas=desc_mod.despiezar(datos, partes))
+    monkeypatch.setattr(desc_mod, "generar", fake_generar)
+    ai = ai_kia()
+    ai["permiso_circulacion"].update(plazas=5, tipo_variante="CD/PHEV1", codigo_variante="7", homologacion="e5*2007/46*1234")
+    ai["ficha_tecnica"] = {"presente": True, "norma_euro": "EURO 6D", "plazas": 7}
+    b = borrador(carpeta, ai, bastidor=VIN)
+    d = recibidos[0]
+    assert (d.marca, d.modelo, d.version) == ("Kia", "XCeed", "GDi PHEV 140cv Edrive")
+    assert d.fecha == date(2022, 4, 11) and d.anio == 2022 and d.cilindrada == 1580 and d.kw == 77.2 and d.cv == 140
+    assert d.combustible == "Híbrido" and d.p3.startswith("GASOLINA - HÍBRIDO ENCHUFABLE") and d.gas == ""
+    assert d.plazas == 5 and d.bastidor == VIN and d.tipo_variante == "CD/PHEV1" and d.codigo_variante == "7"
+    assert d.homologacion == "e5*2007/46*1234" and d.norma_euro == "EURO 6D" and d.denominacion == "XCEED"
+    assert "Motor 1.6 GDi PHEV" in b.equipamiento and "Color: Blanco" in b.equipamiento
+    assert "Etiqueta medioambiental CERO" in b.equipamiento
+    assert any("versión identificada por la IA: Kia XCeed (CD) 1.6 GDi PHEV Emotion (confianza media)" in x
+               for x in b.para_verificar)
+    assert "descripción: fuentes: https://www.km77.com/xceed" in b.para_verificar
+    assert any("confianza media" in x and "revisar equipamiento" in x for x in b.para_verificar)
+    # enchufable sin autonomía conocida: CERO por fecha y a confirmar en la DGT
+    assert any(x.startswith("etiqueta DGT: CERO") and "dgt.es" in x for x in b.para_verificar)
+    assert "km77" not in b.campos_acf()["_equipamiento"] and "km77" not in b.campos_acf()["_destacado"]
+
+
+def test_glp_gasolina_en_la_web_y_gas_aparte(caja, carpeta, monkeypatch):
+    """«GAS LICUADO DE PETROLEO»: _combustible sigue siendo Gasolina (el select no admite otra cosa); el gas va
+    aparte a la descripción y pone la etiqueta ECO."""
+    recibidos = []
+
+    def fake_generar(datos, fotos, folder_name, force=False, cache_dir=None, plantilla=None):
+        recibidos.append(datos)
+        return desc_mod.Descripcion("texto", "bloque", "ia", piezas=desc_mod.despiezar(datos, PARTES_DESC))
+    monkeypatch.setattr(desc_mod, "generar", fake_generar)
+    b = borrador(carpeta, ai_kia(combustible="GAS LICUADO DE PETROLEO"), modelo="Dacia Sandero 1.0 TCe 100 GLP Essential")
+    assert b.combustible == "Gasolina" and b.campos_acf()["_combustible"] == "Gasolina" and b.gas == "GLP"
+    assert recibidos[0].gas == "GLP" and recibidos[0].etiqueta == "ECO"
+    assert "Etiqueta medioambiental ECO" in b.equipamiento and "Doble combustible: gasolina y GLP" in b.equipamiento
+    assert not any(x.startswith("gas:") for x in b.para_verificar)
+    # solo el MODELO lo dice: se usa, pero queda a confirmar
+    b = borrador(carpeta, ai_kia(combustible="GASOLINA"), modelo="Dacia Sandero 1.0 TCe ECO-G 100")
+    assert b.gas == "GLP" and b.campos_acf()["_combustible"] == "Gasolina"
+    assert any(x.startswith("gas: GLP según el texto de MODELO") for x in b.para_verificar)
 
 
 def test_sin_descripcion_deja_los_campos_vacios(caja, carpeta, monkeypatch):
@@ -819,7 +883,7 @@ def test_solo_financiacion_regenera_la_luna(sin_documentos, carpeta, registro, a
     rc, client, _ = run_actualizar(args_fin(si=True), datos(precio_contado="15900", precio_campana="14200"),
                                    carpeta, registro, cliente)
     assert rc == 0 and client.nombres() == ["obtener", "actualizar"]
-    luna_dir = carpeta.path / "luna"
+    luna_dir = carpeta.path / luna.CARPETA_SALIDA
     assert f"Luna: precio1.jpg (14.) · precio2.jpg (860) · cuota.jpg (230) → {luna_dir}" in capsys.readouterr().out
     assert sorted(p.name for p in luna_dir.iterdir()) == ["cuota.jpg", "precio1.jpg", "precio2.jpg"]
     # --sin-luna: la web se actualiza igual pero no se tocan las imágenes
@@ -855,7 +919,7 @@ def test_actualizar_para_si_la_marca_de_la_hoja_no_esta_en_el_producto(sin_docum
     ajeno = FakeClient(producto=producto_web(AJENO, name="Hyundai I10"))
     rc, client, _ = run_actualizar(args_fin(si=True), datos(precio_contado="15900"), carpeta, registro, ajeno)
     salida = capsys.readouterr().out
-    assert rc == 1 and client.nombres() == ["obtener"] and not (carpeta.path / "luna").exists()
+    assert rc == 1 and client.nombres() == ["obtener"] and not (carpeta.path / luna.CARPETA_SALIDA).exists()
     assert f"Modelo: el producto {PRODUCTO_ID} se llama «Hyundai I10» pero la hoja dice «KIA XCeed" in salida
     assert "para la matrícula 9028LXG: revisá la matrícula cargada en la web. No se toca la web" in salida
     # --forzar: avisa y actualiza igual
@@ -885,7 +949,7 @@ def test_solo_financiacion_simular_muestra_la_tabla_y_no_envia(sin_documentos, c
     assert "== Financiación según la hoja" in salida and "== Diferencias con la web (1 campo/s)" in salida
     assert "_tipo_vehiculo" in salida and "especial" in salida and "Simulación: no se envía nada" in salida
     assert "_destacado" not in salida.split("== Diferencias")[1] and "name" not in salida.split("== Diferencias")[1]
-    assert not (carpeta.path / "luna").exists() and "Luna:" not in salida
+    assert not (carpeta.path / luna.CARPETA_SALIDA).exists() and "Luna:" not in salida
 
 
 def test_solo_financiacion_sin_cambios_ni_documentos(sin_documentos, carpeta, registro, acf_base, capsys):
@@ -897,7 +961,7 @@ def test_solo_financiacion_sin_cambios_ni_documentos(sin_documentos, carpeta, re
     assert "ya está al día" in salida
     # sin cambios en la web también se rehacen las imágenes (el coche pudo publicarse antes de que existieran)
     assert "Luna: precio1.jpg (15.) · precio2.jpg (795) · cuota.jpg (244)" in salida
-    assert (carpeta.path / "luna" / "precio1.jpg").exists()
+    assert (carpeta.path / luna.CARPETA_SALIDA / "precio1.jpg").exists()
 
 
 def test_solo_financiacion_exige_que_el_producto_lleve_la_matricula(sin_documentos, carpeta, registro, acf_base, capsys):
@@ -1039,3 +1103,49 @@ def test_parser_exige_referencia_o_matricula():
     assert args.referencia is None and args.matricula == ["9028LXG"] and args.si
     with pytest.raises(SystemExit):
         publicar.main([])
+
+
+def test_forzar_descripcion_solo_rehace_la_descripcion(caja, carpeta, monkeypatch):
+    """--forzar-descripcion no relee el permiso ni la caja: solo pasa force a la generación de la descripción."""
+    llamadas = []
+
+    def fake_generar(datos, fotos, folder_name, force=False, cache_dir=None, plantilla=None):
+        llamadas.append(dict(force=force, datos=datos))
+        return desc_mod.Descripcion("texto", "bloque", "ia", piezas=desc_mod.despiezar(datos, PARTES_DESC))
+    monkeypatch.setattr(desc_mod, "generar", fake_generar)
+    args = publicar.build_parser().parse_args(["82", "--simular", "--forzar-descripcion"])
+    assert args.forzar_descripcion and not args.forzar
+    row = datos().rows[0]
+    publicar.construir_borrador(row, carpeta, None, ai_kia(), sin_fotos_caja=False, force=args.forzar,
+                                forzar_descripcion=args.forzar_descripcion)
+    assert llamadas[-1]["force"] is True and caja[-1]["force"] is False
+    publicar.construir_borrador(row, carpeta, None, ai_kia(), sin_fotos_caja=False)
+    assert llamadas[-1]["force"] is False
+
+
+def test_piso_de_seguridad_con_la_b_del_permiso_y_los_importados(caja, carpeta, monkeypatch):
+    recibidos = []
+
+    def fake_generar(datos, fotos, folder_name, force=False, cache_dir=None, plantilla=None):
+        recibidos.append(datos)
+        return desc_mod.Descripcion("texto", "bloque", "ia", piezas=desc_mod.despiezar(datos, PARTES_DESC))
+    monkeypatch.setattr(desc_mod, "generar", fake_generar)
+    b = borrador(carpeta)
+    assert recibidos[-1].importado is False and recibidos[-1].fecha_primera is None
+    assert "ABS\nControl electrónico de estabilidad" in b.equipamiento
+    assert desc_mod.AVISO_IMPORTADO not in b.para_verificar
+    # importado sin B: sin piso y a PARA VERIFICAR
+    b = borrador(carpeta, modelo="KIA XCeed GDi PHEV 140cv Edrive importado Alemania")
+    assert recibidos[-1].importado is True and "Control electrónico de estabilidad" not in b.equipamiento
+    assert desc_mod.AVISO_IMPORTADO in b.para_verificar
+    # la subcarpeta ------IMPORTACION de 1_Ventas también cuenta como importado
+    importacion = locate.make_car_folder(carpeta.path, "------IMPORTACION")
+    publicar.construir_borrador(datos().rows[0], importacion, None, ai_kia(), sin_fotos_caja=True)
+    assert recibidos[-1].importado is True
+    # con B (primera matriculación en el extranjero, 2013) manda la B: ABS sí, 661/2009 no
+    ai = ai_kia()
+    ai["permiso_circulacion"]["fecha_primera_matriculacion"] = "2013-06-01"
+    b = borrador(carpeta, ai, modelo="KIA XCeed GDi PHEV 140cv Edrive importado Alemania")
+    assert recibidos[-1].fecha_primera == date(2013, 6, 1)
+    assert "ABS" in b.equipamiento and "Control electrónico de estabilidad" not in b.equipamiento
+    assert desc_mod.AVISO_IMPORTADO not in b.para_verificar

@@ -302,9 +302,11 @@ def test_traccion_solo_por_el_distintivo_de_la_version(version, esperada):
     (dict(combustible="Híbrido", version="1.3 4xe Plug-in Hybrid", anio=2023), "CERO"),
     (dict(combustible="Híbrido", version="1.8 HEV", anio=2019), "ECO"),
     (dict(combustible="Gasolina", anio=2006), "C"),
-    (dict(combustible="Diésel", anio=2015), "C"),
-    (dict(combustible="Gasolina", anio=2005), None),
-    (dict(combustible="Diésel", anio=2014), None),
+    (dict(combustible="Diésel", anio=2016), "C"),
+    (dict(combustible="Diésel", anio=2015), "B"),          # solo el año: el corte es el 01/09/2015 → B con aviso
+    (dict(combustible="Gasolina", anio=2005), "B"),
+    (dict(combustible="Diésel", anio=2014), "B"),
+    (dict(combustible="Diésel", anio=2005), None),
     (dict(combustible="Gasolina", anio=None), None),
     (dict(combustible="", anio=2020), None),
 ])
@@ -408,7 +410,9 @@ def test_equipamiento_lleva_la_parte_tecnica_con_cuatro_barras():
     texto = desc.equipamiento(piezas_compass())
     lineas = texto.splitlines()
     assert lineas[0] == "///// Datos técnicos:"
-    assert "Potencia combinada: 240 CV" in lineas and "* Potencia combinada: 240 CV" not in lineas
+    assert "Tracción total (4xe)" in lineas and "* Tracción total (4xe)" not in lineas
+    # lo que ya pinta la tabla de la web (y el tema tiraría) no va en «Lo técnico»
+    assert "Potencia combinada: 240 CV" not in lineas and "Combustible: Híbrido" not in lineas
     for nombre in ("Tecnología / Multimedia", "Confort / Interior", "Exterior", "Seguridad / Asistencia"):
         assert f"//// {nombre}" in lineas
     assert "🎯" not in texto and "⸻" not in texto
@@ -435,6 +439,9 @@ def test_sin_cierre_el_destacado_no_deja_hueco():
 def test_los_dos_destinos_comparten_contenido_y_cambian_el_formato():
     piezas = piezas_compass()
     bloque, equipo = montar_bloque(DatosCoche(**COMPASS), PARTES), desc.equipamiento(piezas)
-    for vineta in ("Pantalla táctil Uconnect", "Climatizador bizona", "Potencia combinada: 240 CV"):
+    for vineta in ("Pantalla táctil Uconnect", "Climatizador bizona"):
         assert f"* {vineta}" in bloque and f"\n{vineta}" in "\n" + equipo
+    # lo técnico cambia de forma: «Campo: valor» en coches.net, ítems que sobreviven al tema en la web
+    assert "* Potencia combinada: 240 CV" in bloque and "Potencia combinada" not in equipo
+    assert "* Plazas: 5" in bloque and "\n5 plazas" in equipo
     assert "🎯 Exterior" in bloque and "//// Exterior" in equipo

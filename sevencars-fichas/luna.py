@@ -9,7 +9,7 @@ Uso: luna.py <ref> [--salida DIR] [--simular]
 Valores: precio luna = PRECIO CONTADO (F) − descuento de financiación de la tarifa ESTANDAR (el `dto` de
 cuota.calcular_financiacion; sin renove ni los 390 € de gestión). Ejemplo: 12485 − 365 = 12120 → «12.» y «120».
 La cuota es la misma que se publica en la web; si no hay plazo posible no se genera cuota.jpg.
-Salida: <carpeta del coche>/luna/precio1.jpg, precio2.jpg y cuota.jpg (se pisan). publicar.py las genera solo
+Salida: <carpeta del coche>/precios/precio1.jpg, precio2.jpg y cuota.jpg (se pisan). publicar.py las genera solo
 al crear el producto y en --actualizar --solo-financiacion (`--sin-luna` lo evita).
 """
 from __future__ import annotations
@@ -32,6 +32,7 @@ from sheet import SheetError, open_sheet
 
 EXIT_OK, EXIT_ERROR = 0, 1
 PLANTILLAS_DIR = PROJECT_DIR / "plantillas" / "luna"
+CARPETA_SALIDA = "precios"                  # subcarpeta del coche donde quedan las imágenes
 NOMBRES = ("precio1", "precio2", "cuota")
 ARCHIVOS_SALIDA = {n: f"{n}.jpg" for n in NOMBRES}
 # Archivo de cada plantilla: precio1.jpg («31.» con marco rectangular, los miles), precio2.jpg («585» grande entre
@@ -357,7 +358,7 @@ def textos_luna(precio_contado, fecha_matriculacion: date | None, tarifa=None, h
 
 @dataclass
 class ResultadoLuna:
-    carpeta: Path                       # carpeta de salida (…/luna)
+    carpeta: Path                       # carpeta de salida (…/precios)
     precio_luna: int
     textos: dict[str, str]
     rutas: dict[str, Path]              # archivos generados
@@ -365,7 +366,7 @@ class ResultadoLuna:
     financiacion: Financiacion
 
     def resumen(self) -> str:
-        """«precio1.jpg (12.) · precio2.jpg (120) · cuota.jpg (214) → /…/luna» (o «sin cuota.jpg»)."""
+        """«precio1.jpg (12.) · precio2.jpg (120) · cuota.jpg (214) → /…/precios» (o «sin cuota.jpg»)."""
         partes = [f"{ARCHIVOS_SALIDA[n]} ({self.textos[n]})" for n in NOMBRES if n in self.textos]
         if "cuota" not in self.textos:
             partes.append("sin cuota.jpg")
@@ -375,9 +376,9 @@ class ResultadoLuna:
 def generar_luna(carpeta_coche: str | os.PathLike, precio_contado, fecha_matriculacion: date | None, tarifa=None,
                  hoy: date | None = None, salida: str | os.PathLike | None = None,
                  fuente: str | os.PathLike | None = None) -> ResultadoLuna:
-    """Genera precio1.jpg, precio2.jpg y (si hay cuota) cuota.jpg en <carpeta_coche>/luna/ (o en `salida`),
+    """Genera precio1.jpg, precio2.jpg y (si hay cuota) cuota.jpg en <carpeta_coche>/precios/ (o en `salida`),
     pisando lo que hubiera. Sin cuota, borra un cuota.jpg viejo para que no se imprima una cuota que ya no vale."""
-    destino = Path(salida) if salida else Path(carpeta_coche) / "luna"
+    destino = Path(salida) if salida else Path(carpeta_coche) / CARPETA_SALIDA
     t = textos_luna(precio_contado, fecha_matriculacion, tarifa, hoy)
     rutas: dict[str, Path] = {}
     for nombre in NOMBRES:
@@ -406,7 +407,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("referencia", nargs="?", help="referencia de la hoja (1082, 26, D29...); opcional con --matricula")
     p.add_argument("--matricula", action="append", default=[], help="buscar la fila por matrícula en vez de por referencia")
     p.add_argument("--fila", action="append", type=int, default=[], help=argparse.SUPPRESS)
-    p.add_argument("--salida", metavar="DIR", help="carpeta de salida (por defecto <carpeta del coche>/luna)")
+    p.add_argument("--salida", metavar="DIR", help="carpeta de salida (por defecto <carpeta del coche>/precios)")
     p.add_argument("--simular", action="store_true", help="mostrar los textos y las rutas sin escribir nada")
     p.add_argument("--sheet", metavar="XLSX", help=argparse.SUPPRESS)
     p.add_argument("--ventas-dir", default=str(locate.DEFAULT_VENTAS_DIR), help=argparse.SUPPRESS)
@@ -423,7 +424,7 @@ def ejecutar(args, data, folders) -> int:
     if args.salida:
         destino = Path(args.salida)
     elif loc.found:
-        destino = loc.folder.path / "luna"
+        destino = loc.folder.path / CARPETA_SALIDA
     else:
         warn("Sin carpeta del coche: indicá dónde dejar las imágenes con --salida DIR.")
         return EXIT_ERROR

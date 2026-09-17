@@ -156,10 +156,10 @@ def test_generar_luna_astra(tmp_path):
     coche = tmp_path / "34-Opel Astra-1234ABC"
     coche.mkdir()
     res = luna.generar_luna(coche, *ASTRA)
-    assert res.carpeta == coche / "luna" and res.precio_luna == 12120 and res.avisos == []
+    assert res.carpeta == coche / luna.CARPETA_SALIDA and res.precio_luna == 12120 and res.avisos == []
     assert res.textos == {"precio1": "12.", "precio2": "120", "cuota": "214"}
     assert sorted(p.name for p in res.carpeta.iterdir()) == ["cuota.jpg", "precio1.jpg", "precio2.jpg"]
-    assert res.resumen() == f"precio1.jpg (12.) · precio2.jpg (120) · cuota.jpg (214) → {coche / 'luna'}"
+    assert res.resumen() == f"precio1.jpg (12.) · precio2.jpg (120) · cuota.jpg (214) → {coche / luna.CARPETA_SALIDA}"
     for ruta in res.rutas.values():
         with Image.open(ruta) as im:
             assert im.size == TAMANO and im.format == "JPEG"
@@ -170,12 +170,12 @@ def test_generar_luna_astra(tmp_path):
 @con_fuente
 def test_generar_luna_sin_cuota_no_escribe_cuota_y_borra_la_vieja(tmp_path):
     coche = tmp_path / "coche"
-    (coche / "luna").mkdir(parents=True)
-    (coche / "luna" / "cuota.jpg").write_bytes(b"vieja")
+    (coche / luna.CARPETA_SALIDA).mkdir(parents=True)
+    (coche / luna.CARPETA_SALIDA / "cuota.jpg").write_bytes(b"vieja")
     res = luna.generar_luna(coche, 12485, date(2010, 1, 1))
-    assert set(res.rutas) == {"precio1", "precio2"} and not (coche / "luna" / "cuota.jpg").exists()
+    assert set(res.rutas) == {"precio1", "precio2"} and not (coche / luna.CARPETA_SALIDA / "cuota.jpg").exists()
     assert any("sin cuota" in a for a in res.avisos) and any("borrado cuota.jpg" in a for a in res.avisos)
-    assert res.resumen() == f"precio1.jpg (12.) · precio2.jpg (485) · sin cuota.jpg → {coche / 'luna'}"
+    assert res.resumen() == f"precio1.jpg (12.) · precio2.jpg (485) · sin cuota.jpg → {coche / luna.CARPETA_SALIDA}"
 
 
 # ---------------------------------------------------------------- CLI (hoja en memoria, sin Google)
@@ -205,9 +205,9 @@ def args(**over):
 def test_cli_simular_no_escribe(carpeta, capsys):
     rc = luna.ejecutar(args(simular=True), hoja(), [carpeta])
     out = capsys.readouterr().out
-    assert rc == 0 and not (carpeta.path / "luna").exists()
+    assert rc == 0 and not (carpeta.path / luna.CARPETA_SALIDA).exists()
     assert "Precio luna: 12120 € = 12485 contado − 365 dto financiación (tarifa ESPECIAL)" in out
-    assert f"precio1.jpg: «12.» → {carpeta.path / 'luna' / 'precio1.jpg'}" in out
+    assert f"precio1.jpg: «12.» → {carpeta.path / luna.CARPETA_SALIDA / 'precio1.jpg'}" in out
     assert "precio2.jpg: «120»" in out and "cuota.jpg: «214»" in out and "Simulación: no se escribe nada" in out
 
 
@@ -215,8 +215,8 @@ def test_cli_simular_no_escribe(carpeta, capsys):
 def test_cli_genera_por_matricula_y_con_salida(carpeta, tmp_path, capsys):
     rc = luna.ejecutar(args(referencia=None, matricula=["1234ABC"]), hoja(), [carpeta])
     out = capsys.readouterr().out
-    assert rc == 0 and f"Luna: precio1.jpg (12.) · precio2.jpg (120) · cuota.jpg (214) → {carpeta.path / 'luna'}" in out
-    assert (carpeta.path / "luna" / "cuota.jpg").exists()
+    assert rc == 0 and f"Luna: precio1.jpg (12.) · precio2.jpg (120) · cuota.jpg (214) → {carpeta.path / luna.CARPETA_SALIDA}" in out
+    assert (carpeta.path / luna.CARPETA_SALIDA / "cuota.jpg").exists()
     otra = tmp_path / "otra"
     assert luna.ejecutar(args(salida=str(otra)), hoja(), [carpeta]) == 0 and (otra / "precio1.jpg").exists()
 

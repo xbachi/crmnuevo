@@ -2,6 +2,7 @@
 """Crea el borrador de un coche en sevencars.es (WooCommerce) a partir de la hoja, la carpeta y el permiso.
 
 Uso: publicar.py <ref> [--simular] [--categoria x,y] [--publicar-directo] [--forzar] [--sin-hoja] [--sin-fotos-caja] [--sin-luna]
+     publicar.py <ref> --simular --forzar-descripcion   → rehace solo la descripción con la IA y la muestra entera
      publicar.py <ref> --actualizar [--simular] [--si]   → completa un anuncio ya publicado (nunca resube fotos)
      publicar.py <ref> --actualizar --solo-financiacion  → solo precio, precio financiado, cuota, tipo de vehículo y
                                                             fecha de matriculación, desde la hoja (sin leer documentos)
@@ -9,7 +10,7 @@ Uso: publicar.py <ref> [--simular] [--categoria x,y] [--publicar-directo] [--for
 
 Antes de listar las fotos, la carpeta fotos/ del coche se normaliza (descargas de ChatGPT en PNG/WEBP incluidas):
 1.jpg…N.jpg, JPEG ≤ 400 KB; los originales quedan en fotos/originales/. `--sin-normalizar-fotos` lo omite.
-Al crear el producto (y en --actualizar --solo-financiacion) genera las imágenes de la luna en <coche>/luna/
+Al crear el producto (y en --actualizar --solo-financiacion) genera las imágenes de la luna en <coche>/precios/
 (luna.py: precio en miles y cientos, y cuota). `--sin-luna` lo evita.
 """
 from __future__ import annotations
@@ -24,6 +25,7 @@ from pathlib import Path
 
 import caja_fotos
 import categorias as cat_mod
+import combustible as combustible_mod
 import descripcion_cochesnet as desc_mod
 import extract
 import fotos as fotos_mod
@@ -111,6 +113,7 @@ class Borrador:
     financiacion: Financiacion | None = None   # tarifa, dto, importe, plazo y cuota (cuota.calcular_financiacion)
     fecha_matriculacion: date | None = None    # E o, si falta, la del permiso (meta _fecha_matriculacion en ISO)
     carpeta: Path | None = None                # carpeta del coche (ahí van las imágenes de la luna)
+    gas: str | None = None                     # GLP/GNC/GNL: solo descripción y etiqueta (en la web y la hoja, Gasolina)
     destacado: str = ""              # ACF _destacado: parte narrativa
     equipamiento: str = ""           # ACF _equipamiento: datos técnicos y equipamiento
     avisos: list[str] = field(default_factory=list)
@@ -228,7 +231,7 @@ def calcular_financiado(row: VehicleRow, fecha: date | None) -> Financiado:
 def construir_borrador(row: VehicleRow, folder: locate.CarFolder, permiso: idm.PermisoData | None,
                        ai_result: dict | None, categoria_override: str | None = None,
                        sin_fotos_caja: bool = False, force: bool = False,
-                       sin_descripcion: bool = False) -> Borrador:
+                       sin_descripcion: bool = False, forzar_descripcion: bool = False) -> Borrador:
     avisos: list[str] = []
     verificar_items: list[str] = []
     m = marcas.split_modelo(row.modelo)
@@ -303,34 +306,47 @@ def construir_borrador(row: VehicleRow, folder: locate.CarFolder, permiso: idm.P
         avisos.append("sin fotos editadas en la carpeta (fotos/)")
     elif fotos_plan[0].path.stem.lower() != "1":
         verificar_items.append(f"foto de portada dudosa: la primera foto es '{fotos_plan[0].path.name}', no '1.jpg'")
+    # gas (bifuel GLP/GNC/GNL): indicador aparte; _combustible y la hoja siguen diciendo Gasolina
+    gas, aviso_gas = (None, None) if combustible in (marcas.DIESEL, marcas.HIBRIDO, marcas.ELECTRICO) \
+        else combustible_mod.gas_web(p3, row.modelo)
+    if aviso_gas:
+        verificar_items.append(aviso_gas)
+    doc_desc = desc_mod.datos_documentos(ai_result)
+    doc_desc.update(p3=p3 or "", bastidor=row.bastidor or (permiso.vin if permiso else "") or doc_desc.get("bastidor", ""))
     datos_desc = desc_mod.DatosCoche(marca=m.marca, modelo=m.modelo, version=m.version, combustible=combustible or "",
                                      cilindrada=cubicaje or None, cv=cv, caja=caja or "",
-                                     plazas=permiso_doc.get("plazas") or ficha_doc.get("plazas"),
-                                     anio=mat_num // 100 if mat_num else None, p3=p3 or "")
+                                     anio=mat_num // 100 if mat_num else None, fecha=fecha, gas=gas or "",
+                                     importado=desc_mod.es_importado(folder.name, folder.group, row.modelo), **doc_desc)
     destacado = equipamiento = ""
     if not sin_descripcion:
-        d = desc_mod.generar(datos_desc, fotos, folder.name, force=force)
+        d = desc_mod.generar(datos_desc, fotos, folder.name, force=force or forzar_descripcion)
         if d.piezas is not None:
             destacado, equipamiento = desc_mod.destacado(d.piezas), desc_mod.equipamiento(d.piezas)
             verificar_items.append(desc_mod.AVISO_VERIFICAR)
+            verificar_items += d.piezas.para_verificar
         else:
             avisos.append(f"descripción: no se pudo generar ({d.error}); _destacado y _equipamiento van vacíos")
+            verificar_items.append("descripción y equipamiento vacíos: la IA no pudo generarlos, completarlos a mano")
 
     return Borrador(row=row, titulo=m.titulo, sku=sku, marca=m.marca, modelo=m.modelo, version=m.version,
                     combustible=combustible_conf, caja=caja, km=marcas.km_web(row.kms), cv=cv, cubicaje=cubicaje,
                     matriculacion=matriculacion, matriculacion_num=mat_num, garantia=garantia_texto(row), precio=precio,
                     precio_financiado=precio_fin, cuota=cuota, categorias=slugs, categoria_ids=cat_mod.ids_de(slugs),
-                    fotos=fotos_plan, financiacion=fin, fecha_matriculacion=fecha, carpeta=folder.path,
+                    fotos=fotos_plan, financiacion=fin, fecha_matriculacion=fecha, carpeta=folder.path, gas=gas,
                     destacado=destacado, equipamiento=equipamiento,
                     avisos=avisos, para_verificar=verificar_items)
 
 
-def imprimir_resumen(b: Borrador) -> None:
+def imprimir_resumen(b: Borrador, completo: bool = False) -> None:
+    """Tabla del borrador y un extracto de _destacado / _equipamiento; con `completo` (--simular) los dos campos
+    enteros, tal cual irían a la web."""
     say()
     say(report.paint("== Resumen del borrador", "bold"))
     filas = [
         ["Título", b.titulo], ["SKU (matrícula)", b.sku], ["Marca / modelo", f"{b.marca} / {b.modelo}"],
-        ["Versión", b.version], ["Combustible", b.combustible or "(vacío: sin confirmar)"],
+        ["Versión", b.version],
+        ["Combustible", (b.combustible or "(vacío: sin confirmar)")
+         + (f" · {b.gas} (bifuel: solo descripción y etiqueta)" if b.gas else "")],
         ["Caja", b.caja or "(vacío: sin confirmar)"], ["Km", b.km], ["CV", fmt_value(b.cv)], ["Cubicaje", fmt_value(b.cubicaje)],
         ["Matriculación", f"{b.matriculacion} ({b.matriculacion_num or '-'})"], ["Garantía", b.garantia],
         ["Precio", _precio_web(b.precio) + " €"], ["Precio financiado", _precio_web(b.precio_financiado) + " €"],
@@ -346,6 +362,11 @@ def imprimir_resumen(b: Borrador) -> None:
             warn(f"{nombre}: vacío")
             continue
         lineas = texto.splitlines()
+        if completo:
+            say(report.paint(f"== {nombre} ({len(lineas)} líneas, {len(texto)} caracteres) — completo", "bold"))
+            for linea in lineas:
+                say("  " + linea if linea else "")
+            continue
         say(report.paint(f"== {nombre} ({len(lineas)} líneas, {len(texto)} caracteres) — extracto", "bold"))
         for linea in [x for x in lineas if x.strip()][:EXTRACTO_LINEAS]:
             say("  " + linea[:100])
@@ -375,14 +396,17 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("referencia", nargs="?", help="referencia de la hoja (1082, 26, D29...); opcional con --matricula")
     p.add_argument("--matricula", action="append", default=[], help="buscar la fila por matrícula en vez de por referencia")
     p.add_argument("--fila", action="append", type=int, default=[], help=argparse.SUPPRESS)
-    p.add_argument("--simular", action="store_true", help="no subir nada: resumen + comprobación de duplicado")
+    p.add_argument("--simular", action="store_true",
+                   help="no subir nada: resumen con _destacado y _equipamiento completos + comprobación de duplicado")
     p.add_argument("--categoria", help="categorías (slugs separados por coma) para modelos desconocidos")
     p.add_argument("--publicar-directo", action="store_true", help="crear como publicado en vez de borrador")
     p.add_argument("--forzar", action="store_true", help="ignorar la caché de lecturas (permiso, caja por fotos)")
+    p.add_argument("--forzar-descripcion", action="store_true",
+                   help="rehacer solo _destacado/_equipamiento con la IA (sin releer el permiso ni la caja)")
     p.add_argument("--sin-hoja", action="store_true", help="no escribir cuota ni URL de portada en la hoja")
     p.add_argument("--sin-fotos-caja", action="store_true", help="no detectar la caja por las fotos")
     p.add_argument("--sin-luna", action="store_true",
-                   help="no generar las imágenes de la luna (precio1/precio2/cuota.jpg en <coche>/luna/)")
+                   help="no generar las imágenes de la luna (precio1/precio2/cuota.jpg en <coche>/precios/)")
     p.add_argument("--sin-descripcion", action="store_true",
                    help="no generar _destacado ni _equipamiento (se envían vacíos)")
     p.add_argument("--sin-normalizar-fotos", action="store_true",
@@ -483,7 +507,8 @@ def preparar_borrador(args, sheet_src, data, folders) -> tuple[int, "Borrador | 
 
     try:
         b = construir_borrador(row, loc.folder, idc.permiso, ai_result, args.categoria, args.sin_fotos_caja,
-                               args.forzar, getattr(args, "sin_descripcion", False))
+                               args.forzar, getattr(args, "sin_descripcion", False),
+                               getattr(args, "forzar_descripcion", False))
     except ValueError as exc:
         warn(str(exc))
         return EXIT_ERROR, None
@@ -514,7 +539,7 @@ def preparar_financiacion(args, data) -> tuple[int, "Financiado | None"]:
 
 
 def generar_luna(carpeta: Path | None, precio, fecha: date | None, tarifa) -> None:
-    """Imágenes para la hoja de precios de la luna en <coche>/luna/ (luna.py): precio contado − dto de
+    """Imágenes para la hoja de precios de la luna en <coche>/precios/ (luna.py): precio contado − dto de
     financiación en miles y cientos, y la cuota. Nunca detiene la publicación: si falla, avisa y sigue."""
     if carpeta is None:
         warn("Luna: sin carpeta del coche, no se generan las imágenes (luna.py <ref> --salida DIR).")
@@ -543,7 +568,7 @@ def publicar(args, sheet_src, data, folders, client_factory=WcClient.desde_env, 
     if b is None:
         return rc
     row = b.row
-    imprimir_resumen(b)
+    imprimir_resumen(b, completo=args.simular)
 
     # duplicado: registro local + web
     registro = cargar_registro(registro_path)
@@ -771,7 +796,7 @@ def actualizar(args, sheet_src, data, folders, client_factory=WcClient.desde_env
     if solo_fin:
         imprimir_resumen_financiacion(b)
     else:
-        imprimir_resumen(b)
+        imprimir_resumen(b, completo=args.simular)
     try:
         client = client_factory()
     except WcError as exc:

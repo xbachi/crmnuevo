@@ -59,3 +59,52 @@ def normalizar_combustible(valor) -> str | None:
     if "gasolina" in t:
         return GASOLINA
     return str(valor).strip()
+
+
+# ----------------------------------------------------------------- gas (GLP / GNC / GNL)
+# El vocabulario de la web y de la hoja no tiene «gas»: un bifuel sigue siendo Gasolina en AF y en _combustible
+# (el select de ACF solo admite los cuatro VALORES). El gas va aparte, como indicador, para la descripción y la
+# etiqueta DGT (ECO). Ojo: «GAS LICUADO DE PETROLEO» contiene «petrol» y combustible_permiso lo da como Gasolina.
+GLP, GNC, GNL = "GLP", "GNC", "GNL"
+GASES = (GLP, GNC, GNL)
+_GAS_TEXTO = ((GNL, re.compile(r"\bgnl\b|\blng\b|gas natural licuado")),
+              (GNC, re.compile(r"\bgnc\b|\bcng\b|gas natural|\bmetano\b")),
+              (GLP, re.compile(r"\bglp\b|\blpg\b|gas licuado|\bautogas\b")))
+# Denominaciones comerciales que delatan el gas en el texto de MODELO (sin confirmar con el permiso).
+_GAS_MODELO = ((GNC, re.compile(r"\btgi\b|\bg-?tec\b|\bg-?tron\b|natural power|\becofuel\b")),
+               (GLP, re.compile(r"\beco-?g\b|\bbi-?fuel\b")))
+
+
+def gas_texto(texto) -> str | None:
+    """'GAS LICUADO DE PETROLEO' / 'GASOLINA/GLP' -> GLP; 'GNC' / 'GAS NATURAL COMPRIMIDO' -> GNC; GNL; o None."""
+    t = norm_text(texto)
+    if not t:
+        return None
+    for gas, patron in _GAS_TEXTO:
+        if patron.search(t):
+            return gas
+    return None
+
+
+def gas_modelo(texto) -> str | None:
+    """Por el texto de MODELO: 'Sandero 1.0 TCe ECO-G 100' -> GLP; 'Leon 1.5 TGI' -> GNC. Sin confirmar."""
+    gas = gas_texto(texto)
+    if gas:
+        return gas
+    t = norm_text(texto)
+    for gas, patron in _GAS_MODELO:
+        if patron.search(t):
+            return gas
+    return None
+
+
+def gas_web(p3, modelo_texto) -> tuple[str | None, str | None]:
+    """(gas, aviso): del P.3 si lo dice; si no, del MODELO con aviso de «sin confirmar»; (None, None) si no hay gas."""
+    gas = gas_texto(p3)
+    if gas:
+        return gas, None
+    gas = gas_modelo(modelo_texto)
+    if gas:
+        return gas, (f"gas: {gas} según el texto de MODELO, sin confirmar con el permiso (P.3 «{p3 or '-'}»); "
+                     "cambia la etiqueta DGT a ECO")
+    return None, None

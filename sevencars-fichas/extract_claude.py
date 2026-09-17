@@ -21,6 +21,7 @@ TIMEOUT_S = 300
 MAX_TURNS = 12
 MAX_TURNS_LEAN = 4
 DISALLOWED_TOOLS = "Bash,Edit,Write,Agent,WebFetch,WebSearch,NotebookEdit,Glob,Grep"
+TOOLS_LECTURA = ("Read",)          # lectura de documentos y caja por fotos: nunca web
 CONTEXT_FILE = "contexto.txt"
 _LIMIT_HINTS = re.compile(r"limit|usage|rate|quota|cupo|too many requests|overloaded", re.IGNORECASE)
 
@@ -140,13 +141,16 @@ def _load_envelope(stdout: str) -> dict:
 
 # ----------------------------------------------------------------- running
 def build_command(binary: str, prompt: str, model: str | None, max_turns: int = MAX_TURNS,
-                  schema: dict | None = None) -> list[str]:
+                  schema: dict | None = None, tools: tuple[str, ...] = TOOLS_LECTURA) -> list[str]:
+    """`tools`: las únicas herramientas disponibles y permitidas; el resto de DISALLOWED_TOOLS queda prohibido."""
+    herramientas = ",".join(tools)
+    prohibidas = ",".join(t for t in DISALLOWED_TOOLS.split(",") if t not in tools)
     cmd = [binary, "-p", prompt,
            "--output-format", "json",
            "--json-schema", json.dumps(schema or EXTRACTION_SCHEMA),
-           "--tools", "Read",
-           "--allowedTools", "Read",
-           "--disallowedTools", DISALLOWED_TOOLS,
+           "--tools", herramientas,
+           "--allowedTools", herramientas,
+           "--disallowedTools", prohibidas,
            "--max-turns", str(max_turns),
            "--no-session-persistence",
            "--setting-sources", "",
@@ -157,8 +161,8 @@ def build_command(binary: str, prompt: str, model: str | None, max_turns: int = 
 
 
 def _invoke(binary: str, prompt: str, workdir: Path, model: str | None, timeout: int, max_turns: int = MAX_TURNS,
-            schema: dict | None = None) -> dict:
-    cmd = build_command(binary, prompt, model, max_turns, schema)
+            schema: dict | None = None, tools: tuple[str, ...] = TOOLS_LECTURA) -> dict:
+    cmd = build_command(binary, prompt, model, max_turns, schema, tools)
     env = {k: v for k, v in os.environ.items() if k not in ("CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT")}
     try:
         proc = subprocess.run(cmd, cwd=str(workdir), capture_output=True, text=True, timeout=timeout, env=env)
