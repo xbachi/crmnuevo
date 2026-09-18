@@ -21,5 +21,6 @@ module.exports = async () => {
     coverageThreshold: base.coverageThreshold,
     testTimeout: 60000,
     maxWorkers: 1, // Sequential for database tests
+    forceExit: true, // supertest deja sockets keep-alive abiertos
   }
 }
