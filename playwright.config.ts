@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
+import { STORAGE_STATE } from './tests/e2e/global-setup'
 
 /**
  * @see https://playwright.dev/docs/test-configuration
@@ -10,6 +11,8 @@ const BASE_URL = process.env.E2E_BASE_URL || `http://localhost:${PORT}`
 
 export default defineConfig({
   testDir: './tests/e2e',
+  // Login por API una vez; la cookie se comparte con todos los proyectos.
+  globalSetup: './tests/e2e/global-setup.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -21,6 +24,11 @@ export default defineConfig({
   ],
   use: {
     baseURL: BASE_URL,
+    storageState: STORAGE_STATE,
+    // Entornos con un Chromium preinstalado de otra versión (PW_CHROMIUM_PATH).
+    ...(process.env.PW_CHROMIUM_PATH
+      ? { launchOptions: { executablePath: process.env.PW_CHROMIUM_PATH } }
+      : {}),
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -70,10 +78,10 @@ export default defineConfig({
   },
 
   outputDir: 'qa/artifacts/test-results',
-  
+
   // Global test timeout
   timeout: 30000,
-  
+
   // Expect timeout
   expect: {
     timeout: 5000,
