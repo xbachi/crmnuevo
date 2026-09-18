@@ -20,6 +20,7 @@ import {
 } from '@/lib/vencimientos'
 import NotasSection from '@/components/NotasSection'
 import EstadoBadge from '@/components/EstadoBadge'
+import VehiculoCamposDocCard from '@/components/VehiculoCamposDocCard'
 import VehiculoFichaComercialCard from '@/components/VehiculoFichaComercialCard'
 import VehiculoPresupuestosCard from '@/components/VehiculoPresupuestosCard'
 import VehiculoPreparacionCard, {
@@ -3681,6 +3682,13 @@ export default function VehiculoDetailPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Datos del permiso sin confirmar + qué falta para publicar */}
+              <VehiculoCamposDocCard
+                vehiculoId={vehiculo.id}
+                showToast={showToast}
+                onConfirmado={fetchVehiculo}
+              />
 
               {/* Compra (logística) + Preparación (13 pasos) */}
               <VehiculoPreparacionCard
