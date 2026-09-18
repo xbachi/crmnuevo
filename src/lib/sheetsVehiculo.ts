@@ -858,6 +858,12 @@ export interface ResumenCheck {
   /** Vehículos sin referencia interpretable (no se sincronizan; no es error). */
   sinReferencia: string[]
   errores: string[]
+  /** false = quedó a medias por tope de vehículos, de tiempo o de cuota. */
+  completo: boolean
+  /** Último vehículo procesado: se pasa como `desdeId` para continuar. */
+  siguienteDesdeId: number | null
+  /** Las huérfanas sólo se calculan en una pasada entera desde el principio. */
+  huerfanasOmitidas: boolean
 }
 
 const MAX_DIFERENCIAS = 500
@@ -887,6 +893,9 @@ function resumenVacio(dryRun: boolean): ResumenCheck {
     diferenciasTotal: 0,
     sinReferencia: [],
     errores: [],
+    completo: true,
+    siguienteDesdeId: null,
+    huerfanasOmitidas: false,
   }
 }
 
@@ -900,6 +909,12 @@ export async function checkSheetsVehiculos(opts: {
   dryRun: boolean
   motivo?: MotivoSheets
   sheets?: sheets_v4.Sheets
+  /** Continúa después de este id de vehículo (0 = desde el principio). */
+  desdeId?: number
+  /** Tope de vehículos de esta pasada (0 = sin tope). */
+  maxVehiculos?: number
+  /** Tope de tiempo en ms (0 = sin tope). Vercel corta la función a los 60 s. */
+  presupuestoMs?: number
   /** Sólo tests: sin esperas entre llamadas. */
   sinEsperas?: boolean
 }): Promise<ResumenCheck> {
@@ -907,6 +922,10 @@ export async function checkSheetsVehiculos(opts: {
   const motivo = opts.motivo ?? 'cron'
   const out = resumenVacio(dryRun)
   const espera = (ms: number) => (opts.sinEsperas ? undefined : dormir(ms))
+  const desdeId = Math.max(0, Number(opts.desdeId ?? 0) || 0)
+  const maxVehiculos = Math.max(0, Number(opts.maxVehiculos ?? 0) || 0)
+  const presupuestoMs = Math.max(0, Number(opts.presupuestoMs ?? 0) || 0)
+  const inicio = Date.now()
 
   if (!dryRun && sheetsVehiculoDeshabilitado()) {
     out.errores.push('SHEETS_VEHICULO_ENABLED!=1')
@@ -940,17 +959,27 @@ export async function checkSheetsVehiculos(opts: {
       tipo: string | null
     }>('SELECT id, referencia, tipo FROM "Vehiculo" ORDER BY id')
     const vehiculos = res.rows.filter((v) => {
+      if (v.id <= desdeId) return false
       const t = normalizarTipo(v.tipo)
       return t === 'C' || t === 'I' || t === 'D' || t === 'R'
     })
-    out.vehiculos = vehiculos.length
 
     // Referencias que el CRM espera en cada pestaña (para detectar huérfanas).
     const esperadasPorPestana = new Map<ClavePestana, Set<string>>()
     for (const k of CLAVES_PESTANA) esperadasPorPestana.set(k, new Set())
 
     let seguidos429 = 0
+    let ultimoId = desdeId
     for (const v of vehiculos) {
+      const sinTiempo = presupuestoMs > 0 && Date.now() - inicio > presupuestoMs
+      const sinCupo = maxVehiculos > 0 && out.vehiculos >= maxVehiculos
+      if (sinTiempo || sinCupo) {
+        out.completo = false
+        out.siguienteDesdeId = ultimoId
+        break
+      }
+      out.vehiculos++
+      ultimoId = v.id
       const refCanon = referenciaCanonica(v)
       if (refCanon == null) {
         out.sinReferencia.push(`#${v.id}`)
@@ -994,6 +1023,8 @@ export async function checkSheetsVehiculos(opts: {
             out.errores.push(
               `cuota de Sheets agotada (${seguidos429} fallos seguidos): se detiene`
             )
+            out.completo = false
+            out.siguienteDesdeId = ultimoId
             break
           }
         }
@@ -1001,6 +1032,13 @@ export async function checkSheetsVehiculos(opts: {
         seguidos429 = 0
       }
       if (!dryRun && r.escritas > 0) await espera(ESPERA_ESCRITURA_MS)
+    }
+
+    // Una pasada parcial no conoce todas las referencias esperadas: lo que
+    // parecería huérfano puede ser de un vehículo que aún no se ha mirado.
+    if (!out.completo || desdeId > 0) {
+      out.huerfanasOmitidas = true
+      return out
     }
 
     for (const clave of CLAVES_PESTANA) {

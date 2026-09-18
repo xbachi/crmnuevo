@@ -325,6 +325,40 @@ describe('checkSheetsVehiculos', () => {
     ).toBe(false)
   })
 
+  it('por tandas: corta en el tope, devuelve cursor y no calcula huérfanas', async () => {
+    const t1 = await checkSheetsVehiculos({
+      dryRun: true,
+      sinEsperas: true,
+      maxVehiculos: 2,
+    })
+    expect(t1.errores).toEqual([])
+    expect(t1.vehiculos).toBe(2)
+    expect(t1.completo).toBe(false)
+    expect(typeof t1.siguienteDesdeId).toBe('number')
+    // Una pasada parcial no sabe qué filas sobran: no acusa huérfanas.
+    expect(t1.huerfanasOmitidas).toBe(true)
+    expect(t1.porPestana['BASE_DATOS/Datos'].huerfanas).toEqual([])
+
+    const t2 = await checkSheetsVehiculos({
+      dryRun: true,
+      sinEsperas: true,
+      desdeId: t1.siguienteDesdeId as number,
+    })
+    expect(t2.errores).toEqual([])
+    expect(t2.vehiculos).toBe(1) // el tercero C/I/D/R; el tipo M nunca cuenta
+    expect(t2.completo).toBe(true)
+    expect(t2.siguienteDesdeId).toBeNull()
+    expect(t2.huerfanasOmitidas).toBe(true)
+  })
+
+  it('sin tandas: pasada entera, completa y con huérfanas', async () => {
+    const r = await checkSheetsVehiculos({ dryRun: true, sinEsperas: true })
+    expect(r.completo).toBe(true)
+    expect(r.siguienteDesdeId).toBeNull()
+    expect(r.huerfanasOmitidas).toBe(false)
+    expect(r.porPestana['BASE_DATOS/Datos'].huerfanas).toEqual(['#R-23'])
+  })
+
   it('fallo de lectura de una pestaña: error y sin recorrer vehículos', async () => {
     mockSheets.spreadsheets.values.get.mockRejectedValue(new Error('boom'))
     const r = await checkSheetsVehiculos({ dryRun: true, sinEsperas: true })

@@ -7,6 +7,13 @@
  * (sheets_vehiculo y el resto). Si algo falla, avisa por mail con
  * notificarFalloCron.
  *
+ * Va por tandas: Vercel corta la función a los 60 s y la primera pasada tiene
+ * más de mil celdas que escribir. Cada llamada procesa como mucho MAX_TANDA
+ * vehículos (o ?max=), se detiene a los PRESUPUESTO_MS y devuelve
+ * `check.completo` y `check.siguienteDesdeId`; quien lo llama repite con
+ * ?desde=<ese id> hasta que `completo` sea true (lo hace el crontab del
+ * servidor, ver /root/crm_cron_llamar.sh).
+ *
  * Auth: `Authorization: Bearer $CRON_SECRET` (Vercel) o X-Admin-Secret (a mano).
  */
 import { NextRequest, NextResponse } from 'next/server'
@@ -15,6 +22,15 @@ import { notificarFalloCron } from '@/lib/cronNotify'
 import { checkSheetsVehiculos } from '@/lib/sheetsVehiculo'
 
 export const maxDuration = 60
+
+/** Vehículos por llamada y tope de tiempo, con margen sobre los 60 s. */
+const MAX_TANDA = 25
+const PRESUPUESTO_MS = 40_000
+
+const entero = (v: string | null) => {
+  const n = Number(v)
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0
+}
 
 export async function GET(request: NextRequest) {
   const adminSecret =
@@ -37,9 +53,13 @@ export async function GET(request: NextRequest) {
   const fallos: Record<string, unknown> = {}
   try {
     // 1. check + reparación de las filas de vehículos
+    const sp = request.nextUrl.searchParams
     const resumen = await checkSheetsVehiculos({
       dryRun: false,
       motivo: 'cron',
+      desdeId: entero(sp.get('desde')),
+      maxVehiculos: entero(sp.get('max')) || MAX_TANDA,
+      presupuestoMs: PRESUPUESTO_MS,
     })
     const check = { ok: resumen.errores.length === 0, ...resumen }
     out.ok = check.ok
