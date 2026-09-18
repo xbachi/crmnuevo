@@ -1,6 +1,7 @@
 /**
  * URLs y nombres de archivo del presupuesto. Puro (sin DB).
  */
+import { INVOICE_CONFIG } from '@/config/invoiceConfig'
 import { matriculaCanonica, segmento } from '@/lib/nombreCanonico'
 import { normalizarTelefono } from '@/lib/plantillasMensajes'
 
@@ -41,11 +42,18 @@ export function urlReserva(
   }
 }
 
-/** Env pública > parámetro; normalizado E.164 sin '+'; inválido → null. */
+/**
+ * Env pública > parámetro > teléfono de la empresa de las facturas; normalizado
+ * E.164 sin '+'. Solo devuelve null si ninguno es un teléfono válido.
+ */
 export function telefonoWhatsAppEmpresa(
   param: string | null | undefined
 ): string | null {
-  return normalizarTelefono(process.env.NEXT_PUBLIC_WHATSAPP_EMPRESA || param)
+  return (
+    normalizarTelefono(process.env.NEXT_PUBLIC_WHATSAPP_EMPRESA) ??
+    normalizarTelefono(param) ??
+    normalizarTelefono(INVOICE_CONFIG.vendor.phone)
+  )
 }
 
 export function nombrePdfPresupuesto(
