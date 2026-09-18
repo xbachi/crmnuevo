@@ -15,12 +15,9 @@ function checkCoverage() {
     const coverageData = JSON.parse(fs.readFileSync(coveragePath, 'utf8'))
     const total = coverageData.total
     
-    const thresholds = {
-      statements: 70,
-      branches: 70,
-      functions: 70,
-      lines: 70
-    }
+    // Una sola fuente de verdad: el umbral global de jest.config.js (el 70%
+    // que había aquí nunca coincidió con el que aplica jest).
+    const thresholds = require('../jest.config.js').coverageThreshold.global
     
     let allPassed = true
     const results = []

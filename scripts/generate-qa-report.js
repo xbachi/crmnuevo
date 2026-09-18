@@ -54,7 +54,11 @@ This report summarizes the automated test execution results for the CRM Seven Ca
     }
 
     // Read E2E test results
-    const e2eResultsPath = path.join(artifactsDir, 'test-results.json')
+    const e2eResultsPath = path.join(
+      artifactsDir,
+      'playwright-report',
+      'test-results.json'
+    )
     try {
       const e2eData = await fs.readFile(e2eResultsPath, 'utf8')
       const e2eResults = JSON.parse(e2eData)
