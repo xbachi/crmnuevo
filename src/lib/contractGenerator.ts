@@ -1658,10 +1658,14 @@ export async function generarContratoVentaConGarantia(
     yPosition + 4
   )
 
+  // Hueco en blanco, nunca un valor de prueba: un coche puede estar sin
+  // bastidor hasta que llega el permiso de circulación, y este documento se
+  // firma. Un 'TEST-BASTIDOR-12345' impreso en un mandato de gestoría es peor
+  // que una línea vacía que alguien ve y rellena.
   writeField(
     doc,
     'BASTIDOR',
-    deal.vehiculo?.bastidor || 'TEST-BASTIDOR-12345',
+    deal.vehiculo?.bastidor || '________________',
     margin + 5,
     yPosition + 8
   )
@@ -1680,7 +1684,7 @@ export async function generarContratoVentaConGarantia(
     'KMS',
     deal.vehiculo?.kms
       ? `${(deal.vehiculo.kms as number).toLocaleString('es-ES')} km`
-      : 'TEST-99999 km',
+      : '________ km',
     pageWidth / 2,
     yPosition + 4
   )

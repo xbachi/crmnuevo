@@ -9,7 +9,9 @@
  */
 import type { NextRequest } from 'next/server'
 
-jest.mock('@/lib/direct-database', () => ({ pool: { query: jest.fn() } }))
+jest.mock('@/lib/direct-database', () => ({
+  pool: { query: jest.fn(), connect: jest.fn() },
+}))
 jest.mock('@/lib/secrets', () => ({ safeEqual: jest.fn(() => true) }))
 jest.mock('@/lib/mailer', () => ({
   sendMail: jest.fn(async () => ({ sent: true })),
@@ -28,7 +30,7 @@ jest.mock('@/lib/fichaComercial', () => ({
   escribirCamposFicha: jest.fn(async () => undefined),
 }))
 jest.mock('@/lib/vehiculoCamposDoc', () => ({
-  registrarCampoDoc: jest.fn(async () => undefined),
+  registrarCamposDoc: jest.fn(async () => undefined),
 }))
 
 process.env.CRON_SECRET = 'test-cron-secret'
@@ -36,11 +38,12 @@ process.env.CRON_SECRET = 'test-cron-secret'
 import { POST } from '@/app/api/cron/fichas-tecnicas/route'
 import { pool } from '@/lib/direct-database'
 import { escribirCamposFicha } from '@/lib/fichaComercial'
-import { registrarCampoDoc } from '@/lib/vehiculoCamposDoc'
+import { registrarCamposDoc } from '@/lib/vehiculoCamposDoc'
 
 const mockQuery = pool.query as unknown as jest.Mock
+const mockConnect = (pool as unknown as { connect: jest.Mock }).connect
 const mockFicha = escribirCamposFicha as unknown as jest.Mock
-const mockDoc = registrarCampoDoc as unknown as jest.Mock
+const mockDoc = registrarCamposDoc as unknown as jest.Mock
 
 const req = () =>
   ({
@@ -81,7 +84,10 @@ function fichaDe(campos: Record<string, unknown>) {
   }
 }
 
-/** Enruta cada consulta del cron por su SQL. */
+/**
+ * Enruta cada consulta del cron por su SQL. El cliente de la transacción usa el
+ * mismo mock: así se ve también el BEGIN/COMMIT.
+ */
 function conectar(vehiculos: unknown[], fichas: unknown[]) {
   mockQuery.mockReset().mockImplementation(async (sql: string) => {
     if (sql.includes('FROM "Vehiculo" v')) return { rows: vehiculos }
@@ -89,7 +95,14 @@ function conectar(vehiculos: unknown[], fichas: unknown[]) {
     if (sql.includes('vehiculo_campos_doc')) return { rows: [{ n: 0 }] }
     return { rows: [] }
   })
+  mockConnect.mockReset().mockResolvedValue({
+    query: mockQuery,
+    release: jest.fn(),
+  })
 }
+
+/** SQL que pasó por el mock, para afirmar sobre la transacción. */
+const sqls = () => mockQuery.mock.calls.map((c: [string]) => String(c[0]))
 
 beforeEach(() => {
   mockFicha.mockClear()
@@ -123,6 +136,7 @@ describe('relleno automático desde el permiso', () => {
     // Un solo upsert de ficha comercial con los seis campos, ya tipados.
     expect(mockFicha).toHaveBeenCalledTimes(1)
     expect(mockFicha.mock.calls[0][0]).toBe(7)
+    expect(mockFicha.mock.calls[0][2]).toBeDefined() // va dentro de la transacción
     expect(mockFicha.mock.calls[0][1]).toEqual({
       combustible: 'Diésel',
       cubicaje: 1598,
@@ -139,11 +153,13 @@ describe('relleno automático desde el permiso', () => {
     expect(updates).toHaveLength(1)
     expect(updates[0][0]).toContain('"bastidor"')
 
-    // Y los siete quedan pendientes de confirmar.
-    expect(mockDoc).toHaveBeenCalledTimes(7)
-    expect(
-      mockDoc.mock.calls.map((c: [unknown, { campo: string }]) => c[1].campo)
-    ).toEqual(
+    // Y los siete quedan pendientes de confirmar, en un solo INSERT.
+    expect(mockDoc).toHaveBeenCalledTimes(1)
+    const docs = mockDoc.mock.calls[0][2] as {
+      campo: string
+      archivo: string
+    }[]
+    expect(docs.map((d) => d.campo)).toEqual(
       expect.arrayContaining([
         'bastidor',
         'combustible',
@@ -154,7 +170,47 @@ describe('relleno automático desde el permiso', () => {
         'nombre_comercial',
       ])
     )
-    expect(mockDoc.mock.calls[0][1].archivo).toBe('permiso.jpg')
+    expect(docs[0].archivo).toBe('permiso.jpg')
+
+    // Todo del mismo coche va en una transacción.
+    expect(sqls()).toContain('BEGIN')
+    expect(sqls()).toContain('COMMIT')
+    expect(sqls()).not.toContain('ROLLBACK')
+  })
+
+  it('canonizar el formato de una fecha NO la deja pendiente de confirmar', async () => {
+    conectar(
+      [{ ...VACIO, fechaMatriculacion: '15/07/2020' }],
+      [fichaDe({ fecha_primera_matriculacion: campo('2020-07-15', 0.95) })]
+    )
+    const res = await POST(req())
+    const json = await res.json()
+    // Se corrige (la escribió una persona y es la misma fecha)...
+    expect(json.corregidos).toBe(1)
+    // ...pero no vuelve a quedar sin confirmar ni bloquea la publicación.
+    expect(json.rellenados).toBe(0)
+    expect(mockDoc.mock.calls[0][2]).toEqual([])
+  })
+
+  it('una fecha presente pero ilegible es conflicto, no un hueco que rellenar', async () => {
+    conectar(
+      [{ ...VACIO, fechaMatriculacion: '07/2020 (según ITV)' }],
+      [fichaDe({ fecha_primera_matriculacion: campo('2019-03-04', 0.85) })]
+    )
+    const res = await POST(req())
+    const json = await res.json()
+    expect(json.rellenados).toBe(0)
+    expect(json.corregidos).toBe(0)
+  })
+
+  it('si la transacción falla no se cuenta nada como escrito', async () => {
+    conectar([VACIO], [fichaDe({ plazas: campo(5, 0.95) })])
+    mockFicha.mockRejectedValueOnce(new Error('boom'))
+    const res = await POST(req())
+    const json = await res.json()
+    expect(json.corregidos).toBe(0)
+    expect(json.rellenados).toBe(0)
+    expect(sqls()).toContain('ROLLBACK')
   })
 
   it('por debajo de 0,80 no escribe nada', async () => {

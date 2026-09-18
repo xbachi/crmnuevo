@@ -27,6 +27,19 @@ interface Vehiculo {
   tipo: string
 }
 
+/** Hoy en 'YYYY-MM-DD': la fecha de entrada del coche en depósito. */
+const hoyYMD = () => new Date().toISOString().slice(0, 10)
+
+/** '12.500,50' | '12500' → número; vacío o basura → null. */
+const parseNumero = (v: unknown): number | null => {
+  const n = parseFloat(
+    String(v ?? '')
+      .replace(/\./g, '')
+      .replace(',', '.')
+  )
+  return Number.isFinite(n) ? n : null
+}
+
 export default function NuevoDepositoPage() {
   const router = useRouter()
   const { showToast, ToastContainer } = useToast()
@@ -37,6 +50,11 @@ export default function NuevoDepositoPage() {
   const [clienteSearch, setClienteSearch] = useState('')
   const [vehiculoSearch, setVehiculoSearch] = useState('')
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null)
+  /** En un depósito el «proveedor» es el cliente que deja el coche. */
+  const nombreDelCliente = () =>
+    selectedCliente
+      ? `${selectedCliente.nombre} ${selectedCliente.apellidos ?? ''}`.trim()
+      : ''
   const [selectedVehiculo, setSelectedVehiculo] = useState<Vehiculo | null>(
     null
   )
@@ -88,6 +106,8 @@ export default function NuevoDepositoPage() {
     precio_publicacion: '',
     color: '',
     fechaMatriculacion: '',
+    fechaCompra: '',
+    proveedor: '',
     año: '',
     itv: false,
     seguro: false,
@@ -251,8 +271,11 @@ export default function NuevoDepositoPage() {
         fechaMatriculacion: newVehiculo.fechaMatriculacion,
         esCocheInversor: false,
         inversorId: null,
-        fechaCompra: null,
-        precioCompra: null,
+        // Obligatorios del alta: en un depósito la «compra» es la entrada del
+        // coche y el precio, lo acordado con el cliente que lo deja.
+        fechaCompra: newVehiculo.fechaCompra || hoyYMD(),
+        proveedor: newVehiculo.proveedor || nombreDelCliente(),
+        precioCompra: parseNumero(newVehiculo.precio_compra),
         gastosTransporte: null,
         gastosTasas: null,
         gastosMecanica: null,
@@ -292,6 +315,8 @@ export default function NuevoDepositoPage() {
           precio_publicacion: '',
           color: '',
           fechaMatriculacion: '',
+          fechaCompra: '',
+          proveedor: '',
           año: '',
           itv: false,
           seguro: false,
@@ -954,6 +979,12 @@ export default function NuevoDepositoPage() {
                           initialData={{
                             ...newVehiculo,
                             tipo: 'Deposito Venta',
+                            // Obligatorios del alta, ya propuestos: la entrada
+                            // es hoy y el «proveedor» es el cliente que deja
+                            // el coche. Se pueden cambiar en el formulario.
+                            fechaCompra: newVehiculo.fechaCompra || hoyYMD(),
+                            proveedor:
+                              newVehiculo.proveedor || nombreDelCliente(),
                           }}
                           onSubmit={async (data) => {
                             setErrorMatriculaNuevo(null)
@@ -971,8 +1002,10 @@ export default function NuevoDepositoPage() {
                               fechaMatriculacion: data.fechaMatriculacion,
                               esCocheInversor: false,
                               inversorId: null,
-                              fechaCompra: null,
-                              precioCompra: null,
+                              // Obligatorios del alta (camposVehiculo.ts).
+                              fechaCompra: data.fechaCompra || hoyYMD(),
+                              proveedor: data.proveedor || nombreDelCliente(),
+                              precioCompra: parseNumero(data.precioCompra),
                               gastosTransporte: null,
                               gastosTasas: null,
                               gastosMecanica: null,
@@ -1013,6 +1046,8 @@ export default function NuevoDepositoPage() {
                                 precio_publicacion: '',
                                 color: '',
                                 fechaMatriculacion: '',
+                                fechaCompra: '',
+                                proveedor: '',
                                 año: '',
                                 itv: false,
                                 seguro: false,

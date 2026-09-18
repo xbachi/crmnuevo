@@ -1,7 +1,8 @@
 /**
  * GET|POST /api/cron/fichas-tecnicas — cruce diario del stock con su permiso de
- * circulación / tarjeta ITV. Vercel Cron, 06:30 UTC: el script que lee las
- * carpetas de OneDrive corre a las 06:00 y deja las extracciones en
+ * circulación / tarjeta ITV. Corre a las 06:45 desde el crontab del servidor de
+ * OneDrive: el script que lee las carpetas corre a las 06:00 y deja las
+ * extracciones en
  * fichas_tecnicas (POST /api/fichas-tecnicas/snapshot).
  *
  * Por cada vehículo con ficha extraída (TODO el stock, no sólo lo publicado):
@@ -23,11 +24,15 @@
  * Los coches publicados SIN ficha en la carpeta generan un único ítem cada uno:
  * sin tarjeta no hay nada contra lo que cruzar, y eso también es un problema.
  *
- * Auth: Vercel inyecta `Authorization: Bearer $CRON_SECRET`; también acepta
- * X-Admin-Secret para dispararlo a mano (mismo patrón que cron/alertas).
+ * Auth: `Authorization: Bearer $CRON_SECRET`; también acepta X-Admin-Secret
+ * para dispararlo a mano (mismo patrón que cron/alertas). Lo dispara el crontab
+ * del servidor de OneDrive con /root/crm_cron_llamar.sh a las 06:45, media hora
+ * después del escáner; no está en vercel.json.
  *
- * REQUIERE aplicar antes create-fichas-tecnicas.sql y
- * add-revision-items-origen-ficha-tecnica.sql.
+ * REQUIERE aplicar antes create-fichas-tecnicas.sql,
+ * add-revision-items-origen-ficha-tecnica.sql, create-vehiculo-campos-doc.sql y
+ * add-vehiculo-ficha-comercial-plazas.sql (sin las dos últimas el cruce con la
+ * ficha comercial revienta y el bloqueo de publicación se queda inerte).
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -58,7 +63,10 @@ import {
   type VehiculoCrm,
 } from '@/lib/fichaTecnica'
 import { CAMPOS_DOC_POR_NOMBRE, esCampoDoc } from '@/lib/camposVehiculo'
-import { registrarCampoDoc } from '@/lib/vehiculoCamposDoc'
+import {
+  registrarCamposDoc,
+  type CampoDocEscrito,
+} from '@/lib/vehiculoCamposDoc'
 import { escribirCamposFicha, type FichaComercial } from '@/lib/fichaComercial'
 
 export const maxDuration = 60
@@ -524,36 +532,6 @@ async function handler(request: NextRequest) {
     else porVehiculo.set(c.vehiculo.id, [c])
   }
 
-  const auditar = async (c: Correccion, campo: string) => {
-    await pool.query(
-      `INSERT INTO fichas_tecnicas_correcciones
-         (vehiculo_id, campo, valor_anterior, valor_nuevo, confianza, ficha_id)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [
-        c.vehiculo.id,
-        campo,
-        c.d.valorActual,
-        c.d.valorFicha,
-        c.d.confianza,
-        c.ficha.id,
-      ]
-    )
-    // Dato leído por IA de una foto: queda pendiente de que alguien lo mire
-    // antes de que el coche se pueda publicar.
-    if (esCampoDoc(c.d.campo)) {
-      await registrarCampoDoc(pool, {
-        vehiculoId: c.vehiculo.id,
-        campo: c.d.campo,
-        valor: c.d.valorFicha,
-        confianza: c.d.confianza,
-        fichaId: c.ficha.id,
-        archivo: c.ficha.archivo,
-      })
-      rellenados.push(c)
-    }
-    aplicadas.push(c)
-  }
-
   const falla = (c: Correccion, err: unknown) => {
     errores.push({
       tipo: `correccion:${c.vehiculo.id}:${c.d.campo}`,
@@ -563,57 +541,107 @@ async function handler(request: NextRequest) {
     if (c.vehiculo.publicado) revisionCrm.push({ vehiculo: c.vehiculo, d: c.d })
   }
 
-  for (const [vehiculoId, lista] of porVehiculo) {
-    // 3a. Ficha comercial: un upsert por coche con todo lo que cambia.
-    const deFicha = lista.filter((c) => c.d.fuente === 'ficha')
+  const NUMERICOS = new Set(['cubicaje', 'motor_kw', 'motor_cv', 'plazas'])
+
+  /**
+   * Todo lo de un coche en UNA transacción: el valor, el rastro para deshacerlo
+   * y la marca de «falta confirmarlo» entran juntos o no entra ninguno.
+   *
+   * Si el valor quedara escrito sin su marca, faltantesPublicar lo daría por
+   * bueno («lo escribió una persona») y el coche se publicaría con un dato leído
+   * por IA que nadie ha mirado — justo lo que este cambio existe para impedir.
+   * Un cliente a la vez: el pool tiene max 3 y este bucle es secuencial.
+   */
+  const escribirCoche = async (vehiculoId: number, lista: Correccion[]) => {
     const patch: Partial<FichaComercial> = {}
-    for (const c of deFicha) {
-      const def = CAMPOS_DOC_POR_NOMBRE[c.d.campo]
-      if (!def) continue
-      const numerico = ['cubicaje', 'motor_kw', 'motor_cv', 'plazas']
-      ;(patch as Record<string, unknown>)[def.columna] = numerico.includes(
-        def.columna
-      )
-        ? Number(c.d.valorFicha)
-        : c.d.valorFicha
-    }
-    let fichaEscrita = false
-    if (Object.keys(patch).length > 0) {
-      try {
-        await escribirCamposFicha(vehiculoId, patch)
-        fichaEscrita = true
-      } catch (err) {
-        for (const c of deFicha) falla(c, err)
+    const docs: CampoDocEscrito[] = []
+    const auditoria: Record<string, unknown>[] = []
+
+    const anotar = (c: Correccion, campo: string) => {
+      auditoria.push({
+        campo,
+        valor_anterior: c.d.valorActual,
+        valor_nuevo: c.d.valorFicha,
+        confianza: c.d.confianza,
+        ficha_id: c.ficha.id,
+      })
+      // Sólo lo que RELLENÓ un hueco queda pendiente de confirmar. Canonizar el
+      // formato de una fecha que ya escribió una persona no es un dato nuevo:
+      // marcarlo borraría su confirmación y bloquearía el coche por nada.
+      if (esCampoDoc(c.d.campo) && c.d.tipo === 'vacio') {
+        docs.push({
+          campo: c.d.campo,
+          valor: c.d.valorFicha,
+          confianza: c.d.confianza,
+          fichaId: c.ficha.id,
+          archivo: c.ficha.archivo,
+        })
+        rellenados.push(c)
       }
-    }
-    // La auditoría va campo a campo y con su propio try: que falle el rastro de
-    // uno no puede volver a contar como fallidos los que sí se escribieron.
-    if (fichaEscrita) {
-      for (const c of deFicha) {
-        const def = CAMPOS_DOC_POR_NOMBRE[c.d.campo]
-        if (!def) continue
-        try {
-          await auditar(c, `ficha_comercial.${def.columna}`)
-        } catch (err) {
-          falla(c, err)
-        }
-      }
+      aplicadas.push(c)
     }
 
-    // 3b. "Vehiculo": un UPDATE por campo (son uno o dos como mucho).
-    for (const c of lista.filter((x) => x.d.fuente === 'crm')) {
-      const columna = COLUMNA_CRM[c.d.campo as CampoCrm]
-      if (!columna) continue // nunca debería pasar: decidir() ya filtró el campo
-      try {
-        await pool.query(
+    const client = await pool.connect()
+    try {
+      await client.query('BEGIN')
+
+      // Ficha comercial: un solo upsert con todo lo que cambia del coche.
+      for (const c of lista.filter((x) => x.d.fuente === 'ficha')) {
+        const def = CAMPOS_DOC_POR_NOMBRE[c.d.campo]
+        if (!def) continue
+        ;(patch as Record<string, unknown>)[def.columna] = NUMERICOS.has(
+          def.columna
+        )
+          ? Number(c.d.valorFicha)
+          : c.d.valorFicha
+        anotar(c, `ficha_comercial.${def.columna}`)
+      }
+      if (Object.keys(patch).length > 0) {
+        await escribirCamposFicha(vehiculoId, patch, client)
+      }
+
+      // "Vehiculo": un UPDATE por campo (son uno o dos como mucho).
+      for (const c of lista.filter((x) => x.d.fuente === 'crm')) {
+        const columna = COLUMNA_CRM[c.d.campo as CampoCrm]
+        if (!columna) continue // decidir() ya filtró el campo; por si acaso
+        await client.query(
           `UPDATE "Vehiculo" SET "${columna}" = $1, "updatedAt" = NOW() WHERE id = $2`,
           [c.d.valorFicha, vehiculoId]
         )
-        await auditar(c, columna)
-      } catch (err) {
+        anotar(c, columna)
+      }
+
+      if (auditoria.length > 0) {
+        await client.query(
+          `INSERT INTO fichas_tecnicas_correcciones
+             (vehiculo_id, campo, valor_anterior, valor_nuevo, confianza, ficha_id)
+           SELECT $1, x.campo, x.valor_anterior, x.valor_nuevo, x.confianza, x.ficha_id
+             FROM jsonb_to_recordset($2::jsonb) AS x(campo text,
+                    valor_anterior text, valor_nuevo text, confianza numeric,
+                    ficha_id int)`,
+          [vehiculoId, JSON.stringify(auditoria)]
+        )
+      }
+      await registrarCamposDoc(client, vehiculoId, docs)
+
+      await client.query('COMMIT')
+    } catch (err) {
+      await client.query('ROLLBACK').catch(() => {})
+      // Nada se escribió: hay que deshacer la contabilidad optimista de anotar().
+      for (const c of lista) {
+        const i = aplicadas.indexOf(c)
+        if (i >= 0) aplicadas.splice(i, 1)
+        const j = rellenados.indexOf(c)
+        if (j >= 0) rellenados.splice(j, 1)
         falla(c, err)
       }
+    } finally {
+      client.release()
     }
+  }
+
+  for (const [vehiculoId, lista] of porVehiculo) {
+    await escribirCoche(vehiculoId, lista)
   }
   out.corregidos = aplicadas.length
   out.rellenados = rellenados.length

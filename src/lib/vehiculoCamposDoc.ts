@@ -52,31 +52,37 @@ export async function pendientesDe(
   }
 }
 
-/** Sólo los nombres, que es lo que necesita `faltantesPublicar`. */
-export async function nombresPendientes(vehiculoId: number): Promise<string[]> {
-  return (await pendientesDe(vehiculoId)).map((p) => p.campo)
+export interface CampoDocEscrito {
+  campo: string
+  valor: string | null
+  confianza: number | null
+  fichaId?: number | null
+  archivo?: string | null
 }
 
 /**
- * Deja constancia de que el documento rellenó un campo. Una fila por
- * (vehiculo_id, campo): si llega una foto mejor y se vuelve a rellenar, se pisa
- * el valor y el campo vuelve a quedar SIN confirmar — es un dato nuevo.
+ * Deja constancia de que el documento rellenó varios campos de un coche, en un
+ * solo INSERT. Una fila por (vehiculo_id, campo): si llega una foto mejor y se
+ * vuelve a rellenar, se pisa el valor y el campo vuelve a quedar SIN confirmar
+ * — es un dato nuevo y nadie lo ha mirado.
+ *
+ * `ejecutor` permite pasar el cliente de una transacción: el valor y esta marca
+ * tienen que entrar juntos. Si el valor se escribiera sin la marca, el coche se
+ * podría publicar con un dato leído por IA que nadie ha confirmado, que es
+ * justo lo que esta tabla existe para impedir.
  */
-export async function registrarCampoDoc(
+export async function registrarCamposDoc(
   ejecutor: Ejecutor,
-  datos: {
-    vehiculoId: number
-    campo: string
-    valor: string | null
-    confianza: number | null
-    fichaId?: number | null
-    archivo?: string | null
-  }
+  vehiculoId: number,
+  campos: readonly CampoDocEscrito[]
 ): Promise<void> {
+  if (campos.length === 0) return
   await ejecutor.query(
     `INSERT INTO vehiculo_campos_doc
        (vehiculo_id, campo, valor, confianza, ficha_id, archivo)
-     VALUES ($1, $2, $3, $4, $5, $6)
+     SELECT $1, x.campo, x.valor, x.confianza, x.ficha_id, x.archivo
+       FROM jsonb_to_recordset($2::jsonb)
+         AS x(campo text, valor text, confianza numeric, ficha_id int, archivo text)
      ON CONFLICT (vehiculo_id, campo) DO UPDATE
        SET valor = EXCLUDED.valor,
            confianza = EXCLUDED.confianza,
@@ -86,14 +92,42 @@ export async function registrarCampoDoc(
            confirmado_at = NULL,
            confirmado_por = NULL`,
     [
-      datos.vehiculoId,
-      datos.campo,
-      datos.valor,
-      datos.confianza,
-      datos.fichaId ?? null,
-      datos.archivo ?? null,
+      vehiculoId,
+      JSON.stringify(
+        campos.map((c) => ({
+          campo: c.campo,
+          valor: c.valor,
+          confianza: c.confianza,
+          ficha_id: c.fichaId ?? null,
+          archivo: c.archivo ?? null,
+        }))
+      ),
     ]
   )
+}
+
+/**
+ * El campo deja de estar pendiente porque una persona lo ha reescrito a mano:
+ * editar el coche o su ficha comercial ES confirmarlo. Sin esto, corregir un
+ * dato mal leído dejaba el coche bloqueado con el valor viejo en pantalla.
+ *
+ * Silencioso a propósito: es un efecto secundario de guardar, y que falle no
+ * puede tumbar el guardado.
+ */
+export async function olvidarCamposDoc(
+  vehiculoId: number,
+  campos: readonly string[]
+): Promise<void> {
+  if (campos.length === 0) return
+  try {
+    await pool.query(
+      `DELETE FROM vehiculo_campos_doc
+        WHERE vehiculo_id = $1 AND campo = ANY($2::text[])`,
+      [vehiculoId, [...campos]]
+    )
+  } catch (err) {
+    console.error('[campos-doc] olvidar:', (err as Error)?.message ?? err)
+  }
 }
 
 /**

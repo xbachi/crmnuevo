@@ -255,6 +255,9 @@ export async function guardarFicha(
   return leerFicha(vehiculoId)
 }
 
+/** Un cliente de pg o el propio pool: el cron escribe dentro de su transacción. */
+type Ejecutor = Pick<typeof pool, 'query'>
+
 /**
  * Upsert de las columnas propias de vehiculo_ficha_comercial, sin leer de
  * vuelta. Lo usa el cron de fichas técnicas, que escribe varios campos de
@@ -263,7 +266,8 @@ export async function guardarFicha(
  */
 export async function escribirCamposFicha(
   vehiculoId: number,
-  patch: Partial<FichaComercial>
+  patch: Partial<FichaComercial>,
+  ejecutor: Ejecutor = pool
 ): Promise<void> {
   const claves = CAMPOS_FICHA.filter((k) => k in patch)
   if (!claves.length) return
@@ -271,7 +275,7 @@ export async function escribirCamposFicha(
   const params: unknown[] = [vehiculoId, ...claves.map((k) => patch[k] ?? null)]
   const marcas = claves.map((_, i) => `$${i + 2}`)
   const sets = claves.map((k) => `"${k}" = EXCLUDED."${k}"`)
-  await pool.query(
+  await ejecutor.query(
     `INSERT INTO vehiculo_ficha_comercial (vehiculo_id, ${cols.join(', ')})
        VALUES ($1, ${marcas.join(', ')})
        ON CONFLICT (vehiculo_id) DO UPDATE

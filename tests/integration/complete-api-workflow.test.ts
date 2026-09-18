@@ -63,6 +63,16 @@ describe('Complete CRM API Workflow', () => {
   })
 
   describe('2. Vehículos de todos los tipos', () => {
+    // El tipo I no se puede dar de alta sin inversor asignado.
+    let inversorId: number
+    beforeAll(async () => {
+      const res = await api
+        .post('/api/inversores')
+        .send({ nombre: `Inversor test ${SUFIJO}` })
+        .expect(201)
+      inversorId = res.body.id
+    })
+
     // referencia según normalizarReferencia: serie numérica (#1xxx) para C e I,
     // #D-nn / #R-nn para depósito y renting. Matrícula formato actual 1234BCD.
     const n = Number(SUFIJO.slice(-3)) || 1
@@ -106,6 +116,13 @@ describe('Complete CRM API Workflow', () => {
             bastidor: `WBATEST${SUFIJO}${i}`.padEnd(17, 'X').slice(0, 17),
             kms: 50000,
             fechaMatriculacion: '2020-01-15',
+            // Obligatorios del alta (src/lib/camposVehiculo.ts). El de tipo D
+            // usa el mismo campo: ahí es el precio acordado con el cliente.
+            fechaCompra: '2026-01-15',
+            proveedor: 'Proveedor de prueba',
+            precioCompra: 9500,
+            // El tipo I exige inversor asignado (faltantesAlta)
+            ...(tipo === 'I' ? { inversorId: inversorId! } : {}),
           })
           .expect(200)
 

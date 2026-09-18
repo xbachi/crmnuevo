@@ -458,13 +458,18 @@ export function compararConCrm(
     const isoActual = normalizarFecha(actualRaw)
     const etiqueta = 'Fecha de matriculación'
     if (!isoActual) {
+      // Hay dos formas de no tener fecha utilizable, y no se tratan igual: el
+      // hueco de verdad lo rellena el cron, pero un texto que existe y no se
+      // deja leer («07/2020 (según ITV)») es un dato que alguien escribió, así
+      // que es conflicto y lo mira una persona. Rellenarlo lo pisaría.
+      const hayTexto = String(actualRaw ?? '').trim() !== ''
       out.push(
         disc(
           'crm',
           'fechaMatriculacion',
           etiqueta,
-          'vacio',
-          actualRaw ? String(actualRaw) : null,
+          hayTexto ? 'conflicto' : 'vacio',
+          hayTexto ? String(actualRaw) : null,
           isoFicha,
           crudo(cf),
           cf.confianza

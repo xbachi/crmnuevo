@@ -304,14 +304,14 @@ export async function PUT(request: NextRequest) {
       inversorId,
     } = body
 
-    // Validar campos requeridos
+    // El bastidor NO entra: lo trae el permiso de circulación y un coche dado
+    // de alta sin él tiene que poder editarse igual.
     if (
       !id ||
       !referencia ||
       !marca ||
       !modelo ||
       !matricula ||
-      !bastidor ||
       !kms ||
       !tipo
     ) {
@@ -335,7 +335,7 @@ export async function PUT(request: NextRequest) {
     const uniqueCheck = await checkUniqueFields(
       referencia,
       matricula,
-      bastidor,
+      bastidor || null,
       id
     )
 
@@ -346,13 +346,15 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // Actualizar el vehículo
+    // Actualizar el vehículo. bastidor '' → null: la columna es TEXT UNIQUE y
+    // Postgres admite muchos NULL pero un solo '': el segundo coche sin
+    // bastidor reventaría con duplicate key.
     const vehiculoActualizado = await updateVehiculo(id, {
       referencia,
       marca,
       modelo,
       matricula,
-      bastidor,
+      bastidor: bastidor || null,
       kms: parseInt(kms),
       tipo,
       color: color || undefined,

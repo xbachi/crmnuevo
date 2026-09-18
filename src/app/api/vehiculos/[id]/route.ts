@@ -13,7 +13,11 @@ import {
   transicionValida,
 } from '@/lib/vehiculoEstado'
 import { normalizarMatricula, normalizarReferencia } from '@/lib/normalizacion'
-import { faltantesParaPublicar } from '@/lib/vehiculoCamposDoc'
+import {
+  faltantesParaPublicar,
+  olvidarCamposDoc,
+} from '@/lib/vehiculoCamposDoc'
+import { CAMPOS_DOC } from '@/lib/camposVehiculo'
 import { esFechaYMD } from '@/lib/fechas'
 import {
   esPasoVehiculo,
@@ -163,6 +167,12 @@ export async function PUT(
       )
     }
 
+    // bastidor '' → null: la columna es TEXT UNIQUE y Postgres admite muchos
+    // NULL pero un solo ''. El formulario manda '' cuando el coche todavía no
+    // tiene bastidor (lo trae el permiso), así que el segundo coche en ese
+    // estado reventaría con duplicate key.
+    if (updateData.bastidor === '') updateData.bastidor = null
+
     // Fechas de vencimiento: 'YYYY-MM-DD' o null ('' cuenta como null).
     for (const campo of CAMPOS_FECHA_VENCIMIENTO) {
       if (!(campo in updateData)) continue
@@ -210,9 +220,16 @@ export async function PUT(
       // PUBLICADO: VENDIDO, RESERVADO y la preparación nunca se bloquean —
       // parar una venta por una casilla vacía es peor que la casilla vacía.
       // `force` no lo salta: el bloqueo es el objetivo, no un aviso.
+      //
+      // RESERVADO → PUBLICADO tampoco se bloquea: es una reserva que se cae y
+      // el coche vuelve donde estaba, no una publicación nueva. Bloquearlo
+      // dejaría el coche fuera de la web por un dato que ya le faltaba cuando
+      // se publicó.
+      const estadoPrevio = normalizarEstado(vehiculoExistente.estado)
       if (
         estadoNorm === 'PUBLICADO' &&
-        normalizarEstado(vehiculoExistente.estado) !== 'PUBLICADO'
+        estadoPrevio !== 'PUBLICADO' &&
+        estadoPrevio !== 'RESERVADO'
       ) {
         // updateData entra en el cálculo: rellenar el color y publicar en el
         // mismo PUT (lo que hace el modal de edición) tiene que funcionar.
@@ -331,6 +348,14 @@ export async function PUT(
     if (pasosBody && pasosBody.length > 0) {
       await upsertPasos(id, pasosBody, 'crm')
     }
+
+    // Reescribir a mano un campo del permiso ES confirmarlo: deja de estar
+    // pendiente. Sin esto, corregir un dato mal leído dejaba el coche
+    // bloqueado y la tarjeta enseñando el valor viejo.
+    const reescritos = CAMPOS_DOC.filter(
+      (c) => c.tabla === 'vehiculo' && c.columna in updateData
+    ).map((c) => c.campo)
+    if (reescritos.length > 0) await olvidarCamposDoc(id, reescritos)
 
     console.log(
       '✅ Vehículo actualizado - inversorId guardado:',
