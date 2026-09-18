@@ -29,7 +29,7 @@ async function loadMetadata(inversorId: string) {
   }
 }
 
-async function saveMetadata(inversorId: string, metadata: any[]) {
+async function saveMetadata(inversorId: string, metadata: unknown[]) {
   try {
     const metadataDir = join(
       process.cwd(),

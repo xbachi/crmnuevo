@@ -138,7 +138,9 @@ function ListaVehiculosInner() {
     fechaMatriculacion: '',
     inversorId: '',
   })
-  const [inversores, setInversores] = useState<any[]>([])
+  const [inversores, setInversores] = useState<
+    Array<{ id: number; nombre: string }>
+  >([])
   const [isUpdating, setIsUpdating] = useState(false)
   const [isCleaning, setIsCleaning] = useState(false)
 
@@ -1023,7 +1025,9 @@ function ListaVehiculosInner() {
                   </span>
                   <select
                     value={typeFilter}
-                    onChange={(e) => setTypeFilter(e.target.value as any)}
+                    onChange={(e) =>
+                      setTypeFilter(e.target.value as TypeFilter)
+                    }
                     className="px-3 py-2 text-xs xl:text-sm border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[140px]"
                   >
                     <option value="todos">
@@ -1200,7 +1204,8 @@ function ListaVehiculosInner() {
                   No se encontraron vehículos
                 </h3>
                 <p className="text-slate-600 mb-8 text-lg">
-                  No hay vehículos que coincidan con tu búsqueda "{searchTerm}"
+                  No hay vehículos que coincidan con tu búsqueda &quot;
+                  {searchTerm}&quot;
                 </p>
                 <button
                   onClick={limpiarBusqueda}

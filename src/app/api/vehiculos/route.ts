@@ -214,12 +214,13 @@ export async function POST(request: NextRequest) {
       folderName,
       message: 'Vehículo creado exitosamente',
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error creando vehículo:', error)
+    const dbError = error as { code?: string; meta?: { target?: string[] } }
 
     // Manejar errores específicos de Prisma
-    if (error.code === 'P2002') {
-      const field = error.meta?.target?.[0] || 'campo'
+    if (dbError.code === 'P2002') {
+      const field = dbError.meta?.target?.[0] || 'campo'
       return NextResponse.json(
         { error: `Ya existe un vehículo con este ${field}` },
         { status: 400 }
@@ -367,7 +368,7 @@ export async function PUT(request: NextRequest) {
       vehiculo: vehiculoActualizado,
       message: 'Vehículo actualizado exitosamente',
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error actualizando vehículo:', error)
     return NextResponse.json(
       { error: 'Error al actualizar el vehículo' },
@@ -405,7 +406,7 @@ export async function DELETE(request: NextRequest) {
       success: true,
       message: 'Vehículo eliminado exitosamente',
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error eliminando vehículo:', error)
     return NextResponse.json(
       { error: 'Error al eliminar el vehículo' },

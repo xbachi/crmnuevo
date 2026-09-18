@@ -55,18 +55,24 @@ function NuevaVentaB2BPage() {
     fecha_venta: new Date().toISOString().slice(0, 10),
     lugar_venta: 'Alaquàs',
     precio_venta: '',
-    forma_pago: 'transferencia' as 'transferencia' | 'efectivo' | 'financiado' | 'otro',
+    forma_pago: 'transferencia' as
+      | 'transferencia'
+      | 'efectivo'
+      | 'financiado'
+      | 'otro',
     notas: '',
     notas_estado_vehiculo: '',
   })
 
   useEffect(() => {
-    fetch(`/api/clientes-b2b/${id}`).then((r) => r.json()).then(setCliente)
+    fetch(`/api/clientes-b2b/${id}`)
+      .then((r) => r.json())
+      .then(setCliente)
     fetch('/api/vehiculos')
       .then((r) => r.json())
       .then((data) => {
         // /api/vehiculos puede devolver array o {vehiculos: [...]}
-        const list = Array.isArray(data) ? data : data.vehiculos ?? []
+        const list = Array.isArray(data) ? data : (data.vehiculos ?? [])
         setVehiculos(list)
       })
       .catch(() => showToast('No se pudieron cargar vehículos', 'error'))
@@ -106,7 +112,11 @@ function NuevaVentaB2BPage() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.vehiculo_marca || !form.vehiculo_modelo || !form.vehiculo_matricula) {
+    if (
+      !form.vehiculo_marca ||
+      !form.vehiculo_modelo ||
+      !form.vehiculo_matricula
+    ) {
       showToast('Datos del vehículo incompletos', 'error')
       return
     }
@@ -160,23 +170,35 @@ function NuevaVentaB2BPage() {
       <main className="w-[80%] max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="bg-slate-800 rounded-xl shadow-xl p-4 mb-4 flex items-center justify-between">
           <div>
-            <Link href={`/clientes-b2b/${id}`} className="text-emerald-300 text-xs hover:underline">
+            <Link
+              href={`/clientes-b2b/${id}`}
+              className="text-emerald-300 text-xs hover:underline"
+            >
               ← Volver al cliente
             </Link>
-            <h1 className="text-xl font-bold text-white mt-1">Nueva venta B2B</h1>
+            <h1 className="text-xl font-bold text-white mt-1">
+              Nueva venta B2B
+            </h1>
             {cliente && (
               <p className="text-slate-300 text-xs">
-                Cliente: <span className="font-semibold">{cliente.razon_social}</span> ({cliente.cif_nif})
+                Cliente:{' '}
+                <span className="font-semibold">{cliente.razon_social}</span> (
+                {cliente.cif_nif})
               </p>
             )}
           </div>
         </div>
 
-        <form onSubmit={onSubmit} className="bg-white rounded-xl shadow border border-gray-200 p-6 space-y-5">
+        <form
+          onSubmit={onSubmit}
+          className="bg-white rounded-xl shadow border border-gray-200 p-6 space-y-5"
+        >
           {/* Vehículo */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-semibold text-gray-700">Vehículo</label>
+              <label className="text-sm font-semibold text-gray-700">
+                Vehículo
+              </label>
               <div className="flex gap-1">
                 <button
                   type="button"
@@ -211,7 +233,9 @@ function NuevaVentaB2BPage() {
                 {showSuggest && (
                   <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
                     {filteredVeh.length === 0 ? (
-                      <div className="px-3 py-3 text-sm text-gray-500">Sin resultados</div>
+                      <div className="px-3 py-3 text-sm text-gray-500">
+                        Sin resultados
+                      </div>
                     ) : (
                       filteredVeh.map((v) => (
                         <button
@@ -224,7 +248,8 @@ function NuevaVentaB2BPage() {
                             {v.marca} {v.modelo}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {v.referencia} · {v.matricula} · {v.kms?.toLocaleString('es-ES')} km · {v.estado}
+                            {v.referencia} · {v.matricula} ·{' '}
+                            {v.kms?.toLocaleString('es-ES')} km · {v.estado}
                           </div>
                         </button>
                       ))
@@ -243,13 +268,20 @@ function NuevaVentaB2BPage() {
                 ['vehiculo_bastidor', 'Bastidor (VIN)'],
                 ['vehiculo_kms', 'Kilómetros'],
                 ['vehiculo_anio', 'Año'],
-                ['vehiculo_fecha_matriculacion', 'Fecha matriculación (DD/MM/AAAA)'],
+                [
+                  'vehiculo_fecha_matriculacion',
+                  'Fecha matriculación (DD/MM/AAAA)',
+                ],
               ].map(([k, label]) => (
                 <div key={k}>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    {label}
+                  </label>
                   <input
-                    value={(form as any)[k]}
-                    onChange={(e) => setForm((p) => ({ ...p, [k]: e.target.value }))}
+                    value={form[k as keyof typeof form] as string}
+                    onChange={(e) =>
+                      setForm((p) => ({ ...p, [k]: e.target.value }))
+                    }
                     className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   />
                 </div>
@@ -262,55 +294,80 @@ function NuevaVentaB2BPage() {
           {/* Datos de venta */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Fecha venta *</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Fecha venta *
+              </label>
               <input
                 type="date"
                 value={form.fecha_venta}
-                onChange={(e) => setForm((p) => ({ ...p, fecha_venta: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, fecha_venta: e.target.value }))
+                }
                 className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 required
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Lugar venta</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Lugar venta
+              </label>
               <input
                 value={form.lugar_venta}
-                onChange={(e) => setForm((p) => ({ ...p, lugar_venta: e.target.value }))}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, lugar_venta: e.target.value }))
+                }
                 className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Forma de pago *</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Forma de pago *
+              </label>
               <select
                 value={form.forma_pago}
-                onChange={(e) => setForm((p) => ({ ...p, forma_pago: e.target.value as any }))}
+                onChange={(e) =>
+                  setForm((p) => ({
+                    ...p,
+                    forma_pago: e.target.value as typeof form.forma_pago,
+                  }))
+                }
                 className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
               >
                 {FORMA_PAGO_OPTS.map((o) => (
-                  <option key={o.v} value={o.v}>{o.l}</option>
+                  <option key={o.v} value={o.v}>
+                    {o.l}
+                  </option>
                 ))}
               </select>
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Precio de venta (€) *</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              Precio de venta (€) *
+            </label>
             <input
               type="number"
               step="0.01"
               min="0"
               value={form.precio_venta}
-              onChange={(e) => setForm((p) => ({ ...p, precio_venta: e.target.value }))}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, precio_venta: e.target.value }))
+              }
               className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
               required
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Notas (comerciales)</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              Notas (comerciales)
+            </label>
             <textarea
               value={form.notas}
-              onChange={(e) => setForm((p) => ({ ...p, notas: e.target.value }))}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, notas: e.target.value }))
+              }
               rows={2}
               className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
             />
@@ -318,11 +375,17 @@ function NuevaVentaB2BPage() {
 
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">
-              Notas sobre estado del vehículo (opcional, queda en el contrato si quieres referenciarlo)
+              Notas sobre estado del vehículo (opcional, queda en el contrato si
+              quieres referenciarlo)
             </label>
             <textarea
               value={form.notas_estado_vehiculo}
-              onChange={(e) => setForm((p) => ({ ...p, notas_estado_vehiculo: e.target.value }))}
+              onChange={(e) =>
+                setForm((p) => ({
+                  ...p,
+                  notas_estado_vehiculo: e.target.value,
+                }))
+              }
               rows={2}
               className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
             />
@@ -340,7 +403,9 @@ function NuevaVentaB2BPage() {
               disabled={submitting}
               className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50"
             >
-              {submitting ? 'Generando...' : 'Generar contrato B2B en el estado'}
+              {submitting
+                ? 'Generando...'
+                : 'Generar contrato B2B en el estado'}
             </button>
           </div>
         </form>

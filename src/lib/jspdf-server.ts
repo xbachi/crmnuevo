@@ -14,19 +14,23 @@ if (typeof window === 'undefined') {
         global.Blob =
           global.Blob ||
           class Blob {
-            constructor(parts: any[], options: any) {
+            constructor(parts: unknown[], options?: Record<string, unknown>) {
               this.parts = parts
               this.options = options || {}
             }
-            parts: any[]
-            options: any
+            parts: unknown[]
+            options: Record<string, unknown>
           }
 
         // Polyfill para File
         global.File =
           global.File ||
           class File extends Blob {
-            constructor(parts: any[], filename: string, options: any) {
+            constructor(
+              parts: BlobPart[],
+              filename: string,
+              options?: BlobPropertyBag
+            ) {
               super(parts, options)
               this.name = filename
               this.lastModified = Date.now()

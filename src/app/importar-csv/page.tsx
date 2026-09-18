@@ -7,7 +7,7 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 export default function ImportarCSV() {
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
-  const [csvData, setCsvData] = useState<any[]>([])
+  const [csvData, setCsvData] = useState<Record<string, string>[]>([])
   const [showPreview, setShowPreview] = useState(false)
   const [confirmarBorrado, setConfirmarBorrado] = useState(false)
   const { showToast, ToastContainer } = useToast()
@@ -65,7 +65,7 @@ export default function ImportarCSV() {
         const values = lines[i]
           .split(',')
           .map((v) => v.trim().replace(/"/g, ''))
-        const row: any = {}
+        const row: Record<string, string> = {}
 
         headers.forEach((header, index) => {
           row[header] = values[index] || ''
@@ -362,13 +362,13 @@ export default function ImportarCSV() {
 
               <div className="mt-3 p-2 bg-yellow-100 rounded-lg">
                 <h5 className="font-semibold text-yellow-900 mb-1">
-                  💡 Nota sobre la columna "estado":
+                  💡 Nota sobre la columna &quot;estado&quot;:
                 </h5>
                 <p className="text-xs text-yellow-800">
-                  • <strong>Vacío o "disponible"</strong>: Vehículo activo (se
-                  puede ver, editar, eliminar)
-                  <br />• <strong>"vendido"</strong>: Vehículo vendido (aparece
-                  con opacidad reducida y botones deshabilitados)
+                  • <strong>Vacío o &quot;disponible&quot;</strong>: Vehículo
+                  activo (se puede ver, editar, eliminar)
+                  <br />• <strong>&quot;vendido&quot;</strong>: Vehículo vendido
+                  (aparece con opacidad reducida y botones deshabilitados)
                 </p>
               </div>
             </div>

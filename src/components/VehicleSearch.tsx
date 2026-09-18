@@ -70,30 +70,38 @@ export default function VehicleSearch({
         const data = await response.json()
         const queryLower = query.toLowerCase()
 
-        const filteredVehicles = data.filter((vehiculo: any) => {
-          // Filtrar por tipo si se especifica
-          if (vehicleType && vehiculo.tipo !== vehicleType) {
-            return false
+        const filteredVehicles = data.filter(
+          (
+            vehiculo: Vehiculo & {
+              tipo?: string
+              matricula?: string
+              referencia?: string
+            }
+          ) => {
+            // Filtrar por tipo si se especifica
+            if (vehicleType && vehiculo.tipo !== vehicleType) {
+              return false
+            }
+
+            const marcaModelo =
+              `${vehiculo.marca} ${vehiculo.modelo}`.toLowerCase()
+            const color = vehiculo.color?.toLowerCase() || ''
+            const combustible = vehiculo.combustible?.toLowerCase() || ''
+            const cambio = vehiculo.cambio?.toLowerCase() || ''
+            const matricula = vehiculo.matricula?.toLowerCase() || ''
+            const referencia = vehiculo.referencia?.toLowerCase() || ''
+
+            return (
+              marcaModelo.includes(queryLower) ||
+              color.includes(queryLower) ||
+              combustible.includes(queryLower) ||
+              cambio.includes(queryLower) ||
+              matricula.includes(queryLower) ||
+              referencia.includes(queryLower) ||
+              (getVehiculoAño(vehiculo)?.toString() || '').includes(query)
+            )
           }
-
-          const marcaModelo =
-            `${vehiculo.marca} ${vehiculo.modelo}`.toLowerCase()
-          const color = vehiculo.color?.toLowerCase() || ''
-          const combustible = vehiculo.combustible?.toLowerCase() || ''
-          const cambio = vehiculo.cambio?.toLowerCase() || ''
-          const matricula = vehiculo.matricula?.toLowerCase() || ''
-          const referencia = vehiculo.referencia?.toLowerCase() || ''
-
-          return (
-            marcaModelo.includes(queryLower) ||
-            color.includes(queryLower) ||
-            combustible.includes(queryLower) ||
-            cambio.includes(queryLower) ||
-            matricula.includes(queryLower) ||
-            referencia.includes(queryLower) ||
-            (getVehiculoAño(vehiculo)?.toString() || '').includes(query)
-          )
-        })
+        )
 
         setResults(filteredVehicles.slice(0, 5)) // Mostrar solo 5 resultados
         setIsOpen(filteredVehicles.length > 0)

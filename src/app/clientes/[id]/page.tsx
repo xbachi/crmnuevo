@@ -41,6 +41,20 @@ interface InteresesEditData {
     | 'cualquiera'
   notasAdicionales?: string
 }
+
+// Fila de /api/clientes/[id] (intereses en columnas planas, JSON en string)
+type ClienteApiData = Partial<Omit<Cliente, 'intereses' | 'etiquetas'>> & {
+  vehiculosInteres?: string
+  presupuestoMaximo?: number
+  kilometrajeMaximo?: number
+  añoMinimo?: number
+  combustiblePreferido?: InteresesEditData['combustiblePreferido']
+  cambioPreferido?: InteresesEditData['cambioPreferido']
+  formaPagoPreferida?: InteresesEditData['formaPagoPreferida']
+  coloresDeseados?: string
+  necesidadesEspeciales?: string
+  etiquetas?: string | string[]
+}
 import { useSimpleToast } from '@/hooks/useSimpleToast'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import ClientReminders from '@/components/ClientReminders'
@@ -79,8 +93,8 @@ export default function ClienteDetailPage() {
     codigoPostal: '',
     comoLlego: '',
     fechaPrimerContacto: '',
-    estado: 'nuevo' as const,
-    prioridad: 'media' as const,
+    estado: 'nuevo' as Cliente['estado'],
+    prioridad: 'media' as Cliente['prioridad'],
     proximoPaso: '',
     etiquetas: [] as string[],
     intereses: {
@@ -99,9 +113,9 @@ export default function ClienteDetailPage() {
   const clienteId = params.id as string
 
   // Función auxiliar para mapear datos de la API al formato del frontend
-  const mapApiDataToFrontend = (data: any) => {
+  const mapApiDataToFrontend = (data: ClienteApiData): Cliente => {
     // Mapear datos de la base de datos al formato de intereses
-    let interesesData: InteresesEditData = {
+    const interesesData: InteresesEditData = {
       vehiculosInteres: [],
       precioMaximo: 0,
       kilometrajeMaximo: 0,
@@ -174,7 +188,7 @@ export default function ClienteDetailPage() {
       ...data,
       intereses: interesesData,
       etiquetas: etiquetas,
-    }
+    } as Cliente
   }
 
   const fetchCliente = async () => {
@@ -194,7 +208,7 @@ export default function ClienteDetailPage() {
       console.log('Cliente data received:', data)
 
       // Mapear datos de la base de datos al formato de intereses
-      let interesesData: InteresesEditData = {
+      const interesesData: InteresesEditData = {
         vehiculosInteres: [],
         precioMaximo: 0,
         kilometrajeMaximo: 0,
@@ -645,7 +659,7 @@ export default function ClienteDetailPage() {
       console.log('Saving intereses for cliente with ID:', clienteId)
 
       // Solo guardar campos de intereses que tienen valores
-      const dataToSave: any = {}
+      const dataToSave: Record<string, unknown> = {}
 
       // Siempre incluir vehiculosInteres, incluso si está vacío
       dataToSave.vehiculosInteres = JSON.stringify(

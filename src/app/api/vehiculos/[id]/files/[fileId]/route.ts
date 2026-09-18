@@ -26,7 +26,7 @@ async function loadMetadata(vehiculoId: string) {
   }
 }
 
-async function saveMetadata(vehiculoId: string, metadata: any[]) {
+async function saveMetadata(vehiculoId: string, metadata: unknown[]) {
   const metadataDir = join(
     process.cwd(),
     'public',
@@ -68,7 +68,9 @@ export async function DELETE(
     console.log(`📁 [DELETE] Metadatos actuales: ${metadata.length} archivos`)
 
     // Encontrar el archivo a eliminar
-    const fileIndex = metadata.findIndex((file: any) => file.id === fileId)
+    const fileIndex = metadata.findIndex(
+      (file: { id: string }) => file.id === fileId
+    )
 
     if (fileIndex === -1) {
       console.log(`❌ [DELETE] Archivo ${fileId} no encontrado en metadatos`)

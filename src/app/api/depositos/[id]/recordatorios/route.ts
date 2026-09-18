@@ -27,7 +27,7 @@ export async function GET(
         `📅 [DEPOSITO RECORDATORIOS] Encontrados ${result.rows.length} recordatorios`
       )
       return NextResponse.json(result.rows)
-    } catch (queryError: any) {
+    } catch (queryError) {
       console.error('❌ [DEPOSITO RECORDATORIOS] Error en query:', queryError)
       // Si hay error, devolver array vacío
       return NextResponse.json([])
