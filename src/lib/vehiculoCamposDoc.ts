@@ -130,9 +130,14 @@ interface FilaPublicable extends VehiculoPublicable {
  * consulta (el pool es compartido y estamos dentro de un PUT: no queremos tres
  * idas y vueltas). Si el coche no existe devuelve lista vacía: el 404 lo da
  * quien llama, no esto.
+ *
+ * `patch` son los campos de "Vehiculo" que ESA MISMA petición está a punto de
+ * escribir. Sin él, rellenar el color y publicar en el mismo PUT —que es lo que
+ * hace el modal de edición— se bloquearía contra el color viejo, todavía vacío.
  */
 export async function faltantesParaPublicar(
-  vehiculoId: number
+  vehiculoId: number,
+  patch: Record<string, unknown> = {}
 ): Promise<Faltante[]> {
   try {
     const r = await pool.query<{
@@ -153,7 +158,7 @@ export async function faltantesParaPublicar(
     const fila = r.rows[0]
     if (!fila?.vehiculo) return []
     return faltantesPublicar(
-      fila.vehiculo,
+      { ...fila.vehiculo, ...patch },
       fila.ficha ?? null,
       fila.pendientes ?? []
     )

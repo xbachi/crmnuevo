@@ -119,6 +119,18 @@ describe('PUT /api/vehiculos/[id] — bloqueo de publicación', () => {
     expect(mockFaltantes).not.toHaveBeenCalled()
   })
 
+  it('rellenar un campo y publicar en el mismo PUT pasa el patch al cálculo', async () => {
+    const res = await PUT(
+      makeReq({ estado: 'PUBLICADO', color: 'Blanco' }),
+      params
+    )
+    expect(res.status).toBe(200)
+    expect(mockFaltantes).toHaveBeenCalledWith(
+      7,
+      expect.objectContaining({ color: 'Blanco', estado: 'PUBLICADO' })
+    )
+  })
+
   it('un PUT que no toca el estado no consulta nada', async () => {
     const res = await PUT(makeReq({ kms: 91000 }), params)
     expect(res.status).toBe(200)

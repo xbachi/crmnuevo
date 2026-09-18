@@ -214,7 +214,9 @@ export async function PUT(
         estadoNorm === 'PUBLICADO' &&
         normalizarEstado(vehiculoExistente.estado) !== 'PUBLICADO'
       ) {
-        const faltantes = await faltantesParaPublicar(id)
+        // updateData entra en el cálculo: rellenar el color y publicar en el
+        // mismo PUT (lo que hace el modal de edición) tiene que funcionar.
+        const faltantes = await faltantesParaPublicar(id, updateData)
         if (faltantes.length > 0) {
           return NextResponse.json(
             {
