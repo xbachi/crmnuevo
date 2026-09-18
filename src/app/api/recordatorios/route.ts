@@ -89,7 +89,7 @@ export async function GET() {
     // Obtener recordatorios manuales de todas las tablas específicas
     const { pool } = await import('@/lib/direct-database')
     const client = await pool.connect()
-    let recordatoriosManuales: any[] = []
+    const recordatoriosManuales: Record<string, unknown>[] = []
 
     try {
       // 1. ClienteReminder

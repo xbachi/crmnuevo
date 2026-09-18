@@ -26,8 +26,8 @@ describe('formatCurrency', () => {
   })
 
   test('handles null and undefined', () => {
-    expect(formatCurrency(null as any)).toBe('0€')
-    expect(formatCurrency(undefined as any)).toBe('0€')
+    expect(formatCurrency(null as unknown as number)).toBe('0€')
+    expect(formatCurrency(undefined as unknown as number)).toBe('0€')
   })
 })
 
@@ -48,7 +48,8 @@ describe('formatDateTime', () => {
   test('formats datetime strings correctly', () => {
     const date = '2025-01-17T15:30:00Z'
     const result = formatDateTime(date)
-    expect(result).toMatch(/\d{1,2} de \w+ de \d{4}, \d{1,2}:\d{2}/)
+    // ICU de Node: "17 de enero de 2025, 15:30" o "… de 2025 a las 15:30"
+    expect(result).toMatch(/\d{1,2} de \w+ de \d{4}(,| a las) \d{1,2}:\d{2}/)
   })
 
   test('handles invalid dates gracefully', () => {

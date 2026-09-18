@@ -1,373 +1,296 @@
-import request from 'supertest'
-import { createCliente, createVehiculo, createDeal, createDeposito } from '../fixtures/factories'
+/**
+ * @jest-environment node
+ *
+ * Flujo completo por HTTP contra un servidor real (TEST_BASE_URL) con la DB de
+ * test: cliente → vehículos de cada tipo → deal → depósito → notas → búsquedas
+ * → errores. Las aserciones siguen el contrato real de las rutas API.
+ */
+import { api, iniciarSesion } from './sesion'
+import { createCliente } from '../fixtures/factories'
 
-// Mock del servidor Next.js para testing
-const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3000'
+const SUFIJO = Date.now().toString().slice(-6)
 
 describe('Complete CRM API Workflow', () => {
   let createdClientId: number
-  let createdVehicleIds: number[] = []
+  const createdVehicleIds: number[] = []
   let createdDealId: number
   let createdDepositId: number
 
+  const dni = `${SUFIJO}00A`
+  const email = `test-api-${SUFIJO}@example.com`
+
   beforeAll(async () => {
-    console.log('🚀 Iniciando tests de integración API completos...')
+    await iniciarSesion()
   })
 
-  afterAll(async () => {
-    console.log('🧹 Limpiando datos de prueba...')
-    // Aquí podrías agregar lógica de limpieza si es necesario
-  })
-
-  describe('1. 🧑‍💼 Cliente Management', () => {
-    test('should create a new client', async () => {
-      console.log('📝 Creando cliente...')
-      
+  describe('1. Cliente', () => {
+    test('crea un cliente', async () => {
       const clientData = createCliente({
         nombre: 'Test Cliente API',
         apellidos: 'Apellidos Test',
         telefono: '666111222',
-        email: 'test-api@example.com',
-        dni: '11223344A'
+        email,
+        dni,
       })
 
-      const response = await request(baseUrl)
+      const response = await api
         .post('/api/clientes')
         .send(clientData)
         .expect(201)
 
       expect(response.body).toHaveProperty('id')
       expect(response.body.nombre).toBe(clientData.nombre)
-      expect(response.body.email).toBe(clientData.email)
-      
+      expect(response.body.email).toBe(email)
       createdClientId = response.body.id
-      console.log(`✅ Cliente creado con ID: ${createdClientId}`)
     })
 
-    test('should get client by ID', async () => {
-      const response = await request(baseUrl)
+    test('lo devuelve por id', async () => {
+      const response = await api
         .get(`/api/clientes/${createdClientId}`)
         .expect(200)
-
       expect(response.body.id).toBe(createdClientId)
       expect(response.body.nombre).toBe('Test Cliente API')
     })
 
-    test('should search clients', async () => {
-      const response = await request(baseUrl)
+    test('lo encuentra por DNI', async () => {
+      const response = await api
         .get('/api/clientes/buscar')
-        .query({ q: '11223344A' })
+        .query({ q: dni })
         .expect(200)
-
       expect(response.body).toHaveLength(1)
-      expect(response.body[0].dni).toBe('11223344A')
+      expect(response.body[0].dni).toBe(dni)
     })
   })
 
-  describe('2. 🚗 Vehicle Management - All Types', () => {
-    const vehicleTypes = [
-      { tipo: 'C', name: 'Compra', referencia: 'API001' },
-      { tipo: 'I', name: 'Inversor', referencia: 'API002' },
-      { tipo: 'D', name: 'Depósito', referencia: 'API003' },
-      { tipo: 'R', name: 'Renting', referencia: 'API004' }
+  describe('2. Vehículos de todos los tipos', () => {
+    // referencia según normalizarReferencia: serie numérica (#1xxx) para C e I,
+    // #D-nn / #R-nn para depósito y renting. Matrícula formato actual 1234BCD.
+    const n = Number(SUFIJO.slice(-3)) || 1
+    const tipos = [
+      {
+        tipo: 'C',
+        name: 'Compra',
+        referencia: `${1000 + n}`,
+        refCanon: `#${1000 + n}`,
+      },
+      {
+        tipo: 'I',
+        name: 'Inversor',
+        referencia: `${2000 + n}`,
+        refCanon: `#${2000 + n}`,
+      },
+      {
+        tipo: 'D',
+        name: 'Depósito',
+        referencia: `D-${n}`,
+        refCanon: `#D-${String(n).padStart(2, '0')}`,
+      },
+      {
+        tipo: 'R',
+        name: 'Renting',
+        referencia: `R-${n}`,
+        refCanon: `#R-${String(n).padStart(2, '0')}`,
+      },
     ]
 
-    vehicleTypes.forEach(({ tipo, name, referencia }) => {
-      test(`should create ${name} vehicle (tipo: ${tipo})`, async () => {
-        console.log(`🚙 Creando vehículo tipo ${tipo} (${name})...`)
-        
-        const vehicleData = createVehiculo({
-          referencia,
-          marca: 'Test Marca',
-          modelo: `Test Modelo ${tipo}`,
-          tipo,
-          matricula: `${referencia}ABC`,
-          bastidor: `WBA${referencia}123456789`,
-          kms: 50000,
-          fechaMatriculacion: '2020-01-15'
-        })
-
-        const response = await request(baseUrl)
+    tipos.forEach(({ tipo, name, referencia, refCanon }, i) => {
+      test(`crea un vehículo ${name} (tipo ${tipo})`, async () => {
+        const response = await api
           .post('/api/vehiculos')
-          .send(vehicleData)
-          .expect(201)
+          .send({
+            referencia,
+            marca: 'Test Marca',
+            modelo: `Test Modelo ${tipo}`,
+            tipo,
+            matricula: `${String(1000 + n + i).slice(-4)}BC${'DFGH'[i]}`,
+            bastidor: `WBATEST${SUFIJO}${i}`.padEnd(17, 'X').slice(0, 17),
+            kms: 50000,
+            fechaMatriculacion: '2020-01-15',
+          })
+          .expect(200)
 
-        expect(response.body).toHaveProperty('id')
-        expect(response.body.tipo).toBe(tipo)
-        expect(response.body.referencia).toBe(referencia)
-        
-        createdVehicleIds.push(response.body.id)
-        console.log(`✅ Vehículo ${name} creado con ID: ${response.body.id}`)
+        expect(response.body.success).toBe(true)
+        expect(response.body.vehiculo).toHaveProperty('id')
+        expect(response.body.vehiculo.tipo).toBe(tipo)
+        expect(response.body.vehiculo.referencia).toBe(refCanon)
+        createdVehicleIds.push(response.body.vehiculo.id)
       })
     })
 
-    test('should get vehicles with filters', async () => {
-      const response = await request(baseUrl)
+    test('lista con filtro de tipo', async () => {
+      const response = await api
         .get('/api/vehiculos')
-        .query({ tipo: 'C' })
+        .query({ tipo: 'C', limit: 100 })
         .expect(200)
-
-      expect(response.body.vehiculos).toBeDefined()
-      const compraVehicles = response.body.vehiculos.filter((v: any) => v.tipo === 'C')
-      expect(compraVehicles.length).toBeGreaterThan(0)
+      expect(Array.isArray(response.body.vehiculos)).toBe(true)
+      expect(
+        response.body.vehiculos.some(
+          (v: { id: number }) => v.id === createdVehicleIds[0]
+        )
+      ).toBe(true)
     })
 
-    test('should get kanban data', async () => {
-      const response = await request(baseUrl)
-        .get('/api/vehiculos/kanban')
-        .expect(200)
-
-      expect(response.body).toHaveProperty('columns')
-      expect(Array.isArray(response.body.columns)).toBe(true)
+    test('devuelve estadísticas', async () => {
+      const response = await api.get('/api/vehiculos/stats').expect(200)
+      expect(response.body).toHaveProperty('totalActivos')
+      expect(response.body).toHaveProperty('enProceso')
+      expect(response.body.totalActivos).toBeGreaterThan(0)
     })
 
-    test('should get vehicle stats', async () => {
-      const response = await request(baseUrl)
-        .get('/api/vehiculos/stats')
+    test('el kanban cambia el estado y el orden', async () => {
+      const vehicleId = createdVehicleIds[0]
+      await api
+        .put('/api/vehiculos/kanban')
+        .send({ updates: [{ id: vehicleId, estado: 'MECAUTO', orden: 1 }] })
         .expect(200)
 
-      expect(response.body).toHaveProperty('total')
-      expect(response.body).toHaveProperty('porTipo')
+      const response = await api.get(`/api/vehiculos/${vehicleId}`).expect(200)
+      expect(response.body.estado).toBe('MECAUTO')
+      expect(response.body.orden).toBe(1)
     })
   })
 
-  describe('3. 🤝 Deal Management', () => {
-    test('should create a deal', async () => {
-      console.log('📋 Creando deal...')
-      
-      // Buscar vehículo de compra creado
-      const compraVehicle = createdVehicleIds[0]
-      
-      const dealData = createDeal({
-        cliente_id: createdClientId,
-        vehiculo_id: compraVehicle,
-        precio: 25000,
-        estado: 'reserva'
-      })
-
-      const response = await request(baseUrl)
+  describe('3. Deal', () => {
+    test('crea un deal para el cliente y el coche de compra', async () => {
+      const response = await api
         .post('/api/deals')
-        .send(dealData)
+        .send({
+          clienteId: createdClientId,
+          vehiculoId: createdVehicleIds[0],
+          importeTotal: 25000,
+          importeSena: 1000,
+          formaPagoSena: 'transferencia',
+        })
         .expect(201)
 
       expect(response.body).toHaveProperty('id')
-      expect(response.body.cliente_id).toBe(createdClientId)
-      expect(response.body.vehiculo_id).toBe(compraVehicle)
-      
+      expect(response.body.clienteId).toBe(createdClientId)
+      expect(response.body.vehiculoId).toBe(createdVehicleIds[0])
       createdDealId = response.body.id
-      console.log(`✅ Deal creado con ID: ${createdDealId}`)
     })
 
-    test('should get deal by ID', async () => {
-      const response = await request(baseUrl)
-        .get(`/api/deals/${createdDealId}`)
-        .expect(200)
-
+    test('lo devuelve con cliente y vehículo', async () => {
+      const response = await api.get(`/api/deals/${createdDealId}`).expect(200)
       expect(response.body.id).toBe(createdDealId)
-      expect(response.body).toHaveProperty('cliente')
-      expect(response.body).toHaveProperty('vehiculo')
+      expect(response.body.cliente.id).toBe(createdClientId)
+      expect(response.body.vehiculo.id).toBe(createdVehicleIds[0])
     })
 
-    test('should update deal estado', async () => {
-      const response = await request(baseUrl)
+    test('pasa a reservado', async () => {
+      const response = await api
         .put(`/api/deals/${createdDealId}`)
-        .send({ estado: 'venta' })
+        .send({ estado: 'reservado' })
         .expect(200)
-
-      expect(response.body.estado).toBe('venta')
+      expect(response.body.estado).toBe('reservado')
     })
 
-    test('should get latest deals', async () => {
-      const response = await request(baseUrl)
-        .get('/api/deals/ultimas')
-        .expect(200)
-
+    test('aparece en las últimas operaciones', async () => {
+      const response = await api.get('/api/deals/ultimas').expect(200)
       expect(Array.isArray(response.body)).toBe(true)
     })
   })
 
-  describe('4. 📦 Deposit Management', () => {
-    test('should create a deposit', async () => {
-      console.log('📦 Creando depósito...')
-      
-      // Buscar vehículo de depósito creado
-      const depositVehicle = createdVehicleIds[2] // Tipo D
-      
-      const depositData = createDeposito({
-        cliente_id: createdClientId,
-        vehiculo_id: depositVehicle,
-        monto_recibir: 18000,
-        dias_gestion: 90,
-        multa_retiro_anticipado: 500,
-        numero_cuenta: 'ES1234567890123456789012'
-      })
-
-      const response = await request(baseUrl)
+  describe('4. Depósito', () => {
+    test('crea un depósito con el coche de depósito', async () => {
+      const response = await api
         .post('/api/depositos')
-        .send(depositData)
+        .send({
+          cliente_id: createdClientId,
+          vehiculo_id: createdVehicleIds[2],
+          monto_recibir: 18000,
+          dias_gestion: 90,
+          multa_retiro_anticipado: 500,
+          numero_cuenta: 'ES1234567890123456789012',
+        })
         .expect(201)
 
       expect(response.body).toHaveProperty('id')
       expect(response.body.cliente_id).toBe(createdClientId)
-      expect(response.body.vehiculo_id).toBe(depositVehicle)
-      
+      expect(response.body.vehiculo_id).toBe(createdVehicleIds[2])
       createdDepositId = response.body.id
-      console.log(`✅ Depósito creado con ID: ${createdDepositId}`)
     })
 
-    test('should get deposit by ID', async () => {
-      const response = await request(baseUrl)
+    test('lo devuelve con cliente y vehículo', async () => {
+      const response = await api
         .get(`/api/depositos/${createdDepositId}`)
         .expect(200)
-
       expect(response.body.id).toBe(createdDepositId)
-      expect(response.body).toHaveProperty('cliente')
-      expect(response.body).toHaveProperty('vehiculo')
+      expect(response.body.cliente.id).toBe(createdClientId)
+      expect(response.body.vehiculo.id).toBe(createdVehicleIds[2])
     })
 
-    test('should update deposit estado', async () => {
-      const response = await request(baseUrl)
+    test('pasa a ACTIVO', async () => {
+      const response = await api
         .put(`/api/depositos/${createdDepositId}`)
-        .send({ estado: 'activo' })
+        .send({ estado: 'ACTIVO' })
         .expect(200)
-
-      expect(response.body.estado).toBe('activo')
+      expect(response.body.estado).toBe('ACTIVO')
     })
 
-    test('should get deposit stats', async () => {
-      const response = await request(baseUrl)
-        .get('/api/depositos/stats')
-        .expect(200)
-
-      expect(response.body).toHaveProperty('total')
-      expect(response.body).toHaveProperty('activos')
+    test('devuelve estadísticas', async () => {
+      const response = await api.get('/api/depositos/stats').expect(200)
+      expect(response.body).toHaveProperty('totalDepositos')
     })
 
-    test('should add note to deposit', async () => {
-      const noteData = {
-        contenido: 'Nota de prueba API',
-        usuario: 'Test User',
-        tipo: 'general'
-      }
-
-      const response = await request(baseUrl)
+    test('añade y lista notas', async () => {
+      const nota = await api
         .post(`/api/depositos/${createdDepositId}/notas`)
-        .send(noteData)
+        .send({
+          contenido: 'Nota de prueba API',
+          usuario: 'Test User',
+          tipo: 'general',
+        })
         .expect(201)
+      expect(nota.body.contenido).toBe('Nota de prueba API')
 
-      expect(response.body).toHaveProperty('id')
-      expect(response.body.contenido).toBe(noteData.contenido)
-    })
-
-    test('should get deposit notes', async () => {
-      const response = await request(baseUrl)
+      const lista = await api
         .get(`/api/depositos/${createdDepositId}/notas`)
         .expect(200)
-
-      expect(Array.isArray(response.body)).toBe(true)
-      expect(response.body.length).toBeGreaterThan(0)
+      expect(Array.isArray(lista.body)).toBe(true)
+      expect(lista.body.length).toBeGreaterThan(0)
     })
   })
 
-  describe('5. 🔄 Kanban State Changes', () => {
-    test('should update vehicle estado in kanban', async () => {
-      if (createdVehicleIds.length > 0) {
-        const vehicleId = createdVehicleIds[0]
-        
-        const response = await request(baseUrl)
-          .put(`/api/vehiculos/${vehicleId}`)
-          .send({ estado: 'mecánica', orden: 1 })
-          .expect(200)
-
-        expect(response.body.estado).toBe('mecánica')
-        console.log(`✅ Vehículo ${vehicleId} movido a estado 'mecánica'`)
-      }
-    })
-
-    test('should verify kanban reflects estado changes', async () => {
-      const response = await request(baseUrl)
-        .get('/api/vehiculos/kanban')
-        .expect(200)
-
-      const mecanicaColumn = response.body.columns.find((col: any) => col.id === 'mecánica')
-      expect(mecanicaColumn).toBeDefined()
-      expect(mecanicaColumn.vehicles.length).toBeGreaterThan(0)
-    })
-  })
-
-  describe('6. 📊 Dashboard Data', () => {
-    test('should get complete dashboard data', async () => {
-      const endpoints = [
-        '/api/vehiculos/stats',
-        '/api/depositos/stats',
-        '/api/deals/ultimas'
-      ]
-
-      for (const endpoint of endpoints) {
-        console.log(`📊 Testing endpoint: ${endpoint}`)
-        
-        const response = await request(baseUrl)
-          .get(endpoint)
-          .expect(200)
-
-        expect(response.body).toBeDefined()
-        console.log(`✅ ${endpoint} responded correctly`)
-      }
-    })
-  })
-
-  describe('7. 🔍 Search and Filter Tests', () => {
-    test('should search clients by different criteria', async () => {
-      const searchTerms = ['Test Cliente API', '11223344A', 'test-api@example.com']
-      
-      for (const term of searchTerms) {
-        const response = await request(baseUrl)
+  describe('5. Búsquedas y filtros', () => {
+    test('busca el cliente por nombre, DNI y email', async () => {
+      for (const term of ['Test Cliente API', dni, email]) {
+        const response = await api
           .get('/api/clientes/buscar')
           .query({ q: term })
           .expect(200)
-
         expect(response.body.length).toBeGreaterThan(0)
-        console.log(`✅ Client search by "${term}" successful`)
       }
     })
 
-    test('should filter vehicles by multiple criteria', async () => {
-      const filters = [
-        { tipo: 'C' },
-        { estado: 'disponible' },
-        { marca: 'Test Marca' }
-      ]
-      
-      for (const filter of filters) {
-        const response = await request(baseUrl)
+    test('filtra vehículos por tipo y búsqueda', async () => {
+      for (const filter of [{ tipo: 'C' }, { search: 'Test Marca' }]) {
+        const response = await api
           .get('/api/vehiculos')
           .query(filter)
           .expect(200)
-
-        expect(response.body.vehiculos).toBeDefined()
-        console.log(`✅ Vehicle filter ${JSON.stringify(filter)} successful`)
+        expect(Array.isArray(response.body.vehiculos)).toBe(true)
       }
     })
   })
 
-  describe('8. 🧪 Error Handling', () => {
-    test('should handle invalid client ID', async () => {
-      await request(baseUrl)
-        .get('/api/clientes/99999')
-        .expect(404)
+  describe('6. Errores', () => {
+    test('cliente inexistente → 404', async () => {
+      await api.get('/api/clientes/99999999').expect(404)
     })
 
-    test('should handle invalid vehicle ID', async () => {
-      await request(baseUrl)
-        .get('/api/vehiculos/99999')
-        .expect(404)
+    test('vehículo inexistente → 404', async () => {
+      await api.get('/api/vehiculos/99999999').expect(404)
     })
 
-    test('should validate required fields on creation', async () => {
-      await request(baseUrl)
-        .post('/api/clientes')
-        .send({ nombre: 'Only Name' }) // Missing required fields
-        .expect(400)
+    test('cliente sin campos obligatorios → 400', async () => {
+      await api.post('/api/clientes').send({ nombre: 'Only Name' }).expect(400)
+    })
+
+    test('sin sesión → 401', async () => {
+      const { default: request } = await import('supertest')
+      await request(process.env.TEST_BASE_URL || 'http://localhost:3000')
+        .get('/api/clientes')
+        .expect(401)
     })
   })
 })

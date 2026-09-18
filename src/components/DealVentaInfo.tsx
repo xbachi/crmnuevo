@@ -5,6 +5,15 @@ import { useSimpleToast } from '@/hooks/useSimpleToast'
 import { formatCurrency } from '@/lib/utils'
 import CurrencyInput from './CurrencyInput'
 
+interface DealVentaFormData {
+  montoVenta: number
+  formaPago: 'contado' | 'financiado' | 'mixto' | ''
+  montoContado: number
+  montoFinanciado: number
+  garantia: 'premium' | 'standard'
+  entidadFinanciera: string
+}
+
 interface DealVentaInfoProps {
   dealId: number
   initialData?: {
@@ -15,7 +24,7 @@ interface DealVentaInfoProps {
     garantia?: 'premium' | 'standard'
     entidadFinanciera?: string
   }
-  onUpdate?: (data: any) => void
+  onUpdate?: (data: DealVentaFormData) => void
 }
 
 export default function DealVentaInfo({

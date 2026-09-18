@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
@@ -281,17 +282,17 @@ export default function GeneradorFacturas() {
               Al confirmar, se crea un cliente, un vehículo y un deal en
               background, y se asigna el siguiente número correlativo de la
               serie correspondiente (R-2026 para REBU, F-2026 para IVA). El
-              campo "número personalizado" queda como informativo: el sistema
+              campo &quot;número personalizado&quot; queda como informativo: el sistema
               SIEMPRE usa el siguiente número de la serie para evitar saltos.
             </p>
             <p className="text-xs text-amber-800 mt-2">
               Para ver, descargar o regenerar facturas emitidas, usa{' '}
-              <a
+              <Link
                 href="/facturacion/historial"
                 className="font-medium underline hover:text-amber-900"
               >
                 Facturación → Historial
-              </a>
+              </Link>
               .
             </p>
           </div>

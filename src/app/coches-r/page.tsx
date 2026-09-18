@@ -367,7 +367,7 @@ export default function CochesRPage() {
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-slate-800 mb-2">Coches R</h1>
             <p className="text-slate-600">
-              Vehículos vendidos "en el estado" sin garantía
+              Vehículos vendidos &quot;en el estado&quot; sin garantía
             </p>
           </div>
           <LoadingSkeleton />
@@ -622,7 +622,7 @@ export default function CochesRPage() {
                   No se encontraron Coches R
                 </h3>
                 <p className="text-slate-600 mb-8 text-lg">
-                  No hay Coches R que coincidan con tu búsqueda "{searchTerm}"
+                  No hay Coches R que coincidan con tu búsqueda &quot;{searchTerm}&quot;
                 </p>
                 <button
                   onClick={() => setSearchTerm('')}

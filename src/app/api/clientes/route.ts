@@ -44,6 +44,29 @@ export async function GET(request: NextRequest) {
   }
 }
 
+const RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+/** Formato de los datos de contacto cuando vienen informados; null si todo vale. */
+function validarFormatoContacto(data: {
+  email?: string | null
+  telefono?: string | null
+  dni?: string | null
+}): string | null {
+  const email = data.email?.trim()
+  if (email && !RE_EMAIL.test(email)) {
+    return 'El email no tiene un formato válido'
+  }
+  const digitos = (data.telefono ?? '').replace(/\D/g, '')
+  if (digitos.length < 9) {
+    return 'El teléfono debe tener al menos 9 dígitos'
+  }
+  const dni = (data.dni ?? '').replace(/[\s-]/g, '')
+  if (dni && !/^[A-Za-z0-9]{7,12}$/.test(dni)) {
+    return 'El DNI/NIE/pasaporte debe tener entre 7 y 12 caracteres alfanuméricos'
+  }
+  return null
+}
+
 export async function POST(request: NextRequest) {
   try {
     console.log('🔍 [API CLIENTES] Iniciando creación de cliente...')
@@ -85,6 +108,10 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+    const formato = validarFormatoContacto(data)
+    if (formato) {
+      return NextResponse.json({ error: formato }, { status: 400 })
+    }
 
     // Crear cliente con todos los campos
     const client = await pool.connect()
@@ -98,9 +125,10 @@ export async function POST(request: NextRequest) {
           "codigoPostal", estado, prioridad, activo, "comoLlego", "fechaPrimerContacto",
           "proximoPaso", "notasAdicionales", "vehiculosInteres", "presupuestoMaximo", 
           "kilometrajeMaximo", "añoMinimo", "combustiblePreferido", 
-          "cambioPreferido", "formaPagoPreferida", "createdAt", "updatedAt"
+          "cambioPreferido", "formaPagoPreferida", "coloresDeseados", etiquetas,
+          "necesidadesEspeciales", "createdAt", "updatedAt"
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, NOW(), NOW()
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, NOW(), NOW()
         ) RETURNING *
       `,
         [
@@ -127,6 +155,9 @@ export async function POST(request: NextRequest) {
           data.combustiblePreferido || 'cualquiera',
           data.cambioPreferido || 'cualquiera',
           data.formaPagoPreferida || 'cualquiera',
+          data.coloresDeseados || null,
+          data.etiquetas || null,
+          data.necesidadesEspeciales?.trim() || null,
         ]
       )
 
@@ -137,13 +168,18 @@ export async function POST(request: NextRequest) {
     } finally {
       client.release()
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ [API CLIENTES] Error al crear cliente:', error)
+    const dbError = error as {
+      code?: string
+      constraint?: string
+      message?: string
+    }
 
     // Manejar errores específicos de la base de datos
-    if (error.code === '23505') {
+    if (dbError.code === '23505') {
       // PostgreSQL unique violation error code
-      if (error.constraint === 'Cliente_dni_key') {
+      if (dbError.constraint === 'Cliente_dni_key') {
         return NextResponse.json(
           {
             error:
@@ -159,7 +195,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Manejar errores de formato de fecha/timestamp
-    if (error.code === '22007') {
+    if (dbError.code === '22007') {
       return NextResponse.json(
         {
           error:
@@ -173,7 +209,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error: 'Error interno del servidor',
-        details: error.message,
+        details: dbError.message,
         timestamp: new Date().toISOString(),
       },
       { status: 500 }

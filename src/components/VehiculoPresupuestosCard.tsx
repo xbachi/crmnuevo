@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useConfirmModal } from '@/components/ConfirmModal'
-import EstadoPresupuestoBadge from '@/components/presupuesto/EstadoPresupuestoBadge'
+import EstadoPresupuestoBadge, {
+  ESTADO_PRESUPUESTO_LABEL,
+  estadoEfectivo,
+} from '@/components/presupuesto/EstadoPresupuestoBadge'
 import PresupuestoOpcionesForm from '@/components/presupuesto/PresupuestoOpcionesForm'
 import PresupuestoTabla, {
   cuotaTexto,
@@ -11,8 +14,13 @@ import PresupuestoTabla, {
 import { dateToYMD } from '@/lib/fechas'
 import type { FichaComercial } from '@/lib/fichaComercial'
 import { downloadPdf } from '@/lib/pdf/download'
-import { formatearEuros, formatearFecha } from '@/lib/plantillasMensajes'
+import {
+  enlaceWhatsApp,
+  formatearEuros,
+  formatearFecha,
+} from '@/lib/plantillasMensajes'
 import { calcularPresupuesto } from '@/lib/presupuesto/calculo'
+import { contactosDe, textoReaviso } from '@/lib/presupuesto/contactos'
 import type {
   ContextoCalculo,
   ResumenPresupuesto,
@@ -152,6 +160,9 @@ export default function VehiculoPresupuestosCard({
       return { error: err instanceof Error ? err.message : 'Error de cálculo' }
     }
   }, [contexto, ficha, opciones, vehiculo.fechaMatriculacion])
+
+  // Quién recibió presupuesto de este coche: la lista a reavisar si baja de precio.
+  const contactos = useMemo(() => contactosDe(filas ?? []), [filas])
 
   const guardar = async () => {
     if (!nombre.trim()) {
@@ -315,6 +326,55 @@ export default function VehiculoPresupuestosCard({
       { confirmText: 'Anular', loadingText: 'Anulando…' }
     )
 
+  const marcarEnviado = (f: Fila) =>
+    conFila(f.id, async () => {
+      const res = await fetch(`/api/presupuestos/${f.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: 'enviado' }),
+      })
+      if (!res.ok) {
+        showToast(await leerError(res, 'No se pudo marcar enviado'), 'error')
+        return
+      }
+      showToast('Marcado como enviado', 'success')
+      await cargarLista()
+    })
+
+  const renovar = (f: Fila) =>
+    showConfirm(
+      `Renovar ${f.numero}`,
+      `Se creará un presupuesto nuevo para ${f.nombre_cliente} con el precio y las condiciones de hoy. ${f.numero} queda como historial${
+        estadoEfectivo(f.estado, f.valido_hasta) === 'vencido' ||
+        f.estado === 'anulado'
+          ? ''
+          : ' y se anula'
+      }.`,
+      async () => {
+        try {
+          const res = await fetch(`/api/presupuestos/${f.id}/renovar`, {
+            method: 'POST',
+          })
+          if (!res.ok) {
+            showToast(await leerError(res, 'No se pudo renovar'), 'error')
+            return
+          }
+          const json = (await res.json()) as {
+            presupuesto?: { numero?: string }
+          }
+          showToast(
+            `Presupuesto ${json.presupuesto?.numero ?? ''} creado con el precio actual`,
+            'success'
+          )
+          await cargarLista()
+        } catch (err) {
+          console.error('renovar presupuesto:', err)
+          showToast('Error de red', 'error')
+        }
+      },
+      { type: 'info', confirmText: 'Renovar', loadingText: 'Renovando…' }
+    )
+
   const puedeActuar = (f: Fila) =>
     f.estado !== 'aceptado' && f.estado !== 'anulado'
 
@@ -323,6 +383,12 @@ export default function VehiculoPresupuestosCard({
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-base sm:text-lg font-semibold text-gray-900">
           Presupuestos
+          {filas && filas.length > 0 ? (
+            <span className="ml-2 text-sm font-normal text-slate-500">
+              {filas.length} · {contactos.length}{' '}
+              {contactos.length === 1 ? 'interesado' : 'interesados'}
+            </span>
+          ) : null}
         </h2>
         <button
           type="button"
@@ -428,134 +494,210 @@ export default function VehiculoPresupuestosCard({
           {vehiculo.matricula}.
         </p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs uppercase tracking-wide text-slate-500 border-b border-slate-200">
-                <th className="py-2 pr-3">Nº</th>
-                <th className="py-2 pr-3">Cliente</th>
-                <th className="py-2 pr-3">Estado</th>
-                <th className="py-2 pr-3 text-right">Sin premium</th>
-                <th className="py-2 pr-3 text-right">Con premium</th>
-                <th className="py-2 pr-3 text-right">Desde</th>
-                <th className="py-2 pr-3">Válido hasta</th>
-                <th className="py-2">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filas.map((f) => (
-                <tr key={f.id} className="align-top">
-                  <td className="py-2 pr-3 font-medium whitespace-nowrap">
-                    {f.numero}
-                    <span className="block text-xs font-normal text-slate-500">
-                      {formatearFecha(f.created_at)}
-                    </span>
-                  </td>
-                  <td className="py-2 pr-3">
-                    {f.nombre_cliente}
-                    {f.telefono || f.email ? (
-                      <span className="block text-xs text-slate-500">
-                        {[f.telefono, f.email].filter(Boolean).join(' · ')}
+        <>
+          <div className="mb-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500 mb-2">
+              Interesados con presupuesto
+            </p>
+            <ul className="flex flex-wrap gap-2">
+              {contactos.map((c) => {
+                const ultimo = c.presupuestos[0]
+                const wa = enlaceWhatsApp(
+                  c.telefono,
+                  textoReaviso(c.nombre, vehiculo)
+                )
+                return (
+                  <li
+                    key={c.clave}
+                    className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs"
+                  >
+                    <span>
+                      <span className="font-medium text-slate-800">
+                        {c.nombre}
                       </span>
-                    ) : null}
-                  </td>
-                  <td className="py-2 pr-3">
-                    <EstadoPresupuestoBadge
-                      estado={f.estado}
-                      validoHasta={f.valido_hasta}
-                    />
-                  </td>
-                  <td className="py-2 pr-3 text-right tabular-nums whitespace-nowrap">
-                    {formatearEuros(f.total_sin_premium)}
-                  </td>
-                  <td className="py-2 pr-3 text-right tabular-nums whitespace-nowrap">
-                    {formatearEuros(f.total_premium)}
-                  </td>
-                  <td className="py-2 pr-3 text-right tabular-nums whitespace-nowrap">
-                    {cuotaTexto(f.desde_premium)}
-                  </td>
-                  <td className="py-2 pr-3 whitespace-nowrap">
-                    {formatearFecha(f.valido_hasta)}
-                  </td>
-                  <td className="py-2">
-                    <div className="flex flex-wrap items-center gap-1">
-                      {f.estado !== 'anulado' ? (
-                        <a
-                          href={f.urlPublica}
-                          target="_blank"
-                          rel="noreferrer"
-                          className={CLASE_BTN}
-                        >
-                          Abrir
-                        </a>
+                      {c.telefono ? (
+                        <span className="text-slate-500"> · {c.telefono}</span>
+                      ) : c.email ? (
+                        <span className="text-slate-500"> · {c.email}</span>
                       ) : null}
-                      <button
-                        type="button"
-                        onClick={() => descargarPdf(f)}
-                        disabled={ocupado === f.id}
+                      <span className="block text-slate-500">
+                        {c.presupuestos.length === 1
+                          ? ultimo.numero
+                          : `${c.presupuestos.length} presupuestos, último ${ultimo.numero}`}{' '}
+                        ·{' '}
+                        {ESTADO_PRESUPUESTO_LABEL[
+                          estadoEfectivo(ultimo.estado, ultimo.valido_hasta)
+                        ].toLowerCase()}{' '}
+                        {formatearFecha(ultimo.created_at)}
+                      </span>
+                    </span>
+                    {wa ? (
+                      <a
+                        href={wa}
+                        target="_blank"
+                        rel="noreferrer"
+                        title="Reavisar por WhatsApp"
                         className={CLASE_BTN}
                       >
-                        PDF
-                      </button>
-                      {puedeActuar(f) ? (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => enviar(f, 'whatsapp')}
-                            disabled={ocupado === f.id || !f.telefono}
-                            title={f.telefono ? undefined : 'Sin teléfono'}
-                            className={CLASE_BTN}
-                          >
-                            WhatsApp
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => enviar(f, 'email')}
-                            disabled={ocupado === f.id || !f.email}
-                            title={f.email ? undefined : 'Sin email'}
-                            className={CLASE_BTN}
-                          >
-                            Email
-                          </button>
-                          <select
-                            aria-label="Columna a aceptar"
-                            value={columnaAceptar[f.id] ?? 'premium'}
-                            onChange={(e) =>
-                              setColumnaAceptar((prev) => ({
-                                ...prev,
-                                [f.id]: e.target.value as ColumnaClave,
-                              }))
-                            }
-                            className="px-1 py-1 text-xs border border-slate-300 rounded-md bg-white"
-                          >
-                            <option value="premium">Con premium</option>
-                            <option value="sin_premium">Sin premium</option>
-                          </select>
-                          <button
-                            type="button"
-                            onClick={() => aceptar(f)}
-                            disabled={ocupado === f.id}
-                            className="px-2 py-1 text-xs font-medium rounded-md bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50"
-                          >
-                            Aceptar
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => anular(f)}
-                            disabled={ocupado === f.id}
-                            className="px-2 py-1 text-xs font-medium rounded-md border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50"
-                          >
-                            Anular
-                          </button>
-                        </>
-                      ) : null}
-                    </div>
-                  </td>
+                        WhatsApp
+                      </a>
+                    ) : null}
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs uppercase tracking-wide text-slate-500 border-b border-slate-200">
+                  <th className="py-2 pr-3">Nº</th>
+                  <th className="py-2 pr-3">Cliente</th>
+                  <th className="py-2 pr-3">Estado</th>
+                  <th className="py-2 pr-3 text-right">Sin premium</th>
+                  <th className="py-2 pr-3 text-right">Con premium</th>
+                  <th className="py-2 pr-3 text-right">Desde</th>
+                  <th className="py-2 pr-3">Válido hasta</th>
+                  <th className="py-2">Acciones</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filas.map((f) => (
+                  <tr key={f.id} className="align-top">
+                    <td className="py-2 pr-3 font-medium whitespace-nowrap">
+                      {f.numero}
+                      <span className="block text-xs font-normal text-slate-500">
+                        {formatearFecha(f.created_at)}
+                      </span>
+                    </td>
+                    <td className="py-2 pr-3">
+                      {f.nombre_cliente}
+                      {f.telefono || f.email ? (
+                        <span className="block text-xs text-slate-500">
+                          {[f.telefono, f.email].filter(Boolean).join(' · ')}
+                        </span>
+                      ) : null}
+                    </td>
+                    <td className="py-2 pr-3">
+                      <EstadoPresupuestoBadge
+                        estado={f.estado}
+                        validoHasta={f.valido_hasta}
+                      />
+                    </td>
+                    <td className="py-2 pr-3 text-right tabular-nums whitespace-nowrap">
+                      {formatearEuros(f.total_sin_premium)}
+                    </td>
+                    <td className="py-2 pr-3 text-right tabular-nums whitespace-nowrap">
+                      {formatearEuros(f.total_premium)}
+                    </td>
+                    <td className="py-2 pr-3 text-right tabular-nums whitespace-nowrap">
+                      {cuotaTexto(f.desde_premium)}
+                    </td>
+                    <td className="py-2 pr-3 whitespace-nowrap">
+                      {formatearFecha(f.valido_hasta)}
+                    </td>
+                    <td className="py-2">
+                      <div className="flex flex-wrap items-center gap-1">
+                        {f.estado !== 'anulado' ? (
+                          <a
+                            href={f.urlPublica}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={CLASE_BTN}
+                          >
+                            Abrir
+                          </a>
+                        ) : null}
+                        <button
+                          type="button"
+                          onClick={() => descargarPdf(f)}
+                          disabled={ocupado === f.id}
+                          className={CLASE_BTN}
+                        >
+                          PDF
+                        </button>
+                        {puedeActuar(f) ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => enviar(f, 'whatsapp')}
+                              disabled={ocupado === f.id || !f.telefono}
+                              title={f.telefono ? undefined : 'Sin teléfono'}
+                              className={CLASE_BTN}
+                            >
+                              WhatsApp
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => enviar(f, 'email')}
+                              disabled={ocupado === f.id || !f.email}
+                              title={f.email ? undefined : 'Sin email'}
+                              className={CLASE_BTN}
+                            >
+                              Email
+                            </button>
+                            {f.estado === 'borrador' ? (
+                              <button
+                                type="button"
+                                onClick={() => marcarEnviado(f)}
+                                disabled={ocupado === f.id}
+                                title="Ya lo mandaste por tu cuenta (PDF, en mano…)"
+                                className={CLASE_BTN}
+                              >
+                                Marcar enviado
+                              </button>
+                            ) : null}
+                            <select
+                              aria-label="Columna a aceptar"
+                              value={columnaAceptar[f.id] ?? 'premium'}
+                              onChange={(e) =>
+                                setColumnaAceptar((prev) => ({
+                                  ...prev,
+                                  [f.id]: e.target.value as ColumnaClave,
+                                }))
+                              }
+                              className="px-1 py-1 text-xs border border-slate-300 rounded-md bg-white"
+                            >
+                              <option value="premium">Con premium</option>
+                              <option value="sin_premium">Sin premium</option>
+                            </select>
+                            <button
+                              type="button"
+                              onClick={() => aceptar(f)}
+                              disabled={ocupado === f.id}
+                              className="px-2 py-1 text-xs font-medium rounded-md bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50"
+                            >
+                              Aceptar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => anular(f)}
+                              disabled={ocupado === f.id}
+                              className="px-2 py-1 text-xs font-medium rounded-md border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                            >
+                              Anular
+                            </button>
+                          </>
+                        ) : null}
+                        {f.estado !== 'aceptado' ? (
+                          <button
+                            type="button"
+                            onClick={() => renovar(f)}
+                            disabled={ocupado === f.id}
+                            title="Nuevo presupuesto para este cliente con el precio de hoy"
+                            className={CLASE_BTN}
+                          >
+                            Renovar
+                          </button>
+                        ) : null}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       <ConfirmModalComponent />

@@ -18,7 +18,17 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "next-env.d.ts",
+      "coverage/**",
+      "playwright-report/**",
+      "qa/artifacts/**",
     ],
+  },
+  {
+    // Scripts operativos y configs: Node CommonJS, require() es lo correcto.
+    files: ["scripts/**/*.js", "*.js", "*.cjs", "tests/**/*.js"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
   },
 ];
 

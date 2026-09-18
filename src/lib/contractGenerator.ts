@@ -26,7 +26,7 @@ import {
 } from './pdf/theme'
 
 // Función para formatear la fecha de matriculación
-function getFechaMatriculacion(vehiculo: any): string {
+function getFechaMatriculacion(vehiculo: DealData['vehiculo']): string {
   if (vehiculo?.fechaMatriculacion) {
     const fecha = new Date(vehiculo.fechaMatriculacion)
     if (!isNaN(fecha.getTime())) {
@@ -117,7 +117,7 @@ class PDFCursor {
 
 // Función helper para escribir campos con plantilla
 function writeField(
-  doc: any,
+  doc: jsPDF,
   label: string,
   value: string,
   x: number,
@@ -152,7 +152,6 @@ async function loadLogoSVG(): Promise<string> {
     return __LOGO_CACHE__
   }
   try {
-
     // Verificar si estamos en el servidor (Node.js) o en el cliente (browser)
     if (typeof window === 'undefined') {
       // Servidor: usar fs para leer el archivo
@@ -250,7 +249,10 @@ async function loadLogoSVG(): Promise<string> {
 }
 
 // Función para agregar logo a los contratos
-async function addLogoToContract(doc: any, yPosition: number): Promise<number> {
+async function addLogoToContract(
+  doc: jsPDF,
+  yPosition: number
+): Promise<number> {
   try {
     console.log('🖼️ [LOGO] Intentando cargar logo PNG...')
 
@@ -317,7 +319,7 @@ async function addLogoToContract(doc: any, yPosition: number): Promise<number> {
  * cláusulas + firmas en una sola hoja A4.
  */
 async function addCompactHeader(
-  doc: any,
+  doc: jsPDF,
   vendor: {
     legalName: string
     cif: string
@@ -684,7 +686,11 @@ export async function generarContratoReserva(
     doc.setTextColor(17, 24, 39)
     const fechaContrato =
       deal.fechaReservaDesde || deal.fechaCreacion || new Date()
-    doc.text(`En Alaquàs, a ${formatearFechaCompleta(fechaContrato)}.`, margin, y)
+    doc.text(
+      `En Alaquàs, a ${formatearFechaCompleta(fechaContrato)}.`,
+      margin,
+      y
+    )
     y += 7
 
     // === REUNIDOS ===
@@ -752,7 +758,9 @@ export async function generarContratoReserva(
     const precioEnLetras = numeroALetras(Math.floor(precio))
     const montoReserva = deal.importeSena || 0
     const montoReservaEnLetras = numeroALetras(Math.floor(montoReserva))
-    const formaPagoReserva = getFormaPagoReserva(deal.formaPagoSena || 'efectivo')
+    const formaPagoReserva = getFormaPagoReserva(
+      deal.formaPagoSena || 'efectivo'
+    )
 
     y += 4 // respiro extra antes del punto 2 (separa de la card del vehículo)
 
@@ -811,7 +819,11 @@ export async function generarContratoReserva(
     doc.setFontSize(8.5)
     doc.setFont('helvetica', 'italic')
     doc.setTextColor(75, 85, 99)
-    doc.text('Y en prueba de conformidad, ambas partes firman el presente documento.', margin, y)
+    doc.text(
+      'Y en prueba de conformidad, ambas partes firman el presente documento.',
+      margin,
+      y
+    )
 
     // === Firmas: fluyen debajo de la conformidad si el contenido las empuja
     drawSignatureBlock(
@@ -1195,7 +1207,11 @@ export async function generarContratoVenta(
   doc.setFontSize(8.5)
   doc.setFont('helvetica', 'italic')
   doc.setTextColor(75, 85, 99)
-  doc.text('Y en prueba de conformidad, ambas partes firman el presente documento.', margin, y)
+  doc.text(
+    'Y en prueba de conformidad, ambas partes firman el presente documento.',
+    margin,
+    y
+  )
 
   // === Firmas: fluyen debajo de la conformidad si el contenido las empuja
   drawSignatureBlock(
@@ -1828,7 +1844,7 @@ export async function generarFactura(
   console.log('🔍 [GENERAR FACTURA] Parámetros recibidos:', {
     tipoFactura,
     numeroFacturaPersonalizado,
-    dealId: (deal as any).id,
+    dealId: (deal as DealData & { id?: number }).id,
   })
 
   try {
@@ -1847,7 +1863,7 @@ export async function generarFactura(
     // sólo caemos al fallback heurístico si no nos pasan uno).
     const numeroFactura =
       numeroFacturaPersonalizado ||
-      `FAC-${new Date().getFullYear()}-${String((deal as any).id || Math.floor(Math.random() * 1000)).padStart(4, '0')}`
+      `FAC-${new Date().getFullYear()}-${String((deal as DealData & { id?: number }).id || Math.floor(Math.random() * 1000)).padStart(4, '0')}`
     const fechaFactura = options.fechaFactura ?? new Date()
     const rect = options.rectificativa
 
@@ -1878,13 +1894,13 @@ export async function generarFactura(
 
     // === Card del cliente ===
     const clienteNombre =
-      `${capitalizeText(deal.cliente?.nombre) || ''} ${capitalizeText(deal.cliente?.apellidos) || ''}`
-        .trim() || 'Cliente no especificado'
+      `${capitalizeText(deal.cliente?.nombre) || ''} ${capitalizeText(deal.cliente?.apellidos) || ''}`.trim() ||
+      'Cliente no especificado'
     const clienteDireccion = [
       deal.cliente?.calle,
-      (deal.cliente as any)?.ciudad,
-      (deal.cliente as any)?.provincia,
-      (deal.cliente as any)?.codPostal,
+      deal.cliente?.ciudad,
+      deal.cliente?.provincia,
+      deal.cliente?.codPostal,
     ]
       .filter(Boolean)
       .join(', ')
@@ -1926,8 +1942,8 @@ export async function generarFactura(
     // === Tabla de ítems (1 fila: la venta del vehículo) ===
     const marca = capitalizeText(deal.vehiculo?.marca) || 'Vehículo'
     const modelo = capitalizeText(deal.vehiculo?.modelo) || ''
-    const kmsTxt = (deal.vehiculo as any)?.kms
-      ? `${((deal.vehiculo as any).kms as number).toLocaleString('es-ES')} km`
+    const kmsTxt = deal.vehiculo?.kms
+      ? `${deal.vehiculo.kms.toLocaleString('es-ES')} km`
       : null
     const detailLines = [
       deal.vehiculo?.matricula ? `Matrícula: ${deal.vehiculo.matricula}` : null,
@@ -2128,8 +2144,23 @@ interface DepositoData {
 
 // Función para generar contrato de compraventa simplificado (solo cliente y vehículo)
 export async function generarContratoCompraventaSimple(
-  cliente: any,
-  vehiculo: any,
+  cliente: {
+    nombre?: string
+    apellidos?: string
+    dni?: string
+    direccion?: string
+    ciudad?: string
+    provincia?: string
+  },
+  vehiculo: {
+    marca?: string
+    modelo?: string
+    matricula?: string
+    bastidor?: string
+    fechaMatriculacion?: string | Date | null
+    kms?: number | null
+    color?: string
+  },
   precio: number
 ): Promise<Uint8Array> {
   try {

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth, type User } from '@/contexts/AuthContext'
 import { useSafeInversorAuth } from '@/hooks/useSafeInversorAuth'
 
 // Iconos SVG optimizados para mobile-first
@@ -517,7 +517,9 @@ export default function Navigation() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">
-                      {inversor ? inversor.nombre : (user as any)?.nombre}
+                      {inversor
+                        ? inversor.nombre
+                        : (user as (User & { nombre?: string }) | null)?.nombre}
                     </p>
                     <p className="text-xs text-gray-500 truncate">
                       {inversor ? 'Inversor' : user?.role}

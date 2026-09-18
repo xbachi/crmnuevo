@@ -114,7 +114,7 @@ async function getColumnPositions(
 export async function writeToGoogleSheets(
   spreadsheetId: string,
   sheetName: string,
-  vehiculoData: any,
+  vehiculoData: Record<string, unknown> & { tipo?: string | null },
   sheetType: 'VENTAS' | 'COMPRAS'
 ) {
   try {
@@ -242,9 +242,14 @@ export async function retryWithBackoff<T>(
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       return await fn()
-    } catch (error: any) {
+    } catch (error) {
       // gaxios 7 deja el HTTP status en error.status (code es el errno).
-      const status = error?.status ?? error?.response?.status ?? error?.code
+      const err = error as {
+        status?: unknown
+        response?: { status?: unknown }
+        code?: unknown
+      }
+      const status = err?.status ?? err?.response?.status ?? err?.code
       if ((status === 429 || status === 503) && attempt < maxRetries - 1) {
         // Quota exceeded, wait with exponential backoff
         const delay = baseDelay * Math.pow(2, attempt)
@@ -266,7 +271,7 @@ export async function getGoogleSheetsData() {
     const auth = await getGoogleSheetsAuth()
     const sheets = google.sheets({ version: 'v4', auth })
 
-    const allData: any[] = []
+    const allData: Record<string, unknown>[] = []
 
     // Solo obtener datos de la hoja "Expo" primero (la más importante)
     const primarySheet = 'Expo'
@@ -286,7 +291,7 @@ export async function getGoogleSheetsData() {
         const dataRows = rows.slice(1)
 
         dataRows.forEach((row) => {
-          const rowData: any = {}
+          const rowData: Record<string, unknown> = {}
           headers.forEach((header, index) => {
             rowData[header] = row[index] || ''
           })
@@ -320,7 +325,7 @@ export async function getGoogleSheetsData() {
           const dataRows = rows.slice(1)
 
           dataRows.forEach((row) => {
-            const rowData: any = {}
+            const rowData: Record<string, unknown> = {}
             headers.forEach((header, index) => {
               rowData[header] = row[index] || ''
             })
@@ -336,7 +341,7 @@ export async function getGoogleSheetsData() {
       } catch (error) {
         console.error(`Error reading additional sheet ${sheetName}:`, error)
         // Si es error de cuota, parar aquí y devolver lo que tenemos
-        if ((error as any).code === 429) {
+        if ((error as { code?: unknown }).code === 429) {
           console.log('Cuota excedida, devolviendo datos parciales')
           break
         }

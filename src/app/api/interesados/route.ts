@@ -136,9 +136,9 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'ID requerido' }, { status: 400 })
 
     const fields: string[] = []
-    const values: any[] = []
+    const values: unknown[] = []
 
-    const push = (col: string, val: any) => {
+    const push = (col: string, val: unknown) => {
       fields.push(`${col} = $${fields.length + 1}`)
       values.push(val)
     }

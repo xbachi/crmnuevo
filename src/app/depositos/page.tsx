@@ -940,7 +940,7 @@ function DepositosPageInner() {
                       No hay depósitos
                     </h3>
                     <p className="text-gray-500">
-                      No se encontraron depósitos en el estado "{activeTab}"
+                      No se encontraron depósitos en el estado &quot;{activeTab}&quot;
                     </p>
                   </div>
                 )}

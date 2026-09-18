@@ -109,11 +109,13 @@ test.describe('Comisiones @comisiones', () => {
       page.getByRole('heading', { name: 'Comisiones', exact: true })
     ).toBeVisible({ timeout: 60_000 })
 
-    // Los 12 meses están disponibles como período seleccionable.
-    const mesSelect = page.locator('select').first()
-    await expect(mesSelect.locator('option')).toHaveCount(12)
-    await expect(mesSelect.locator('option').first()).toHaveText('Enero')
-    await expect(mesSelect.locator('option').last()).toHaveText('Diciembre')
+    // Los 12 meses están disponibles como botones (los futuros, deshabilitados).
+    const meses = page.getByRole('button', {
+      name: /^(ENE|FEB|MAR|ABR|MAY|JUN|JUL|AGO|SEP|OCT|NOV|DIC)$/,
+    })
+    await expect(meses).toHaveCount(12)
+    await expect(meses.first()).toHaveText('ENE')
+    await expect(meses.last()).toHaveText('DIC')
 
     // La tabla renderizó: no quedó en "Cargando…".
     await expect(page.getByText('Cargando…')).toHaveCount(0)
@@ -132,20 +134,23 @@ test.describe('Comisiones @comisiones', () => {
     expect(requests.length).toBe(trasCarga)
 
     // Cambiar de mes refetchea EXACTAMENTE una vez, con el mes pedido.
-    await mesSelect.selectOption('3')
-    await expect(page.getByRole('cell', { name: 'Coche de mes 3' })).toBeVisible()
+    // Marzo y enero: siempre pasados dentro del año en curso.
+    await meses.nth(2).click()
+    await expect(
+      page.getByRole('cell', { name: 'Coche de mes 3' })
+    ).toBeVisible()
     await page.waitForTimeout(3000)
     expect(requests.length).toBe(trasCarga + 1)
     expect(requests[trasCarga]).toContain('month=3')
 
     // Segundo cambio: idem, sin arrastrar loops.
-    await mesSelect.selectOption('11')
+    await meses.nth(0).click()
     await expect(
-      page.getByRole('cell', { name: 'Coche de mes 11' })
+      page.getByRole('cell', { name: 'Coche de mes 1' })
     ).toBeVisible()
     await page.waitForTimeout(3000)
     expect(requests.length).toBe(trasCarga + 2)
-    expect(requests[trasCarga + 1]).toContain('month=11')
+    expect(requests[trasCarga + 1]).toContain('month=1')
 
     // La página sigue viva y con datos (no se quedó cargando).
     await expect(page.getByText('Cargando…')).toHaveCount(0)
@@ -167,11 +172,18 @@ test.describe('Comisiones @comisiones', () => {
     await page.goto('/comisiones')
     // El pie vive en el tfoot; el panel de config (admin) repite algunos
     // textos, así que se busca por celda.
-    await expect(page.getByRole('cell', { name: /Subtotal comisiones/ })).toBeVisible({
+    // El tfoot va en mayúsculas por CSS (el nombre accesible lo refleja).
+    await expect(
+      page.getByRole('cell', { name: /subtotal comisiones/i })
+    ).toBeVisible({
       timeout: 60_000,
     })
-    await expect(page.getByRole('cell', { name: /Bono mensual/ })).toBeVisible()
-    await expect(page.getByRole('cell', { name: 'Total del mes' })).toBeVisible()
+    await expect(
+      page.getByRole('cell', { name: /bono mensual/i })
+    ).toBeVisible()
+    await expect(
+      page.getByRole('cell', { name: /^total del mes$/i })
+    ).toBeVisible()
     // Tramo aplicado visible y auditable en la fila.
     await expect(page.getByText(/Financiado ≥70%/)).toBeVisible()
   })
@@ -240,7 +252,9 @@ test.describe('Modal de condiciones de pago @comisiones', () => {
     })
     // El contrato se genera después de guardar las condiciones; lo cortamos
     // acá para no depender del generador de PDF.
-    await page.route(/\/api\/documents\//, (route) => route.fulfill({ json: {} }))
+    await page.route(/\/api\/documents\//, (route) =>
+      route.fulfill({ json: {} })
+    )
 
     await abrirModal(page)
     const submit = page.getByTestId('condiciones-submit')
@@ -336,6 +350,8 @@ test.describe('Modal de condiciones de pago @comisiones', () => {
     // Corrigiendo a 4000 + 16000 = 20000 el descuadre desaparece y pasa.
     await page.getByTestId('monto-contado').fill('4000')
     await page.getByTestId('monto-financiado').fill('16000')
-    await expect(page.getByText(/coincide con el precio de venta/)).toBeVisible()
+    await expect(
+      page.getByText(/coincide con el precio de venta/)
+    ).toBeVisible()
   })
 })

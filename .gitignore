@@ -74,3 +74,11 @@ public/documents/**
 
 # worktrees de agentes (temporales)
 .claude/worktrees/
+
+# Salidas de la suite QA (las genera CI; no se versionan)
+/qa/artifacts/
+/qa/report.md
+/qa/summary.md
+/playwright-report/
+/test-results/
+/.lighthouseci/

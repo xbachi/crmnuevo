@@ -9,7 +9,7 @@ export async function POST() {
 
     // Crear tabla DepositoRecordatorios con la misma estructura que VehiculoRecordatorios
     await client.query(`
-      CREATE TABLE IF NOT EXISTS DepositoRecordatorios (
+      CREATE TABLE IF NOT EXISTS "DepositoRecordatorios" (
         id SERIAL PRIMARY KEY,
         deposito_id INTEGER NOT NULL,
         titulo VARCHAR(255) NOT NULL,
@@ -26,11 +26,11 @@ export async function POST() {
 
     // Crear índices para mejor rendimiento
     await client.query(`
-      CREATE INDEX IF NOT EXISTS idx_deposito_recordatorio_deposito_id ON DepositoRecordatorios(deposito_id)
+      CREATE INDEX IF NOT EXISTS idx_deposito_recordatorio_deposito_id ON "DepositoRecordatorios"(deposito_id)
     `)
 
     await client.query(`
-      CREATE INDEX IF NOT EXISTS idx_deposito_recordatorio_fecha ON DepositoRecordatorios(fecha_recordatorio)
+      CREATE INDEX IF NOT EXISTS idx_deposito_recordatorio_fecha ON "DepositoRecordatorios"(fecha_recordatorio)
     `)
 
     client.release()

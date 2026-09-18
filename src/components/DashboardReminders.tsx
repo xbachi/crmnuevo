@@ -20,7 +20,9 @@ interface DashboardReminder {
     marca: string
     modelo: string
     matricula?: string
-    [key: string]: any
+    dealId?: number
+    cliente?: { nombre: string; apellidos: string }
+    [key: string]: unknown
   }>
 }
 

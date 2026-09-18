@@ -24,8 +24,20 @@ const createVehiculoInversor = (overrides = {}) =>
 const createVehiculoDeposito = (overrides = {}) =>
   createTestVehicle({ tipo: 'D', ...overrides })
 
+type MockVehicle = ReturnType<typeof createTestVehicle>
+
+interface MockVehicleCardProps {
+  vehiculo: MockVehicle
+  onClick?: (vehiculo: MockVehicle) => void
+  [key: string]: unknown
+}
+
 // Mock the VehicleCard component since we don't have the actual import
-const MockVehicleCard = ({ vehiculo, onClick, ...props }: any) => {
+const MockVehicleCard = ({
+  vehiculo,
+  onClick,
+  ...props
+}: MockVehicleCardProps) => {
   const getTypeColor = (tipo: string) => {
     switch (tipo) {
       case 'I':

@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useToast } from '@/components/Toast'
 import { useConfirmModal } from '@/components/ConfirmModal'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth, type User } from '@/contexts/AuthContext'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { addReminder, createDocumentacionReminder } from '@/lib/reminders'
 import { formatCurrency, generateClienteSlug } from '@/lib/utils'
@@ -120,10 +120,16 @@ interface AccionHistorial {
   usuario?: string
 }
 
+interface DocumentacionFile {
+  type: string
+  url: string
+  [key: string]: unknown
+}
+
 // Función para generar el historial de acciones basado en los datos del deal
 function getHistorialAcciones(
   deal: Deal,
-  currentUser?: any
+  currentUser?: User | null
 ): AccionHistorial[] {
   const historial: AccionHistorial[] = []
 
@@ -229,7 +235,9 @@ export default function DealDetail() {
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [notas, setNotas] = useState<Nota[]>([])
   const [recordatorios, setRecordatorios] = useState<Recordatorio[]>([])
-  const [documentacionFiles, setDocumentacionFiles] = useState<any[]>([])
+  const [documentacionFiles, setDocumentacionFiles] = useState<
+    DocumentacionFile[]
+  >([])
   const [showAllHistorial, setShowAllHistorial] = useState(false)
 
   // Estados para los formularios
@@ -338,10 +346,14 @@ export default function DealDetail() {
           recordatorios
         )
         // Convertir las fechas de string a Date
-        const recordatoriosWithDates = recordatorios.map((r: any) => ({
-          ...r,
-          fecha: new Date(r.fecha_recordatorio),
-        }))
+        const recordatoriosWithDates = recordatorios.map(
+          (
+            r: Omit<Recordatorio, 'fecha'> & { fecha_recordatorio: string }
+          ) => ({
+            ...r,
+            fecha: new Date(r.fecha_recordatorio),
+          })
+        )
         setRecordatorios(recordatoriosWithDates)
       } else {
         const errorData = await response.json()
@@ -2370,7 +2382,7 @@ export default function DealDetail() {
                     </div>
                     {getDocumentFile('contrato_parte2') ? (
                       <a
-                        href={getDocumentFile('contrato_parte2').url}
+                        href={getDocumentFile('contrato_parte2')?.url}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-3 py-1 bg-green-100 text-green-700 rounded-md text-sm font-medium hover:bg-green-200"
@@ -2428,7 +2440,7 @@ export default function DealDetail() {
                     </div>
                     {getDocumentFile('hoja_garantia') ? (
                       <a
-                        href={getDocumentFile('hoja_garantia').url}
+                        href={getDocumentFile('hoja_garantia')?.url}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-3 py-1 bg-green-100 text-green-700 rounded-md text-sm font-medium hover:bg-green-200"

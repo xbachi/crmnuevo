@@ -24,7 +24,10 @@ export async function PUT(request: NextRequest) {
       // Permitir estado vacío o null para la columna "Inicial"
       if (update.estado === undefined) {
         return NextResponse.json(
-          { error: 'Each update must have estado field (can be empty string for initial state)' },
+          {
+            error:
+              'Each update must have estado field (can be empty string for initial state)',
+          },
           { status: 400 }
         )
       }
@@ -37,7 +40,7 @@ export async function PUT(request: NextRequest) {
     const allVehiculos = await getVehiculos()
 
     return NextResponse.json(allVehiculos)
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error updating vehiculos orden:', error)
     return NextResponse.json(
       { error: 'Error updating vehiculos orden' },

@@ -209,10 +209,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Sin fecha de inicio, hoy (antes new Date(undefined) reventaba el cálculo
+    // de fecha_fin y se insertaba NULL en vez del DEFAULT de la columna).
+    const fechaInicioValor =
+      fecha_inicio || new Date().toISOString().split('T')[0]
     // Calcular fecha de fin si se proporcionan días de gestión
     let fecha_fin = null
     if (dias_gestion) {
-      const fechaInicio = new Date(fecha_inicio)
+      const fechaInicio = new Date(fechaInicioValor)
+      if (Number.isNaN(fechaInicio.getTime())) {
+        return NextResponse.json(
+          { error: 'fecha_inicio no es una fecha válida' },
+          { status: 400 }
+        )
+      }
       fechaInicio.setDate(fechaInicio.getDate() + parseInt(dias_gestion))
       fecha_fin = fechaInicio.toISOString().split('T')[0]
     }
@@ -228,7 +238,7 @@ export async function POST(request: NextRequest) {
         cliente_id,
         vehiculo_id,
         estado,
-        fecha_inicio,
+        fechaInicioValor,
         fecha_fin,
         precio_venta,
         comision_porcentaje,

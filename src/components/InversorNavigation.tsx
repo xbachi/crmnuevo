@@ -56,13 +56,8 @@ export default function InversorNavigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const pathname = usePathname()
   const { inversor, logout } = useInversorAuth()
-
-  // Solo mostrar la navegación si hay un inversor autenticado
-  if (!inversor) {
-    return null
-  }
-
-  // Detectar si es móvil
+  // Detectar si es móvil. Los hooks van antes del return condicional: React
+  // exige el mismo número de hooks en cada render.
   const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
@@ -77,6 +72,11 @@ export default function InversorNavigation() {
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
+
+  // Solo mostrar la navegación si hay un inversor autenticado
+  if (!inversor) {
+    return null
+  }
 
   const navItems = [
     {

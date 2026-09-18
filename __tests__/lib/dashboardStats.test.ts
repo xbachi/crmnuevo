@@ -79,8 +79,13 @@ describe('getVehiculoStats', () => {
     expect(sql).toMatch(
       /IN \('SIN_ESTADO', 'INICIAL', 'REVI_INIC', 'MECAUTO', 'REVI_PINTURA', 'PINTURA', 'LIMPIEZA', 'FOTOS'\)/
     )
-    // total activos excluye vendidos
-    expect(sql).toMatch(/UPPER\(TRIM\(estado\)\) NOT IN \('VENDIDO'\)/)
+    // total activos = sin estado + en proceso + publicado + reservado. Sin el
+    // "NOT IN ('VENDIDO')" previo: con estado NULL esa comparación es NULL y
+    // dejaba fuera del total a los coches recién creados.
+    expect(sql).toMatch(
+      /\(estado IS NULL OR estado = '' OR UPPER\(TRIM\(estado\)\) IN \('SIN_ESTADO', 'INICIAL', 'REVI_INIC', 'MECAUTO', 'REVI_PINTURA', 'PINTURA', 'LIMPIEZA', 'FOTOS', 'PUBLICADO', 'RESERVADO'\)\)\) AS total_activos/
+    )
+    expect(sql).not.toMatch(/NOT IN \('VENDIDO'\) AND \(estado IS NULL/)
   })
 })
 

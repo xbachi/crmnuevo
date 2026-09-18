@@ -16,13 +16,11 @@ const customJestConfig = {
     '^@/hooks/(.*)$': '<rootDir>/src/hooks/$1',
     '^@/config/(.*)$': '<rootDir>/src/config/$1',
   },
-  transformIgnorePatterns: [
-    'node_modules/(?!(@faker-js/faker)/)'
-  ],
+  transformIgnorePatterns: ['node_modules/(?!(@faker-js/faker)/)'],
   testMatch: [
     '<rootDir>/__tests__/**/*.{js,jsx,ts,tsx}',
     '<rootDir>/src/**/__tests__/**/*.{js,jsx,ts,tsx}',
-    '<rootDir>/src/**/*.{test,spec}.{js,jsx,ts,tsx}'
+    '<rootDir>/src/**/*.{test,spec}.{js,jsx,ts,tsx}',
   ],
   // real-database-tests.test.ts requiere un servidor Next.js en localhost:3000 + DB real:
   // no es un test unitario, pertenece a test:integration (ver jest.integration.config.js)
@@ -39,6 +37,9 @@ const customJestConfig = {
     '!src/app/**/not-found.tsx',
     '!src/app/**/global-error.tsx',
   ],
+  // json-summary: lo leen scripts/check-coverage.js y generate-qa-report.js
+  // (sin él, coverage-summary.json no existe y el umbral nunca se comprueba).
+  coverageReporters: ['json', 'json-summary', 'lcov', 'text', 'clover'],
   coverageThreshold: {
     // Piso realista sobre la cobertura actual (~2-4%): el 70% original nunca se cumplió
     // con esta suite (~10 archivos de test para todo el repo) y bloqueaba cualquier push.
@@ -46,8 +47,8 @@ const customJestConfig = {
       branches: 1,
       functions: 1,
       lines: 3,
-      statements: 3
-    }
+      statements: 3,
+    },
   },
   testTimeout: 30000,
   maxWorkers: '50%',
@@ -55,3 +56,5 @@ const customJestConfig = {
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
 module.exports = createJestConfig(customJestConfig)
+// Umbral accesible para scripts (scripts/check-coverage.js) sin resolver next/jest.
+module.exports.coverageThreshold = customJestConfig.coverageThreshold
