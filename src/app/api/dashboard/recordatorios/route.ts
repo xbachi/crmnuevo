@@ -8,7 +8,10 @@ export async function GET() {
     )
 
     const client = await pool.connect()
-    const todosRecordatorios: any[] = []
+    const todosRecordatorios: {
+      fecha_recordatorio: string | Date
+      [key: string]: unknown
+    }[] = []
 
     try {
       // Obtener recordatorios de deals (si la tabla existe)
@@ -55,7 +58,7 @@ export async function GET() {
             v.modelo as vehiculo_modelo,
             NULL as cliente_nombre,
             NULL as cliente_apellidos
-          FROM VehiculoRecordatorios vr
+          FROM "VehiculoRecordatorios" vr
           LEFT JOIN "Vehiculo" v ON vr.vehiculo_id = v.id
           WHERE vr.completado = false
           ORDER BY vr.fecha_recordatorio ASC

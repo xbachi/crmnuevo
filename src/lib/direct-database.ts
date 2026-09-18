@@ -66,11 +66,14 @@ console.log('DATABASE_URL cargada:', process.env.DATABASE_URL ? 'Sí' : 'No')
 //                                 don't squat on slots.
 //   connectionTimeoutMillis=5000 — fail fast; surfaces saturation as 500
 //                                 instead of letting requests hang.
+// Postgres local (CI, tests) no habla SSL; el pooler de Supabase sí.
+const DB_LOCAL = /@(localhost|127\.0\.0\.1)[:/]/.test(
+  process.env.DATABASE_URL ?? ''
+)
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false,
-  },
+  ssl: DB_LOCAL ? false : { rejectUnauthorized: false },
   max: 3,
   idleTimeoutMillis: 10_000,
   connectionTimeoutMillis: 5_000,
@@ -866,12 +869,14 @@ export async function updateDeal(
     if (!currentDeal) return null
 
     const oldEstado = currentDeal.estado
-    const newEstado = (dealData as any).estado
+    const newEstado = (
+      dealData as Partial<DealCreateData> & { estado?: string }
+    ).estado
     const vehiculoId = currentDeal.vehiculoId
 
     // Construir query dinámico
     const fields: string[] = []
-    const values: any[] = []
+    const values: unknown[] = []
     let paramIndex = 1
 
     Object.entries(dealData).forEach(([key, value]) => {
@@ -1359,9 +1364,9 @@ export async function updateVehiculo(
             ADD COLUMN "garantiaPremium" BOOLEAN DEFAULT false
           `)
           console.log('✅ Columna garantiaPremium creada exitosamente')
-        } catch (alterError: any) {
+        } catch (alterError) {
           // Si falla la creación, podría ser porque otro proceso la creó o hay un error de permisos
-          if (alterError.code !== '42701') {
+          if ((alterError as { code?: string }).code !== '42701') {
             // 42701 = duplicate column
             console.error(
               '❌ Error al crear columna garantiaPremium:',
@@ -1395,7 +1400,7 @@ export async function updateVehiculo(
     if (fields.includes('garantiaPremium')) {
       console.log(
         '🔧 Actualizando garantiaPremium:',
-        (vehiculoData as any).garantiaPremium
+        vehiculoData.garantiaPremium
       )
     }
 
@@ -1430,7 +1435,8 @@ export async function updateVehiculo(
       seguroVence: dateToYMD(row.seguroVence),
       garantiaVence: dateToYMD(row.garantiaVence),
     } as Vehiculo
-  } catch (error: any) {
+  } catch (error) {
+    const err = error as { code?: string; message?: string }
     console.error('❌ Error actualizando vehículo:', error)
     console.error('❌ Tipo de error:', typeof error)
     console.error(
@@ -1445,16 +1451,16 @@ export async function updateVehiculo(
     console.error('❌ ID del vehículo:', id)
     // Si el error es porque la columna no existe, proporcionar un mensaje más claro
     if (
-      error.code === '42703' ||
-      error.message?.includes('column') ||
-      error.message?.includes('does not exist')
+      err.code === '42703' ||
+      err.message?.includes('column') ||
+      err.message?.includes('does not exist')
     ) {
       const missingColumn =
-        error.message?.match(/column "(\w+)"/)?.[1] || 'desconocida'
+        err.message?.match(/column "(\w+)"/)?.[1] || 'desconocida'
       const friendlyError = new Error(
         `La columna "${missingColumn}" no existe en la base de datos. Ejecuta el script SQL para agregarla.`
       )
-      ;(friendlyError as any).code = error.code
+      ;(friendlyError as Error & { code?: string }).code = err.code
       throw friendlyError
     }
     throw error
@@ -1478,7 +1484,7 @@ export async function getInversores() {
   }
 }
 
-export async function saveInversor(inversorData: any) {
+export async function saveInversor(inversorData: Record<string, unknown>) {
   const client = await pool.connect()
   try {
     const result = await client.query(
@@ -1810,11 +1816,11 @@ export async function getDepositosPage(params: ListPageParams = {}) {
   return ejecutarListPage('depósitos', sql, values, mapDepositoListRow)
 }
 
-export async function saveCliente(clienteData: any) {
+export async function saveCliente(clienteData: Record<string, unknown>) {
   const client = await pool.connect()
   try {
     // Función para convertir strings vacíos a null para campos numéricos y fechas
-    const convertEmptyToNull = (value: any, fieldName: string) => {
+    const convertEmptyToNull = (value: unknown, fieldName: string) => {
       if (value === '' || value === '') {
         // Campos numéricos
         if (
@@ -1905,7 +1911,10 @@ export async function getClienteById(id: number) {
   }
 }
 
-export async function updateCliente(id: number, clienteData: any) {
+export async function updateCliente(
+  id: number,
+  clienteData: Record<string, unknown>
+) {
   const client = await pool.connect()
   try {
     // Campos válidos según el esquema de la base de datos actualizado
@@ -2047,7 +2056,10 @@ export async function getInversorById(id: number) {
   }
 }
 
-export async function updateInversor(id: number, inversorData: any) {
+export async function updateInversor(
+  id: number,
+  inversorData: Record<string, unknown>
+) {
   const client = await pool.connect()
   try {
     const fields = Object.keys(inversorData).filter((key) => key !== 'id')
@@ -2270,7 +2282,7 @@ export async function getNotasByCliente(clienteId: number) {
   }
 }
 
-export async function addNotaCliente(notaData: any) {
+export async function addNotaCliente(notaData: Record<string, unknown>) {
   const client = await pool.connect()
   try {
     const result = await client.query(
@@ -2677,7 +2689,9 @@ const SQL_ESTADOS_PROCESO = `'SIN_ESTADO', 'INICIAL', 'REVI_INIC', 'MECAUTO', 'R
 // Sin estado (NULL / vacío) cuenta como "inicial".
 const SQL_EN_PROCESO = `(estado IS NULL OR estado = '' OR UPPER(TRIM(estado)) IN (${SQL_ESTADOS_PROCESO}))`
 // Activo = en proceso + publicado + reservado (excluye vendidos).
-const SQL_ACTIVO = `(UPPER(TRIM(estado)) NOT IN ('VENDIDO') AND (estado IS NULL OR estado = '' OR UPPER(TRIM(estado)) IN (${SQL_ESTADOS_PROCESO}, 'PUBLICADO', 'RESERVADO')))`
+// Sin "NOT IN ('VENDIDO')" delante: con estado NULL esa comparación es NULL y
+// dejaba fuera del total a los coches recién creados (sí contaban en proceso).
+const SQL_ACTIVO = `(estado IS NULL OR estado = '' OR UPPER(TRIM(estado)) IN (${SQL_ESTADOS_PROCESO}, 'PUBLICADO', 'RESERVADO'))`
 const SQL_PUBLICADO = `UPPER(TRIM(estado)) = 'PUBLICADO'`
 const SQL_RESERVADO = `UPPER(TRIM(estado)) = 'RESERVADO'`
 const SQL_VENDIDO = `UPPER(TRIM(estado)) = 'VENDIDO'`
