@@ -23,7 +23,9 @@ export interface FichaComercial {
   pct_dto: number | null
   meses_garantia_fabrica: number | null
   motor_cv: number | null
+  motor_kw: number | null
   cubicaje: number | null
+  plazas: number | null
   caja: string | null
   combustible: string | null
   updated_at?: string | null
@@ -42,7 +44,9 @@ export const CAMPOS_FICHA = [
   'pct_dto',
   'meses_garantia_fabrica',
   'motor_cv',
+  'motor_kw',
   'cubicaje',
+  'plazas',
   'caja',
   'combustible',
 ] as const
@@ -55,7 +59,13 @@ const TEXTOS = [
   'caja',
   'combustible',
 ] as const
-const ENTEROS = ['meses_garantia_fabrica', 'motor_cv', 'cubicaje'] as const
+const ENTEROS = [
+  'meses_garantia_fabrica',
+  'motor_cv',
+  'motor_kw',
+  'cubicaje',
+  'plazas',
+] as const
 
 function vacio(v: unknown): boolean {
   return v == null || (typeof v === 'string' && v.trim() === '')
@@ -196,7 +206,8 @@ export async function leerFicha(
     `SELECT v."precioPublicacion" AS precio_contado,
             f.regimen, f.nombre_comercial, f.url_imagen, f.url_qr, f.mantenimientos,
             f.tarifa_financiacion, f.garantia, f.gp, f.pct_dto,
-            f.meses_garantia_fabrica, f.motor_cv, f.cubicaje, f.caja, f.combustible,
+            f.meses_garantia_fabrica, f.motor_cv, f.motor_kw, f.cubicaje,
+            f.plazas, f.caja, f.combustible,
             f.updated_at
        FROM "Vehiculo" v
        LEFT JOIN vehiculo_ficha_comercial f ON f.vehiculo_id = v.id
@@ -218,7 +229,9 @@ export async function leerFicha(
     pct_dto: num(r.pct_dto),
     meses_garantia_fabrica: num(r.meses_garantia_fabrica),
     motor_cv: num(r.motor_cv),
+    motor_kw: num(r.motor_kw),
     cubicaje: num(r.cubicaje),
+    plazas: num(r.plazas),
     caja: r.caja ?? null,
     combustible: r.combustible ?? null,
     updated_at: r.updated_at ? new Date(r.updated_at).toISOString() : null,
