@@ -63,18 +63,13 @@ This report summarizes the automated test execution results for the CRM Seven Ca
       const e2eData = await fs.readFile(e2eResultsPath, 'utf8')
       const e2eResults = JSON.parse(e2eData)
 
-      totalTests =
-        e2eResults.suites?.reduce(
-          (sum, suite) => sum + suite.specs?.length || 0,
-          0
-        ) || 0
-      passedTests =
-        e2eResults.suites?.reduce(
-          (sum, suite) =>
-            sum + (suite.specs?.filter((spec) => spec.ok).length || 0),
-          0
-        ) || 0
-      failedTests = totalTests - passedTests
+      // Playwright anida los specs en suites (archivo → describe → spec):
+      // contar suites[].specs de primer nivel daba siempre 0. `stats` ya
+      // trae el total ejecutado, sin los omitidos.
+      const stats = e2eResults.stats || {}
+      passedTests = (stats.expected || 0) + (stats.flaky || 0)
+      failedTests = stats.unexpected || 0
+      totalTests = passedTests + failedTests
 
       report += `## E2E Test Results
 
