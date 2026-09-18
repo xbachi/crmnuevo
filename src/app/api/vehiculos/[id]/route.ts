@@ -13,6 +13,7 @@ import {
   transicionValida,
 } from '@/lib/vehiculoEstado'
 import { normalizarMatricula, normalizarReferencia } from '@/lib/normalizacion'
+import { faltantesParaPublicar } from '@/lib/vehiculoCamposDoc'
 import { esFechaYMD } from '@/lib/fechas'
 import {
   esPasoVehiculo,
@@ -204,6 +205,26 @@ export async function PUT(
       }
       // Guardar el estado en casing canónico (si es reconocible)
       if (estadoNorm) updateData.estado = estadoNorm
+
+      // Publicar exige la ficha completa (src/lib/camposVehiculo.ts). Sólo
+      // PUBLICADO: VENDIDO, RESERVADO y la preparación nunca se bloquean —
+      // parar una venta por una casilla vacía es peor que la casilla vacía.
+      // `force` no lo salta: el bloqueo es el objetivo, no un aviso.
+      if (
+        estadoNorm === 'PUBLICADO' &&
+        normalizarEstado(vehiculoExistente.estado) !== 'PUBLICADO'
+      ) {
+        const faltantes = await faltantesParaPublicar(id)
+        if (faltantes.length > 0) {
+          return NextResponse.json(
+            {
+              error: `No se puede publicar: faltan ${faltantes.map((f) => f.etiqueta).join(', ')}`,
+              faltantes,
+            },
+            { status: 409 }
+          )
+        }
+      }
     }
 
     // Matrícula: normalizar espacios al guardar y exponer matriculaNorm.

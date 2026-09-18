@@ -15,6 +15,7 @@ import {
   nombreCarpetaCanonico,
 } from '@/lib/onedriveCarpetas'
 import { guardarFicha, validarFicha } from '@/lib/fichaComercial'
+import { faltantesAlta } from '@/lib/camposVehiculo'
 import { normalizarTipo } from '@/lib/vehiculoEstado'
 import {
   extraerMatriculaEntrada,
@@ -58,32 +59,28 @@ export async function POST(request: NextRequest) {
       comprobante,
       porteSolicitado,
       recibidoTexto,
+      ubicacion,
       fichaComercial,
     } = body
 
-    console.log('🔍 Campos extraídos:', {
-      referencia,
-      marca,
-      modelo,
-      matricula,
-      bastidor,
-      kms,
-      tipo,
-    })
-
-    // Validar datos requeridos
-    if (
-      !referencia ||
-      !marca ||
-      !modelo ||
-      !matricula ||
-      !bastidor ||
-      !kms ||
-      !tipo
-    ) {
-      console.log('❌ Faltan campos requeridos')
+    // La referencia la pone el CRM, no una persona: va aparte de `faltantes`
+    // (que es la lista que se le enseña a quien rellena el formulario).
+    if (!referencia) {
       return NextResponse.json(
-        { error: 'Todos los campos son requeridos' },
+        { error: 'La referencia es obligatoria' },
+        { status: 400 }
+      )
+    }
+
+    // Campos obligatorios del alta (src/lib/camposVehiculo.ts). El bastidor NO
+    // está: lo trae el permiso de circulación y el cron lo rellena solo.
+    const faltantes = faltantesAlta(body)
+    if (faltantes.length > 0) {
+      return NextResponse.json(
+        {
+          error: `Faltan campos obligatorios: ${faltantes.map((f) => f.etiqueta).join(', ')}`,
+          faltantes,
+        },
         { status: 400 }
       )
     }
@@ -140,7 +137,7 @@ export async function POST(request: NextRequest) {
       marca,
       modelo,
       matricula: matriculaNorm,
-      bastidor,
+      bastidor: bastidor || undefined,
       kms: parseInt(kms),
       tipo: tipoLetra,
       color: color || undefined,
@@ -165,6 +162,7 @@ export async function POST(request: NextRequest) {
       comprobante: comprobante || undefined,
       porteSolicitado: porteSolicitado || undefined,
       recibidoTexto: recibidoTexto || undefined,
+      ubicacion: ubicacion || undefined,
     } as Omit<Vehiculo, 'id' | 'createdAt' | 'updatedAt'>)
     // console.log('✅ Vehículo guardado:', vehiculo)
 

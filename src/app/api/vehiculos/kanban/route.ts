@@ -1,5 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { updateVehiculosOrden } from '@/lib/direct-database'
+import { pool, updateVehiculosOrden } from '@/lib/direct-database'
+import { normalizarEstado } from '@/lib/vehiculoEstado'
+import { faltantesParaPublicar } from '@/lib/vehiculoCamposDoc'
+import type { Faltante } from '@/lib/camposVehiculo'
+
+/**
+ * Coches de la tanda que ENTRAN en PUBLICADO (los que ya estaban publicados y
+ * sólo se reordenan no cuentan: un coche publicado antes de que existieran
+ * estas reglas no puede quedarse atrapado sin poder moverse dentro de su
+ * columna).
+ */
+async function entranEnPublicado(
+  updates: { id: number; estado: unknown }[]
+): Promise<number[]> {
+  const candidatos = updates
+    .filter((u) => normalizarEstado(u.estado as string) === 'PUBLICADO')
+    .map((u) => Number(u.id))
+  if (candidatos.length === 0) return []
+  const r = await pool.query<{ id: number; estado: string | null }>(
+    `SELECT id, estado FROM "Vehiculo" WHERE id = ANY($1::int[])`,
+    [candidatos]
+  )
+  return r.rows
+    .filter((v) => normalizarEstado(v.estado) !== 'PUBLICADO')
+    .map((v) => v.id)
+}
 
 export async function PUT(request: NextRequest) {
   try {
@@ -31,6 +56,28 @@ export async function PUT(request: NextRequest) {
           { status: 400 }
         )
       }
+    }
+
+    // Arrastrar a la columna Publicado exige la ficha completa
+    // (src/lib/camposVehiculo.ts). Se comprueba ANTES de escribir nada: la
+    // tanda es atómica, así que o entra entera o no entra — si no, el coche se
+    // quedaría reordenado a medias y el kanban mostraría otra cosa que la DB.
+    const bloqueados: { vehiculoId: number; faltantes: Faltante[] }[] = []
+    for (const id of await entranEnPublicado(updates)) {
+      const faltantes = await faltantesParaPublicar(id)
+      if (faltantes.length > 0) bloqueados.push({ vehiculoId: id, faltantes })
+    }
+    if (bloqueados.length > 0) {
+      const primero = bloqueados[0]
+      return NextResponse.json(
+        {
+          error: `No se puede publicar: faltan ${primero.faltantes.map((f) => f.etiqueta).join(', ')}`,
+          vehiculoId: primero.vehiculoId,
+          faltantes: primero.faltantes,
+          bloqueados,
+        },
+        { status: 409 }
+      )
     }
 
     await updateVehiculosOrden(updates)

@@ -126,6 +126,8 @@ export interface Vehiculo {
   porteSolicitado?: string | null
   recibidoTexto?: string | null
   recibidoFecha?: string | null
+  /** Dónde está el coche (columna ESTADO de COMPRAS: NAVE, campa...). */
+  ubicacion?: string | null
   esCocheInversor?: boolean
   inversorId?: number | null
   inversor?: {
@@ -1145,6 +1147,7 @@ export async function getVehiculoById(id: number): Promise<Vehiculo | null> {
       porteSolicitado: row.porteSolicitado,
       recibidoTexto: row.recibidoTexto,
       recibidoFecha: dateToYMD(row.recibidoFecha),
+      ubicacion: row.ubicacion,
       esCocheInversor: row.esCocheInversor,
       inversorId: row.inversorId,
       inversor: row.inversor_nombre
@@ -1208,10 +1211,11 @@ export async function saveVehiculo(
         "gastosMecanica", "gastosPintura", "gastosLimpieza", "gastosOtros",
         "precioPublicacion", "precioVenta", "beneficioNeto", "notasInversor",
         "fotoInversor", proveedor, abonado, comprobante, "porteSolicitado", "recibidoTexto",
+        ubicacion,
         "createdAt", "updatedAt"
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21,
-        $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39,
+        $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40,
         NOW(), NOW()
       ) RETURNING *
     `,
@@ -1255,6 +1259,7 @@ export async function saveVehiculo(
         vehiculoData.comprobante ?? null,
         vehiculoData.porteSolicitado ?? null,
         vehiculoData.recibidoTexto ?? null,
+        vehiculoData.ubicacion ?? null,
       ]
     )
 
@@ -1521,10 +1526,15 @@ const normRef = (s: unknown) =>
     .toUpperCase()
     .replace(/[#\s.\-]/g, '')
 
+/**
+ * `bastidor` admite null/'' porque lo trae el permiso de circulación y el alta
+ * ya no lo exige: con NULL la comparación SQL nunca casa (y la de JS se guarda
+ * aparte), así que dos coches sin bastidor no se acusan de duplicarse.
+ */
 export async function checkUniqueFields(
   referencia: string,
   matricula: string,
-  bastidor: string,
+  bastidor: string | null | undefined,
   excludeId?: number
 ) {
   const client = await pool.connect()
@@ -1538,7 +1548,7 @@ export async function checkUniqueFields(
         OR matricula = $2 OR matricula_norm = $2 OR bastidor = $3
       )
     `
-    const params = [referencia, matricula, bastidor]
+    const params = [referencia, matricula, bastidor || null]
 
     if (excludeId) {
       query += ' AND id != $4'
@@ -1558,7 +1568,7 @@ export async function checkUniqueFields(
       ) {
         return { field: 'matrícula', value: matricula }
       }
-      if (existing.bastidor === bastidor) {
+      if (bastidor && existing.bastidor === bastidor) {
         return { field: 'bastidor', value: bastidor }
       }
     }
