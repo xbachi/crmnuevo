@@ -392,7 +392,7 @@ function renderDigestFichas(
 
   const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.45;color:#0f172a;max-width:720px">
 <h2 style="margin:0 0 4px;font-size:18px">Fichas técnicas · ${fecha}</h2>
-<p style="margin:0 0 12px;color:#475569">Cruce diario de los coches publicados con su tarjeta ITV. Lo pendiente está también en la <a href="${base}/revision" style="color:#1d4ed8">bandeja de revisión</a>.</p>
+<p style="margin:0 0 12px;color:#475569">Cruce diario del stock con su permiso de circulación. Lo pendiente está también en la <a href="${base}/revision" style="color:#1d4ed8">bandeja de revisión</a>.</p>
 ${secciones.map((s) => `<h3 style="margin:20px 0 8px;font-size:15px">${escapeHtml(s.h)}</h3>${s.html}`).join('')}
 ${porConfirmar ? `<p style="margin:20px 0 0;color:#475569">En total hay <strong>${porConfirmar}</strong> campo${porConfirmar === 1 ? '' : 's'} del permiso pendiente${porConfirmar === 1 ? '' : 's'} de confirmar en el stock.</p>` : ''}
 <p style="margin:24px 0 0;color:#94a3b8;font-size:12px">Aviso automático diario del CRM SevenCars.</p>
@@ -577,15 +577,26 @@ async function handler(request: NextRequest) {
         ? Number(c.d.valorFicha)
         : c.d.valorFicha
     }
+    let fichaEscrita = false
     if (Object.keys(patch).length > 0) {
       try {
         await escribirCamposFicha(vehiculoId, patch)
-        for (const c of deFicha) {
-          const def = CAMPOS_DOC_POR_NOMBRE[c.d.campo]
-          if (def) await auditar(c, `ficha_comercial.${def.columna}`)
-        }
+        fichaEscrita = true
       } catch (err) {
         for (const c of deFicha) falla(c, err)
+      }
+    }
+    // La auditoría va campo a campo y con su propio try: que falle el rastro de
+    // uno no puede volver a contar como fallidos los que sí se escribieron.
+    if (fichaEscrita) {
+      for (const c of deFicha) {
+        const def = CAMPOS_DOC_POR_NOMBRE[c.d.campo]
+        if (!def) continue
+        try {
+          await auditar(c, `ficha_comercial.${def.columna}`)
+        } catch (err) {
+          falla(c, err)
+        }
       }
     }
 
