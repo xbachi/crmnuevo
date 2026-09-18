@@ -7,6 +7,12 @@ name: QA Test Suite
 # (Por sí solo el yml define jobs que fallan, pero no son obligatorios
 # para mergear si la rama no tiene branch protection activa.)
 
+# El token por defecto no puede comentar PRs sin este permiso (403 en
+# "Comment PR with QA summary").
+permissions:
+  contents: read
+  pull-requests: write
+
 on:
   push:
     branches: [ main, master, develop ]
@@ -342,12 +348,16 @@ jobs:
       env:
         DATABASE_URL: postgresql://postgres:postgres@localhost:5432/crm_test
 
+    # lighthouserc.js arranca `next start` y audita /login (sin sesión ni DB).
     - name: Run Lighthouse CI
       run: |
         npm install -g @lhci/cli@0.12.x
         lhci autorun
       env:
         LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/crm_test
+        SESSION_SECRET: ci-session-secret
+        NODE_ENV: production
 
     - name: Upload Lighthouse results
       uses: actions/upload-artifact@v4
