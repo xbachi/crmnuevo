@@ -7,11 +7,14 @@
  * la extracción a POST /api/fichas-tecnicas/snapshot; este módulo es la parte
  * pura —sin pg, sin fetch— que decide qué no cuadra y qué se puede arreglar solo.
  *
- * Dos superficies distintas:
- *  · CRM  → matrícula, bastidor, color, fecha de matriculación (+ marca/modelo,
- *           solo como aviso). Es lo único que el CRM guarda de la ficha.
- *  · Web  → combustible, cilindrada, potencia, plazas, cambio. Eso vive SOLO en
- *           WordPress y lo edita el cliente a mano: nunca se toca desde aquí.
+ * Tres superficies distintas:
+ *  · CRM   → matrícula, bastidor, color, fecha de matriculación (+ marca/modelo,
+ *            solo como aviso). Columnas de "Vehiculo".
+ *  · Ficha → combustible, cilindrada, potencia (kW y CV), plazas y versión.
+ *            Viven en vehiculo_ficha_comercial y son los campos «D» de
+ *            src/lib/camposVehiculo.ts: publicar exige tenerlos.
+ *  · Web   → los mismos datos tal como los publica WordPress. Eso es del
+ *            cliente y lo edita él a mano: nunca se toca desde aquí.
  *
  * ── Tabla de decisión de decidir() ──────────────────────────────────────────
  *
@@ -20,21 +23,31 @@
  *  crm     color                 >= 0.9      vacío                     corregir
  *  crm     color                 >= 0.9      distinto                  revisar
  *  crm     color                 <  0.9      cualquiera                revisar
- *  crm     fechaMatriculacion    >= 0.9      vacío                     corregir
  *  crm     fechaMatriculacion    >= 0.9      misma fecha, otro formato corregir
- *  crm     fechaMatriculacion    >= 0.9      otra fecha                revisar
- *  crm     fechaMatriculacion    <  0.9      cualquiera                revisar
+ *  crm     fechaMatriculacion    >= 0.8      vacío                     corregir
+ *  crm     fechaMatriculacion    cualquiera  otra fecha                revisar
+ *  crm     bastidor              >= 0.8      vacío                     corregir
+ *  crm     bastidor              cualquiera  distinto                  revisar
+ *  ficha   combustible…versión   >= 0.8      vacío                     corregir
+ *  ficha   combustible…versión   cualquiera  distinto                  revisar
  *  crm     matricula             cualquiera  cualquiera                revisar
- *  crm     bastidor              cualquiera  cualquiera                revisar
  *  crm     marca / modelo        cualquiera  cualquiera                revisar
  *  web     cualquiera            cualquiera  cualquiera                revisar
  *
- * Matrícula y bastidor NO se corrigen NUNCA de forma automática aunque la
- * confianza sea 1: son la identidad del coche, cuelgan de ellos las facturas, el
- * expediente de gestoría y la ficha pública, y un carácter mal leído por la IA
- * (0/O, 1/I, B/8 en un bastidor) rompe todos esos cruces a la vez. Marca y modelo
- * tampoco: la ITV pone el nombre del fabricante y el código de proyecto ("KIA" /
- * "SLS"), no el nombre comercial con el que se publica el coche.
+ * Rellenar un hueco y pisar un dato son cosas distintas, y por eso el umbral es
+ * distinto: si el CRM no tiene NADA, escribir lo que dice el documento con
+ * confianza >= 0,80 no puede empeorar el dato — como mucho lo deja igual de mal
+ * que estaba, y además queda en vehiculo_campos_doc pendiente de que una persona
+ * lo confirme antes de poder publicar el coche. Pisar un valor que ya existe
+ * sigue exigiendo 0,90 y sólo para color y fecha.
+ *
+ * La MATRÍCULA no se toca NUNCA, ni vacía ni con confianza 1: es la identidad del
+ * coche, cuelgan de ella las facturas, el expediente de gestoría, las carpetas y
+ * la ficha pública, y un carácter mal leído (0/O, 1/I) rompe todos esos cruces a
+ * la vez. El bastidor sí se rellena si está vacío —un coche sin bastidor no se
+ * puede publicar y el dato no cuelga de nada todavía—, pero nunca se corrige.
+ * Marca y modelo tampoco: la ITV pone el fabricante y el código de proyecto
+ * ("KIA" / "SLS"), no el nombre comercial con el que se publica el coche.
  */
 
 import { normPlate } from '@/lib/facturasRegistro'
@@ -98,7 +111,16 @@ export type CampoWeb =
   | 'matriculacion_texto'
   | 'matriculacion_fecha'
 
-export type FuenteDato = 'crm' | 'web'
+/** Campos de vehiculo_ficha_comercial que el documento puede rellenar. */
+export type CampoFichaComercial =
+  | 'combustible'
+  | 'cubicaje'
+  | 'motor_kw'
+  | 'motor_cv'
+  | 'plazas'
+  | 'nombre_comercial'
+
+export type FuenteDato = 'crm' | 'ficha' | 'web'
 export type Decision = 'corregir' | 'revisar'
 
 /**
@@ -110,7 +132,7 @@ export type TipoDiscrepancia = 'vacio' | 'formato' | 'conflicto'
 
 export interface Discrepancia {
   fuente: FuenteDato
-  campo: CampoCrm | CampoWeb
+  campo: CampoCrm | CampoFichaComercial | CampoWeb
   etiqueta: string
   tipo: TipoDiscrepancia
   /** Valor tal como está hoy en el CRM / la web. null = vacío. */
@@ -132,11 +154,29 @@ export const COLUMNA_CRM: Record<CampoCrm, string> = {
   modelo: 'modelo',
 }
 
+/** Campos que se pisan aunque el CRM ya tenga algo (sólo formato/vacío). */
 export const CAMPOS_CORREGIBLES: readonly CampoCrm[] = [
   'color',
   'fechaMatriculacion',
 ]
 export const CONFIANZA_MINIMA = 0.9
+
+/**
+ * Campos que el documento rellena cuando el CRM los tiene VACÍOS: los «D» de
+ * camposVehiculo.ts. Van con umbral más bajo porque rellenar un hueco no pisa
+ * nada, y quedan pendientes de confirmar antes de poder publicar.
+ */
+export const CAMPOS_RELLENABLES: readonly string[] = [
+  'bastidor',
+  'fechaMatriculacion',
+  'combustible',
+  'cubicaje',
+  'motor_kw',
+  'motor_cv',
+  'plazas',
+  'nombre_comercial',
+]
+export const CONFIANZA_RELLENO = 0.8
 
 // ── Normalizadores ──────────────────────────────────────────────────────────
 
@@ -466,6 +506,138 @@ export function compararConCrm(
   return out
 }
 
+// ── Comparación contra la ficha comercial del CRM ───────────────────────────
+
+/** Lo que el CRM guarda hoy en vehiculo_ficha_comercial de estos campos. */
+export interface FichaComercialCrm {
+  combustible?: string | null
+  cubicaje?: number | string | null
+  motor_kw?: number | string | null
+  motor_cv?: number | string | null
+  plazas?: number | string | null
+  nombre_comercial?: string | null
+}
+
+interface DefFichaComercial {
+  campo: CampoFichaComercial
+  etiqueta: string
+  /** Clave dentro del bloque `campos` del snapshot. */
+  clave: string
+  /** Valor tal como se guardaría en la columna. '' = no hay nada que guardar. */
+  aGuardar: (c: CampoExtraido) => string
+  /** Clave de comparación de los dos lados. '' = sin dato. */
+  comparable: (v: unknown) => string
+}
+
+const enteroTexto = (v: unknown) => {
+  const n = normalizarNumero(v)
+  return n === null ? '' : String(n)
+}
+
+const DEF_FICHA: DefFichaComercial[] = [
+  {
+    campo: 'combustible',
+    etiqueta: 'Combustible',
+    clave: 'combustible',
+    // Se guarda con el vocabulario de la web (Gasolina, Diésel...), que es el
+    // que ya usa la ficha comercial y el presupuesto.
+    aGuardar: (c) => normalizarCombustible(crudo(c)) ?? '',
+    comparable: (v) => normalizarCombustible(v) ?? '',
+  },
+  {
+    campo: 'cubicaje',
+    etiqueta: 'Cilindrada (cc)',
+    clave: 'cilindrada_cc',
+    aGuardar: (c) => enteroTexto(crudo(c)),
+    comparable: enteroTexto,
+  },
+  {
+    campo: 'motor_kw',
+    etiqueta: 'Potencia (kW)',
+    clave: 'potencia_kw',
+    aGuardar: (c) => enteroTexto(crudo(c)),
+    comparable: enteroTexto,
+  },
+  {
+    campo: 'motor_cv',
+    etiqueta: 'Potencia (CV)',
+    clave: 'potencia_cv',
+    aGuardar: (c) => enteroTexto(crudo(c)),
+    comparable: enteroTexto,
+  },
+  {
+    campo: 'plazas',
+    etiqueta: 'Plazas',
+    clave: 'plazas',
+    aGuardar: (c) => enteroTexto(crudo(c)),
+    comparable: enteroTexto,
+  },
+  {
+    campo: 'nombre_comercial',
+    etiqueta: 'Versión / nombre comercial',
+    // Casilla D.2 del permiso (tipo / variante / versión).
+    clave: 'version',
+    aGuardar: (c) => crudo(c),
+    comparable: normalizarTexto,
+  },
+]
+
+/**
+ * Discrepancias entre la ficha comercial del CRM y el documento.
+ *
+ * Es la superficie que hace publicable un coche: sin combustible, cilindrada,
+ * potencia, plazas y versión no sale a la web. Un hueco aquí lo rellena el cron;
+ * un valor distinto lo mira una persona.
+ */
+export function compararConFichaComercial(
+  actual: FichaComercialCrm | null | undefined,
+  campos: CamposFicha
+): Discrepancia[] {
+  const out: Discrepancia[] = []
+
+  for (const def of DEF_FICHA) {
+    const c = leer(campos, def.clave)
+    if (!c) continue
+    const guardar = def.aGuardar(c)
+    if (!guardar) continue
+    const ficha = def.comparable(guardar)
+    if (!ficha) continue
+
+    const actualRaw = actual?.[def.campo]
+    const comparableActual = def.comparable(actualRaw)
+
+    if (!comparableActual) {
+      out.push(
+        disc(
+          'ficha',
+          def.campo,
+          def.etiqueta,
+          'vacio',
+          null,
+          guardar,
+          crudo(c),
+          c.confianza
+        )
+      )
+    } else if (comparableActual !== ficha) {
+      out.push(
+        disc(
+          'ficha',
+          def.campo,
+          def.etiqueta,
+          'conflicto',
+          String(actualRaw ?? ''),
+          guardar,
+          crudo(c),
+          c.confianza
+        )
+      )
+    }
+  }
+
+  return out
+}
+
 // ── Comparación contra WordPress ────────────────────────────────────────────
 
 interface DefWeb {
@@ -629,7 +801,7 @@ export function compararConWeb(
 
 function disc(
   fuente: FuenteDato,
-  campo: CampoCrm | CampoWeb,
+  campo: CampoCrm | CampoFichaComercial | CampoWeb,
   etiqueta: string,
   tipo: TipoDiscrepancia,
   valorActual: string | null,
@@ -657,14 +829,26 @@ function disc(
  * puede tardar meses en descubrirse.
  */
 export function decidir(d: Discrepancia): Decision {
+  // La web es del cliente: de aquí no se toca nunca.
+  if (d.fuente === 'web') return 'revisar'
+  if (!d.valorFicha) return 'revisar'
+  const conf = typeof d.confianza === 'number' ? d.confianza : -1
+  // 'conflicto' = el CRM dice otra cosa. Eso lo decide siempre una persona.
+  if (d.tipo === 'conflicto') return 'revisar'
+
+  // Rellenar un hueco: no se pisa nada y queda pendiente de confirmar.
+  if (
+    d.tipo === 'vacio' &&
+    CAMPOS_RELLENABLES.includes(d.campo) &&
+    conf >= CONFIANZA_RELLENO
+  ) {
+    return 'corregir'
+  }
+
+  // Pisar un valor que ya está escrito: sólo color y fecha, y con 0,90.
   if (d.fuente !== 'crm') return 'revisar'
   if (!CAMPOS_CORREGIBLES.includes(d.campo as CampoCrm)) return 'revisar'
-  if (typeof d.confianza !== 'number' || !(d.confianza >= CONFIANZA_MINIMA)) {
-    return 'revisar'
-  }
-  if (!d.valorFicha) return 'revisar'
-  // 'conflicto' = la ficha dice otra cosa que el CRM. Eso lo decide un humano.
-  if (d.tipo === 'conflicto') return 'revisar'
+  if (!(conf >= CONFIANZA_MINIMA)) return 'revisar'
   return 'corregir'
 }
 

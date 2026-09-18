@@ -251,22 +251,31 @@ export async function guardarFicha(
     )
     if (!up.rows[0]) return null
   }
+  await escribirCamposFicha(vehiculoId, patch)
+  return leerFicha(vehiculoId)
+}
+
+/**
+ * Upsert de las columnas propias de vehiculo_ficha_comercial, sin leer de
+ * vuelta. Lo usa el cron de fichas técnicas, que escribe varios campos de
+ * muchos coches seguidos y no necesita la ficha resultante (el pool es
+ * compartido: cada consulta de más cuenta).
+ */
+export async function escribirCamposFicha(
+  vehiculoId: number,
+  patch: Partial<FichaComercial>
+): Promise<void> {
   const claves = CAMPOS_FICHA.filter((k) => k in patch)
-  if (claves.length) {
-    const cols = claves.map((k) => `"${k}"`)
-    const params: unknown[] = [
-      vehiculoId,
-      ...claves.map((k) => patch[k] ?? null),
-    ]
-    const marcas = claves.map((_, i) => `$${i + 2}`)
-    const sets = claves.map((k) => `"${k}" = EXCLUDED."${k}"`)
-    await pool.query(
-      `INSERT INTO vehiculo_ficha_comercial (vehiculo_id, ${cols.join(', ')})
+  if (!claves.length) return
+  const cols = claves.map((k) => `"${k}"`)
+  const params: unknown[] = [vehiculoId, ...claves.map((k) => patch[k] ?? null)]
+  const marcas = claves.map((_, i) => `$${i + 2}`)
+  const sets = claves.map((k) => `"${k}" = EXCLUDED."${k}"`)
+  await pool.query(
+    `INSERT INTO vehiculo_ficha_comercial (vehiculo_id, ${cols.join(', ')})
        VALUES ($1, ${marcas.join(', ')})
        ON CONFLICT (vehiculo_id) DO UPDATE
          SET ${sets.join(', ')}, updated_at = NOW()`,
-      params
-    )
-  }
-  return leerFicha(vehiculoId)
+    params
+  )
 }

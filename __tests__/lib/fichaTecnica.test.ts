@@ -1,8 +1,9 @@
 /**
  * @jest-environment node
  *
- * lib/fichaTecnica: normalizadores, comparación CRM/web y la regla dura de
- * decidir() — matrícula y bastidor NUNCA se corrigen solos.
+ * lib/fichaTecnica: normalizadores, comparación contra el CRM, la ficha
+ * comercial y la web, y las reglas de decidir() — la matrícula NUNCA se toca y
+ * nada que ya tenga valor se pisa sin confianza 0,90.
  *
  * El módulo es puro (no toca pg ni la red), así que no hace falta mockear nada:
  * el resto de la suite mockea '@/lib/direct-database' porque sus módulos
@@ -12,6 +13,7 @@
 import {
   CONFIANZA_MINIMA,
   compararConCrm,
+  compararConFichaComercial,
   compararConWeb,
   decidir,
   dedupKeyFicha,
@@ -23,6 +25,7 @@ import {
   normalizarNumero,
   type CamposFicha,
   type Discrepancia,
+  type FichaComercialCrm,
   type FichaWeb,
   type VehiculoCrm,
 } from '@/lib/fichaTecnica'
@@ -173,19 +176,78 @@ describe('decidir', () => {
     ).toBe('corregir')
   })
 
-  it('NUNCA corrige matrícula ni bastidor, aunque la confianza sea 1', () => {
-    for (const c of ['matricula', 'bastidor'] as const) {
-      for (const tipo of ['vacio', 'formato', 'conflicto'] as const) {
-        expect(
-          decidir(d({ campo: c, tipo, confianza: 1, valorFicha: '3429LHT' }))
-        ).toBe('revisar')
-      }
+  it('NUNCA toca la matrícula, ni vacía ni con confianza 1', () => {
+    for (const tipo of ['vacio', 'formato', 'conflicto'] as const) {
+      expect(
+        decidir(
+          d({ campo: 'matricula', tipo, confianza: 1, valorFicha: '3429LHT' })
+        )
+      ).toBe('revisar')
     }
+  })
+
+  it('el bastidor se rellena si está vacío, pero nunca se pisa', () => {
+    const bastidor = (over: Partial<Discrepancia>) =>
+      d({ campo: 'bastidor', valorFicha: 'U5YPH81ADLL123456', ...over })
+    expect(decidir(bastidor({ tipo: 'vacio', confianza: 0.8 }))).toBe(
+      'corregir'
+    )
+    expect(decidir(bastidor({ tipo: 'vacio', confianza: 0.79 }))).toBe(
+      'revisar'
+    )
+    expect(
+      decidir(
+        bastidor({ tipo: 'conflicto', valorActual: 'OTRO', confianza: 1 })
+      )
+    ).toBe('revisar')
+  })
+
+  it('los campos de la ficha comercial se rellenan a 0,80 y no se pisan', () => {
+    const fc = (over: Partial<Discrepancia>) =>
+      d({ fuente: 'ficha', campo: 'cubicaje', valorFicha: '1598', ...over })
+    expect(decidir(fc({ tipo: 'vacio', confianza: 0.8 }))).toBe('corregir')
+    expect(decidir(fc({ tipo: 'vacio', confianza: 0.5 }))).toBe('revisar')
+    expect(
+      decidir(fc({ tipo: 'conflicto', valorActual: '1998', confianza: 1 }))
+    ).toBe('revisar')
+  })
+
+  it('un campo de la ficha que no es «D» no se rellena solo', () => {
+    expect(
+      decidir(
+        d({
+          fuente: 'ficha',
+          campo: 'combustible',
+          tipo: 'vacio',
+          confianza: 1,
+          valorFicha: 'Diésel',
+        })
+      )
+    ).toBe('corregir')
+    // marca/modelo siguen siendo sólo aviso aunque estén vacíos
+    expect(decidir(d({ campo: 'marca', tipo: 'vacio', confianza: 1 }))).toBe(
+      'revisar'
+    )
+  })
+
+  it('la fecha vacía baja a 0,80; pisar el formato sigue exigiendo 0,90', () => {
+    const fecha = (over: Partial<Discrepancia>) =>
+      d({ campo: 'fechaMatriculacion', valorFicha: '2020-07-15', ...over })
+    expect(decidir(fecha({ tipo: 'vacio', confianza: 0.85 }))).toBe('corregir')
+    expect(
+      decidir(
+        fecha({ tipo: 'formato', valorActual: '15/07/2020', confianza: 0.85 })
+      )
+    ).toBe('revisar')
   })
 
   it('marca y modelo son solo aviso', () => {
     expect(decidir(d({ campo: 'marca', confianza: 1 }))).toBe('revisar')
     expect(decidir(d({ campo: 'modelo', confianza: 1 }))).toBe('revisar')
+  })
+
+  it('el color NO baja de umbral: no es un campo del permiso', () => {
+    expect(decidir(d({ tipo: 'vacio', confianza: 0.85 }))).toBe('revisar')
   })
 
   it('confianza por debajo del mínimo → revisar', () => {
@@ -346,5 +408,96 @@ describe('dedup keys', () => {
       dedupKeyFicha(42, 'color', 'abc123')
     )
     expect(dedupKeySinFicha(42)).toBe('ficha_tecnica:42:sin-ficha')
+  })
+})
+
+describe('compararConFichaComercial', () => {
+  const DEL_PERMISO: CamposFicha = {
+    combustible: campo('GASÓLEO'),
+    cilindrada_cc: campo('1.598 cc'),
+    potencia_kw: campo(100),
+    potencia_cv: campo(136),
+    plazas: campo(5),
+    version: campo('1.6 CRDi Drive'),
+  }
+
+  const COMPLETA: FichaComercialCrm = {
+    combustible: 'Diésel',
+    cubicaje: 1598,
+    motor_kw: 100,
+    motor_cv: 136,
+    plazas: 5,
+    nombre_comercial: '1.6 CRDi Drive',
+  }
+
+  it('una ficha que ya cuadra no genera nada', () => {
+    expect(compararConFichaComercial(COMPLETA, DEL_PERMISO)).toEqual([])
+  })
+
+  it('un coche sin ficha comercial genera un hueco por campo', () => {
+    const out = compararConFichaComercial(null, DEL_PERMISO)
+    expect(out.map((d) => d.campo)).toEqual([
+      'combustible',
+      'cubicaje',
+      'motor_kw',
+      'motor_cv',
+      'plazas',
+      'nombre_comercial',
+    ])
+    expect(out.every((d) => d.tipo === 'vacio')).toBe(true)
+    expect(out.every((d) => d.fuente === 'ficha')).toBe(true)
+    expect(out.every((d) => decidir(d) === 'corregir')).toBe(true)
+  })
+
+  it('guarda el combustible con el vocabulario de la web', () => {
+    const out = compararConFichaComercial(null, {
+      combustible: campo('GASÓLEO'),
+    })
+    expect(out[0].valorFicha).toBe('Diésel')
+    expect(out[0].valorFichaCrudo).toBe('GASÓLEO')
+  })
+
+  it('la cilindrada se guarda como entero, sin unidades', () => {
+    const out = compararConFichaComercial(null, {
+      cilindrada_cc: campo('1.598 cc'),
+    })
+    expect(out[0].valorFicha).toBe('1598')
+  })
+
+  it('no compara los campos que el documento no trae', () => {
+    expect(compararConFichaComercial(null, {})).toEqual([])
+    expect(compararConFichaComercial(null, { plazas: campo(null) })).toEqual([])
+  })
+
+  it('un valor distinto es conflicto y va a revisión, nunca se pisa', () => {
+    const out = compararConFichaComercial(
+      { ...COMPLETA, cubicaje: 1998 },
+      DEL_PERMISO
+    )
+    expect(out).toHaveLength(1)
+    expect(out[0].campo).toBe('cubicaje')
+    expect(out[0].tipo).toBe('conflicto')
+    expect(out[0].valorActual).toBe('1998')
+    expect(decidir(out[0])).toBe('revisar')
+  })
+
+  it('la versión se compara sin acentos ni dobles espacios', () => {
+    expect(
+      compararConFichaComercial(
+        { ...COMPLETA, nombre_comercial: '1.6  CRDI  drive' },
+        DEL_PERMISO
+      )
+    ).toEqual([])
+  })
+
+  it('un campo vacío en la ficha y presente en el permiso se rellena', () => {
+    const out = compararConFichaComercial(
+      { ...COMPLETA, plazas: null },
+      DEL_PERMISO
+    )
+    expect(out).toHaveLength(1)
+    expect(out[0].campo).toBe('plazas')
+    expect(out[0].valorFicha).toBe('5')
+    expect(decidir(out[0])).toBe('corregir')
   })
 })
