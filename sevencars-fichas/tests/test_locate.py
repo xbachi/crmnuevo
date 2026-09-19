@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+from common import normalize_ref
 from locate import canonical_ref, locate, make_car_folder, parse_prefix, plate_from_name, ref_to_prefix, scan_folders
 
 
@@ -35,9 +36,24 @@ def test_ref_to_prefix(ref, expected):
     assert ref_to_prefix(ref) == expected
 
 
-@pytest.mark.parametrize("ref, expected", [("26", "1026"), ("1082", "1082"), ("d-5", "D5")])
+@pytest.mark.parametrize("ref, expected", [("26", "1026"), ("1082", "1082"), ("d-5", "D5"),
+                                           ("#1088", "1088"), (" #D-28 ", "D28"), ("#26", "1026")])
 def test_canonical_ref(ref, expected):
     assert canonical_ref(ref) == expected
+
+
+@pytest.mark.parametrize("ref, expected", [
+    ("#1088", "1088"), (" #D-28 ", "D28"), ("# 1088", "1088"), ("#d-5", "D5"),   # referencias del CRM
+    ("1082", "1082"), (1082, "1082"), (1082.0, "1082"), ("1082.0", "1082"), ("d-5", "D5"), (" r_11 ", "R11"),
+    ("C-2", "C2"), ("", ""), (None, ""),                                        # comportamiento de siempre
+])
+def test_normalize_ref(ref, expected):
+    assert normalize_ref(ref) == expected
+
+
+def test_ref_to_prefix_accepts_crm_refs():
+    assert ref_to_prefix("#1088") == (None, 88)
+    assert ref_to_prefix(" #D-28 ") == ("D", 28)
 
 
 # ------------------------------------------------------------------ scan_folders

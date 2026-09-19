@@ -39,14 +39,14 @@ def normalize_plate(value: str | None) -> str:
 
 
 def normalize_ref(value) -> str:
-    """Sheet/CLI reference to canonical form: 1082.0 -> '1082', 'd-5' -> 'D5'."""
+    """Sheet/CLI reference to canonical form: 1082.0 -> '1082', 'd-5' -> 'D5', CRM style ' #D-28 ' -> 'D28'."""
     if value is None:
         return ""
     if isinstance(value, float) and value.is_integer():
         return str(int(value))
     if isinstance(value, int):
         return str(value)
-    text = re.sub(r"[\s\-_]", "", strip_accents(str(value)).upper())
+    text = re.sub(r"[\s\-_]", "", strip_accents(str(value)).upper()).lstrip("#")
     if re.fullmatch(r"\d+\.0+", text):
         text = text.split(".")[0]
     return text

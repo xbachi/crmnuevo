@@ -76,6 +76,11 @@ def test_find_by_ref_and_plate(datos):
     assert datos.find_by_ref("1999") is None and datos.find_by_plate("0000ZZZ") is None
 
 
+def test_find_by_ref_accepts_crm_refs(datos):
+    assert datos.find_by_ref("#1082").row_number == 2
+    assert datos.find_by_ref(" #D-5 ").referencia == "D5"
+
+
 def test_parsed_fields(datos):
     kia, seat = datos.find_by_ref("1082"), datos.find_by_ref("D5")
     assert kia.fecha_matriculacion == date(2022, 4, 11) == seat.fecha_matriculacion
