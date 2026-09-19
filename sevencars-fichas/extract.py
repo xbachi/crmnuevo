@@ -16,7 +16,7 @@ DEFAULT_MODEL = "gpt-5.4-mini"
 DEFAULT_MOTOR = "claude"          # "claude" (Claude Code CLI, subscription) | "openai"
 MOTORES = ("claude", "openai")
 CACHE_DIR = PROJECT_DIR / "data" / "extracciones"
-PIPELINE_ENV = Path("/home/seb/fotosseven/sevencars-photo-pipeline/.env")
+PIPELINE_ENV = PROJECT_DIR.parent / "sevencars-photo-pipeline" / ".env"
 
 
 def load_env() -> None:

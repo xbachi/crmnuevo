@@ -9,7 +9,7 @@ import fal_client
 from pathlib import Path
 
 # Paths
-BG_DIR = Path("/home/seb/fotosseven/sevencars-photo-pipeline/backgrounds")
+BG_DIR = Path(__file__).resolve().parent / "backgrounds"
 IMAGES = ["bg_2.jpg", "bg_3.jpg"]
 
 # You need to create masks manually:

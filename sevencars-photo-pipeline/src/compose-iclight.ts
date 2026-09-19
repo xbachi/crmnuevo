@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { fal } from '@fal-ai/client';
 import { readFile, writeFile } from 'fs/promises';
+import { fileURLToPath } from 'url';
 import sharp from 'sharp';
 
 fal.config({ credentials: process.env.FAL_KEY || process.env.FAL_API_KEY });
@@ -65,8 +66,8 @@ async function compositeICLight(
 }
 
 // Example usage
-const carPath = process.argv[2] || '/home/seb/fotosseven/sevencars-photo-pipeline/output/test_1300x730_nobg.jpg';
-const bgPath = process.argv[3] || '/home/seb/fotosseven/sevencars-photo-pipeline/backgrounds/bg.png';
-const outputPath = process.argv[4] || '/home/seb/fotosseven/sevencars-photo-pipeline/output/iclight_result.jpg';
+const carPath = process.argv[2] || fileURLToPath(new URL('../output/test_1300x730_nobg.jpg', import.meta.url));
+const bgPath = process.argv[3] || fileURLToPath(new URL('../backgrounds/bg.png', import.meta.url));
+const outputPath = process.argv[4] || fileURLToPath(new URL('../output/iclight_result.jpg', import.meta.url));
 
 compositeICLight(carPath, bgPath, outputPath).catch(console.error);
