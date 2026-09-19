@@ -76,8 +76,8 @@ python3 -m venv ../.venv
 ```
 
 ```bash
-cd /home/seb/fotosseven/sevencars-fichas
-PY=/home/seb/fotosseven/.venv/bin/python
+cd /home/seb/crmnuevo/automatizaciones/sevencars-fichas
+PY=/home/seb/crmnuevo/automatizaciones/.venv/bin/python
 
 $PY verificar.py 1082                 # un coche
 $PY verificar.py 1082 1085 26         # varios (26 = 1026)
@@ -320,7 +320,7 @@ publicar-cambiofotos 6913MDM        # cambié las fotos de un coche publicado: -
 publicar-cambioficha 1033           # solo volver a bajar la ficha de exposición: --solo-ficha
 ```
 
-Para reinstalar los enlaces: `for n in publicar-cambioprecio publicar-cambiofotos publicar-cambioficha; do ln -sfn "$PWD/publicar-cambio.sh" ~/.local/bin/$n; done`
+Para reinstalar los enlaces (también después de mover la carpeta): `for n in publicar-cambioprecio publicar-cambiofotos publicar-cambioficha; do ln -sfn /home/seb/crmnuevo/automatizaciones/sevencars-fichas/publicar-cambio.sh ~/.local/bin/$n; done`
 
 ```bash
 $PY publicar.py D29 --simular            # resumen del borrador + comprobación de duplicado, sin subir nada
@@ -565,8 +565,10 @@ mostrar la contraseña. El `.env` se relee en cada aviso: cambiarlo no requiere 
 
 `vigilar.sh` entra en la carpeta del proyecto y ejecuta `../.venv/bin/python vigilar.py` con los argumentos que
 reciba. Para que arranque solo al iniciar sesión, un `.vbs` en la carpeta de inicio de Windows
-(`shell:startup`) lanza, oculto, `wsl.exe -d Ubuntu -u seb -- /home/seb/fotosseven/sevencars-fichas/vigilar.sh`
-(por ejemplo: `CreateObject("WScript.Shell").Run "wsl.exe -d Ubuntu -u seb -- /home/seb/fotosseven/sevencars-fichas/vigilar.sh", 0, False`).
+(`shell:startup`) lanza, oculto, `wsl.exe -d Ubuntu -u seb -- /home/seb/crmnuevo/automatizaciones/sevencars-fichas/vigilar.sh`
+(por ejemplo: `CreateObject("WScript.Shell").Run "wsl.exe -d Ubuntu -u seb -- /home/seb/crmnuevo/automatizaciones/sevencars-fichas/vigilar.sh", 0, False`).
+Ese `.vbs` es `sevencars-vigilar-fotos.vbs` y `bash instalar-vigilante.sh` lo copia a la carpeta de inicio; si se
+mueve la carpeta del proyecto hay que corregir la ruta del `.vbs` y volver a ejecutar `instalar-vigilante.sh`.
 Antes de activarlo conviene ejecutar una vez `$PY vigilar.py --una-vez` en la terminal para fijar el punto de
 partida y ver qué carpetas ya tenían fotos pendientes. Para comprobar que está andando: `$PY vigilar.py --estado`
 (muestra el punto de partida y las carpetas con intentos) y `logs/vigilar.log`; si sale «Ya hay un vigilante en
@@ -575,7 +577,7 @@ marcha», es que el del arranque está activo. Para pararlo: `pkill -f vigilar.p
 ## Pruebas
 
 ```bash
-/home/seb/fotosseven/.venv/bin/python -m pytest -q
+/home/seb/crmnuevo/automatizaciones/.venv/bin/python -m pytest -q
 ```
 
 Las pruebas no necesitan OneDrive, Google ni OpenAI (usan carpetas temporales y datos de ejemplo).

@@ -4,7 +4,7 @@ CREAR MÁSCARAS PARA REMOVER COCHES
 Necesitas crear 2 archivos de máscara antes de ejecutar remove_car_temp.py:
 
 UBICACIÓN:
-  /home/seb/fotosseven/sevencars-photo-pipeline/backgrounds/
+  /home/seb/crmnuevo/automatizaciones/sevencars-photo-pipeline/backgrounds/
 
 ARCHIVOS NECESARIOS:
   ✓ bg_2_mask.jpg  (para bg_2.jpg)
