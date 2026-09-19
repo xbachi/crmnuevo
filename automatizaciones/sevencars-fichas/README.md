@@ -533,6 +533,8 @@ $PY vigilar.py --ahora 9028LXG # procesar ese coche (ref o matrícula) ya mismo,
 $PY vigilar.py --estado        # tabla: carpeta, estado, intentos, último y próximo intento
 $PY vigilar.py --simular       # qué haría en este ciclo, sin lanzar nada ni escribir
 $PY vigilar.py --probar-mail   # manda un mail de prueba con la configuración de avisos y sale
+$PY vigilar.py --probar-crm    # un latido al CRM: dice si CRM_URL / CRM_WORKER_SECRET funcionan y sale
+$PY vigilar.py --trabajos-una-vez  # atiende como mucho un trabajo pedido desde el CRM y sale
 ```
 
 Ajustes: `--intervalo` (segundos entre revisiones, 120), `--espera` (segundos de calma antes de actuar, 180),
@@ -560,6 +562,47 @@ Configuración en `sevencars-fichas/.env` (plantilla en `.env.example`; el entor
 `AVISOS_ACTIVOS` (1; 0 apaga los mails). Sin configuración el vigilante sigue igual y lo anota una vez en el log;
 si un envío falla, lo anota y sigue. `$PY vigilar.py --probar-mail` dice qué variables faltan o por qué falló, sin
 mostrar la contraseña. El `.env` se relee en cada aviso: cambiarlo no requiere reiniciar el vigilante.
+
+### Trabajos pedidos desde el CRM (`trabajos_crm.py`)
+
+Los botones de la ficha del coche en el CRM (sevencars.vercel.app) no ejecutan nada en Vercel: dejan un pedido en
+una cola y el vigilante de la PC lo recoge, ejecuta **los mismos comandos que los atajos de la terminal** y devuelve
+el resultado (código, salida, líneas PARA VERIFICAR y enlace del coche en la web), que el CRM muestra en la ficha.
+
+| Botón (tipo)        | Qué ejecuta la PC                                                                  |
+|---------------------|-------------------------------------------------------------------------------------|
+| `cambio_precio`     | `publicar.py SEL --actualizar --solo-financiacion` y, solo si salió bien, `publicar.py SEL --solo-ficha` (= `publicar-cambioprecio`) |
+| `cambio_fotos`      | `publicar.py SEL --cambiar-fotos` (= `publicar-cambiofotos`)                         |
+| `publicar_borrador` | `publicar.py SEL` (crea el borrador en sevencars.es)                               |
+| `bajar_ficha`       | `publicar.py SEL --solo-ficha` (= `publicar-cambioficha`)                            |
+| `carteles`          | `luna.py SEL` (imágenes de precios para la luna)                                    |
+
+`SEL` es `--matricula 6913MDM` si la matrícula del coche en el CRM está completa (4 dígitos y 3 letras) y, si no, la
+referencia sin `#` (`#1088` → `1088`, `#D-28` → `D-28`). Cada pedido viene en modo **simular** (se agrega
+`--simular`: muestra qué cambiaría sin tocar nada) o **aplicar** (se agrega `--si` a los que preguntan antes de
+pisar: `--actualizar`, `--cambiar-fotos` y la creación; nada a `--solo-ficha` ni a `luna.py`). El CRM solo deja
+aplicar un cambio de precio, de fotos o un borrador si ese mismo coche tiene una simulación correcta de hace menos de
+30 min. Un pedido que la PC no recoge en 15 min caduca, y uno que lleva más de 30 min en curso queda en error
+(«interrumpido»): nunca se reintenta solo.
+
+Cómo lo atiende: mientras espera la próxima vuelta del ciclo de fotos, el vigilante le pregunta al CRM si hay algo
+(cada 45 s, o cada 10 s si hubo actividad reciente) y ejecuta los pedidos **de a uno y en el mismo hilo**, así que
+nunca se pisan con la publicación automática ni entre sí. Un trabajo largo solo retrasa la vuelta siguiente; mientras
+dura, un latido por minuto le avisa al CRM que la PC sigue encendida. Al CRM se manda la salida sin colores y
+recortada a los últimos 100 KB. En `logs/vigilar.log` queda una línea al lanzar cada trabajo y otra con el resultado.
+Si el CRM no responde, rechaza el secreto o responde algo raro, se anota **una vez** en el log (hasta que vuelva a
+funcionar) y el vigilante sigue igual; si no se pudo mandar un resultado por la red, se reintenta a los 10 y 30 s.
+
+Configuración en `sevencars-fichas/.env` (o en el entorno; se relee en cada vuelta, no hace falta reiniciar):
+`CRM_URL` (`https://sevencars.vercel.app`), `CRM_WORKER_SECRET` (el mismo valor que `AUTOMATIZACIONES_WORKER_SECRET`
+en Vercel) y `CRM_TRABAJOS` (1 por defecto si están las otras dos; 0 lo apaga). Sin `CRM_URL` o sin el secreto el
+vigilante no llama nunca al CRM y duerme exactamente igual que antes. Al arrancar anota en el log «Trabajos del CRM
+activos» o «apagados» y por qué (nunca el secreto). `$PY vigilar.py --probar-crm` manda un solo latido y dice si
+conecta o qué falla (secreto incorrecto, falta la variable en Vercel, sin red…). `--trabajos-una-vez` atiende como
+mucho un pedido y sale (respeta el cerrojo: si el vigilante del arranque está activo, no hace nada).
+
+Los atajos `publicar-cambio*` (`publicar-cambio.sh`) y `trabajos_crm.comandos()` tienen que ejecutar lo mismo:
+`tests/test_trabajos_crm.py` compara los dos, así que un cambio en uno sin el otro rompe las pruebas.
 
 ### Activación en Windows
 
@@ -591,6 +634,7 @@ publicar.py    crear el borrador del coche en sevencars.es (WooCommerce); --solo
 luna.py        imágenes para la hoja de precios de la luna (precio en miles y cientos, y cuota) desde plantillas/luna/
 vigilar.py     vigilante: sondea 1_Ventas y lanza publicar.py cuando aparecen fotos nuevas en fotos/;
                deja RESULTADO.txt en la carpeta del coche (vigilar.sh lo arranca desde Windows)
+trabajos_crm.py cola de trabajos del CRM que atiende el vigilante (mismos comandos que publicar-cambio*)
 cochesnet.py   panel de coches.net con Playwright (login/explorar/grabar/estado); `preparar <ref>` arma el kit para
                copiar y pegar (datos, ficha técnica, fotos, descripción) en reports/cochesnet/
 wc_client.py   cliente REST de WordPress/WooCommerce (medios, productos, búsqueda de duplicados)

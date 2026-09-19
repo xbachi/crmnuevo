@@ -47,8 +47,10 @@ def _archivos_env(environ: Mapping[str, str], env_path: Path) -> list[Path]:
     return archivos
 
 
-def leer_variables(environ: Mapping[str, str] | None = None, env_path: Path | None = None) -> tuple[dict, list[str]]:
-    """({variable: valor} de las de VARIABLES, avisos sobre archivos que no se pudieron leer). Nunca lanza."""
+def leer_variables(environ: Mapping[str, str] | None = None, env_path: Path | None = None,
+                   variables: tuple[str, ...] = VARIABLES) -> tuple[dict, list[str]]:
+    """({variable: valor} de las de `variables` —por defecto las de los avisos—, avisos sobre archivos que no se
+    pudieron leer). Nunca lanza. También la usa trabajos_crm.py para CRM_URL, CRM_WORKER_SECRET y CRM_TRABAJOS."""
     from dotenv import dotenv_values
     environ = os.environ if environ is None else environ
     valores: dict[str, str] = {}
@@ -61,10 +63,10 @@ def leer_variables(environ: Mapping[str, str] | None = None, env_path: Path | No
         except (OSError, UnicodeError) as exc:
             problemas.append(f"no se pudo leer {archivo} ({type(exc).__name__})")
             continue
-        for k in VARIABLES:
+        for k in variables:
             if k not in valores and leidos.get(k):
                 valores[k] = leidos[k].strip()
-    for k in VARIABLES:
+    for k in variables:
         if environ.get(k):
             valores[k] = environ[k].strip()
     return valores, problemas

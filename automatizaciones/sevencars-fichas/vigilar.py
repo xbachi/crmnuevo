@@ -7,6 +7,8 @@ Uso: vigilar.py                        → bucle sin fin: revisa 1_Ventas cada -
      vigilar.py --estado               → tabla con el estado de cada carpeta
      vigilar.py --simular              → muestra qué haría, sin lanzar nada ni escribir archivos
      vigilar.py --probar-mail          → manda un mail de prueba con la configuración de avisos (.env) y termina
+     vigilar.py --probar-crm           → un latido al CRM (CRM_URL / CRM_WORKER_SECRET de .env): dice si conecta y termina
+     vigilar.py --trabajos-una-vez     → atiende como mucho un trabajo pedido desde el CRM y termina
 
 Reglas: solo se publican solas las fotos que aparecen DESPUÉS de la primera ejecución (el punto de partida) y
 cuando la carpeta fotos/ lleva --espera segundos sin cambios (las fotos se bajan por tandas). Un coche por ciclo.
@@ -16,6 +18,8 @@ inotify no funciona sobre /mnt/c (OneDrive), por eso se sondea.
 Lo que requiere atención se avisa por mail (avisos.py; `vigilar.py --probar-mail` manda uno de prueba): cada
 resultado que lo merece, solo cuando cambia respecto del intento anterior, y las anomalías (OneDrive sin montar,
 error del ciclo, fotos ilegibles más de 30 min, RESULTADO.txt sin escribir) como mucho una vez cada 6 h por motivo.
+Mientras espera la próxima vuelta atiende los trabajos pedidos desde el CRM (trabajos_crm.py), uno a la vez y en este
+mismo hilo; sin CRM_URL / CRM_WORKER_SECRET (o con CRM_TRABAJOS=0) duerme el intervalo entero, como siempre.
 """
 from __future__ import annotations
 
@@ -278,6 +282,9 @@ class Vigilante:
     reloj: Callable[[], float] = field(default=time.time)
     log: logging.Logger = field(default_factory=lambda: logging.getLogger("vigilar"))
     avisador: avisos.Avisador | None = None
+    cola: object | None = None       # trabajos_crm.ColaCRM: se atiende mientras se espera la próxima vuelta
+    dormir: Callable[[float], None] = field(default=time.sleep)
+    cronometro: Callable[[], float] = field(default=time.monotonic)     # para la espera (inmune a cambios de hora)
     _avisos: dict[str, str] = field(default_factory=dict, repr=False)
     _ultimo_latido: float | None = field(default=None, repr=False)
     _anomalias: dict | None = field(default=None, repr=False)          # estado["avisos"]: {"enviados", "ilegibles"}
@@ -802,9 +809,25 @@ class Vigilante:
         config = self.avisador.config()
         if self.avisador.comprobar(config):
             self.log.info("Avisos por mail activos (%d destinatario/s).", len(config.destinatarios))
+        if self.cola is not None:
+            self.cola.anunciar()
         while True:
             self.vuelta()
-            time.sleep(self.intervalo)
+            self.esperar()
+
+    def esperar(self) -> None:
+        """Hasta la próxima vuelta. Con los trabajos del CRM activos los atiende mientras tanto (uno a la vez, en este
+        mismo hilo: nunca se pisan con la publicación automática) y duerme lo que diga el CRM sin pasarse del
+        intervalo; un trabajo largo solo retrasa la vuelta. Sin CRM duerme el intervalo entero, como siempre."""
+        if self.cola is None or not self.cola.activa():
+            self.dormir(self.intervalo)
+            return
+        fin = self.cronometro() + self.intervalo
+        while self.cronometro() < fin:
+            proximo = self.cola.atender()
+            restante = fin - self.cronometro()
+            if restante > 0:
+                self.dormir(min(proximo, restante))
 
     def vuelta(self) -> None:
         """Un ciclo del bucle: ningún fallo lo corta; OneDrive sin montar y los errores inesperados se avisan por mail."""
@@ -839,6 +862,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--simular", action="store_true", help="mostrar qué se haría en este ciclo sin lanzar nada ni escribir")
     p.add_argument("--probar-mail", action="store_true",
                    help="mandar un mail de prueba con la configuración de avisos (.env) y salir")
+    p.add_argument("--probar-crm", action="store_true",
+                   help="mandar un latido al CRM (CRM_URL / CRM_WORKER_SECRET de .env), decir si conecta y salir")
+    p.add_argument("--trabajos-una-vez", action="store_true",
+                   help="atender como mucho un trabajo pedido desde el CRM y salir")
     p.add_argument("--intervalo", type=int, default=INTERVALO, help=f"segundos entre revisiones (por defecto {INTERVALO})")
     p.add_argument("--espera", type=int, default=ESPERA,
                    help=f"segundos sin cambios en fotos/ antes de actuar (por defecto {ESPERA})")
@@ -852,6 +879,9 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.probar_mail:
         return avisos.probar()
+    if args.probar_crm:
+        import trabajos_crm
+        return trabajos_crm.probar()
     escribe = not (args.estado or args.simular)
     log = configurar_log(LOG_PATH if escribe else None)
     vig = Vigilante(ventas_dir=Path(args.ventas_dir), estado_path=ESTADO_PATH, lock_path=LOCK_PATH,
@@ -869,6 +899,11 @@ def main(argv: list[str] | None = None) -> int:
         if args.una_vez:
             vig.ciclo()
             return EXIT_OK
+        import trabajos_crm          # aquí y no arriba: trabajos_crm usa las utilidades de este módulo
+        cola = trabajos_crm.ColaCRM(ejecutar=vig.ejecutar, log=log, python=vig.python)
+        if args.trabajos_una_vez:
+            return cola.una_vez()
+        vig.cola = cola
         return vig.bucle()
     except FileNotFoundError as exc:
         log.info("%s", exc)
