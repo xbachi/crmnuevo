@@ -689,7 +689,7 @@ class Vigilante:
         if etiq == FOTOS_NORMALIZADAS:
             return ("Había fotos nuevas en fotos/ y se dejaron ordenadas (1.jpg…N.jpg). El coche ya estaba publicado, "
                     "así que NO se volvió a subir a la web.",
-                    "Si esas fotos tienen que aparecer en el anuncio, subirlas a mano en WordPress.")
+                    "Si esas fotos tienen que aparecer en el anuncio: publicar-cambiofotos <referencia> (pregunta antes de reemplazar).")
         if etiq == FOTOS_ERROR:
             reintenta = entry.get("proximo_intento") is not None
             nota = f" Hace falta autorizar Google: ejecutar en la terminal {ORDEN_AUTORIZAR}." if pide_google(salida) else ""

@@ -302,6 +302,17 @@ solo la muestra). `publicar.py` escribe la misma cuota en AD al crear el borrado
 
 ## Publicar en la web (`publicar.py`)
 
+**Atajos** (desde cualquier carpeta, sin `cd` ni `$PY`; son enlaces en `~/.local/bin` a `publicar-cambio.sh`).
+Aceptan varios coches por referencia o matrícula, y `--simular` / `--si` al final:
+
+```bash
+publicar-cambioprecio 1033 1090     # cambié el precio en el sheet: --actualizar --solo-financiacion (web + carteles) y --solo-ficha
+publicar-cambiofotos 6913MDM        # cambié las fotos de un coche publicado: --cambiar-fotos
+publicar-cambioficha 1033           # solo volver a bajar la ficha de exposición: --solo-ficha
+```
+
+Para reinstalar los enlaces: `for n in publicar-cambioprecio publicar-cambiofotos publicar-cambioficha; do ln -sfn "$PWD/publicar-cambio.sh" ~/.local/bin/$n; done`
+
 ```bash
 $PY publicar.py D29 --simular            # resumen del borrador + comprobación de duplicado, sin subir nada
 $PY publicar.py D29                      # crea el BORRADOR en sevencars.es (fotos + producto) y escribe AD/G
@@ -310,6 +321,8 @@ $PY publicar.py D29 --actualizar --simular          # anuncio ya publicado: dife
 $PY publicar.py D29 --actualizar --solo-financiacion --si   # solo precio, precio financiado, cuota, tipo y fecha
 $PY publicar.py D29 --solo-ficha                    # vuelve a bajar la ficha de exposición (PDF) a la carpeta
 $PY publicar.py D29 --solo-ficha --simular          # dice qué producto y qué URL usaría, sin descargar
+$PY publicar.py D29 --cambiar-fotos --simular       # coche ya publicado: qué fotos irían a la web, sin subir nada
+$PY publicar.py D29 --cambiar-fotos                 # reemplaza las fotos del anuncio por las de fotos/ (pregunta antes)
 ```
 
 Flujo: hoja en vivo → fila → carpeta (`locate`) → lectura liviana del permiso (caché) → **puerta de identidad**
@@ -355,6 +368,24 @@ de la hoja (`marcas.split_modelo`) tiene que aparecer en el nombre del producto 
 `_marca`/`_marca_completa` (sin acentos, mayúsculas ni signos); si no —una matrícula mal cargada en la web, como
 un «Hyundai I10» con la matrícula de un Fiat 500— avisa con los dos textos y sale con código 1 sin escribir nada.
 `--forzar` salta la guarda (avisa y actualiza igual).
+
+**Cambiar las fotos de un coche ya publicado** (`--cambiar-fotos [--simular] [--si]`): la galería del anuncio pasa
+a ser exactamente las fotos de `<carpeta del coche>/fotos/`, en orden, con `1.jpg` de portada. Fila de la hoja →
+carpeta (tiene que coincidir con la referencia y la matrícula de la fila) → `fotos/` normalizada como al publicar
+(`--sin-normalizar-fotos` la sube tal cual) → producto por matrícula (`buscar_por_matricula`), que tiene que llevar
+la matrícula de la hoja, con la guarda de modelo (`--forzar` la salta); no lee documentos ni llama a la IA. Muestra
+el plan (producto y enlace del admin, cuántas fotos hay en la web y la lista de las nuevas con su nombre SEO) y
+pregunta `¿Reemplazo las N fotos de la web por las M de la carpeta? [s/N]` (`--si` no pregunta; `--simular` se
+queda en el plan). Primero sube **todas** las fotos (mismos nombres, alt y títulos que al crear) y solo si subieron
+todas cambia la galería del producto; si una falla, el producto no se toca y las ya subidas se borran. Si falla el
+cambio de galería, relee el producto: si ya tiene las fotos nuevas sigue, si sigue con las viejas borra las
+recién subidas y, si no lo puede saber, no borra nada y lo avisa con los ids. Las fotos viejas **no se borran**:
+salen del anuncio pero quedan en la biblioteca de medios de WordPress (se dice cuántas). Después vuelve a bajar la
+ficha de exposición (`--sin-ficha` lo evita; si falla va a PARA VERIFICAR y el cambio de fotos queda hecho) y apunta
+en `data/publicados.json` las fotos, la nueva portada y `fotos_cambiadas`. **No escribe en la hoja**: la columna G
+(URL IMAGEN) sigue con la portada anterior (lo avisa y muestra la nueva). Sale con código 1 si el coche no está
+publicado, no hay carpeta, `fotos/` o fotos, o falla una guarda. No se combina con `--actualizar`, `--solo-fotos`
+ni `--solo-ficha`.
 
 Credenciales de la web: `WC_URL`, `WC_KEY`, `WC_SECRET`, `WP_USER`, `WP_APP_PASSWORD` desde `.env` del proyecto
 y, si faltan, del `.env` de `editor-fotos-seven` (nunca se muestran). Las claves ACF `_dto_renove` (850),
@@ -429,6 +460,8 @@ repite la caja por fotos).
   duplicarse. Repetir el comando sobre una carpeta ya normalizada no cambia nada.
 - `--simular` solo muestra qué se haría; `--solo-fotos` hace únicamente ese paso (ni web ni hoja) y termina;
   `--sin-normalizar-fotos` lo omite. `cochesnet.py preparar` hace la misma normalización (mismo flag para omitirla).
+- Para un coche **ya publicado**, `publicar.py <ref> --cambiar-fotos` normaliza la carpeta y reemplaza las fotos del
+  anuncio por las de `fotos/` (ver [Publicar en la web](#publicar-en-la-web-publicarpy)).
 
 ## Imágenes para la luna (`luna.py`)
 
@@ -542,7 +575,8 @@ Las pruebas no necesitan OneDrive, Google ni OpenAI (usan carpetas temporales y 
 
 ```
 verificar.py   CLI (referencias, --matricula, --todos, --bastidores, --cuotas, --restaurar, --probar-sheet, --escribir…)
-publicar.py    crear el borrador del coche en sevencars.es (WooCommerce); --solo-fotos normaliza fotos/ y sale
+publicar.py    crear el borrador del coche en sevencars.es (WooCommerce); --solo-fotos normaliza fotos/ y sale;
+               --cambiar-fotos reemplaza las fotos de un coche ya publicado
 luna.py        imágenes para la hoja de precios de la luna (precio en miles y cientos, y cuota) desde plantillas/luna/
 vigilar.py     vigilante: sondea 1_Ventas y lanza publicar.py cuando aparecen fotos nuevas en fotos/;
                deja RESULTADO.txt en la carpeta del coche (vigilar.sh lo arranca desde Windows)

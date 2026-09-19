@@ -185,6 +185,15 @@ class WcClient:
             raise WcError(f"actualizar_producto no puede tocar {', '.join(prohibidos)}")
         return self._wc("PUT", f"/products/{product_id}", json=payload).json()
 
+    def reemplazar_imagenes(self, product_id: int, media_ids: list[int]) -> dict:
+        """PUT que solo manda `images`: la galería pasa a ser exactamente esos medios, en ese orden (el primero es la
+        imagen destacada). Es la única vía para tocar las fotos de un producto ya creado (publicar.py
+        --cambiar-fotos); los medios que salen de la galería siguen en la biblioteca de WordPress. Una lista vacía
+        dejaría el anuncio sin fotos: se rechaza sin llamar a la web."""
+        if not media_ids:
+            raise WcError("reemplazar_imagenes necesita al menos una foto")
+        return self._wc("PUT", f"/products/{product_id}", json={"images": [{"id": i} for i in media_ids]}).json()
+
     def crear_producto(self, payload: dict) -> tuple[int, str, dict]:
         p = self._wc("POST", "/products", json=payload).json()
         return p["id"], self.admin_url(p["id"]), p
@@ -230,6 +239,12 @@ def coincide_matricula(producto: dict, plate: str) -> bool:
         if m.get("key") in ("matricula", "matricula_crm") and normalize_plate(str(m.get("value") or "")) == plate:
             return True
     return False
+
+
+def ids_imagenes(producto: dict) -> list[int]:
+    """Ids de medios de la galería de un producto, en orden (el primero es la portada). Sin la imagen de relleno
+    (id 0) que devuelven algunas versiones de WooCommerce para un producto sin fotos."""
+    return [im["id"] for im in (producto.get("images") or []) if isinstance(im, dict) and im.get("id")]
 
 
 def meta_actual(producto: dict) -> dict:

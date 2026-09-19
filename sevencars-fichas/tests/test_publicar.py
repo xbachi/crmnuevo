@@ -72,10 +72,13 @@ def ai_kia(plate="9028LXG", combustible="GASOLINA - HÍBRIDO ENCHUFABLE (PHEV)")
 class FakeClient:
     url = "https://example.test"
 
-    def __init__(self, existente=None, fallo_subida=None, fallo_crear=False, producto=None, ficha=PDF_FICHA):
+    def __init__(self, existente=None, fallo_subida=None, fallo_crear=False, producto=None, ficha=PDF_FICHA,
+                 fallo_galeria=None, galeria_aplicada=False):
         self.existente, self.fallo_subida, self.fallo_crear = existente, fallo_subida, fallo_crear
         self.producto = producto or {}
         self.ficha = ficha                  # bytes que devuelve la descarga, o la excepción que levanta
+        # reemplazar_imagenes: excepción que levanta y si, aun así, la web llegó a aplicar el cambio
+        self.fallo_galeria, self.galeria_aplicada = fallo_galeria, galeria_aplicada
         self.calls, self.subidas, self.borrados = [], [], []
         self.fichas = []                    # descargas de la ficha de exposición (aparte de `calls`)
 
@@ -117,6 +120,15 @@ class FakeClient:
         assert not prohibidos, f"una actualización nunca toca {prohibidos}"
         return dict(self.producto, **payload)
 
+    def reemplazar_imagenes(self, product_id, media_ids):
+        self.calls.append(("galeria", product_id, list(media_ids)))
+        nuevo = dict(self.producto, images=[{"id": i, "src": f"https://x/media-{i}.jpg"} for i in media_ids])
+        if self.fallo_galeria is None or self.galeria_aplicada:
+            self.producto = nuevo
+        if self.fallo_galeria is not None:
+            raise self.fallo_galeria
+        return nuevo
+
     def crear_producto(self, payload):
         self.calls.append(("crear", payload))
         if self.fallo_crear:
@@ -157,7 +169,7 @@ def make_args(**over):
     base = dict(referencia="82", matricula=[], fila=[], simular=False, categoria=None, publicar_directo=False,
                 forzar=False, sin_hoja=False, sin_fotos_caja=True, motor=None, actualizar=False, si=False,
                 sin_normalizar_fotos=False, solo_fotos=False, solo_financiacion=False, sin_luna=False,
-                sin_ficha=False, solo_ficha=False)
+                sin_ficha=False, solo_ficha=False, cambiar_fotos=False)
     base.update(over)
     return argparse.Namespace(**base)
 
@@ -1397,3 +1409,206 @@ def test_solo_ficha_en_el_parser():
     for extra in (["--actualizar"], ["--solo-fotos"]):
         with pytest.raises(SystemExit):
             publicar.main(["82", "--solo-ficha"] + extra)
+
+
+# ------------------------------------------------------------- --cambiar-fotos
+VIEJAS = [{"id": 901, "src": "https://x/vieja-1.jpg"}, {"id": 902, "src": "https://x/vieja-2.jpg"}]
+
+
+def producto_publicado(**over):
+    """El producto tal como lo devuelve obtener_producto: con la matrícula y dos fotos en la galería."""
+    return dict({"id": 555, "name": "Kia XCeed", "status": "publish", "sku": "9028LXG", "meta_data": [],
+                 "images": list(VIEJAS)}, **over)
+
+
+def cliente_publicado(**over) -> FakeClient:
+    return FakeClient(existente=EXISTENTE, producto=producto_publicado(), **over)
+
+
+def run_cambiar(args, data, carpeta, registro, client):
+    factory = Factory(client)
+    rc = publicar.cambiar_fotos(args, data, [carpeta], client_factory=factory, registro_path=registro)
+    return rc, client, factory
+
+
+def args_cambiar(**over):
+    return make_args(cambiar_fotos=True, **over)
+
+
+def no_preguntar(monkeypatch):
+    monkeypatch.setattr("builtins.input", lambda *a: (_ for _ in ()).throw(AssertionError("no debe preguntar")))
+
+
+def test_cambiar_fotos_reemplaza_la_galeria(sin_lecturas, carpeta, registro, capsys, monkeypatch):
+    """fotos/ se normaliza (la PNG nueva pasa a 4.jpg), se suben las cuatro en orden con los mismos nombres, alt y
+    títulos que al crear y la galería pasa a ser exactamente esas cuatro; las viejas no se borran."""
+    no_preguntar(monkeypatch)
+    p = _png_nueva(carpeta)
+    registro.write_text(json.dumps({"9028LXG": {"product_id": 555, "status": "draft", "fecha": "2026-09-01T10:00:00",
+                                                "fotos": 2, "portada": "https://x/vieja-1.jpg"}}), encoding="utf-8")
+    rc, client, _ = run_cambiar(args_cambiar(si=True), datos(url_imagen="https://x/vieja-1.jpg"), carpeta, registro,
+                                cliente_publicado())
+    assert rc == 0
+    assert client.nombres() == ["buscar", "obtener", "subir", "subir", "subir", "subir", "galeria"]
+    subidas = [c for c in client.calls if c[0] == "subir"]
+    assert [c[1] for c in subidas] == [f"kia-xceed-9028lxg-0{i}.jpg" for i in range(1, 5)]
+    assert [c[2] for c in subidas] == [f"Kia XCeed 9028LXG · foto 0{i}" for i in range(1, 5)]
+    assert [c[3] for c in subidas] == [f"Kia XCeed 9028LXG 0{i}" for i in range(1, 5)]
+    assert client.calls[-1] == ("galeria", 555, [101, 102, 103, 104])        # la primera, portada
+    assert client.borrados == []                                              # las viejas no se borran
+    assert _archivos(carpeta) == ["1.jpg", "2.jpg", "3.jpg", "4.jpg"] and (carpeta.path / "fotos" / "originales" / p.name).is_file()
+    # ficha de exposición nueva y registro al día (lo que ya tenía se conserva)
+    assert client.fichas == [555] and (carpeta.path / "ficha-expo.pdf").read_bytes() == PDF_FICHA
+    reg = json.loads(registro.read_text(encoding="utf-8"))["9028LXG"]
+    assert reg["fotos"] == 4 and reg["portada"] == "https://x/media-101.jpg" and reg["fotos_cambiadas"]
+    assert reg["product_id"] == 555 and reg["referencia"] == "1082" and reg["fila"] == 2 and reg["titulo"] == "Kia XCeed"
+    assert reg["fecha"] == "2026-09-01T10:00:00" and reg["status"] == "draft"
+    out = capsys.readouterr().out
+    assert "Identidad: OK" in out and "Modelo: OK" in out and "== Cambio de fotos" in out
+    assert "En la web: 2 fotos · en la carpeta: 4 fotos nuevas" in out
+    assert "01. 1.jpg → kia-xceed-9028lxg-01.jpg  (portada)" in out and "04. 4.jpg → kia-xceed-9028lxg-04.jpg" in out
+    assert "galería cambiada por 4 fotos nuevas" in out
+    assert "Las 2 fotos anteriores siguen en la biblioteca de medios de WordPress (no se borran)" in out
+    assert "G (URL IMAGEN) sigue con la portada anterior (https://x/vieja-1.jpg)" in out
+    assert "Portada nueva: https://x/media-101.jpg" in out and f"\nFicha: {carpeta.path / 'ficha-expo.pdf'}\n" in out
+    assert "Portada dudosa" not in out and "== PARA VERIFICAR" not in out
+
+
+def test_cambiar_fotos_simular_no_sube_nada(sin_lecturas, carpeta, registro, capsys):
+    p = _png_nueva(carpeta)
+    antes = _archivos(carpeta)
+    rc, client, _ = run_cambiar(args_cambiar(simular=True), datos(), carpeta, registro, cliente_publicado())
+    assert rc == 0 and client.nombres() == ["buscar", "obtener"] and client.fichas == []
+    assert _archivos(carpeta) == antes and p.is_file() and not registro.exists()
+    out = capsys.readouterr().out
+    assert "fotos/: se haría: 4 fotos listas" in out and "04. 4.jpg → kia-xceed-9028lxg-04.jpg" in out
+    assert "Simulación: no se sube nada ni se cambia la galería." in out
+
+
+def test_cambiar_fotos_sin_normalizar_sube_la_carpeta_tal_cual(sin_lecturas, carpeta, registro, capsys):
+    p = _png_nueva(carpeta)
+    rc, client, _ = run_cambiar(args_cambiar(si=True, sin_normalizar_fotos=True), datos(), carpeta, registro,
+                                cliente_publicado())
+    assert rc == 0 and p.is_file() and not (carpeta.path / "fotos" / "originales").exists()
+    assert client.calls[-1] == ("galeria", 555, [101, 102, 103, 104])
+    assert f"04. {p.name} → kia-xceed-9028lxg-04.jpg" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("respuesta", ["n", "", EOFError(), KeyboardInterrupt()])
+def test_cambiar_fotos_pregunta_y_cancelar_no_sube_nada(sin_lecturas, carpeta, registro, capsys, monkeypatch, respuesta):
+    preguntas = []
+
+    def fake_input(pregunta):
+        preguntas.append(pregunta)
+        if isinstance(respuesta, BaseException):
+            raise respuesta
+        return respuesta
+    monkeypatch.setattr("builtins.input", fake_input)
+    rc, client, _ = run_cambiar(args_cambiar(), datos(), carpeta, registro, cliente_publicado())
+    assert rc == 0 and client.nombres() == ["buscar", "obtener"] and client.fichas == [] and not registro.exists()
+    assert preguntas == ["¿Reemplazo las 2 fotos de la web por las 3 de la carpeta? [s/N] "]
+    assert "Cancelado: no se sube nada." in capsys.readouterr().out
+
+
+def test_cambiar_fotos_pregunta_y_si_sigue(sin_lecturas, carpeta, registro, monkeypatch):
+    monkeypatch.setattr("builtins.input", lambda pregunta: "sí")
+    rc, client, _ = run_cambiar(args_cambiar(), datos(), carpeta, registro, cliente_publicado())
+    assert rc == 0 and client.calls[-1] == ("galeria", 555, [101, 102, 103])
+
+
+def test_cambiar_fotos_fallo_en_una_subida(sin_lecturas, carpeta, registro, capsys):
+    """Falla la segunda foto: la galería no se toca y la primera, ya subida, se borra (no queda huérfana)."""
+    rc, client, _ = run_cambiar(args_cambiar(si=True), datos(), carpeta, registro, cliente_publicado(fallo_subida=2))
+    assert rc == 1 and client.nombres() == ["buscar", "obtener", "subir", "subir", "borrar"]
+    assert client.borrados == [101] and client.producto["images"] == VIEJAS
+    assert client.fichas == [] and not registro.exists()
+    out = capsys.readouterr().out
+    assert "Fallo subiendo fotos" in out and "La galería del producto 555 no se tocó." in out
+
+
+def test_cambiar_fotos_fallo_al_cambiar_la_galeria(sin_lecturas, carpeta, registro, capsys):
+    error = WcError("error del servidor de la web (500); probá más tarde")
+    # la web no aplicó el cambio: se borran las tres recién subidas y el producto queda como estaba
+    rc, client, _ = run_cambiar(args_cambiar(si=True), datos(), carpeta, registro, cliente_publicado(fallo_galeria=error))
+    assert rc == 1 and client.nombres()[-5:] == ["galeria", "obtener", "borrar", "borrar", "borrar"]
+    assert client.borrados == [101, 102, 103] and client.producto["images"] == VIEJAS
+    assert client.fichas == [] and not registro.exists()
+    out = capsys.readouterr().out
+    assert "No se pudo cambiar la galería del producto 555" in out and "sigue con su galería anterior" in out
+    # se cortó la respuesta pero el cambio estaba hecho: no se borra nada y se sigue
+    rc, client, _ = run_cambiar(args_cambiar(si=True), datos(), carpeta, registro,
+                                cliente_publicado(fallo_galeria=error, galeria_aplicada=True))
+    assert rc == 0 and client.borrados == [] and client.fichas == [555]
+    assert json.loads(registro.read_text(encoding="utf-8"))["9028LXG"]["fotos"] == 3
+    assert "La web sí aplicó el cambio de galería" in capsys.readouterr().out
+
+    # no se puede releer el producto: no se sabe si las usa, así que no se borran
+    class SinReleer(FakeClient):
+        def obtener_producto(self, product_id):
+            if any(c[0] == "galeria" for c in self.calls):
+                raise WcError("no se pudo conectar con la web: dns")
+            return super().obtener_producto(product_id)
+    registro.unlink()
+    cliente = SinReleer(existente=EXISTENTE, producto=producto_publicado(), fallo_galeria=error)
+    rc, client, _ = run_cambiar(args_cambiar(si=True), datos(), carpeta, registro, cliente)
+    assert rc == 1 and client.borrados == [] and not registro.exists()
+    assert "NO se borran las 3 fotos recién subidas (media 101, 102, 103)" in capsys.readouterr().out
+
+
+def test_cambiar_fotos_no_publicado(sin_lecturas, carpeta, registro, capsys):
+    rc, client, _ = run_cambiar(args_cambiar(si=True), datos(), carpeta, registro, FakeClient(existente=None))
+    assert rc == 1 and client.nombres() == ["buscar"] and client.fichas == [] and not registro.exists()
+    out = capsys.readouterr().out
+    assert "9028LXG no está publicado en la web: no hay fotos que cambiar" in out and "Publicalo primero" in out
+
+
+def test_cambiar_fotos_guardas_de_identidad_y_marca(sin_lecturas, carpeta, registro, capsys):
+    # la marca de la hoja no aparece en el producto: no se sube nada (con --forzar se sigue)
+    ajeno = producto_publicado(name="Hyundai I10", meta_data=[{"key": k, "value": v} for k, v in AJENO.items()])
+    rc, client, _ = run_cambiar(args_cambiar(si=True), datos(), carpeta, registro,
+                                FakeClient(existente=EXISTENTE, producto=ajeno))
+    assert rc == 1 and client.nombres() == ["buscar", "obtener"]
+    assert "Modelo: el producto 555 se llama «Hyundai I10»" in capsys.readouterr().out
+    rc, client, _ = run_cambiar(args_cambiar(si=True, forzar=True), datos(), carpeta, registro,
+                                FakeClient(existente=EXISTENTE, producto=ajeno))
+    assert rc == 0 and client.nombres()[-1] == "galeria" and "(--forzar: se sigue igual)" in capsys.readouterr().out
+    # el producto que devuelve la web no lleva la matrícula de la hoja: tampoco (ni con --forzar)
+    registro.unlink()
+    for forzar in (False, True):
+        rc, client, _ = run_cambiar(args_cambiar(si=True, forzar=forzar), datos(), carpeta, registro,
+                                    FakeClient(existente=EXISTENTE, producto=producto_publicado(sku="1111AAA")))
+        assert rc == 1 and client.nombres() == ["buscar", "obtener"] and not registro.exists()
+        assert "Identidad: el producto 555 no lleva la matrícula 9028LXG" in capsys.readouterr().out
+
+
+def test_cambiar_fotos_guardas_de_hoja_y_carpeta(sin_lecturas, carpeta, registro, tmp_path, capsys):
+    """Sin matrícula en la hoja, sin carpeta, con una carpeta de otro coche o sin fotos: ni se llama a la web."""
+    import shutil
+    rc, _, factory = run_cambiar(args_cambiar(si=True), datos(matricula=""), carpeta, registro, FakeClient())
+    assert rc == 1 and factory.calls == 0 and "Sin matrícula en la hoja (D)" in capsys.readouterr().out
+    otra = locate.make_car_folder(tmp_path / "99-Otro coche-1111AAA", "1_Ventas")
+    rc, _, factory = run_cambiar(args_cambiar(si=True), datos(), otra, registro, FakeClient())
+    assert rc == 1 and factory.calls == 0 and "Sin carpeta del coche: no hay fotos que subir." in capsys.readouterr().out
+    ajena = tmp_path / "82-Kia Xceed-1111BCD"                 # prefijo de la referencia, matrícula de otro coche
+    (ajena / "fotos").mkdir(parents=True)
+    write_jpeg(ajena / "fotos" / "1.jpg")
+    rc, _, factory = run_cambiar(args_cambiar(si=True), datos(), locate.make_car_folder(ajena, "1_Ventas"), registro,
+                                 FakeClient())
+    assert rc == 1 and factory.calls == 0 and "Carpeta sin confirmar" in capsys.readouterr().out
+    for p in (carpeta.path / "fotos").iterdir():
+        p.unlink()
+    rc, _, factory = run_cambiar(args_cambiar(si=True), datos(), carpeta, registro, FakeClient())
+    assert rc == 1 and factory.calls == 0 and "No hay fotos en" in capsys.readouterr().out
+    shutil.rmtree(carpeta.path / "fotos")
+    rc, _, factory = run_cambiar(args_cambiar(si=True), datos(), carpeta, registro, FakeClient())
+    assert rc == 1 and factory.calls == 0 and "las fotos van en <carpeta del coche>/fotos/" in capsys.readouterr().out
+    assert not registro.exists()
+
+
+def test_cambiar_fotos_en_el_parser():
+    args = publicar.build_parser().parse_args(["82", "--cambiar-fotos", "--simular", "--si"])
+    assert args.cambiar_fotos and args.simular and args.si
+    assert not publicar.build_parser().parse_args(["82"]).cambiar_fotos
+    for extra in (["--actualizar"], ["--solo-fotos"], ["--solo-ficha"]):
+        with pytest.raises(SystemExit):
+            publicar.main(["82", "--cambiar-fotos"] + extra)

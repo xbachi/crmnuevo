@@ -339,3 +339,28 @@ def test_descargar_ficha_pdf_el_reintento_salva(monkeypatch):
     pendientes = [ConnectionError("caída"), respuesta_pdf()]
     c, session = client(lambda m, p, k: pendientes.pop(0))
     assert c.descargar_ficha_pdf(7) == PDF and len(session.calls) == 2 and pausas == [wc_client.PAUSA_REINTENTO_FICHA]
+
+
+# ------------------------------------------------------- galería (--cambiar-fotos)
+def test_reemplazar_imagenes_manda_solo_la_galeria_en_orden():
+    def handler(method, path, kwargs):
+        assert (method, path) == ("PUT", "/wp-json/wc/v3/products/555")
+        return FakeResponse(payload={"id": 555, "images": [dict(im, src="s") for im in kwargs["json"]["images"]]})
+    cli, session = client(handler)
+    salida = cli.reemplazar_imagenes(555, [103, 101, 102])
+    assert session.calls[0]["json"] == {"images": [{"id": 103}, {"id": 101}, {"id": 102}]}
+    assert session.calls[0]["auth"] == WC_AUTH and wc_client.ids_imagenes(salida) == [103, 101, 102]
+
+
+def test_reemplazar_imagenes_nunca_deja_el_anuncio_sin_fotos():
+    def boom(method, path, kwargs):
+        raise AssertionError("no se debe llegar a la web")
+    cli, session = client(boom)
+    with pytest.raises(WcError):
+        cli.reemplazar_imagenes(555, [])
+    assert session.calls == []
+
+
+def test_ids_imagenes():
+    assert wc_client.ids_imagenes({"images": [{"id": 7, "src": "a"}, {"id": 0, "src": "placeholder"}, {"id": 9}]}) == [7, 9]
+    assert wc_client.ids_imagenes({}) == [] and wc_client.ids_imagenes({"images": None}) == []

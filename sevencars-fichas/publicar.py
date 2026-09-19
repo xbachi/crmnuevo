@@ -9,6 +9,10 @@ Uso: publicar.py <ref> [--simular] [--categoria x,y] [--publicar-directo] [--for
      publicar.py <ref> --solo-fotos                      → solo deja fotos/ como 1.jpg…N.jpg ≤ 400 KB (ni web ni hoja)
      publicar.py <ref> --solo-ficha [--simular]          → vuelve a descargar la ficha de exposición (PDF de la web)
                                                             a <coche>/ficha-expo.pdf (sin leer documentos ni IA)
+     publicar.py <ref> --cambiar-fotos [--simular] [--si] → reemplaza las fotos de un coche ya publicado por las de
+                                                            fotos/ (sube todas y solo entonces cambia la galería; las
+                                                            viejas quedan en la biblioteca de medios) y vuelve a bajar
+                                                            la ficha de exposición (sin leer documentos ni IA)
 
 Antes de listar las fotos, la carpeta fotos/ del coche se normaliza (descargas de ChatGPT en PNG/WEBP incluidas):
 1.jpg…N.jpg, JPEG ≤ 400 KB; los originales quedan en fotos/originales/. `--sin-normalizar-fotos` lo omite.
@@ -50,7 +54,7 @@ from docs import KIND_EXPO, find_documents
 from gauth import CredentialsMissing, credentials_help
 from sheet import CellWrite, SheetError, VehicleRow, open_sheet
 from wc_client import (VALORES_FIJOS, WcClient, WcError, coincide_matricula, construir_meta, construir_payload,
-                       meta_actual)
+                       ids_imagenes, meta_actual)
 
 REGISTRO = PROJECT_DIR / "data" / "publicados.json"
 EXTRACTO_LINEAS = 4
@@ -96,6 +100,40 @@ class FotoPlan:
     path: Path
     nombre: str
     alt: str
+
+
+def planificar_fotos(marca: str, modelo: str, sku: str, fotos: list[Path]) -> list[FotoPlan]:
+    """Nombre SEO y alt de cada foto, en el orden de la galería (kia-xceed-9028lxg-01.jpg, «… · foto 01»)."""
+    return [FotoPlan(p, fotos_mod.nombre_seo(marca, modelo, sku, i), fotos_mod.alt_seo(marca, modelo, sku, i))
+            for i, p in enumerate(fotos, start=1)]
+
+
+def subir_fotos(client, fotos: list[FotoPlan], titulo: str, sku: str) -> list[int] | None:
+    """Sube las fotos en orden (JPEG preparado, nombre SEO, alt y título «<título> <sku> NN»): lo mismo al crear el
+    producto y en --cambiar-fotos. Devuelve los ids de medios en ese orden; si una falla, borra las ya subidas en
+    esta pasada y devuelve None (con el aviso impreso)."""
+    ids: list[int] = []
+    try:
+        for i, f in enumerate(fotos, start=1):
+            data_bytes = fotos_mod.preparar_jpeg(f.path)
+            media_id = client.subir_imagen(data_bytes, f.nombre, f.alt, f"{titulo} {sku} {i:02d}")
+            ids.append(media_id)
+            say(f"  foto {i:02d}/{len(fotos)}: {f.nombre} → media {media_id}")
+    except (WcError, OSError) as exc:
+        warn(f"Fallo subiendo fotos: {exc}. Se borran las {len(ids)} ya subidas.")
+        borrar_subidas(client, ids)
+        return None
+    return ids
+
+
+def borrar_subidas(client, ids: list[int]) -> list[int]:
+    """Borra de la biblioteca de medios las fotos subidas en esta pasada (para que no queden huérfanas). Avisa de las
+    que no se pudieron borrar y las devuelve."""
+    quedan = [media_id for media_id in ids if not client.borrar_media(media_id)]
+    if quedan:
+        warn(f"No se pudieron borrar {len(quedan)} foto/s recién subidas (media {', '.join(map(str, quedan))}): "
+             "borralas a mano en WordPress › Medios.")
+    return quedan
 
 
 @dataclass
@@ -319,8 +357,7 @@ def construir_borrador(row: VehicleRow, folder: locate.CarFolder, permiso: idm.P
     if aviso_cat:
         verificar_items.append(f"categoría: {aviso_cat}")
     sku = row.matricula or (permiso.plate if permiso else "") or ""
-    fotos_plan = [FotoPlan(p, fotos_mod.nombre_seo(m.marca, m.modelo, sku, i), fotos_mod.alt_seo(m.marca, m.modelo, sku, i))
-                  for i, p in enumerate(fotos, start=1)]
+    fotos_plan = planificar_fotos(m.marca, m.modelo, sku, fotos)
     if not fotos_plan:
         avisos.append("sin fotos editadas en la carpeta (fotos/)")
     elif fotos_plan[0].path.stem.lower() != "1":
@@ -441,7 +478,11 @@ def build_parser() -> argparse.ArgumentParser:
                    help="solo normalizar fotos/ (1.jpg…N.jpg ≤ 400 KB) y salir, sin tocar la web ni la hoja")
     p.add_argument("--actualizar", action="store_true",
                    help="completar un anuncio ya publicado (campos ACF, título y categorías; nunca las fotos)")
-    p.add_argument("--si", action="store_true", help="con --actualizar: no preguntar antes de pisar valores")
+    p.add_argument("--cambiar-fotos", action="store_true",
+                   help="reemplazar las fotos de un coche ya publicado por las de fotos/ (busca por matrícula; sin "
+                        "leer documentos ni IA; las viejas quedan en la biblioteca de medios)")
+    p.add_argument("--si", action="store_true",
+                   help="con --actualizar o --cambiar-fotos: no preguntar antes de pisar valores o cambiar las fotos")
     p.add_argument("--solo-financiacion", action="store_true",
                    help="con --actualizar: mandar solo _precio, _precio_financiado, _cuota, _tipo_vehiculo y "
                         "_fecha_matriculacion, desde la hoja y sin leer documentos")
@@ -700,17 +741,8 @@ def publicar(args, sheet_src, data, folders, client_factory=WcClient.desde_env, 
         return EXIT_OK
 
     # subida de fotos con rollback
-    ids: list[int] = []
-    try:
-        for i, f in enumerate(b.fotos, start=1):
-            data_bytes = fotos_mod.preparar_jpeg(f.path)
-            media_id = client.subir_imagen(data_bytes, f.nombre, f.alt, f"{b.titulo} {b.sku} {i:02d}")
-            ids.append(media_id)
-            say(f"  foto {i:02d}/{len(b.fotos)}: {f.nombre} → media {media_id}")
-    except (WcError, OSError) as exc:
-        warn(f"Fallo subiendo fotos: {exc}. Se borran las {len(ids)} ya subidas.")
-        for media_id in ids:
-            client.borrar_media(media_id)
+    ids = subir_fotos(client, b.fotos, b.titulo, b.sku)
+    if ids is None:
         return EXIT_ERROR
 
     status = "publish" if args.publicar_directo else "draft"
@@ -721,14 +753,9 @@ def publicar(args, sheet_src, data, folders, client_factory=WcClient.desde_env, 
         product_id, admin_url, producto = client.crear_producto(payload)
     except WcError as exc:
         warn(f"No se pudo crear el producto: {exc}. Se borran las {len(ids)} fotos subidas.")
-        for media_id in ids:
-            client.borrar_media(media_id)
+        borrar_subidas(client, ids)
         return EXIT_ERROR
-    portada = ""
-    try:
-        portada = (producto.get("images") or [{}])[0].get("src") or ""
-    except (AttributeError, IndexError):
-        portada = ""
+    portada = _portada(producto)
     guardar_registro(b.sku, {"referencia": row.referencia, "fila": row.row_number, "product_id": product_id,
                              "admin_url": admin_url, "status": status, "titulo": b.titulo, "fotos": len(ids),
                              "portada": portada, "fecha": datetime.now().isoformat(timespec="seconds")}, registro_path)
@@ -905,6 +932,17 @@ def guarda_modelo(args, producto: dict, row: VehicleRow, product_id) -> bool:
     return True
 
 
+def confirmar(pregunta: str, cancelado: str) -> bool:
+    """Pregunta s/N en la terminal. Cualquier otra respuesta, EOF o Ctrl-C cancela (imprime `cancelado`)."""
+    try:
+        if input(pregunta).strip().lower() in ("s", "si", "sí"):
+            return True
+        say(cancelado)
+    except (EOFError, KeyboardInterrupt):
+        say("\n" + cancelado)
+    return False
+
+
 def localizar_producto(client, sku: str, registro: dict) -> tuple[int | None, str]:
     """Primero el registro local, después la búsqueda por matrícula en la web."""
     previo = registro.get(sku) or {}
@@ -981,12 +1019,7 @@ def actualizar(args, sheet_src, data, folders, client_factory=WcClient.desde_env
     pisan = [d for d in difs if d.pisa_valor]
     if pisan and not args.si:
         say(f"{len(pisan)} campo/s con valor en la web cambiarían: {', '.join(d.campo for d in pisan)}.")
-        try:
-            if input("¿Actualizo? [s/N] ").strip().lower() not in ("s", "si", "sí"):
-                say("Cancelado: no se envía nada.")
-                return EXIT_OK
-        except (EOFError, KeyboardInterrupt):
-            say("\nCancelado: no se envía nada.")
+        if not confirmar("¿Actualizo? [s/N] ", "Cancelado: no se envía nada."):
             return EXIT_OK
     try:
         client.actualizar_producto(product_id, payload_actualizacion(b, difs))
@@ -1009,6 +1042,165 @@ def actualizar(args, sheet_src, data, folders, client_factory=WcClient.desde_env
     return EXIT_OK
 
 
+# ------------------------------------------------------------ cambiar fotos
+def _portada(producto: dict) -> str:
+    """URL de la primera foto de la galería de un producto ('' si no tiene)."""
+    try:
+        return (producto.get("images") or [{}])[0].get("src") or ""
+    except (AttributeError, IndexError):
+        return ""
+
+
+def _fotos(n: int) -> str:
+    return f"{n} foto" if n == 1 else f"{n} fotos"
+
+
+def _fotos_de_la_carpeta(res: "fotos_mod.Resultado | None", fotos_dir: Path) -> tuple[list[Path], list[str]]:
+    """Las fotos a subir, en orden de galería, y su nombre en fotos/ ya normalizada. En --simular la carpeta no se
+    tocó: se muestran los nombres que tendría (1.jpg…N.jpg). Las ilegibles (omitidas al normalizar) no van."""
+    if res is None:                                     # --sin-normalizar-fotos
+        fotos = fotos_mod.listar_fotos(fotos_dir)
+        return fotos, [p.name for p in fotos]
+    return ([fotos_dir / it.destino if res.ejecutado else it.origen for it in res.fotos],
+            [it.destino for it in res.fotos])
+
+
+def imprimir_plan_fotos(product_id, admin_url: str, n_web: int, nombres: list[str], plan: list[FotoPlan]) -> None:
+    say()
+    say(report.paint("== Cambio de fotos", "bold"))
+    say(f"Producto {product_id}: {admin_url}")
+    say(f"En la web: {_fotos(n_web)} · en la carpeta: {_fotos(len(plan))} nuevas, en este orden:")
+    for i, (nombre, f) in enumerate(zip(nombres, plan), start=1):
+        say(f"  {i:02d}. {nombre} → {f.nombre}" + ("  (portada)" if i == 1 else ""))
+    if Path(nombres[0]).stem.lower() != "1":
+        warn(f"Portada dudosa: la primera foto es '{nombres[0]}', no '1.jpg'.")
+    if n_web:
+        say(f"Las {_fotos(n_web)} de ahora salen del anuncio pero quedan en la biblioteca de medios de WordPress "
+            "(no se borran).")
+
+
+def _galeria_tras_un_fallo(client, product_id, ids: list[int], admin_url: str) -> dict | None:
+    """El cambio de galería dio error, pero la respuesta pudo cortarse con el cambio ya hecho: se relee el producto.
+    Con exactamente las fotos nuevas, el cambio se aplicó y se sigue (devuelve el producto). Sin ninguna de ellas,
+    se borran las recién subidas para que no queden huérfanas. Si no se puede saber (o quedó a medias) no se borra
+    nada: el producto podría estar usándolas."""
+    try:
+        producto = client.obtener_producto(product_id)
+    except WcError as exc:
+        motivo = f"No se pudo releer el producto ({exc})"
+    else:
+        actuales = ids_imagenes(producto)
+        if actuales == ids:
+            say("La web sí aplicó el cambio de galería (comprobado releyendo el producto).")
+            return producto
+        if not set(actuales) & set(ids):
+            warn(f"El producto {product_id} sigue con su galería anterior: se borran las {_fotos(len(ids))} "
+                 "recién subidas.")
+            borrar_subidas(client, ids)
+            return None
+        motivo = "La galería quedó con una mezcla de fotos viejas y nuevas"
+    warn(f"{motivo}: NO se borran las {_fotos(len(ids))} recién subidas (media {', '.join(map(str, ids))}). "
+         f"Revisá la galería en {admin_url}.")
+    return None
+
+
+def cambiar_fotos(args, data, folders, client_factory=WcClient.desde_env, registro_path: Path = REGISTRO) -> int:
+    """`--cambiar-fotos`: la galería de un coche ya publicado pasa a ser exactamente las fotos de <coche>/fotos/
+    (normalizada), en orden, con 1.jpg de portada. Identidad como --solo-ficha (la matrícula de la hoja es la del
+    producto, más la guarda de marca; sin documentos ni IA) y, como las fotos salen de la carpeta, la carpeta tiene
+    que coincidir con la referencia y la matrícula de la fila. Se suben todas las fotos y solo si subieron todas se
+    cambia la galería; si algo falla el producto queda como estaba y las recién subidas se borran. Las fotos viejas
+    quedan en la biblioteca de medios (nunca se borran). Después baja la ficha de exposición y apunta el cambio en
+    data/publicados.json; la hoja no se toca."""
+    row, loc = _fila_y_carpeta(args, data, folders)
+    if row is None:
+        return EXIT_ERROR
+    if not row.matricula:
+        warn("Sin matrícula en la hoja (D): con --cambiar-fotos no se lee el permiso, así que no hay con qué buscar "
+             "el producto.")
+        return EXIT_ERROR
+    if not loc.found:
+        warn("Sin carpeta del coche: no hay fotos que subir.")
+        return EXIT_ERROR
+    if not loc.identity_ok or loc.ambiguous:
+        warn(f"Carpeta sin confirmar ({loc.identity_problem()}): no se suben fotos que pueden ser de otro coche.")
+        return EXIT_ERROR
+    res = normalizar_fotos(args, loc.folder)
+    fotos_dir = fotos_mod.carpeta_fotos(loc.folder.path)
+    if fotos_dir is None:
+        return EXIT_ERROR                               # normalizar_fotos ya avisó dónde van las fotos
+    rutas, nombres = _fotos_de_la_carpeta(res, fotos_dir)
+    if not rutas:
+        warn(f"No hay fotos en {loc.folder.path.name}/{fotos_dir.name}/: no hay nada que subir (la web no se toca).")
+        return EXIT_ERROR
+
+    sku = row.matricula
+    try:
+        client = client_factory()
+        encontrado = client.buscar_por_matricula(sku)
+        if not encontrado:
+            warn(f"{sku} no está publicado en la web: no hay fotos que cambiar. "
+                 f"Publicalo primero con `publicar.py {args.referencia or row.referencia}`.")
+            return EXIT_ERROR
+        product_id = encontrado["id"]
+        producto = client.obtener_producto(product_id)
+    except WcError as exc:
+        warn(str(exc))
+        return EXIT_ERROR
+    admin = client.admin_url(product_id)
+    say(f"Producto {product_id} (por búsqueda por matrícula en la web): {admin}")
+    if not coincide_matricula(producto, sku):
+        warn(f"Identidad: el producto {product_id} no lleva la matrícula {sku} (sku «{producto.get('sku') or '-'}»): "
+             "no se toca la web.")
+        return EXIT_ERROR
+    say("Identidad: " + report.paint("OK", "OK") + f" — la matrícula de la hoja ({sku}) es la del producto")
+    if not guarda_modelo(args, producto, row, product_id):
+        return EXIT_ERROR
+
+    m = marcas.split_modelo(row.modelo)
+    viejas = ids_imagenes(producto)
+    plan = planificar_fotos(m.marca, m.modelo, sku, rutas)
+    imprimir_plan_fotos(product_id, admin, len(viejas), nombres, plan)
+    if args.simular:
+        say("Simulación: no se sube nada ni se cambia la galería.")
+        return EXIT_OK
+    if not args.si and not confirmar(f"¿Reemplazo las {len(viejas)} fotos de la web por las {len(plan)} de la "
+                                     "carpeta? [s/N] ", "Cancelado: no se sube nada."):
+        return EXIT_OK
+
+    ids = subir_fotos(client, plan, m.titulo, sku)
+    if ids is None:
+        say(f"La galería del producto {product_id} no se tocó.")
+        return EXIT_ERROR
+    try:
+        actualizado = client.reemplazar_imagenes(product_id, ids)
+    except WcError as exc:
+        warn(f"No se pudo cambiar la galería del producto {product_id}: {exc}.")
+        actualizado = _galeria_tras_un_fallo(client, product_id, ids, admin)
+        if actualizado is None:
+            return EXIT_ERROR
+    portada = _portada(actualizado)
+    say(report.paint(f"Producto {product_id}: galería cambiada por {_fotos(len(ids))} nuevas (portada {nombres[0]}).",
+                     "OK"))
+    if viejas:
+        say(f"Las {_fotos(len(viejas))} anteriores siguen en la biblioteca de medios de WordPress (no se borran).")
+    para_verificar: list[str] = []
+    if not getattr(args, "sin_ficha", False):
+        aviso = descargar_ficha(client, product_id, loc.folder.path)
+        if aviso:
+            para_verificar.append(aviso)
+    info = dict(cargar_registro(registro_path).get(sku) or {})
+    info.update({"referencia": row.referencia, "fila": row.row_number, "product_id": product_id, "admin_url": admin,
+                 "titulo": producto.get("name") or info.get("titulo") or m.titulo, "fotos": len(ids),
+                 "portada": portada, "fotos_cambiadas": datetime.now().isoformat(timespec="seconds")})
+    guardar_registro(sku, info, registro_path)
+    hoja_g = (f"G (URL IMAGEN) sigue con la portada anterior ({row.url_imagen})" if row.url_imagen
+              else "G (URL IMAGEN) está vacía")
+    say(f"Hoja: no se escribe nada; {hoja_g}." + (f" Portada nueva: {portada}" if portada else ""))
+    report.print_para_verificar(para_verificar)
+    return EXIT_OK
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -1018,6 +1210,8 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("--solo-financiacion va con --actualizar")
     if args.solo_ficha and (args.actualizar or args.solo_fotos):
         parser.error("--solo-ficha no va con --actualizar ni con --solo-fotos")
+    if args.cambiar_fotos and (args.actualizar or args.solo_fotos or args.solo_ficha):
+        parser.error("--cambiar-fotos no va con --actualizar, --solo-fotos ni --solo-ficha")
     try:
         sys.stdout.reconfigure(line_buffering=True)
     except (AttributeError, ValueError):
@@ -1040,6 +1234,8 @@ def main(argv: list[str] | None = None) -> int:
         return solo_fotos(args, data, folders)
     if args.solo_ficha:
         return solo_ficha(args, data, folders)
+    if args.cambiar_fotos:
+        return cambiar_fotos(args, data, folders)
     if args.actualizar:
         return actualizar(args, sheet_src, data, folders)
     return publicar(args, sheet_src, data, folders)
