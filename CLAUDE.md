@@ -9,6 +9,9 @@ Senior-dev workflow. Surgical, reversible changes. Quality before commit.
 - **Jest** (unit + integration) + **Playwright** (E2E)
 - **Husky** pre-commit / pre-push (lint-staged + Prettier)
 
+## automatizaciones/
+Python tools that run on the owner's PC (publish to sevencars.es, windshield price sheets, exhibition PDF, photo watcher) plus the photo pipeline. Not part of the Next.js app: excluded from tsc, eslint, jest, Tailwind and the Vercel deploy. Their own rules and checks (pytest) are in `automatizaciones/CLAUDE.md`.
+
 ## Critical project rules
 - **One shared pg.Pool only:** it lives in `src/lib/direct-database.ts` with `max: 3` (rationale in that file's comment: EMAXCONN incident on the Supabase pooler + self-deadlock at `max: 1`). NEVER do `new Pool()` in routes or elsewhere; always `import { pool } from '@/lib/direct-database'`. Do not raise `max` without explicit approval.
 - **Never skip git hooks** (`--no-verify`, `--no-gpg-sign`). If a hook fails, fix the cause.
