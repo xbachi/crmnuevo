@@ -50,6 +50,9 @@ next-env.d.ts
 !next.config.ts
 !eslint.config.mjs
 reconciliacion-sheets.json
+# Los .json de las herramientas (marcas, categorías, package.json del pipeline) sí van;
+# lo privado lo esconden los .gitignore de automatizaciones/.
+!automatizaciones/**/*.json
 
 # Permitir archivos de metadatos de documentación y archivos subidos
 !public/uploads

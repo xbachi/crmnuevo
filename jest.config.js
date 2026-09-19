@@ -26,8 +26,12 @@ const customJestConfig = {
   ],
   // real-database-tests.test.ts requiere un servidor Next.js en localhost:3000 + DB real:
   // no es un test unitario, pertenece a test:integration (ver jest.integration.config.js)
+  // automatizaciones/ son las herramientas en Python (+ el pipeline de fotos en TS): no son del CRM.
+  modulePathIgnorePatterns: ['<rootDir>/automatizaciones/'],
+  watchPathIgnorePatterns: ['<rootDir>/automatizaciones/'],
   testPathIgnorePatterns: [
     '<rootDir>/node_modules/',
+    '<rootDir>/automatizaciones/',
     '<rootDir>/__tests__/integration/real-database-tests.test.ts',
   ],
   collectCoverageFrom: [

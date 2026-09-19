@@ -7,6 +7,11 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
 
+  // automatizaciones/ (herramientas en Python de la PC) nunca entra en las funciones de Vercel.
+  outputFileTracingExcludes: {
+    '*': ['automatizaciones/**'],
+  },
+
   // Optimizaciones de performance
   experimental: {
     optimizePackageImports: ['@heroicons/react'],

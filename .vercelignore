@@ -15,3 +15,5 @@ coverage
 .cache
 dist
 build
+# Herramientas locales (Python y pipeline de fotos): corren en la PC, no en Vercel
+automatizaciones

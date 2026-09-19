@@ -10,8 +10,10 @@ name: QA Test Suite
 on:
   push:
     branches: [ main, master, develop ]
+    paths-ignore: [ 'automatizaciones/**' ]
   pull_request:
     branches: [ main, master, develop ]
+    paths-ignore: [ 'automatizaciones/**' ]
 
 jobs:
   test-unit:
