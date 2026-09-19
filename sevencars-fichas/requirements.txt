@@ -7,3 +7,5 @@ gspread
 google-auth
 pytest
 requests
+playwright
+google-auth-oauthlib

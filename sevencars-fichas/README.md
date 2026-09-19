@@ -66,6 +66,15 @@ Si la hoja tiene matrícula y difiere de carpeta+permiso (p. ej. 0480LNJ vs 0480
 
 ## Cómo ejecutarlo
 
+Instalación (una vez), con el entorno virtual en la carpeta de arriba (`../.venv`). `requirements.txt` lista
+solo los paquetes; las versiones exactas con las que funciona están en `requirements.lock.txt` (`pip freeze`):
+
+```bash
+python3 -m venv ../.venv
+../.venv/bin/python -m pip install -r requirements.lock.txt
+../.venv/bin/python -m playwright install chromium   # solo para cochesnet.py
+```
+
 ```bash
 cd /home/seb/fotosseven/sevencars-fichas
 PY=/home/seb/fotosseven/.venv/bin/python

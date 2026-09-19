@@ -17,3 +17,7 @@ data/descripciones/
 data/vigilar.json
 data/vigilar.lock
 logs/
+
+# registro de coches publicados: lo reescribe publicar.py (también lanzado por vigilar.py);
+# si falta, localizar_producto() busca el producto en la web por matrícula
+data/publicados.json
