@@ -41,6 +41,7 @@ function integraciones() {
     webSync: Boolean(env.SEVEN_WEB_SYNC_URL && env.SEVEN_WEB_SYNC_SECRET),
     n8n: Boolean(env.N8N_RENAME_WEBHOOK_URL || env.N8N_INVOICE_WEBHOOK_URL),
     appUrl: Boolean(env.NEXT_PUBLIC_APP_URL),
+    automatizaciones: Boolean(env.AUTOMATIZACIONES_WORKER_SECRET),
   }
 }
 

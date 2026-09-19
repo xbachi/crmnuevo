@@ -22,6 +22,7 @@ import NotasSection from '@/components/NotasSection'
 import EstadoBadge from '@/components/EstadoBadge'
 import VehiculoCamposDocCard from '@/components/VehiculoCamposDocCard'
 import VehiculoFichaComercialCard from '@/components/VehiculoFichaComercialCard'
+import VehiculoAutomatizacionesCard from '@/components/VehiculoAutomatizacionesCard'
 import VehiculoPresupuestosCard from '@/components/VehiculoPresupuestosCard'
 import VehiculoPreparacionCard, {
   type PasoVehiculoUI,
@@ -3703,6 +3704,14 @@ export default function VehiculoDetailPage() {
                 vehiculoId={vehiculo.id}
                 showToast={showToast}
                 onSaved={fetchVehiculo}
+              />
+
+              {/* Web y carteles: pedidos a la PC (publicar.py / luna.py) */}
+              <VehiculoAutomatizacionesCard
+                vehiculoId={vehiculo.id}
+                tipoVehiculo={vehiculo.tipo}
+                puedeAplicar={isAdmin}
+                showToast={showToast}
               />
 
               {/* Presupuestos premium (lista + nuevo con vista previa) */}

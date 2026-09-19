@@ -93,6 +93,10 @@ const PUBLIC_API_PREFIXES = [
   '/api/fiscal/duplicados/scan',
   // Catálogo matrícula → nº de carpeta para el script de OneDrive (X-Admin-Secret).
   '/api/onedrive/catalogo',
+  // Cola de automatizaciones: la PC del dueño reclama trabajos y devuelve
+  // resultados (X-Worker-Secret, validado en el handler). SOLO /worker: la
+  // pantalla (/api/vehiculos/[id]/automatizaciones) sigue con sesión.
+  '/api/automatizaciones/worker',
   // Feed público de stock (web propia / portales). La auth la hace el token
   // de solo lectura del feed (PUBLIC_FEED_TOKEN) dentro del handler. Sin
   // barra final: el matcher compara `path === p || path.startsWith(p + '/')`.

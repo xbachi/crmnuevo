@@ -45,6 +45,7 @@ describe('GET /api/health', () => {
       'N8N_RENAME_WEBHOOK_URL',
       'N8N_INVOICE_WEBHOOK_URL',
       'NEXT_PUBLIC_APP_URL',
+      'AUTOMATIZACIONES_WORKER_SECRET',
     ]
     const previo = Object.fromEntries(claves.map((k) => [k, process.env[k]]))
     for (const k of claves) delete process.env[k]
@@ -60,11 +61,17 @@ describe('GET /api/health', () => {
       webSync: true,
       n8n: false,
       appUrl: false,
+      automatizaciones: false,
     })
     expect(JSON.stringify(json)).not.toContain('secreto-que-no-debe-salir')
 
     process.env.SHEETS_VEHICULO_DISABLED = '1'
     expect((await (await GET()).json()).integraciones.hojas).toBe(false)
+
+    process.env.AUTOMATIZACIONES_WORKER_SECRET = 'secreto-del-worker'
+    const conWorker = await (await GET()).json()
+    expect(conWorker.integraciones.automatizaciones).toBe(true)
+    expect(JSON.stringify(conWorker)).not.toContain('secreto-del-worker')
 
     for (const k of claves) {
       if (previo[k] === undefined) delete process.env[k]
