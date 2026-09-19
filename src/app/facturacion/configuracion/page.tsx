@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { INVOICE_CONFIG } from '@/config/invoiceConfig'
 
 export default function ConfiguracionPage() {
@@ -74,9 +75,9 @@ export default function ConfiguracionPage() {
         />
         <p className="text-xs text-gray-500 mt-3">
           Cada serie en{' '}
-          <a href="/facturacion/series" className="text-primary-700 hover:underline">
+          <Link href="/facturacion/series" className="text-primary-700 hover:underline">
             Series y numeración
-          </a>{' '}
+          </Link>{' '}
           puede usar su propio formato (REBU usa <code>%03d</code>, IVA usa{' '}
           <code>%04d</code>). Este valor solo aplica a series nuevas que no
           definan uno explícito.

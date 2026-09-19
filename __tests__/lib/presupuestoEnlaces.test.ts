@@ -67,10 +67,10 @@ describe('telefonoWhatsAppEmpresa', () => {
     expect(telefonoWhatsAppEmpresa('600 000 002')).toBe('34600000001')
   })
 
-  it('sin env usa el parámetro; vacío o inválido → null', () => {
+  it('sin env usa el parámetro; vacío o inválido → teléfono de la empresa', () => {
     delete process.env.NEXT_PUBLIC_WHATSAPP_EMPRESA
     expect(telefonoWhatsAppEmpresa('600 000 002')).toBe('34600000002')
-    expect(telefonoWhatsAppEmpresa('')).toBeNull()
-    expect(telefonoWhatsAppEmpresa('abc')).toBeNull()
+    expect(telefonoWhatsAppEmpresa('')).toBe('34673421905')
+    expect(telefonoWhatsAppEmpresa('abc')).toBe('34673421905')
   })
 })

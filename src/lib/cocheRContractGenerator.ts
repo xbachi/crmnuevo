@@ -2,7 +2,10 @@ import jsPDF from './jspdf-server'
 import { capitalizeText } from '@/lib/utils'
 
 // Función para formatear la fecha de matriculación (igual que en contractGenerator.ts)
-function getFechaMatriculacion(vehiculo: any): string {
+function getFechaMatriculacion(vehiculo: {
+  fechaMatriculacion?: string | Date | null
+  [key: string]: unknown
+}): string {
   if (vehiculo?.fechaMatriculacion) {
     const fecha = new Date(vehiculo.fechaMatriculacion)
     if (!isNaN(fecha.getTime())) {
@@ -102,7 +105,10 @@ async function loadLogoSVG(): Promise<string> {
 }
 
 // Función para agregar logo a los contratos
-async function addLogoToContract(doc: any, yPosition: number): Promise<number> {
+async function addLogoToContract(
+  doc: jsPDF,
+  yPosition: number
+): Promise<number> {
   try {
     console.log('🖼️ [LOGO] Intentando cargar logo PNG...')
 
@@ -400,7 +406,7 @@ export async function generarContratoCocheR(data: {
 
     // Logo de Seven Cars (primero)
     console.log('🖼️ [CONTRATO COCHE R] Agregando logo...')
-    let yPosition = await addLogoToContract(doc, cursor.getY())
+    const yPosition = await addLogoToContract(doc, cursor.getY())
     cursor.setY(yPosition)
     console.log('✅ [CONTRATO COCHE R] Logo agregado, yPosition:', yPosition)
 

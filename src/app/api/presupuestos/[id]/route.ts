@@ -1,7 +1,8 @@
 /**
  * GET /api/presupuestos/[id] — detalle + vehículo + URL pública.
  * PUT /api/presupuestos/[id] — edita cliente/opciones (recalcula con el
- * contexto actual y borra el PDF) o anula. Aceptados/anulados: solo lectura.
+ * contexto actual y borra el PDF), anula, o marca enviado un borrador (el
+ * comercial mandó el PDF por su cuenta). Aceptados/anulados: solo lectura.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { requireApiSession } from '@/lib/apiAuth'
@@ -89,10 +90,19 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
       )
     }
     const anular = body.estado === 'anulado'
-    if (body.estado !== undefined && !anular) {
+    const marcarEnviado = body.estado === 'enviado'
+    if (body.estado !== undefined && !anular && !marcarEnviado) {
       return NextResponse.json(
-        { error: "estado: solo se admite 'anulado'" },
+        { error: "estado: solo se admite 'anulado' o 'enviado'" },
         { status: 400 }
+      )
+    }
+    if (marcarEnviado && actual.estado !== 'borrador') {
+      return NextResponse.json(
+        {
+          error: `Presupuesto ${actual.estado}: solo un borrador se marca enviado`,
+        },
+        { status: 409 }
       )
     }
     if (
@@ -155,6 +165,10 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
       }
     }
     if (anular) patch.estado = 'anulado'
+    if (marcarEnviado) {
+      patch.estado = 'enviado'
+      patch.enviado_at = new Date().toISOString()
+    }
     if (errores.length) {
       return NextResponse.json(
         { error: 'Datos inválidos', errores },

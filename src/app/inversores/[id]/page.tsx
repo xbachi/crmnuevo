@@ -459,7 +459,7 @@ export default function InvestorDashboardPage() {
         console.log('✅ [SAVE VEHICULO] Vehículo actualizado:', updatedVehiculo)
         console.log(
           '✅ [SAVE VEHICULO] garantiaPremium guardado:',
-          (updatedVehiculo as any).garantiaPremium
+          (updatedVehiculo as Vehiculo).garantiaPremium
         )
         await fetchData()
         setIsEditingVehiculo(false)
@@ -523,10 +523,12 @@ export default function InvestorDashboardPage() {
       const response = await fetch(`/api/inversores/${inversorData.id}/files`)
       if (response.ok) {
         const data = await response.json()
-        const documentosFormateados = data.map((doc: any) => ({
-          ...doc,
-          tamañoFormateado: formatFileSize(doc.size),
-        }))
+        const documentosFormateados = data.map(
+          (doc: Omit<(typeof documentos)[number], 'tamañoFormateado'>) => ({
+            ...doc,
+            tamañoFormateado: formatFileSize(doc.size),
+          })
+        )
         setDocumentos(documentosFormateados)
         console.log(
           `✅ [INVERSOR PAGE] Archivos cargados:`,
@@ -1931,7 +1933,7 @@ export default function InvestorDashboardPage() {
                   const fileInput = formData.get('fotoInversor') as File
 
                   // Si hay un archivo, convertirlo a base64
-                  let fotoInversor = editingVehiculo.fotoInversor
+                  const fotoInversor = editingVehiculo.fotoInversor
                   if (fileInput && fileInput.size > 0) {
                     const reader = new FileReader()
                     reader.onload = (event) => {
@@ -2082,7 +2084,7 @@ export default function InvestorDashboardPage() {
                       <input
                         type="text"
                         name="color"
-                        defaultValue={(editingVehiculo as any).color || ''}
+                        defaultValue={editingVehiculo.color || ''}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-full focus:ring-2 focus:ring-green-500 focus:border-transparent"
                         placeholder="Ej: Blanco"
                       />
@@ -2258,7 +2260,7 @@ export default function InvestorDashboardPage() {
                           type="checkbox"
                           name="garantiaPremium"
                           defaultChecked={
-                            (editingVehiculo as any).garantiaPremium || false
+                            editingVehiculo.garantiaPremium || false
                           }
                           className="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
                         />

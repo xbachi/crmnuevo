@@ -6,10 +6,10 @@ export async function POST() {
     console.log('🔧 [ADMIN] Creando tablas de recordatorios')
 
     const client = await pool.connect()
-    
+
     // Crear tabla DealRecordatorios
     await client.query(`
-      CREATE TABLE IF NOT EXISTS "DealRecordatorios" (
+      CREATE TABLE IF NOT EXISTS DealRecordatorios (
         id SERIAL PRIMARY KEY,
         deal_id INTEGER NOT NULL,
         titulo VARCHAR(255) NOT NULL,
@@ -22,7 +22,7 @@ export async function POST() {
         FOREIGN KEY (deal_id) REFERENCES "Deal"(id) ON DELETE CASCADE
       )
     `)
-    
+
     // Crear tabla VehiculoRecordatorios
     await client.query(`
       CREATE TABLE IF NOT EXISTS "VehiculoRecordatorios" (
@@ -38,7 +38,7 @@ export async function POST() {
         FOREIGN KEY (vehiculo_id) REFERENCES "Vehiculo"(id) ON DELETE CASCADE
       )
     `)
-    
+
     // Crear tabla ClienteReminder (si no existe)
     await client.query(`
       CREATE TABLE IF NOT EXISTS "ClienteReminder" (
@@ -54,7 +54,7 @@ export async function POST() {
         FOREIGN KEY ("clienteId") REFERENCES "Cliente"(id) ON DELETE CASCADE
       )
     `)
-    
+
     // Crear tabla InversorRecordatorios
     await client.query(`
       CREATE TABLE IF NOT EXISTS "InversorRecordatorios" (
@@ -70,16 +70,24 @@ export async function POST() {
         FOREIGN KEY (inversor_id) REFERENCES "Inversor"(id) ON DELETE CASCADE
       )
     `)
-    
+
     client.release()
-    
+
     console.log('✅ [ADMIN] Tablas de recordatorios creadas correctamente')
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: 'Tablas de recordatorios creadas correctamente',
-      tables: ['DealRecordatorios', 'VehiculoRecordatorios', 'ClienteReminder', 'InversorRecordatorios']
+      tables: [
+        'DealRecordatorios',
+        'VehiculoRecordatorios',
+        'ClienteReminder',
+        'InversorRecordatorios',
+      ],
     })
   } catch (error) {
     console.error('❌ [ADMIN] Error creando tablas de recordatorios:', error)
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Error interno del servidor' },
+      { status: 500 }
+    )
   }
 }

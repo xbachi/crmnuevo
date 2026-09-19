@@ -80,9 +80,9 @@ export async function PUT(
     const client = await pool.connect()
     try {
       const fields: string[] = []
-      const values: any[] = []
+      const values: unknown[] = []
 
-      const push = (col: string, val: any) => {
+      const push = (col: string, val: unknown) => {
         fields.push(`${col} = $${fields.length + 1}`)
         values.push(val)
       }
@@ -143,9 +143,10 @@ export async function PUT(
     } finally {
       client.release()
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error al actualizar interesado:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    const msg = error instanceof Error ? error.message : String(error)
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
 

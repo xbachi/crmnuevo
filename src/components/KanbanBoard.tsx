@@ -53,6 +53,21 @@ interface KanbanBoardProps {
   ) => void
 }
 
+/**
+ * Mensaje de un movimiento rechazado. El 409 de publicar trae la lista de lo
+ * que falta: repetirla en el toast evita el «error al mover» que no dice nada y
+ * obliga a abrir la ficha para adivinar por qué.
+ */
+async function motivoDelFallo(response: Response): Promise<string> {
+  try {
+    const d = await response.json()
+    if (typeof d?.error === 'string' && d.error) return d.error
+  } catch {
+    // respuesta sin JSON: nos quedamos con el mensaje genérico
+  }
+  return 'Error al mover el vehículo'
+}
+
 const ESTADOS = [
   {
     id: 'SIN_ESTADO',
@@ -247,7 +262,7 @@ const KanbanBoard = memo(function KanbanBoard({
             'success'
           )
         } else {
-          showToast('Error al mover el vehículo', 'error')
+          showToast(await motivoDelFallo(response), 'error')
         }
       } catch (error) {
         showToast('Error al mover el vehículo', 'error')
@@ -338,7 +353,7 @@ const KanbanBoard = memo(function KanbanBoard({
               'success'
             )
           } else {
-            showToast('Error al mover el vehículo', 'error')
+            showToast(await motivoDelFallo(response), 'error')
           }
         } catch (error) {
           showToast('Error al mover el vehículo', 'error')

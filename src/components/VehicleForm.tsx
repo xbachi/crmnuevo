@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Inversor } from '@/lib/database'
 import { normalizarMatricula } from '@/lib/normalizacion'
 import { CampoError } from '@/components/CampoError'
+import { faltantesAlta } from '@/lib/camposVehiculo'
 
 interface VehicleFormData {
   referencia: string
@@ -169,10 +170,9 @@ export default function VehicleForm({
         if (prev.referencia) {
           newData.referencia = formatReferencia(prev.referencia, value)
         }
-        // Limpiar campos de inversor si se cambia el tipo
+        // Limpiar campos de inversor si se cambia el tipo. Fecha y precio de
+        // compra NO: son obligatorios del alta en todos los tipos.
         newData.inversorId = ''
-        newData.fechaCompra = ''
-        newData.precioCompra = ''
         newData.gastosTransporte = ''
         newData.gastosTasas = ''
         newData.gastosMecanica = ''
@@ -206,38 +206,25 @@ export default function VehicleForm({
     }
   }, [showInversorSection])
 
+  const esDeposito =
+    (fixedTipo ?? formData.tipo) === 'Deposito Venta' ||
+    (fixedTipo ?? formData.tipo) === 'D'
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Validación específica para depósitos
-    if (fixedTipo === 'Deposito Venta' || formData.tipo === 'D') {
-      const camposObligatorios = [
-        { campo: 'marca', valor: formData.marca, nombre: 'Marca' },
-        { campo: 'modelo', valor: formData.modelo, nombre: 'Modelo' },
-        {
-          campo: 'bastidor',
-          valor: formData.bastidor,
-          nombre: 'Nº de Bastidor',
-        },
-        { campo: 'matricula', valor: formData.matricula, nombre: 'Matrícula' },
-        {
-          campo: 'fechaMatriculacion',
-          valor: formData.fechaMatriculacion,
-          nombre: 'Fecha de 1ª Matriculación',
-        },
-        { campo: 'kms', valor: formData.kms, nombre: 'Kilometraje' },
-      ]
-
-      const camposFaltantes = camposObligatorios.filter(
-        (campo) => !campo.valor || campo.valor.trim() === ''
+    // Obligatorios: la MISMA función que aplica la API (camposVehiculo.ts).
+    // Antes había aquí una lista propia sólo para depósitos que pedía el
+    // bastidor —que ahora lo trae el permiso— y no pedía proveedor ni precio.
+    const faltan = faltantesAlta({
+      ...formData,
+      tipo: fixedTipo ?? formData.tipo,
+    })
+    if (faltan.length > 0) {
+      alert(
+        `Faltan campos obligatorios:\n${faltan.map((f) => `• ${f.etiqueta}`).join('\n')}`
       )
-
-      if (camposFaltantes.length > 0) {
-        alert(
-          `Los siguientes campos son obligatorios para depósitos:\n${camposFaltantes.map((c) => `• ${c.nombre}`).join('\n')}`
-        )
-        return
-      }
+      return
     }
 
     await onSubmit(formData)
@@ -449,13 +436,57 @@ export default function VehicleForm({
       {/* Compra (logística: lo que antes vivía sólo en la hoja COMPRAS) */}
       <div className="border-t border-slate-200 pt-4">
         <h3 className="text-sm font-medium text-slate-800 mb-2">Compra</h3>
+        {/* Fecha y precio son obligatorios del alta en TODOS los tipos (antes
+            sólo se pedían a los de inversor). En un depósito el precio es lo
+            acordado con el cliente. */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+          <div>
+            <label
+              htmlFor="fechaCompra"
+              className="block text-xs text-slate-600 mb-1"
+            >
+              Fecha de compra *
+            </label>
+            <input
+              type="date"
+              id="fechaCompra"
+              name="fechaCompra"
+              value={formData.fechaCompra || ''}
+              onChange={handleInputChange}
+              required
+              className="w-full px-2 py-1 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="precioCompra"
+              className="block text-xs text-slate-600 mb-1"
+            >
+              {esDeposito
+                ? 'Precio acordado con el cliente (€) *'
+                : 'Precio de compra (€) *'}
+            </label>
+            <input
+              type="number"
+              id="precioCompra"
+              name="precioCompra"
+              value={formData.precioCompra || ''}
+              onChange={handleInputChange}
+              required
+              min="0"
+              step="0.01"
+              className="w-full px-2 py-1 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
+              placeholder="0.00"
+            />
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
             <label
               htmlFor="proveedor"
               className="block text-xs text-slate-600 mb-1"
             >
-              Proveedor
+              Proveedor *
             </label>
             <input
               type="text"
@@ -463,6 +494,7 @@ export default function VehicleForm({
               name="proveedor"
               value={formData.proveedor || ''}
               onChange={handleInputChange}
+              required
               className="w-full px-2 py-1 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
               placeholder="Ej: ayvens"
             />
@@ -574,46 +606,11 @@ export default function VehicleForm({
                   ))}
                 </select>
               </div>
-
-              <div>
-                <label
-                  htmlFor="fechaCompra"
-                  className="block text-sm font-medium text-slate-700 mb-1"
-                >
-                  Fecha de compra
-                </label>
-                <input
-                  type="date"
-                  id="fechaCompra"
-                  name="fechaCompra"
-                  value={formData.fechaCompra || ''}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                />
-              </div>
             </div>
 
+            {/* Fecha y precio de compra viven en el bloque Compra: aquí
+                duplicaban el id en el DOM. */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label
-                  htmlFor="precioCompra"
-                  className="block text-sm font-medium text-slate-700 mb-1"
-                >
-                  Precio de compra (€)
-                </label>
-                <input
-                  type="number"
-                  id="precioCompra"
-                  name="precioCompra"
-                  value={formData.precioCompra || ''}
-                  onChange={handleInputChange}
-                  min="0"
-                  step="0.01"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                  placeholder="0.00"
-                />
-              </div>
-
               <div>
                 <label
                   htmlFor="precioPublicacion"

@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
 
     let imported = 0
     let extranjeras = 0
-    let errors = []
+    const errors = []
     const avisos: string[] = []
 
     for (let i = 0; i < data.length; i++) {
@@ -237,7 +237,7 @@ export async function POST(request: NextRequest) {
       avisos: avisos.slice(0, 10),
       message: `Importación completada: ${imported} vehículos importados${errors.length > 0 ? `, ${errors.length} errores` : ''}`,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error importando CSV:', error)
     return NextResponse.json(
       { error: 'Error al importar los datos CSV' },

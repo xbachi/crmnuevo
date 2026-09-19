@@ -242,10 +242,44 @@ function sanearNombreCarpeta(s) {
  * @returns {boolean}
  */
 function esExtranjera(matriculaNorm, aliases = []) {
-  const todas = [matriculaNorm, ...(aliases || [])]
+  const actual = String(matriculaNorm ?? '').trim()
+  if (actual && validarMatricula(actual).ok === false) return true
+  // Un alias que sólo se diferencia en un carácter de la matrícula actual es
+  // una errata de tecleo, no una matrícula extranjera: pasó con 34529LHT
+  // (Kia Sportage 3429LHT), que añadía un '-Alemania' inventado a la carpeta.
+  return (aliases || [])
     .map((m) => String(m ?? '').trim())
     .filter(Boolean)
-  return todas.some((m) => validarMatricula(m).ok === false)
+    .some(
+      (m) =>
+        validarMatricula(m).ok === false &&
+        m.length >= 5 &&
+        m.length <= 10 &&
+        /[A-Z]/.test(m) &&
+        /\d/.test(m) &&
+        !esErrata(m, actual)
+    )
+}
+
+/** true si `a` y `b` se diferencian en un solo carácter (cambio, alta o baja). */
+function esErrata(a, b) {
+  if (!a || !b || a === b) return a === b
+  if (Math.abs(a.length - b.length) > 1) return false
+  const [corto, largo] = a.length <= b.length ? [a, b] : [b, a]
+  let i = 0
+  let j = 0
+  let fallos = 0
+  while (i < corto.length && j < largo.length) {
+    if (corto[i] === largo[j]) {
+      i++
+      j++
+      continue
+    }
+    if (++fallos > 1) return false
+    if (corto.length === largo.length) i++
+    j++
+  }
+  return fallos + (largo.length - j) <= 1
 }
 
 /**
@@ -289,6 +323,7 @@ function nombreCarpetaCanonico(v) {
 }
 
 module.exports = {
+  esErrata,
   MARCAS,
   MARCAS_2,
   MODELOS,

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import type { Cliente } from '@/lib/database'
 
 interface Notificacion {
   id: string
@@ -20,7 +21,10 @@ interface NotificationCenterProps {
   onClose: () => void
 }
 
-export default function NotificationCenter({ isOpen, onClose }: NotificationCenterProps) {
+export default function NotificationCenter({
+  isOpen,
+  onClose,
+}: NotificationCenterProps) {
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([])
   const [isLoading, setIsLoading] = useState(false)
 
@@ -46,15 +50,21 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
     }
   }
 
-  const generarNotificaciones = (clientes: any[]) => {
+  const generarNotificaciones = (clientes: Cliente[]) => {
     const notificaciones: Notificacion[] = []
     const ahora = new Date()
 
     // Clientes sin contacto hace más de 7 días
-    const clientesSinContacto = clientes.filter(cliente => {
+    const clientesSinContacto = clientes.filter((cliente) => {
       const fechaContacto = new Date(cliente.fechaPrimerContacto)
-      const diasSinContacto = Math.floor((ahora.getTime() - fechaContacto.getTime()) / (1000 * 60 * 60 * 24))
-      return diasSinContacto > 7 && cliente.estado !== 'cerrado' && cliente.estado !== 'descartado'
+      const diasSinContacto = Math.floor(
+        (ahora.getTime() - fechaContacto.getTime()) / (1000 * 60 * 60 * 24)
+      )
+      return (
+        diasSinContacto > 7 &&
+        cliente.estado !== 'cerrado' &&
+        cliente.estado !== 'descartado'
+      )
     })
 
     if (clientesSinContacto.length > 0) {
@@ -67,13 +77,15 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
         leida: false,
         accion: {
           texto: 'Ver clientes',
-          url: '/clientes?filtro=sin_contacto'
-        }
+          url: '/clientes?filtro=sin_contacto',
+        },
       })
     }
 
     // Clientes de alta prioridad
-    const clientesAltaPrioridad = clientes.filter(c => c.prioridad === 'alta' && c.estado !== 'cerrado')
+    const clientesAltaPrioridad = clientes.filter(
+      (c) => c.prioridad === 'alta' && c.estado !== 'cerrado'
+    )
     if (clientesAltaPrioridad.length > 0) {
       notificaciones.push({
         id: 'alta-prioridad',
@@ -84,15 +96,15 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
         leida: false,
         accion: {
           texto: 'Ver prioridades',
-          url: '/clientes?filtro=alta_prioridad'
-        }
+          url: '/clientes?filtro=alta_prioridad',
+        },
       })
     }
 
     // Nuevos clientes hoy
     const hoy = new Date()
     hoy.setHours(0, 0, 0, 0)
-    const clientesHoy = clientes.filter(cliente => {
+    const clientesHoy = clientes.filter((cliente) => {
       const fechaCliente = new Date(cliente.fechaPrimerContacto)
       fechaCliente.setHours(0, 0, 0, 0)
       return fechaCliente.getTime() === hoy.getTime()
@@ -108,13 +120,15 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
         leida: false,
         accion: {
           texto: 'Ver nuevos',
-          url: '/clientes?filtro=nuevos_hoy'
-        }
+          url: '/clientes?filtro=nuevos_hoy',
+        },
       })
     }
 
     // Clientes con citas agendadas
-    const clientesConCitas = clientes.filter(c => c.estado === 'cita_agendada')
+    const clientesConCitas = clientes.filter(
+      (c) => c.estado === 'cita_agendada'
+    )
     if (clientesConCitas.length > 0) {
       notificaciones.push({
         id: 'citas-agendadas',
@@ -125,8 +139,8 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
         leida: false,
         accion: {
           texto: 'Ver citas',
-          url: '/clientes?filtro=cita_agendada'
-        }
+          url: '/clientes?filtro=cita_agendada',
+        },
       })
     }
 
@@ -134,19 +148,19 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
   }
 
   const marcarComoLeida = (id: string) => {
-    setNotificaciones(prev => 
-      prev.map(notif => 
-        notif.id === id ? { ...notif, leida: true } : notif
-      )
+    setNotificaciones((prev) =>
+      prev.map((notif) => (notif.id === id ? { ...notif, leida: true } : notif))
     )
   }
 
   const getTipoIcon = (tipo: string) => {
     const icons = {
       info: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
-      warning: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z',
+      warning:
+        'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z',
       success: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
-      error: 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z'
+      error:
+        'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z',
     }
     return icons[tipo as keyof typeof icons] || icons.info
   }
@@ -156,7 +170,7 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
       info: 'text-blue-600 bg-blue-100',
       warning: 'text-yellow-600 bg-yellow-100',
       success: 'text-green-600 bg-green-100',
-      error: 'text-red-600 bg-red-100'
+      error: 'text-red-600 bg-red-100',
     }
     return colors[tipo as keyof typeof colors] || colors.info
   }
@@ -180,20 +194,36 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
-      <div className="absolute inset-0 bg-black bg-opacity-25" onClick={onClose}></div>
+      <div
+        className="absolute inset-0 bg-black bg-opacity-25"
+        onClick={onClose}
+      ></div>
       <div className="relative ml-auto h-full w-full max-w-md bg-white shadow-xl">
         <div className="flex h-full flex-col">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-            <h2 className="text-lg font-semibold text-gray-900">Notificaciones</h2>
+            <h2 className="text-lg font-semibold text-gray-900">
+              Notificaciones
+            </h2>
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600"
               aria-label="Cerrar"
               title="Cerrar"
             >
-              <svg aria-hidden="true" className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                aria-hidden="true"
+                className="h-6 w-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -206,8 +236,18 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
               </div>
             ) : notificaciones.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-32 text-gray-500">
-                <svg className="h-12 w-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg
+                  className="h-12 w-12 text-gray-400 mb-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 17h5l-5 5v-5zM9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
                 <p className="text-sm">No hay notificaciones</p>
               </div>
@@ -220,19 +260,37 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
                     onClick={() => marcarComoLeida(notificacion.id)}
                   >
                     <div className="flex items-start space-x-3">
-                      <div className={`flex-shrink-0 p-2 rounded-full ${getTipoColor(notificacion.tipo)}`}>
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={getTipoIcon(notificacion.tipo)} />
+                      <div
+                        className={`flex-shrink-0 p-2 rounded-full ${getTipoColor(notificacion.tipo)}`}
+                      >
+                        <svg
+                          className="h-4 w-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d={getTipoIcon(notificacion.tipo)}
+                          />
                         </svg>
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <p className={`text-sm font-medium ${notificacion.leida ? 'text-gray-500' : 'text-gray-900'}`}>
+                          <p
+                            className={`text-sm font-medium ${notificacion.leida ? 'text-gray-500' : 'text-gray-900'}`}
+                          >
                             {notificacion.titulo}
                           </p>
-                          <p className="text-xs text-gray-500">{formatFecha(notificacion.fecha)}</p>
+                          <p className="text-xs text-gray-500">
+                            {formatFecha(notificacion.fecha)}
+                          </p>
                         </div>
-                        <p className={`text-sm ${notificacion.leida ? 'text-gray-400' : 'text-gray-600'} mt-1`}>
+                        <p
+                          className={`text-sm ${notificacion.leida ? 'text-gray-400' : 'text-gray-600'} mt-1`}
+                        >
                           {notificacion.mensaje}
                         </p>
                         {notificacion.accion && (
@@ -263,7 +321,11 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
           {notificaciones.length > 0 && (
             <div className="border-t border-gray-200 px-6 py-3">
               <button
-                onClick={() => setNotificaciones(prev => prev.map(n => ({ ...n, leida: true })))}
+                onClick={() =>
+                  setNotificaciones((prev) =>
+                    prev.map((n) => ({ ...n, leida: true }))
+                  )
+                }
                 className="text-sm text-gray-600 hover:text-gray-800"
               >
                 Marcar todas como leídas
@@ -275,4 +337,3 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
     </div>
   )
 }
-

@@ -1,9 +1,13 @@
 /**
- * POST /api/admin/check-onedrive-carpetas?dryRun=true|false&maxCrear=10
+ * POST /api/admin/check-onedrive-carpetas
+ *   ?dryRun=true|false&maxCrear=10&maxMover=10&maxRenombrar=10&presupuestoMs=40000
  *
  * Cruza las carpetas reales de OneDrive con los vehículos del CRM: faltantes,
  * sin vehículo, no canónicas, duplicadas. Con dryRun=false crea las faltantes
- * de coches en stock (hasta maxCrear). Protegido por X-Admin-Secret.
+ * de coches en stock (hasta maxCrear), mueve a VENDIDOS las de coches vendidos
+ * que están fuera (maxMover) y renombra las que están en el contenedor correcto
+ * con nombre no canónico (maxRenombrar), con presupuesto de tiempo
+ * (presupuestoMs). Protegido por X-Admin-Secret.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { safeEqual } from '@/lib/secrets'
@@ -21,7 +25,16 @@ export async function POST(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const dryRun = searchParams.get('dryRun') !== 'false'
     const maxCrear = Number(searchParams.get('maxCrear') ?? 10)
-    const resumen = await checkCarpetasOneDrive({ dryRun, maxCrear })
+    const maxMover = Number(searchParams.get('maxMover') ?? 10)
+    const maxRenombrar = Number(searchParams.get('maxRenombrar') ?? 10)
+    const presupuestoMs = Number(searchParams.get('presupuestoMs') ?? 40_000)
+    const resumen = await checkCarpetasOneDrive({
+      dryRun,
+      maxCrear,
+      maxMover,
+      maxRenombrar,
+      presupuestoMs,
+    })
     return NextResponse.json(resumen)
   } catch (err) {
     return NextResponse.json(

@@ -590,7 +590,7 @@ export default function InteresadoDetailPage() {
                                 updateVehiculoInteres(index, e.target.value)
                               }
                               onKeyPress={(e) =>
-                                handleVehiculoKeyPress(e as any, index)
+                                handleVehiculoKeyPress(e, index)
                               }
                               className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               placeholder="Escribe un vehículo y presiona Enter"

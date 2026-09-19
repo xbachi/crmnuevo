@@ -10,6 +10,7 @@ import {
   Tooltip,
   Legend,
   ArcElement,
+  type TooltipItem,
 } from 'chart.js'
 import { Bar, Doughnut } from 'react-chartjs-2'
 
@@ -142,7 +143,7 @@ export default function InteractiveMetricsChart({
         cornerRadius: 8,
         displayColors: true,
         callbacks: {
-          label: function (context: any) {
+          label: function (context: TooltipItem<'bar'>) {
             return `${context.label}: ${context.parsed.y} vehículos`
           },
         },
@@ -171,7 +172,7 @@ export default function InteractiveMetricsChart({
           font: {
             size: 12,
           },
-          callback: function (value: any) {
+          callback: function (value: number | string) {
             return Number.isInteger(value) ? value : null
           },
         },
@@ -213,7 +214,7 @@ export default function InteractiveMetricsChart({
         cornerRadius: 8,
         displayColors: true,
         callbacks: {
-          label: function (context: any) {
+          label: function (context: TooltipItem<'doughnut'>) {
             const total = context.dataset.data.reduce(
               (a: number, b: number) => a + b,
               0

@@ -10,6 +10,7 @@ import {
 } from '@/lib/direct-database'
 import { encolarSheetsVehiculo } from '@/lib/sheetsVehiculo'
 import { encolarCarpetasOneDrive } from '@/lib/onedriveCarpetas'
+import { faltantesAlta } from '@/lib/camposVehiculo'
 import { normalizarTipo } from '@/lib/vehiculoEstado'
 import {
   extraerMatriculaEntrada,
@@ -102,18 +103,22 @@ export async function POST(request: NextRequest) {
       fotoInversor,
     } = body
 
-    // Validar datos requeridos
-    if (
-      !referencia ||
-      !marca ||
-      !modelo ||
-      !matricula ||
-      !bastidor ||
-      !kms ||
-      !tipo
-    ) {
+    // La referencia la pone el CRM, no una persona: va aparte de `faltantes`.
+    if (!referencia) {
       return NextResponse.json(
-        { error: 'Todos los campos son requeridos' },
+        { error: 'La referencia es obligatoria' },
+        { status: 400 }
+      )
+    }
+
+    // Mismas reglas que POST /api/vehiculos (src/lib/camposVehiculo.ts).
+    const faltantes = faltantesAlta(body)
+    if (faltantes.length > 0) {
+      return NextResponse.json(
+        {
+          error: `Faltan campos obligatorios: ${faltantes.map((f) => f.etiqueta).join(', ')}`,
+          faltantes,
+        },
         { status: 400 }
       )
     }
@@ -151,7 +156,10 @@ export async function POST(request: NextRequest) {
     const existingMat = existingVehiculos.find(
       (v) => normalizarMatricula(v.matricula) === matriculaNorm
     )
-    const existingBast = existingVehiculos.find((v) => v.bastidor === bastidor)
+    // Sin bastidor no hay duplicado que buscar: lo trae el permiso, no el alta.
+    const existingBast = bastidor
+      ? existingVehiculos.find((v) => v.bastidor === bastidor)
+      : undefined
 
     if (existingRef) {
       return NextResponse.json(
@@ -178,7 +186,7 @@ export async function POST(request: NextRequest) {
       marca,
       modelo,
       matricula: matriculaNorm,
-      bastidor,
+      bastidor: bastidor || null,
       kms: parseInt(kms),
       tipo,
       esCocheInversor: esCocheInversor || false,

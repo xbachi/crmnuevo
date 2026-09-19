@@ -31,7 +31,20 @@ const FILTROS_DEFAULT = {
 
 // Fila de /api/clientes → forma que espera la lista (intereses anidados,
 // JSON parseado). Compartida por la lista paginada y el exportador.
-function mapearCliente(cliente: any): Cliente {
+type ClienteApiRow = Partial<Omit<Cliente, 'intereses' | 'etiquetas'>> & {
+  vehiculosInteres?: string
+  etiquetas?: string
+  coloresDeseados?: string
+  necesidadesEspeciales?: string
+  presupuestoMaximo?: number
+  kilometrajeMaximo?: number
+  añoMinimo?: number
+  combustiblePreferido?: Cliente['intereses']['combustiblePreferido']
+  cambioPreferido?: Cliente['intereses']['cambioPreferido']
+  formaPagoPreferida?: Cliente['intereses']['formaPagoPreferida']
+}
+
+function mapearCliente(cliente: ClienteApiRow): Cliente {
   // Parsear vehiculosInteres
   let vehiculosInteres = []
   if (cliente.vehiculosInteres) {
@@ -87,7 +100,7 @@ function mapearCliente(cliente: any): Cliente {
       formaPagoPreferida: cliente.formaPagoPreferida || 'cualquiera',
     },
     etiquetas: etiquetas,
-  }
+  } as Cliente
 }
 
 function ClientesPageInner() {

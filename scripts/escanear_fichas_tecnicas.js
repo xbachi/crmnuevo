@@ -433,6 +433,7 @@ EXACTAMENTE este JSON y nada mas (sin texto alrededor, sin bloques de codigo):
   "bastidor": {"valor": "...", "confianza": 0.0},
   "marca": {"valor": "...", "confianza": 0.0},
   "modelo": {"valor": "...", "confianza": 0.0},
+  "version": {"valor": "...", "confianza": 0.0},
   "combustible": {"valor": "...", "confianza": 0.0},
   "cilindrada_cc": {"valor": 0, "confianza": 0.0},
   "potencia_kw": {"valor": 0, "confianza": 0.0},
@@ -447,7 +448,7 @@ Donde mirar (casillas armonizadas, iguales en ambos documentos):
   A    matricula
   B    fecha de primera matriculacion
   D.1  marca
-  D.2  tipo / variante / version
+  D.2  tipo / variante / version  -> campo "version"
   D.3  denominacion comercial (el modelo suele leerse aqui; si no, en D.2)
   E    numero de bastidor (VIN): 17 caracteres, nunca lleva I, O ni Q
   P.1  cilindrada en cm3
@@ -468,6 +469,11 @@ Reglas:
   puede ir por encima de 0.9; uno que interpretas a medias, por debajo de 0.5.
 - No confundas el bastidor (17 caracteres alfanumericos) con otros numeros del
   documento. Si cuentas menos de 17 o hay una I/O/Q, baja la confianza.
+- "version" es la variante/acabado del coche tal como aparece en D.2 (p.ej.
+  "1.6 CRDI DRIVE", "2.0 TDI SPORTLINE"). Si D.2 solo trae un codigo interno
+  del fabricante sin sentido comercial (p.ej. "KLAN", "SLS", "MK7"), usa la
+  denominacion ampliada de D.3 si la hay; si no, "valor": null y confianza 0.
+  NO repitas ahi el modelo a secas ni la marca.
 - cilindrada_cc, potencia_kw, potencia_cv y plazas son NUMEROS (sin unidades).
 - fecha_primera_matriculacion SIEMPRE en formato YYYY-MM-DD.
 - El permiso de circulacion lleva datos personales del titular (casilla C:
@@ -606,6 +612,9 @@ const CAMPOS = [
   'bastidor',
   'marca',
   'modelo',
+  // casilla D.2 del permiso (tipo/variante/version): el CRM lo guarda como
+  // nombre comercial en vehiculo_ficha_comercial y hace falta para publicar
+  'version',
   'combustible',
   'cilindrada_cc',
   'potencia_kw',

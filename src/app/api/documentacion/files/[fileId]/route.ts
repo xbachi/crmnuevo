@@ -6,7 +6,12 @@ const METADATA_FILE = 'documentacion-metadata.json'
 
 async function loadMetadata() {
   try {
-    const metadataDir = join(process.cwd(), 'public', 'uploads', 'documentacion')
+    const metadataDir = join(
+      process.cwd(),
+      'public',
+      'uploads',
+      'documentacion'
+    )
     await mkdir(metadataDir, { recursive: true })
     const metadataPath = join(metadataDir, METADATA_FILE)
     const data = await readFile(metadataPath, 'utf-8')
@@ -16,7 +21,7 @@ async function loadMetadata() {
   }
 }
 
-async function saveMetadata(metadata: any[]) {
+async function saveMetadata(metadata: unknown[]) {
   const metadataDir = join(process.cwd(), 'public', 'uploads', 'documentacion')
   await mkdir(metadataDir, { recursive: true })
   const metadataPath = join(metadataDir, METADATA_FILE)
@@ -31,21 +36,29 @@ export async function DELETE(
     const { fileId } = await params
 
     if (!fileId) {
-      return NextResponse.json({ error: 'ID de archivo requerido' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'ID de archivo requerido' },
+        { status: 400 }
+      )
     }
 
     // Cargar metadatos para encontrar el archivo
     const metadata = await loadMetadata()
-    const fileMetadata = metadata.find((file: any) => file.id === fileId)
-    
+    const fileMetadata = metadata.find(
+      (file: { id: string }) => file.id === fileId
+    )
+
     if (!fileMetadata) {
-      return NextResponse.json({ error: 'Archivo no encontrado en metadatos' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'Archivo no encontrado en metadatos' },
+        { status: 404 }
+      )
     }
 
     // Eliminar archivo físico
     const docsDir = join(process.cwd(), 'public', 'uploads', 'documentacion')
     const filePath = join(docsDir, `${fileId}.pdf`)
-    
+
     try {
       await unlink(filePath)
     } catch (unlinkError) {
@@ -54,12 +67,20 @@ export async function DELETE(
     }
 
     // Eliminar de metadatos
-    const filteredMetadata = metadata.filter((file: any) => file.id !== fileId)
+    const filteredMetadata = metadata.filter(
+      (file: { id: string }) => file.id !== fileId
+    )
     await saveMetadata(filteredMetadata)
-    
-    return NextResponse.json({ message: 'Archivo eliminado correctamente' }, { status: 200 })
+
+    return NextResponse.json(
+      { message: 'Archivo eliminado correctamente' },
+      { status: 200 }
+    )
   } catch (error) {
     console.error('Error deleting file:', error)
-    return NextResponse.json({ error: 'Error interno del servidor al eliminar archivo' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Error interno del servidor al eliminar archivo' },
+      { status: 500 }
+    )
   }
 }

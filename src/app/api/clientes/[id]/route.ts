@@ -54,13 +54,24 @@ export async function PUT(
     const body = await request.json()
     console.log(`🔍 [API PUT] Actualizando cliente ${id} con datos:`, body)
     const updatedCliente = await updateCliente(id, body)
+    if (!updatedCliente) {
+      return NextResponse.json(
+        { error: 'Cliente no encontrado' },
+        { status: 404 }
+      )
+    }
     return NextResponse.json(updatedCliente)
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error al actualizar cliente:', error)
+    const dbError = error as {
+      code?: string
+      constraint?: string
+      message?: string
+    }
 
     // Manejar errores específicos de la base de datos
-    if (error.code === '23505') {
-      if (error.constraint === 'Cliente_dni_key') {
+    if (dbError.code === '23505') {
+      if (dbError.constraint === 'Cliente_dni_key') {
         return NextResponse.json(
           {
             error:
@@ -76,7 +87,7 @@ export async function PUT(
     }
 
     // Manejar errores de formato de fecha/timestamp
-    if (error.code === '22007') {
+    if (dbError.code === '22007') {
       return NextResponse.json(
         {
           error:
@@ -86,7 +97,7 @@ export async function PUT(
       )
     }
 
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: dbError.message }, { status: 500 })
   }
 }
 

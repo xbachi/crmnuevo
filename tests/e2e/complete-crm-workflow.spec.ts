@@ -324,7 +324,7 @@ test.describe('Complete CRM Workflow', () => {
 
       // Verificar que no hay errores de JavaScript
       const errors = await page.evaluate(() => {
-        // @ts-ignore
+        // @ts-expect-error jsErrors lo inyecta el propio test en window
         return window.jsErrors || []
       })
 
@@ -337,6 +337,8 @@ test.describe('Complete CRM Workflow', () => {
   })
 
   test('Quick smoke test for all main sections', async ({ page }) => {
+    // Dev server: cada ruta compila en la primera visita.
+    test.setTimeout(240_000)
     const sections = [
       { name: 'Dashboard', url: '/' },
       { name: 'Clientes', url: '/clientes' },
@@ -355,7 +357,8 @@ test.describe('Complete CRM Workflow', () => {
       console.log(`🔍 Testing ${section.name}...`)
 
       await page.goto(section.url)
-      await page.waitForLoadState('networkidle')
+      // networkidle no llega en páginas con polling; basta con el título.
+      await expect(page.locator('h1').first()).toBeVisible({ timeout: 60_000 })
 
       // Verificar que la página cargó sin errores 404/500
       const title = await page.title()

@@ -266,6 +266,7 @@ export const CAMPOS_EDITABLES_VEHICULO = [
   'porteSolicitado',
   'recibidoTexto',
   'recibidoFecha',
+  'ubicacion',
 ] as const
 
 /** Filtra el body a los campos editables. Devuelve también los ignorados. */

@@ -70,6 +70,7 @@ const PUBLIC_API_PREFIXES = [
   '/api/expedientes/recalcular',
   '/api/admin/webhook-outbox/retry',
   '/api/admin/check-sheets-vehiculos',
+  '/api/admin/check-onedrive-carpetas',
   '/api/admin/sheets-vehiculos/aviso',
   // Cron de Vercel (self-auth por CRON_SECRET / X-Admin-Secret).
   '/api/cron/costobeneficio',

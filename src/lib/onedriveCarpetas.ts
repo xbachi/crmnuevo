@@ -8,7 +8,8 @@
  * 'onedrive_carpetas') y se procesa en background (after() + timeout 45 s);
  * lo que falle lo reintenta POST /api/admin/webhook-outbox/retry. El cron
  * diario /api/cron/onedrive-carpetas lista lo que hay, lo cruza con el CRM y
- * crea las faltantes. Apagado por defecto: ONEDRIVE_CARPETAS_ENABLED=1.
+ * crea las faltantes, mueve a VENDIDOS las de coches vendidos que están fuera
+ * y renombra las no canónicas. Apagado por defecto: ONEDRIVE_CARPETAS_ENABLED=1.
  */
 import { after } from 'next/server'
 import { pool } from '@/lib/direct-database'
@@ -186,6 +187,42 @@ export function refDeNombre(nombre: string): string | null {
   return m ? m[1] : null
 }
 
+/** Cualquier contenedor bajo VENDIDOS (incluida la subcarpeta de Coches R). */
+export function esContenedorVendidos(contenedor: string): boolean {
+  const c = String(contenedor ?? '')
+  return c === '----VENDIDOS' || c.startsWith('----VENDIDOS/')
+}
+
+/**
+ * Nombre al que renombrar conservando los sufijos del nombre real. El receptor
+ * no los conserva en op 'renombrar' (usa `a` tal cual): los añade el CRM
+ * localizando la matrícula como segmento y arrastrando lo que venga detrás.
+ * `null` si no se localiza (no se renombra: se informa).
+ */
+export function nombreDestinoRenombrar(
+  actual: string,
+  canonico: string,
+  matriculas: string[]
+): string | null {
+  const claves = (matriculas ?? []).map(claveBusqueda).filter(Boolean)
+  const segs = String(actual ?? '').split('-')
+  const canonSegs = String(canonico ?? '').split('-')
+  const ultimo = (arr: string[]): number => {
+    for (let k = arr.length - 1; k >= 0; k--) {
+      if (claves.includes(claveBusqueda(arr[k]))) return k
+    }
+    return -1
+  }
+  const i = ultimo(segs)
+  const j = ultimo(canonSegs)
+  if (i < 0 || j < 0) return null
+  const canonTail = canonSegs.slice(j + 1)
+  const extra = segs
+    .slice(i + 1)
+    .filter((s) => !canonTail.some((c) => c.toLowerCase() === s.toLowerCase()))
+  return extra.length ? `${canonico}-${extra.join('-')}` : canonico
+}
+
 // ---------------------------------------------------------------------------
 // Vehículos esperados (DB) y diff contra lo listado
 // ---------------------------------------------------------------------------
@@ -198,6 +235,23 @@ export interface VehiculoEsperado {
   /** [matricula_norm actual, ...aliases] */
   matriculas: string[]
   nombre: string | null
+}
+
+export type TipoAccionPlan = 'mover' | 'renombrar' | 'revisar'
+
+export interface AccionPlan {
+  vehiculoId: number
+  root: Raiz
+  accion: TipoAccionPlan
+  /** `${root}/${rel}` actual */
+  actual: string
+  /** `${root}/${rel}` esperado */
+  esperado: string
+  /** nombre actual de la carpeta */
+  de: string
+  /** nombre destino con sufijos conservados; null si no se pudo calcular */
+  a: string | null
+  motivo?: string
 }
 
 export interface DiffCarpetas {
@@ -219,6 +273,8 @@ export interface DiffCarpetas {
     referencia: string | null
     matricula: string
   }[]
+  /** Acciones concretas derivadas de `noCanonicas` (mover / renombrar / revisar). */
+  plan: AccionPlan[]
 }
 
 const RAICES_LISTA = Object.keys(RAICES) as Raiz[]
@@ -234,6 +290,7 @@ export function diffCarpetas(
     noCanonicas: [],
     duplicados: [],
     sinReferencia: [],
+    plan: [],
   }
 
   const porMatricula = new Map<string, Set<number>>()
@@ -306,6 +363,54 @@ export function diffCarpetas(
             esperado: `${root}/${esperadoRel}`,
             vehiculoId: v.vehiculoId,
           })
+
+          const vendidoCRM = normalizarEstado(v.estado) === 'VENDIDO'
+          const base = {
+            vehiculoId: v.vehiculoId,
+            root,
+            actual: `${root}/${relEnRaiz(g)}`,
+            esperado: `${root}/${esperadoRel}`,
+            de: g.nombre,
+          }
+          if (g.contenedor !== contenedor) {
+            if (vendidoCRM) {
+              // op 'vendido' ya conserva sufijos y arregla el nombre al mover
+              out.plan.push({
+                ...base,
+                accion: 'mover',
+                a:
+                  nombreDestinoRenombrar(g.nombre, v.nombre, v.matriculas) ??
+                  v.nombre,
+              })
+            } else if (esContenedorVendidos(g.contenedor)) {
+              out.plan.push({
+                ...base,
+                accion: 'revisar',
+                a: null,
+                motivo: 'la carpeta está en VENDIDOS y el CRM lo da en stock',
+              })
+            } else {
+              out.plan.push({
+                ...base,
+                accion: 'revisar',
+                a: null,
+                motivo: `contenedor distinto (${g.contenedor || 'raíz'})`,
+              })
+            }
+          } else {
+            const a = nombreDestinoRenombrar(g.nombre, v.nombre, v.matriculas)
+            if (a && a !== g.nombre) {
+              out.plan.push({ ...base, accion: 'renombrar', a })
+            } else {
+              out.plan.push({
+                ...base,
+                accion: 'revisar',
+                a,
+                motivo:
+                  'no se puede calcular el nombre destino sin perder sufijos',
+              })
+            }
+          }
         }
       } else {
         out.duplicados.push({
@@ -489,6 +594,8 @@ export interface ResultadoEjecucion {
   permanente?: boolean
   resultado?: ResultadoCarpetas
   nombre?: string
+  /** Resultado por raíz: el agregado puede ser `no_existe` aunque una raíz sí se arreglase. */
+  porRaiz?: CarpetasResponse['porRaiz']
 }
 
 async function registrarLog(
@@ -519,7 +626,8 @@ export async function ejecutarCarpetas(
   vehiculoId: number,
   accion: AccionCarpetas,
   de?: string,
-  motivo?: string
+  motivo?: string,
+  opts?: { a?: string; sinFallbackCrear?: boolean }
 ): Promise<ResultadoEjecucion> {
   const v = await cargarVehiculoCarpeta(vehiculoId)
   if (!v) {
@@ -543,18 +651,26 @@ export async function ejecutarCarpetas(
     tipo: v.tipo,
     matricula: v.matriculas[0],
   }
+  const destino = opts?.a ?? nombre
   const crear: CarpetasRequest = { ...base, op: 'crear' }
   let body: CarpetasRequest
   if (accion === 'vendido') body = { ...base, op: 'vendido' }
-  else if (accion === 'renombrar' && de && de !== nombre)
-    body = { ...base, op: 'renombrar', de, a: nombre }
+  else if (accion === 'renombrar' && de && de !== destino)
+    body = { ...base, op: 'renombrar', de, a: destino }
   else body = crear
 
   let res = await postCarpetasWebhook(body)
   if (!res.ok || !res.data)
     return { ok: false, error: res.error ?? 'sin respuesta' }
   // La carpeta vieja ya no está (la renombraron a mano): se asegura la nueva.
-  if (body.op === 'renombrar' && res.data.resultado === 'no_existe') {
+  // En el chequeo global (sinFallbackCrear) NO: ahí `no_existe` suele ser sólo
+  // la raíz que no tiene carpeta, y caer a 'crear' la crearía en el contenedor
+  // de STOCK aunque el coche esté vendido.
+  if (
+    body.op === 'renombrar' &&
+    res.data.resultado === 'no_existe' &&
+    !opts?.sinFallbackCrear
+  ) {
     await registrarLog(vehiculoId, accion, { ...body, motivo }, res.data, false)
     body = crear
     res = await postCarpetasWebhook(body)
@@ -568,7 +684,7 @@ export async function ejecutarCarpetas(
     try {
       await pool.query(`UPDATE "Vehiculo" SET carpeta = $2 WHERE id = $1`, [
         vehiculoId,
-        nombre,
+        body.op === 'renombrar' ? (body.a ?? nombre) : nombre,
       ])
     } catch (err) {
       console.error(
@@ -576,7 +692,12 @@ export async function ejecutarCarpetas(
         (err as Error)?.message ?? err
       )
     }
-    return { ok: true, resultado: data.resultado, nombre }
+    return {
+      ok: true,
+      resultado: data.resultado,
+      nombre,
+      porRaiz: data.porRaiz,
+    }
   }
   const error = data.motivo ?? `resultado ${data.resultado ?? 'desconocido'}`
   if (data.resultado === 'conflicto') {
@@ -586,9 +707,16 @@ export async function ejecutarCarpetas(
       resultado: data.resultado,
       error,
       nombre,
+      porRaiz: data.porRaiz,
     }
   }
-  return { ok: false, resultado: data.resultado, error, nombre }
+  return {
+    ok: false,
+    resultado: data.resultado,
+    error,
+    nombre,
+    porRaiz: data.porRaiz,
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -770,21 +898,79 @@ export interface ResumenCheckCarpetas extends DiffCarpetas {
     nombre: string
     resultado?: ResultadoCarpetas
   }[]
+  movidas: {
+    vehiculoId: number
+    de: string
+    a: string
+    resultado?: ResultadoCarpetas
+  }[]
+  renombradas: {
+    vehiculoId: number
+    de: string
+    a: string
+    resultado?: ResultadoCarpetas
+  }[]
+  revisarUbicacion: {
+    vehiculoId: number
+    actual: string
+    esperado: string
+    motivo: string
+  }[]
+  omitidas: {
+    vehiculoId: number
+    accion: 'crear' | TipoAccionPlan
+    actual: string
+    motivo: string
+  }[]
+  pendientes: { crear: number; mover: number; renombrar: number }
+  presupuestoAgotado: boolean
   errores: string[]
+}
+
+function rutaFaltante(f: DiffCarpetas['faltantes'][number]): string {
+  return `${f.root}/${f.contenedor ? `${f.contenedor}/` : ''}${f.nombre}`
+}
+
+/**
+ * Una acción que arregla una raíz y devuelve `no_existe` en la otra llega con
+ * `ok:false` aunque el trabajo real se hiciera: hay que mirar `porRaiz`.
+ */
+function interpretarResultado(r: ResultadoEjecucion): {
+  conflicto: boolean
+  hecho: boolean
+} {
+  const res = Object.values(r.porRaiz ?? {}).map((x) => x.resultado)
+  return {
+    conflicto: r.resultado === 'conflicto' || res.includes('conflicto'),
+    hecho: r.ok || res.includes('movido') || res.includes('renombrado'),
+  }
 }
 
 /**
  * Lista las carpetas reales, las cruza con el CRM y, salvo dryRun (o kill
- * switch), crea las faltantes de coches en stock (una llamada por vehículo:
- * el receptor cubre ambas raíces). Nunca crea sobre una posible existente
- * mal nombrada ni toca VENDIDOS. Nunca lanza.
+ * switch): crea las faltantes de coches en stock, mueve a VENDIDOS las de
+ * coches vendidos que están fuera y renombra las que están en el contenedor
+ * correcto con nombre no canónico (una llamada por vehículo: el receptor cubre
+ * ambas raíces). Nunca saca nada de VENDIDOS, nunca toca duplicados ni
+ * carpetas sin vehículo, nunca crea sobre una posible existente mal nombrada.
+ * Con topes por pasada y presupuesto de tiempo. Nunca lanza.
  */
 export async function checkCarpetasOneDrive(opts: {
   dryRun: boolean
   maxCrear?: number
+  maxMover?: number
+  maxRenombrar?: number
+  presupuestoMs?: number
 }): Promise<ResumenCheckCarpetas> {
   const dryRun = !!opts.dryRun
-  const maxCrear = Number.isFinite(opts.maxCrear) ? Number(opts.maxCrear) : 10
+  const tope = (x: number | undefined, def: number): number =>
+    Math.max(0, Number.isFinite(x) ? Number(x) : def)
+  const maxCrear = tope(opts.maxCrear, 10)
+  const maxMover = tope(opts.maxMover, 10)
+  const maxRenombrar = tope(opts.maxRenombrar, 10)
+  const presupuestoMs = tope(opts.presupuestoMs, 40_000)
+  const t0 = Date.now()
+  const quedaTiempo = () => Date.now() - t0 < presupuestoMs
   const out: ResumenCheckCarpetas = {
     dryRun,
     habilitado: !onedriveCarpetasDeshabilitado(),
@@ -792,10 +978,17 @@ export async function checkCarpetasOneDrive(opts: {
     vehiculos: 0,
     faltantes: [],
     creadas: [],
+    movidas: [],
+    renombradas: [],
+    revisarUbicacion: [],
+    omitidas: [],
+    pendientes: { crear: 0, mover: 0, renombrar: 0 },
+    presupuestoAgotado: false,
     sinVehiculo: [],
     noCanonicas: [],
     duplicados: [],
     sinReferencia: [],
+    plan: [],
     errores: [],
   }
   try {
@@ -813,15 +1006,78 @@ export async function checkCarpetasOneDrive(opts: {
     out.vehiculos = esperados.length
     Object.assign(out, diffCarpetas(esperados, carpetas))
 
-    if (dryRun || !out.habilitado) return out
+    out.revisarUbicacion = out.plan
+      .filter((p) => p.accion === 'revisar')
+      .map((p) => ({
+        vehiculoId: p.vehiculoId,
+        actual: p.actual,
+        esperado: p.esperado,
+        motivo: p.motivo ?? '',
+      }))
+
+    // Una llamada al receptor cubre las dos raíces: una acción por vehículo,
+    // y mover gana a renombrar (el move ya arregla el nombre).
+    const porVehiculo = new Map<number, AccionPlan>()
+    for (const p of out.plan) {
+      if (p.accion === 'revisar') continue
+      const prev = porVehiculo.get(p.vehiculoId)
+      if (!prev || (prev.accion === 'renombrar' && p.accion === 'mover')) {
+        porVehiculo.set(p.vehiculoId, p)
+      }
+    }
+    const aMover = [...porVehiculo.values()].filter((p) => p.accion === 'mover')
+    const aRenombrar = [...porVehiculo.values()].filter(
+      (p) => p.accion === 'renombrar' && p.a
+    )
+
     const porId = new Map(esperados.map((v) => [v.vehiculoId, v]))
-    const hechos = new Set<number>()
+    const vistos = new Set<number>()
+    const aCrear: DiffCarpetas['faltantes'] = []
     for (const f of out.faltantes) {
-      if (f.posibleExistente || hechos.has(f.vehiculoId)) continue
+      if (vistos.has(f.vehiculoId)) continue
       const v = porId.get(f.vehiculoId)
       if (!v || normalizarEstado(v.estado) === 'VENDIDO') continue
-      if (hechos.size >= maxCrear) break
-      hechos.add(f.vehiculoId)
+      if (f.posibleExistente) {
+        out.omitidas.push({
+          vehiculoId: f.vehiculoId,
+          accion: 'crear',
+          actual: rutaFaltante(f),
+          motivo: `posible carpeta existente parecida: ${f.posibleExistente}`,
+        })
+        continue
+      }
+      vistos.add(f.vehiculoId)
+      aCrear.push(f)
+    }
+
+    if (dryRun || !out.habilitado) {
+      out.pendientes = {
+        crear: aCrear.length,
+        mover: aMover.length,
+        renombrar: aRenombrar.length,
+      }
+      return out
+    }
+
+    for (const [idx, f] of aCrear.entries()) {
+      const corte = !quedaTiempo()
+        ? 'presupuesto agotado'
+        : idx >= maxCrear
+          ? `tope maxCrear (${maxCrear})`
+          : null
+      if (corte) {
+        if (!quedaTiempo()) out.presupuestoAgotado = true
+        for (const r of aCrear.slice(idx)) {
+          out.omitidas.push({
+            vehiculoId: r.vehiculoId,
+            accion: 'crear',
+            actual: rutaFaltante(r),
+            motivo: corte,
+          })
+        }
+        out.pendientes.crear += aCrear.length - idx
+        break
+      }
       const r = await ejecutarCarpetas(
         f.vehiculoId,
         'crear',
@@ -837,6 +1093,106 @@ export async function checkCarpetasOneDrive(opts: {
       } else {
         out.errores.push(
           `crear #${f.vehiculoId} ${f.nombre}: ${r.error ?? 'error'}`
+        )
+      }
+    }
+
+    for (const [idx, p] of aMover.entries()) {
+      const corte = !quedaTiempo()
+        ? 'presupuesto agotado'
+        : idx >= maxMover
+          ? `tope maxMover (${maxMover})`
+          : null
+      if (corte) {
+        if (!quedaTiempo()) out.presupuestoAgotado = true
+        for (const q of aMover.slice(idx)) {
+          out.omitidas.push({
+            vehiculoId: q.vehiculoId,
+            accion: 'mover',
+            actual: q.actual,
+            motivo: corte,
+          })
+        }
+        out.pendientes.mover += aMover.length - idx
+        break
+      }
+      const r = await ejecutarCarpetas(
+        p.vehiculoId,
+        'vendido',
+        undefined,
+        'check'
+      )
+      const { conflicto, hecho } = interpretarResultado(r)
+      if (conflicto) {
+        // Un conflicto no se arregla reintentando: se informa y no se insiste
+        // (si fuese error, el cron mandaría el mismo correo todos los días).
+        out.omitidas.push({
+          vehiculoId: p.vehiculoId,
+          accion: 'mover',
+          actual: p.actual,
+          motivo: `conflicto en destino: ${r.error ?? ''}`,
+        })
+      } else if (hecho) {
+        out.movidas.push({
+          vehiculoId: p.vehiculoId,
+          de: p.de,
+          a: p.a ?? p.de,
+          resultado: r.resultado,
+        })
+      } else {
+        out.errores.push(
+          `mover #${p.vehiculoId} ${p.de}→${p.a ?? p.de}: ${r.error ?? 'error'}`
+        )
+      }
+    }
+
+    for (const [idx, p] of aRenombrar.entries()) {
+      const corte = !quedaTiempo()
+        ? 'presupuesto agotado'
+        : idx >= maxRenombrar
+          ? `tope maxRenombrar (${maxRenombrar})`
+          : null
+      if (corte) {
+        if (!quedaTiempo()) out.presupuestoAgotado = true
+        for (const q of aRenombrar.slice(idx)) {
+          out.omitidas.push({
+            vehiculoId: q.vehiculoId,
+            accion: 'renombrar',
+            actual: q.actual,
+            motivo: corte,
+          })
+        }
+        out.pendientes.renombrar += aRenombrar.length - idx
+        break
+      }
+      const r = await ejecutarCarpetas(
+        p.vehiculoId,
+        'renombrar',
+        p.de,
+        'check',
+        {
+          a: p.a!,
+          sinFallbackCrear: true,
+        }
+      )
+      const { conflicto, hecho } = interpretarResultado(r)
+      if (conflicto) {
+        out.omitidas.push({
+          vehiculoId: p.vehiculoId,
+          accion: 'renombrar',
+          actual: p.actual,
+          motivo: `conflicto en destino: ${r.error ?? ''}`,
+        })
+      } else if (hecho) {
+        out.renombradas.push({
+          vehiculoId: p.vehiculoId,
+          de: p.de,
+          a: p.a!,
+          resultado: r.resultado,
+        })
+      } else {
+        out.errores.push(
+          `renombrar #${p.vehiculoId} ${p.de}→${p.a}: ${r.error ?? 'error'}`
         )
       }
     }

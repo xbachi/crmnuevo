@@ -18,10 +18,12 @@ jest.mock('@/lib/webhookOutbox', () => ({
 import { pool } from '@/lib/direct-database'
 import { insertOutboxPending } from '@/lib/webhookOutbox'
 import {
+  checkCarpetasOneDrive,
   diffCarpetas,
   ejecutarCarpetas,
   encolarCarpetasOneDrive,
   nombreCarpetaCanonico,
+  nombreDestinoRenombrar,
   ubicacionEsperada,
   type CarpetaListada,
   type VehiculoEsperado,
@@ -506,6 +508,374 @@ describe('ejecutarCarpetas', () => {
     const r = await ejecutarCarpetas(999, 'crear')
     expect(r.permanente).toBe(true)
     expect(fetchMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('nombreDestinoRenombrar', () => {
+  it.each([
+    [
+      '69-Ford-Kuga-0703NLP',
+      '69-Ford-Kuga-0703NLP-Alemania',
+      ['0703NLP'],
+      '69-Ford-Kuga-0703NLP-Alemania',
+    ],
+    [
+      '24-VW-Golf-VII-1234ABC-Rojo',
+      '24-VW-Golf-VIII-1234ABC',
+      ['1234ABC'],
+      '24-VW-Golf-VIII-1234ABC-Rojo',
+    ],
+    [
+      '4-Ford-Mondeo-5678BCD',
+      '4-Ford-Mondeo-ST-Line-5678BCD',
+      ['5678BCD'],
+      '4-Ford-Mondeo-ST-Line-5678BCD',
+    ],
+    [
+      '69-Ford-Kuga-0703NLP-Alemania-Rojo',
+      '69-Ford-Kuga-0703NLP-Alemania',
+      ['0703NLP', 'WOB1234'],
+      '69-Ford-Kuga-0703NLP-Alemania-Rojo',
+    ],
+  ])('%s → %s', (actual, canonico, matriculas, esperado) => {
+    expect(nombreDestinoRenombrar(actual, canonico, matriculas)).toBe(esperado)
+  })
+
+  it('null si la matrícula no aparece como segmento', () => {
+    expect(
+      nombreDestinoRenombrar('Ford-Kuga-Alemania', '69-Ford-Kuga-0703NLP', [
+        '0703NLP',
+      ])
+    ).toBeNull()
+  })
+})
+
+describe('diffCarpetas: plan de acciones', () => {
+  it('VENDIDO con carpeta en el contenedor de stock → mover', () => {
+    const d = diffCarpetas(
+      [v(30, '#1030', 'C', 'Seat', 'Leon', '4444JJJ', 'VENDIDO')],
+      [c('1_Ventas', '', '30-Seat-Leon-4444JJJ-Rojo')]
+    )
+    expect(d.plan).toEqual([
+      {
+        vehiculoId: 30,
+        root: '1_Ventas',
+        accion: 'mover',
+        actual: '1_Ventas/30-Seat-Leon-4444JJJ-Rojo',
+        esperado: '1_Ventas/----VENDIDOS/30-Seat-Leon-4444JJJ',
+        de: '30-Seat-Leon-4444JJJ-Rojo',
+        a: '30-Seat-Leon-4444JJJ-Rojo',
+      },
+    ])
+  })
+
+  it('VENDIDO tipo R → destino la subcarpeta de Coches R de VENDIDOS', () => {
+    const d = diffCarpetas(
+      [v(8, '#R-08', 'R', 'Citroen', 'C4', '0539GNZ', 'VENDIDO')],
+      [c('1_Ventas', '-----------Coches R', 'R-8-Citroen-C4-0539GNZ')]
+    )
+    expect(d.plan).toHaveLength(1)
+    expect(d.plan[0]).toMatchObject({
+      accion: 'mover',
+      esperado:
+        '1_Ventas/----VENDIDOS/0--------------------Coches-R/R-8-Citroen-C4-0539GNZ',
+    })
+  })
+
+  it('EN STOCK con carpeta en VENDIDOS → revisar, nunca mover ni renombrar', () => {
+    const d = diffCarpetas(
+      [v(50, '#1050', 'C', 'Kia', 'Rio', '7777NNN')],
+      [c('1_Ventas', '----VENDIDOS', '50-Kia-Rio-7777NNN')]
+    )
+    expect(d.plan).toEqual([
+      {
+        vehiculoId: 50,
+        root: '1_Ventas',
+        accion: 'revisar',
+        actual: '1_Ventas/----VENDIDOS/50-Kia-Rio-7777NNN',
+        esperado: '1_Ventas/50-Kia-Rio-7777NNN',
+        de: '50-Kia-Rio-7777NNN',
+        a: null,
+        motivo: 'la carpeta está en VENDIDOS y el CRM lo da en stock',
+      },
+    ])
+    expect(
+      d.plan.some((p) => p.accion === 'mover' || p.accion === 'renombrar')
+    ).toBe(false)
+  })
+
+  it('contenedor correcto y nombre distinto → renombrar conservando sufijos', () => {
+    const d = diffCarpetas(
+      [v(40, '#1040', 'C', 'Opel', 'Corsa', '6666LLL')],
+      [c('1_Ventas', '', '40-Opel-Korsa-6666LLL-Rojo')]
+    )
+    expect(d.plan).toEqual([
+      {
+        vehiculoId: 40,
+        root: '1_Ventas',
+        accion: 'renombrar',
+        actual: '1_Ventas/40-Opel-Korsa-6666LLL-Rojo',
+        esperado: '1_Ventas/40-Opel-Corsa-6666LLL',
+        de: '40-Opel-Korsa-6666LLL-Rojo',
+        a: '40-Opel-Corsa-6666LLL-Rojo',
+      },
+    ])
+  })
+
+  it('en stock en otro contenedor que no es VENDIDOS → revisar', () => {
+    const d = diffCarpetas(
+      [v(40, '#1040', 'C', 'Opel', 'Corsa', '6666LLL')],
+      [c('1_Ventas', '-------Consignacion', '40-Opel-Corsa-6666LLL')]
+    )
+    expect(d.plan).toEqual([
+      {
+        vehiculoId: 40,
+        root: '1_Ventas',
+        accion: 'revisar',
+        actual: '1_Ventas/-------Consignacion/40-Opel-Corsa-6666LLL',
+        esperado: '1_Ventas/40-Opel-Corsa-6666LLL',
+        de: '40-Opel-Corsa-6666LLL',
+        a: null,
+        motivo: 'contenedor distinto (-------Consignacion)',
+      },
+    ])
+  })
+
+  it('canónica con sufijos en el contenedor correcto → sin plan', () => {
+    const d = diffCarpetas(
+      [v(40, '#1040', 'C', 'Opel', 'Corsa', '6666LLL')],
+      [
+        c('1_Ventas', '', '40-Opel-Corsa-6666LLL-Rojo-Inversor-Juan'),
+        c('3_Compras', '', '40-Opel-Corsa-6666LLL'),
+      ]
+    )
+    expect(d.plan).toEqual([])
+  })
+
+  it('duplicados y carpetas sin vehículo no generan plan', () => {
+    const d = diffCarpetas(
+      [v(40, '#1040', 'C', 'Opel', 'Corsa', '6666LLL')],
+      [
+        c('1_Ventas', '', '40-Opel-Corsa-6666LLL'),
+        c('1_Ventas', '----VENDIDOS', 'Opel-Corsa-6666LLL'),
+        c('3_Compras', '', '99-Nadie-Nada-1111BBB'),
+      ]
+    )
+    expect(d.duplicados).toHaveLength(1)
+    expect(d.sinVehiculo).toContain('3_Compras/99-Nadie-Nada-1111BBB')
+    expect(d.plan).toEqual([])
+  })
+})
+
+describe('checkCarpetasOneDrive: reparto de acciones', () => {
+  const env = process.env
+  const fetchMock = jest.fn()
+
+  function fila(
+    id: number,
+    referencia: string,
+    marca: string,
+    modelo: string,
+    matricula: string,
+    estado = 'PUBLICADO'
+  ) {
+    return {
+      id,
+      referencia,
+      tipo: 'C',
+      estado,
+      marca,
+      modelo,
+      matricula_norm: matricula,
+      aliases: [],
+    }
+  }
+
+  const FILAS = [
+    fila(30, '#1030', 'Seat', 'Leon', '4444JJJ', 'VENDIDO'),
+    fila(31, '#1031', 'Seat', 'Ibiza', '5555KKK', 'VENDIDO'),
+    fila(32, '#1032', 'Seat', 'Arona', '3333HHH', 'VENDIDO'),
+    fila(40, '#1040', 'Opel', 'Corsa', '6666LLL'),
+    fila(50, '#1050', 'Kia', 'Rio', '7777NNN'),
+  ]
+
+  const CARPETAS = [
+    c('1_Ventas', '', '30-Seat-Leon-4444JJJ'), // vendido fuera → mover
+    c('3_Compras', '----VENDIDOS', '30-Seat-Leon-4444JJJ'),
+    c('1_Ventas', '----VENDIDOS', '31-Seat-Ibiza-5555KKK'), // ya en su sitio
+    c('3_Compras', '----VENDIDOS', '31-Seat-Ibiza-5555KKK'),
+    c('1_Ventas', '', '32-Seat-Arona-3333HHH'), // vendido fuera → mover
+    c('3_Compras', '----VENDIDOS', '32-Seat-Arona-3333HHH'),
+    c('1_Ventas', '', '40-Opel-Korsa-6666LLL-Rojo'), // mismo contenedor → renombrar
+    c('3_Compras', '', '40-Opel-Korsa-6666LLL-Rojo'),
+    c('1_Ventas', '----VENDIDOS', '50-Kia-Rio-7777NNN'), // en stock dentro de VENDIDOS
+    c('3_Compras', '', '50-Kia-Rio-7777NNN'),
+  ]
+
+  function respuesta(body: Record<string, unknown>, status = 200) {
+    return { ok: status < 400, status, json: async () => body }
+  }
+
+  type Body = Record<string, string | undefined>
+
+  function receptor(
+    handler?: (b: Body) => Record<string, unknown> | undefined
+  ) {
+    fetchMock.mockImplementation(
+      async (_url: string, init: { body: string }) => {
+        const b = JSON.parse(init.body) as Body
+        if (b.op === 'listar') {
+          return respuesta({
+            ok: true,
+            accion: 'carpetas',
+            dryRun: false,
+            rutas: [],
+            motivo: null,
+            carpetas: CARPETAS,
+          })
+        }
+        const custom = handler?.(b)
+        if (custom) return respuesta(custom)
+        return respuesta({
+          ok: true,
+          accion: b.op,
+          dryRun: false,
+          rutas: [],
+          motivo: null,
+          resultado: b.op === 'vendido' ? 'movido' : 'renombrado',
+        })
+      }
+    )
+  }
+
+  const bodies = (): Body[] =>
+    fetchMock.mock.calls.map((call) => JSON.parse(call[1].body) as Body)
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    process.env = {
+      ...env,
+      ONEDRIVE_CARPETAS_ENABLED: '1',
+      N8N_RENAME_WEBHOOK_URL: 'https://n8n.test/webhook/rename-expedientes',
+      N8N_RENAME_WEBHOOK_SECRET: 's3cret',
+    }
+    global.fetch = fetchMock as unknown as typeof fetch
+    mockQuery.mockImplementation(async (sql: string, params?: unknown[]) => {
+      if (sql.includes('to_regclass'))
+        return { rows: [{ reg: 'vehiculo_matriculas' }] }
+      if (sql.includes('WHERE v.id = $1'))
+        return { rows: FILAS.filter((f) => f.id === Number(params?.[0])) }
+      if (sql.includes('FROM "Vehiculo" v')) return { rows: FILAS }
+      return { rows: [] }
+    })
+    receptor()
+  })
+  afterAll(() => {
+    process.env = env
+  })
+
+  it('sólo mueve los VENDIDOS que están fuera del contenedor de vendidos', async () => {
+    const r = await checkCarpetasOneDrive({ dryRun: false })
+    const vendidos = bodies().filter((b) => b.op === 'vendido')
+    expect(vendidos.map((b) => b.nombre).sort()).toEqual([
+      '30-Seat-Leon-4444JJJ',
+      '32-Seat-Arona-3333HHH',
+    ])
+    expect(vendidos.some((b) => b.nombre === '31-Seat-Ibiza-5555KKK')).toBe(
+      false
+    )
+    expect(r.movidas.map((m) => m.vehiculoId).sort()).toEqual([30, 32])
+    expect(r.errores).toEqual([])
+  })
+
+  it('renombra sólo dentro del mismo contenedor y conserva los sufijos', async () => {
+    const r = await checkCarpetasOneDrive({ dryRun: false })
+    const ren = bodies().filter((b) => b.op === 'renombrar')
+    expect(ren).toHaveLength(1)
+    expect(ren[0]).toMatchObject({
+      op: 'renombrar',
+      de: '40-Opel-Korsa-6666LLL-Rojo',
+      a: '40-Opel-Corsa-6666LLL-Rojo',
+    })
+    expect(r.renombradas).toEqual([
+      {
+        vehiculoId: 40,
+        de: '40-Opel-Korsa-6666LLL-Rojo',
+        a: '40-Opel-Corsa-6666LLL-Rojo',
+        resultado: 'renombrado',
+      },
+    ])
+  })
+
+  it('jamás saca una carpeta de VENDIDOS', async () => {
+    const r = await checkCarpetasOneDrive({ dryRun: false })
+    expect(
+      bodies().some((b) => b.op !== 'listar' && b.matricula === '7777NNN')
+    ).toBe(false)
+    expect(r.revisarUbicacion).toEqual([
+      {
+        vehiculoId: 50,
+        actual: '1_Ventas/----VENDIDOS/50-Kia-Rio-7777NNN',
+        esperado: '1_Ventas/50-Kia-Rio-7777NNN',
+        motivo: 'la carpeta está en VENDIDOS y el CRM lo da en stock',
+      },
+    ])
+  })
+
+  it('tope por pasada: el resto queda en omitidas y pendientes', async () => {
+    const r = await checkCarpetasOneDrive({ dryRun: false, maxMover: 1 })
+    expect(r.movidas).toHaveLength(1)
+    expect(r.pendientes.mover).toBe(1)
+    const om = r.omitidas.filter((o) => o.accion === 'mover')
+    expect(om).toHaveLength(1)
+    expect(om[0].motivo).toBe('tope maxMover (1)')
+  })
+
+  it('presupuesto agotado: no ejecuta nada y lo deja pendiente', async () => {
+    const r = await checkCarpetasOneDrive({ dryRun: false, presupuestoMs: 0 })
+    expect(r.presupuestoAgotado).toBe(true)
+    expect(r.movidas).toEqual([])
+    expect(r.renombradas).toEqual([])
+    expect(bodies().every((b) => b.op === 'listar')).toBe(true)
+    expect(r.pendientes).toEqual({ crear: 0, mover: 2, renombrar: 1 })
+    expect(r.omitidas.map((o) => o.motivo)).toEqual([
+      'presupuesto agotado',
+      'presupuesto agotado',
+      'presupuesto agotado',
+    ])
+  })
+
+  it('conflicto: va a omitidas, no a errores, y no se reintenta', async () => {
+    receptor((b) =>
+      b.op === 'vendido' && b.nombre === '30-Seat-Leon-4444JJJ'
+        ? {
+            ok: false,
+            accion: 'vendido',
+            dryRun: false,
+            rutas: [],
+            motivo: 'ya hay una carpeta con ese nombre en destino',
+            resultado: 'conflicto',
+          }
+        : undefined
+    )
+    const r = await checkCarpetasOneDrive({ dryRun: false })
+    expect(r.errores).toEqual([])
+    expect(r.movidas.map((m) => m.vehiculoId)).toEqual([32])
+    const om = r.omitidas.find((o) => o.vehiculoId === 30)
+    expect(om).toMatchObject({ accion: 'mover' })
+    expect(om!.motivo).toContain('conflicto')
+    expect(
+      bodies().filter((b) => b.nombre === '30-Seat-Leon-4444JJJ')
+    ).toHaveLength(1)
+  })
+
+  it('dryRun: sólo lista y devuelve los recuentos pendientes', async () => {
+    const r = await checkCarpetasOneDrive({ dryRun: true })
+    expect(bodies().every((b) => b.op === 'listar')).toBe(true)
+    expect(r.pendientes).toEqual({ crear: 0, mover: 2, renombrar: 1 })
+    expect(r.revisarUbicacion).toHaveLength(1)
+    expect(r.movidas).toEqual([])
+    expect(r.renombradas).toEqual([])
   })
 })
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type ChangeEvent, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
 
@@ -23,7 +23,7 @@ export default function CrearInteresadoPage() {
   const [vehiculoInput, setVehiculoInput] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  const handle = (e: any) => {
+  const handle = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     if (name.startsWith('intereses.')) {
       const field = name.split('.')[1]
@@ -33,7 +33,7 @@ export default function CrearInteresadoPage() {
     }
   }
 
-  const submit = async (e: any) => {
+  const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!form.nombre.trim() || !form.apellidos.trim() || !form.telefono.trim())
       return

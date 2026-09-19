@@ -19,7 +19,7 @@ export interface DashboardReminder {
     marca: string
     modelo: string
     matricula?: string
-    [key: string]: any
+    [key: string]: unknown
   }>
 }
 
@@ -245,7 +245,7 @@ export async function getVehiculosCambioNombrePendiente(): Promise<DashboardRemi
       ORDER BY d."fechaFacturada" DESC
     `)
 
-    const vehiculosFacturados = result.rows.map((row: any) => ({
+    const vehiculosFacturados = result.rows.map((row) => ({
       id: row.vehiculoId,
       referencia: row.referencia,
       marca: row.marca,

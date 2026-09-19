@@ -20,6 +20,7 @@ import {
 } from '@/lib/vencimientos'
 import NotasSection from '@/components/NotasSection'
 import EstadoBadge from '@/components/EstadoBadge'
+import VehiculoCamposDocCard from '@/components/VehiculoCamposDocCard'
 import VehiculoFichaComercialCard from '@/components/VehiculoFichaComercialCard'
 import VehiculoPresupuestosCard from '@/components/VehiculoPresupuestosCard'
 import VehiculoPreparacionCard, {
@@ -134,6 +135,16 @@ interface VehiculoRecordatorio {
   completado: boolean
   created_at: string
   updated_at: string
+}
+
+// Cliente mínimo del buscador del modal de contrato (fila de /api/clientes)
+interface ClienteContrato {
+  id: number
+  nombre: string
+  apellidos: string
+  telefono?: string
+  email?: string
+  dni?: string
 }
 
 // Función para extraer el ID del slug (formato: id-marca-modelo)
@@ -276,12 +287,13 @@ export default function VehiculoDetailPage() {
 
   // Estados para el modal de contrato de Coches R
   const [showContratoModal, setShowContratoModal] = useState(false)
-  const [selectedCliente, setSelectedCliente] = useState<any>(null)
+  const [selectedCliente, setSelectedCliente] =
+    useState<ClienteContrato | null>(null)
   const [clienteSearchTerm, setClienteSearchTerm] = useState('')
   const [showClienteDropdown, setShowClienteDropdown] = useState(false)
   const [precioVenta, setPrecioVenta] = useState('')
   const [isGeneratingContrato, setIsGeneratingContrato] = useState(false)
-  const [clientes, setClientes] = useState<any[]>([])
+  const [clientes, setClientes] = useState<ClienteContrato[]>([])
 
   // Helper function para mostrar valores de documentación legal
   const getDocumentacionValue = (value: string | null | undefined): string => {
@@ -467,10 +479,12 @@ export default function VehiculoDetailPage() {
       if (response.ok) {
         const data = await response.json()
         // Convertir tamaño de bytes a formato legible
-        const documentosFormateados = data.map((doc: any) => ({
-          ...doc,
-          tamañoFormateado: formatFileSize(doc.size),
-        }))
+        const documentosFormateados = data.map(
+          (doc: Omit<(typeof documentos)[number], 'tamañoFormateado'>) => ({
+            ...doc,
+            tamañoFormateado: formatFileSize(doc.size),
+          })
+        )
         setDocumentos(documentosFormateados)
         console.log(
           `✅ [VEHICULO PAGE] Archivos cargados:`,
@@ -1033,7 +1047,7 @@ export default function VehiculoDetailPage() {
     }
 
     // Filtrar solo los campos que están siendo editados
-    const camposAGuardar: any = {}
+    const camposAGuardar: Record<string, unknown> = {}
 
     if (isEditingGeneral) {
       // Campos de información general
@@ -1492,7 +1506,7 @@ export default function VehiculoDetailPage() {
     }
   }
 
-  const handleSelectCliente = (cliente: any) => {
+  const handleSelectCliente = (cliente: ClienteContrato) => {
     setSelectedCliente(cliente)
     setClienteSearchTerm(
       `${capitalizeText(cliente.nombre)} ${capitalizeText(cliente.apellidos)}`
@@ -3669,6 +3683,13 @@ export default function VehiculoDetailPage() {
                 </div>
               </div>
 
+              {/* Datos del permiso sin confirmar + qué falta para publicar */}
+              <VehiculoCamposDocCard
+                vehiculoId={vehiculo.id}
+                showToast={showToast}
+                onConfirmado={fetchVehiculo}
+              />
+
               {/* Compra (logística) + Preparación (13 pasos) */}
               <VehiculoPreparacionCard
                 vehiculoId={vehiculo.id}
@@ -4007,7 +4028,8 @@ export default function VehiculoDetailPage() {
                           onChange={(e) =>
                             setNuevoRecordatorio({
                               ...nuevoRecordatorio,
-                              tipo: e.target.value as any,
+                              tipo: e.target
+                                .value as typeof nuevoRecordatorio.tipo,
                             })
                           }
                           className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -4024,7 +4046,8 @@ export default function VehiculoDetailPage() {
                           onChange={(e) =>
                             setNuevoRecordatorio({
                               ...nuevoRecordatorio,
-                              prioridad: e.target.value as any,
+                              prioridad: e.target
+                                .value as typeof nuevoRecordatorio.prioridad,
                             })
                           }
                           className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -4822,7 +4845,8 @@ export default function VehiculoDetailPage() {
                           onChange={(e) =>
                             setNuevoRecordatorio({
                               ...nuevoRecordatorio,
-                              tipo: e.target.value as any,
+                              tipo: e.target
+                                .value as typeof nuevoRecordatorio.tipo,
                             })
                           }
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -4839,7 +4863,8 @@ export default function VehiculoDetailPage() {
                           onChange={(e) =>
                             setNuevoRecordatorio({
                               ...nuevoRecordatorio,
-                              prioridad: e.target.value as any,
+                              prioridad: e.target
+                                .value as typeof nuevoRecordatorio.prioridad,
                             })
                           }
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -4920,7 +4945,8 @@ export default function VehiculoDetailPage() {
                                     onChange={(e) =>
                                       setEditingRecordatorioData({
                                         ...editingRecordatorioData,
-                                        tipo: e.target.value as any,
+                                        tipo: e.target
+                                          .value as typeof editingRecordatorioData.tipo,
                                       })
                                     }
                                     className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -4939,7 +4965,8 @@ export default function VehiculoDetailPage() {
                                     onChange={(e) =>
                                       setEditingRecordatorioData({
                                         ...editingRecordatorioData,
-                                        prioridad: e.target.value as any,
+                                        prioridad: e.target
+                                          .value as typeof editingRecordatorioData.prioridad,
                                       })
                                     }
                                     className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"

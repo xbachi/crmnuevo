@@ -7,6 +7,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { guardarFicha, leerFicha, validarFicha } from '@/lib/fichaComercial'
 import { encolarSheetsVehiculo } from '@/lib/sheetsVehiculo'
+import { CAMPOS_DOC } from '@/lib/camposVehiculo'
+import { olvidarCamposDoc } from '@/lib/vehiculoCamposDoc'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -73,6 +75,11 @@ export async function PUT(request: NextRequest, { params }: Params) {
       )
     }
     if (Object.keys(val.patch).length > 0) {
+      // Reescribir a mano un campo del permiso ES confirmarlo.
+      const reescritos = CAMPOS_DOC.filter(
+        (c) => c.tabla === 'ficha' && c.columna in val.patch
+      ).map((c) => c.campo)
+      if (reescritos.length > 0) await olvidarCamposDoc(vehiculoId, reescritos)
       try {
         await encolarSheetsVehiculo(vehiculoId, 'ficha')
       } catch (err) {

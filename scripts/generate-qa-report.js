@@ -3,10 +3,10 @@ const path = require('path')
 
 async function generateQAReport() {
   console.log('Generating QA report...')
-  
+
   const timestamp = new Date().toISOString()
   const artifactsDir = 'qa/artifacts'
-  
+
   let report = `# CRM Seven Cars - QA Test Report
 
 Generated: ${timestamp}
@@ -18,13 +18,21 @@ This report summarizes the automated test execution results for the CRM Seven Ca
 `
 
   try {
-    // Read unit test coverage
-    const coveragePath = path.join(artifactsDir, 'unit-test-results/coverage/coverage-summary.json')
+    // Read unit test coverage. `total` y los contadores E2E se declaran aquí
+    // porque el resumen del final los usa fuera de los try.
+    let total = null
+    let totalTests = 0
+    let passedTests = 0
+    let failedTests = 0
+    const coveragePath = path.join(
+      artifactsDir,
+      'unit-test-results/coverage/coverage-summary.json'
+    )
     try {
       const coverageData = await fs.readFile(coveragePath, 'utf8')
       const coverage = JSON.parse(coverageData)
-      const total = coverage.total
-      
+      total = coverage.total
+
       report += `## Unit Test Coverage
 
 | Metric | Percentage | Status |
@@ -46,16 +54,23 @@ This report summarizes the automated test execution results for the CRM Seven Ca
     }
 
     // Read E2E test results
-    const e2eResultsPath = path.join(artifactsDir, 'test-results.json')
+    const e2eResultsPath = path.join(
+      artifactsDir,
+      'playwright-report',
+      'test-results.json'
+    )
     try {
       const e2eData = await fs.readFile(e2eResultsPath, 'utf8')
       const e2eResults = JSON.parse(e2eData)
-      
-      const totalTests = e2eResults.suites?.reduce((sum, suite) => sum + suite.specs?.length || 0, 0) || 0
-      const passedTests = e2eResults.suites?.reduce((sum, suite) => 
-        sum + (suite.specs?.filter(spec => spec.ok).length || 0), 0) || 0
-      const failedTests = totalTests - passedTests
-      
+
+      // Playwright anida los specs en suites (archivo → describe → spec):
+      // contar suites[].specs de primer nivel daba siempre 0. `stats` ya
+      // trae el total ejecutado, sin los omitidos.
+      const stats = e2eResults.stats || {}
+      passedTests = (stats.expected || 0) + (stats.flaky || 0)
+      failedTests = stats.unexpected || 0
+      totalTests = passedTests + failedTests
+
       report += `## E2E Test Results
 
 | Metric | Count | Status |
@@ -193,7 +208,7 @@ This report summarizes the automated test execution results for the CRM Seven Ca
     // Generate summary for PR comments
     const summary = `## 🚀 QA Test Results
 
-**All Tests Status**: ${failedTests === 0 ? '✅ PASSED' : '❌ FAILED'}
+**All Tests Status**: ${totalTests === 0 ? '⚠️ E2E results not available' : failedTests === 0 ? '✅ PASSED' : '❌ FAILED'}
 
 ### Coverage Summary
 - **Unit Tests**: ${total?.statements?.pct || 'N/A'}% statement coverage
@@ -210,10 +225,9 @@ This report summarizes the automated test execution results for the CRM Seven Ca
 
     await fs.writeFile('qa/summary.md', summary)
     console.log('✅ QA summary generated: qa/summary.md')
-
   } catch (error) {
     console.error('❌ Error generating QA report:', error)
-    
+
     // Generate minimal error report
     const errorReport = `# QA Report Generation Failed
 
@@ -223,7 +237,7 @@ Generated: ${timestamp}
 
 Please check the build logs for more details.
 `
-    
+
     await fs.writeFile('qa/report.md', errorReport)
     throw error
   }
@@ -246,7 +260,7 @@ if (require.main === module) {
       console.log('QA report generation complete')
       process.exit(0)
     })
-    .catch(error => {
+    .catch((error) => {
       console.error('QA report generation failed:', error)
       process.exit(1)
     })

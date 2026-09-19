@@ -242,7 +242,7 @@ export function InvestorVehicleCard({
       Math.round(beneficioNetoTotalRedondeado * 0.5 * 100) / 100
 
     // Si tiene garantía premium, agregar 190€ extra al beneficio del inversor
-    const garantiaPremium = (vehiculo as any).garantiaPremium || false
+    const garantiaPremium = vehiculo.garantiaPremium || false
     const extraGP = garantiaPremium ? 190 : 0
     beneficioNeto = beneficioNeto + extraGP
 
@@ -596,7 +596,7 @@ export function InvestorVehicleCard({
                   Color:
                 </span>
                 <span className="font-semibold text-gray-900 text-xs ml-[3px] truncate">
-                  {(vehiculo as any).color || 'No especificado'}
+                  {vehiculo.color || 'No especificado'}
                 </span>
               </div>
             </div>

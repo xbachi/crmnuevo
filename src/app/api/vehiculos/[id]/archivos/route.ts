@@ -71,7 +71,9 @@ async function loadMetadata(vehiculoId: number) {
         return uniqueBlobs.map((blob) => {
           // Extraer el nombre del archivo desde la URL o pathname
           const blobPath =
-            (blob as any).pathname || blob.url.split('/').pop() || ''
+            (blob as { pathname?: string; contentType?: string }).pathname ||
+            blob.url.split('/').pop() ||
+            ''
           const fileName = blobPath.split('/').pop() || 'unknown'
           const fileId = fileName.split('-')[0] || blob.uploadedAt.toString()
           const originalName = fileName.replace(/^\d+-/, '') || 'unknown'
@@ -81,7 +83,9 @@ async function loadMetadata(vehiculoId: number) {
             name: originalName,
             fileName: fileName,
             size: blob.size,
-            type: (blob as any).contentType || 'application/octet-stream',
+            type:
+              (blob as { pathname?: string; contentType?: string })
+                .contentType || 'application/octet-stream',
             uploadDate: blob.uploadedAt.toISOString(),
             path: blob.url,
           }
@@ -142,7 +146,7 @@ async function loadMetadata(vehiculoId: number) {
 
 async function saveMetadata(
   vehiculoId: number,
-  metadata: any[],
+  metadata: unknown[],
   folderName?: string
 ) {
   try {

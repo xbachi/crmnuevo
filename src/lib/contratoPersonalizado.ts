@@ -1,4 +1,6 @@
 // Generador de contrato personalizado con cláusula de garantía de 14 días
+import fs from 'fs'
+import path from 'path'
 import jsPDF from './jspdf-server'
 import { formatCurrency, capitalizeText } from './utils'
 
@@ -21,9 +23,6 @@ async function addLogoToContract(
   yPosition: number
 ): Promise<number> {
   try {
-    const fs = require('fs')
-    const path = require('path')
-
     const logoPath = path.join(process.cwd(), 'public', 'logocontrato.png')
 
     if (fs.existsSync(logoPath)) {
@@ -51,8 +50,23 @@ async function addLogoToContract(
 
 // Función para generar contrato personalizado con cláusula de garantía
 export async function generarContratoPersonalizado(
-  cliente: any,
-  vehiculo: any,
+  cliente: {
+    nombre?: string
+    apellidos?: string
+    dni?: string
+    direccion?: string
+    ciudad?: string
+    provincia?: string
+  },
+  vehiculo: {
+    marca?: string
+    modelo?: string
+    matricula?: string
+    bastidor?: string
+    fechaMatriculacion?: string | Date | null
+    kms?: number | null
+    color?: string
+  },
   precio: number = 0
 ): Promise<Uint8Array> {
   try {

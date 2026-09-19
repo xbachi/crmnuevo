@@ -41,7 +41,7 @@ const createRealTestDeposito = (clienteId: number, vehiculoId: number) => ({
 
 describe('🔍 TESTS REALES CON BASE DE DATOS - VERIFICACIÓN COMPLETA', () => {
   let createdClienteId: number
-  let createdVehiculoIds: number[] = []
+  const createdVehiculoIds: number[] = []
   let createdDealId: number
   let createdDepositoId: number
 

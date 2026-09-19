@@ -1,5 +1,5 @@
 /**
- * POST /api/admin/check-sheets-vehiculos[?dryRun=true]
+ * POST /api/admin/check-sheets-vehiculos[?dryRun=true][&desde=<id>][&max=<n>]
  *
  * Compara la fila esperada de cada vehículo (C/I/D/R) con las pestañas
  * gestionadas de COMPRAS y Ventas-Sevencars. Con dryRun=true devuelve el diff
@@ -20,11 +20,19 @@ export async function POST(request: NextRequest) {
   if (!secret || !safeEqual(request.headers.get('x-admin-secret'), secret)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
-  const dryRun = new URL(request.url).searchParams.get('dryRun') === 'true'
+  const sp = new URL(request.url).searchParams
+  const dryRun = sp.get('dryRun') === 'true'
+  const entero = (v: string | null) => {
+    const n = Number(v)
+    return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0
+  }
   try {
     const resumen = await checkSheetsVehiculos({
       dryRun,
       motivo: 'admin',
+      desdeId: entero(sp.get('desde')),
+      maxVehiculos: entero(sp.get('max')),
+      presupuestoMs: 45_000,
     })
     return NextResponse.json({ ok: resumen.errores.length === 0, ...resumen })
   } catch (err) {

@@ -19,26 +19,33 @@ import {
   enfocarCampo,
 } from '@/components/CampoError'
 import { normalizarMatricula } from '@/lib/normalizacion'
+import { CAMPOS_DOC, faltantesAlta } from '@/lib/camposVehiculo'
 
 const CLASE_INPUT =
   'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors'
 const CLASE_INPUT_GASTO =
   'w-full px-2 py-1 text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500'
 
-// En orden de aparición en el formulario: el foco va al primer error.
+/**
+ * Formato y rangos de los campos del formulario, en su orden de aparición (el
+ * foco va al primer error).
+ *
+ * Qué campos son OBLIGATORIOS no se decide aquí: lo dice faltantesAlta() de
+ * src/lib/camposVehiculo.ts, el mismo módulo que usa la API. Duplicar la lista
+ * en el cliente es cómo se desincronizan las dos validaciones.
+ *
+ * El bastidor no es obligatorio: lo trae el permiso de circulación.
+ */
 const REGLAS_VEHICULO: Record<string, Regla> = {
   referencia: { requerido: true, etiqueta: 'la referencia' },
-  tipo: { requerido: true, etiqueta: 'el tipo' },
-  marca: { requerido: true, etiqueta: 'la marca' },
-  modelo: { requerido: true, etiqueta: 'el modelo' },
-  matricula: { requerido: true, etiqueta: 'la matrícula', tipo: 'matricula' },
-  bastidor: { requerido: true, etiqueta: 'el bastidor' },
-  kms: { requerido: true, etiqueta: 'los kilómetros', tipo: 'numero', min: 0 },
-  inversorId: {
-    etiqueta: 'el inversor',
-    personalizada: (v, valores) =>
-      valores.tipo === 'Inversor' && !v ? 'Selecciona el inversor' : null,
-  },
+  tipo: { etiqueta: 'el tipo' },
+  marca: { etiqueta: 'la marca' },
+  modelo: { etiqueta: 'el modelo' },
+  matricula: { etiqueta: 'la matrícula', tipo: 'matricula' },
+  bastidor: { etiqueta: 'el bastidor' },
+  kms: { etiqueta: 'los kilómetros', tipo: 'numero', min: 0 },
+  inversorId: { etiqueta: 'el inversor' },
+  proveedor: { etiqueta: 'el proveedor' },
   precioCompra: { etiqueta: 'el precio de compra', tipo: 'numero', min: 0 },
   precioPublicacion: {
     etiqueta: 'el precio de publicación',
@@ -59,6 +66,13 @@ const REGLAS_VEHICULO: Record<string, Regla> = {
   },
   fichaGp: { etiqueta: 'el GP', tipo: 'numero', min: 0, max: 2000 },
 }
+
+/** Aviso bajo los campos que rellena solo el permiso de circulación. */
+const AVISO_PERMISO =
+  'Lo completa el permiso de circulación cuando esté en la carpeta del coche.'
+
+/** Etiquetas de los campos «D», para el aviso del pie del formulario. */
+const ETIQUETAS_DOC = CAMPOS_DOC.map((c) => c.etiqueta).join(', ')
 
 const FICHA_VACIA = {
   fichaRegimen: '',
@@ -96,6 +110,7 @@ export default function CargarVehiculo() {
     esCocheInversor: false,
     inversorId: '',
     fechaCompra: '',
+    proveedor: '',
     precioCompra: '',
     gastosTransporte: '',
     gastosTasas: '',
@@ -113,6 +128,7 @@ export default function CargarVehiculo() {
   const [errores, setErrores] = useState<Record<string, string>>({})
   const router = useRouter()
   const { showToast, ToastContainer } = useToast()
+  const esDeposito = formData.tipo === 'Deposito Venta'
 
   const formatReferencia = (value: string, tipo: string) => {
     if (!value) return value
@@ -237,10 +253,17 @@ export default function CargarVehiculo() {
         }
       : REGLAS_VEHICULO
     const validacion = validarCampos(formData, reglas)
-    setErrores(validacion.errores)
-    if (!validacion.ok) {
-      showToast(resumenErrores(validacion.errores), 'error')
-      enfocarCampo(primerCampoConError(validacion.errores))
+
+    // Obligatorios: la MISMA función que aplica la API, para que el formulario
+    // no pueda pedir una cosa y el servidor otra.
+    const errores: Record<string, string> = { ...validacion.errores }
+    for (const f of faltantesAlta(formData)) {
+      if (!errores[f.campo]) errores[f.campo] = f.motivo
+    }
+    setErrores(errores)
+    if (Object.keys(errores).length > 0) {
+      showToast(resumenErrores(errores), 'error')
+      enfocarCampo(primerCampoConError(errores))
       return
     }
 
@@ -262,14 +285,13 @@ export default function CargarVehiculo() {
             formData.tipo === 'Inversor' && formData.inversorId
               ? parseInt(formData.inversorId)
               : undefined,
-          fechaCompra:
-            formData.tipo === 'Inversor'
-              ? formData.fechaCompra || undefined
-              : undefined,
-          precioCompra:
-            formData.tipo === 'Inversor' && formData.precioCompra
-              ? parseFloat(formData.precioCompra)
-              : undefined,
+          // Compra (fecha, proveedor, precio) va en TODOS los tipos: son
+          // obligatorios del alta, no datos del inversor.
+          fechaCompra: formData.fechaCompra || undefined,
+          proveedor: formData.proveedor || undefined,
+          precioCompra: formData.precioCompra
+            ? parseFloat(formData.precioCompra)
+            : undefined,
           gastosTransporte:
             formData.tipo === 'Inversor' && formData.gastosTransporte
               ? parseFloat(formData.gastosTransporte)
@@ -329,6 +351,7 @@ export default function CargarVehiculo() {
           esCocheInversor: false,
           inversorId: '',
           fechaCompra: '',
+          proveedor: '',
           precioCompra: '',
           gastosTransporte: '',
           gastosTasas: '',
@@ -349,7 +372,18 @@ export default function CargarVehiculo() {
       } else {
         const msg: string = result.error || 'Error al crear el vehículo'
         showToast(msg, 'error')
-        if (response.status === 400 && /Matrícula/.test(msg)) {
+        // La lista de lo que falta la manda la API; el cliente sólo la pinta.
+        if (Array.isArray(result.faltantes) && result.faltantes.length > 0) {
+          const deApi: Record<string, string> = {}
+          for (const f of result.faltantes as {
+            campo: string
+            motivo: string
+          }[]) {
+            deApi[f.campo] = f.motivo
+          }
+          setErrores(deApi)
+          enfocarCampo(primerCampoConError(deApi))
+        } else if (response.status === 400 && /Matrícula/.test(msg)) {
           setErrores({ matricula: msg })
           enfocarCampo('matricula')
         } else if (response.status === 400 && /Referencia/.test(msg)) {
@@ -565,7 +599,6 @@ export default function CargarVehiculo() {
                     className="block text-sm font-medium text-slate-700 mb-1"
                   >
                     Bastidor
-                    <Obligatorio />
                   </label>
                   <input
                     type="text"
@@ -585,6 +618,7 @@ export default function CargarVehiculo() {
                     placeholder="Ej: W0L00000000000000"
                   />
                   <CampoError id="bastidor-error" mensaje={errores.bastidor} />
+                  <p className="mt-1 text-xs text-slate-500">{AVISO_PERMISO}</p>
                 </div>
               </div>
 
@@ -606,6 +640,9 @@ export default function CargarVehiculo() {
                     className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                     placeholder="Ej: Blanco, Negro, Azul..."
                   />
+                  <p className="mt-1 text-xs text-slate-500">
+                    Hace falta para publicar.
+                  </p>
                 </div>
                 <div>
                   <label
@@ -622,6 +659,7 @@ export default function CargarVehiculo() {
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                   />
+                  <p className="mt-1 text-xs text-slate-500">{AVISO_PERMISO}</p>
                 </div>
                 <div>
                   <label
@@ -629,6 +667,7 @@ export default function CargarVehiculo() {
                     className="block text-sm font-medium text-slate-700 mb-1"
                   >
                     Fecha de Compra
+                    <Obligatorio />
                   </label>
                   <input
                     type="date"
@@ -636,7 +675,79 @@ export default function CargarVehiculo() {
                     name="fechaCompra"
                     value={formData.fechaCompra || ''}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    required
+                    aria-invalid={!!errores.fechaCompra}
+                    aria-describedby={
+                      errores.fechaCompra ? 'fechaCompra-error' : undefined
+                    }
+                    className={claseInput(errores.fechaCompra, CLASE_INPUT)}
+                  />
+                  <CampoError
+                    id="fechaCompra-error"
+                    mensaje={errores.fechaCompra}
+                  />
+                </div>
+              </div>
+
+              {/* Proveedor y precio de compra: obligatorios en todos los tipos.
+                  En un depósito el precio es lo acordado con el cliente. */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label
+                    htmlFor="proveedor"
+                    className="block text-sm font-medium text-slate-700 mb-1"
+                  >
+                    Proveedor
+                    <Obligatorio />
+                  </label>
+                  <input
+                    type="text"
+                    id="proveedor"
+                    name="proveedor"
+                    value={formData.proveedor || ''}
+                    onChange={handleInputChange}
+                    required
+                    aria-invalid={!!errores.proveedor}
+                    aria-describedby={
+                      errores.proveedor ? 'proveedor-error' : undefined
+                    }
+                    className={claseInput(errores.proveedor, CLASE_INPUT)}
+                    placeholder="Ej: Subasta X, particular, concesionario..."
+                  />
+                  <CampoError
+                    id="proveedor-error"
+                    mensaje={errores.proveedor}
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="precioCompra"
+                    className="block text-sm font-medium text-slate-700 mb-1"
+                  >
+                    {esDeposito
+                      ? 'Precio acordado con el cliente (€)'
+                      : 'Precio de compra (€)'}
+                    <Obligatorio />
+                  </label>
+                  <input
+                    type="number"
+                    id="precioCompra"
+                    name="precioCompra"
+                    value={formData.precioCompra || ''}
+                    onChange={handleInputChange}
+                    required
+                    min="0"
+                    step="0.01"
+                    aria-invalid={!!errores.precioCompra}
+                    aria-describedby={
+                      errores.precioCompra ? 'precioCompra-error' : undefined
+                    }
+                    className={claseInput(errores.precioCompra, CLASE_INPUT)}
+                    placeholder="0.00"
+                  />
+                  <CampoError
+                    id="precioCompra-error"
+                    mensaje={errores.precioCompra}
                   />
                 </div>
               </div>
@@ -714,59 +825,11 @@ export default function CargarVehiculo() {
                           mensaje={errores.inversorId}
                         />
                       </div>
-
-                      <div>
-                        <label
-                          htmlFor="fechaCompra"
-                          className="block text-sm font-medium text-slate-700 mb-1"
-                        >
-                          Fecha de compra
-                        </label>
-                        <input
-                          type="date"
-                          id="fechaCompra"
-                          name="fechaCompra"
-                          value={formData.fechaCompra || ''}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                        />
-                      </div>
                     </div>
 
+                    {/* Fecha y precio de compra viven arriba (son obligatorios
+                        en todos los tipos): repetirlos aquí duplicaba el id. */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label
-                          htmlFor="precioCompra"
-                          className="block text-sm font-medium text-slate-700 mb-1"
-                        >
-                          Precio de compra (€)
-                        </label>
-                        <input
-                          type="number"
-                          id="precioCompra"
-                          name="precioCompra"
-                          value={formData.precioCompra || ''}
-                          onChange={handleInputChange}
-                          min="0"
-                          step="0.01"
-                          aria-invalid={!!errores.precioCompra}
-                          aria-describedby={
-                            errores.precioCompra
-                              ? 'precioCompra-error'
-                              : undefined
-                          }
-                          className={claseInput(
-                            errores.precioCompra,
-                            CLASE_INPUT
-                          )}
-                          placeholder="0.00"
-                        />
-                        <CampoError
-                          id="precioCompra-error"
-                          mensaje={errores.precioCompra}
-                        />
-                      </div>
-
                       <div>
                         <label
                           htmlFor="precioPublicacion"
@@ -1141,6 +1204,18 @@ export default function CargarVehiculo() {
                     <CampoError id="fichaGp-error" mensaje={errores.fichaGp} />
                   </div>
                 </div>
+              </div>
+
+              <div className="rounded-md bg-slate-50 border border-slate-200 p-3">
+                <p className="text-xs text-slate-600">
+                  <strong className="text-slate-700">
+                    No hace falta rellenarlo todo ahora.
+                  </strong>{' '}
+                  {ETIQUETAS_DOC} los saca el CRM del permiso de circulación
+                  cuando el documento esté en la carpeta del coche; después hay
+                  que confirmarlos en la ficha del vehículo. Sin ellos el coche
+                  se crea igual, pero no se puede publicar.
+                </p>
               </div>
 
               <div className="pt-4">

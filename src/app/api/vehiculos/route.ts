@@ -15,6 +15,7 @@ import {
   nombreCarpetaCanonico,
 } from '@/lib/onedriveCarpetas'
 import { guardarFicha, validarFicha } from '@/lib/fichaComercial'
+import { faltantesAlta } from '@/lib/camposVehiculo'
 import { normalizarTipo } from '@/lib/vehiculoEstado'
 import {
   extraerMatriculaEntrada,
@@ -58,32 +59,28 @@ export async function POST(request: NextRequest) {
       comprobante,
       porteSolicitado,
       recibidoTexto,
+      ubicacion,
       fichaComercial,
     } = body
 
-    console.log('🔍 Campos extraídos:', {
-      referencia,
-      marca,
-      modelo,
-      matricula,
-      bastidor,
-      kms,
-      tipo,
-    })
-
-    // Validar datos requeridos
-    if (
-      !referencia ||
-      !marca ||
-      !modelo ||
-      !matricula ||
-      !bastidor ||
-      !kms ||
-      !tipo
-    ) {
-      console.log('❌ Faltan campos requeridos')
+    // La referencia la pone el CRM, no una persona: va aparte de `faltantes`
+    // (que es la lista que se le enseña a quien rellena el formulario).
+    if (!referencia) {
       return NextResponse.json(
-        { error: 'Todos los campos son requeridos' },
+        { error: 'La referencia es obligatoria' },
+        { status: 400 }
+      )
+    }
+
+    // Campos obligatorios del alta (src/lib/camposVehiculo.ts). El bastidor NO
+    // está: lo trae el permiso de circulación y el cron lo rellena solo.
+    const faltantes = faltantesAlta(body)
+    if (faltantes.length > 0) {
+      return NextResponse.json(
+        {
+          error: `Faltan campos obligatorios: ${faltantes.map((f) => f.etiqueta).join(', ')}`,
+          faltantes,
+        },
         { status: 400 }
       )
     }
@@ -140,7 +137,7 @@ export async function POST(request: NextRequest) {
       marca,
       modelo,
       matricula: matriculaNorm,
-      bastidor,
+      bastidor: bastidor || undefined,
       kms: parseInt(kms),
       tipo: tipoLetra,
       color: color || undefined,
@@ -165,6 +162,7 @@ export async function POST(request: NextRequest) {
       comprobante: comprobante || undefined,
       porteSolicitado: porteSolicitado || undefined,
       recibidoTexto: recibidoTexto || undefined,
+      ubicacion: ubicacion || undefined,
     } as Omit<Vehiculo, 'id' | 'createdAt' | 'updatedAt'>)
     // console.log('✅ Vehículo guardado:', vehiculo)
 
@@ -214,12 +212,13 @@ export async function POST(request: NextRequest) {
       folderName,
       message: 'Vehículo creado exitosamente',
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error creando vehículo:', error)
+    const dbError = error as { code?: string; meta?: { target?: string[] } }
 
     // Manejar errores específicos de Prisma
-    if (error.code === 'P2002') {
-      const field = error.meta?.target?.[0] || 'campo'
+    if (dbError.code === 'P2002') {
+      const field = dbError.meta?.target?.[0] || 'campo'
       return NextResponse.json(
         { error: `Ya existe un vehículo con este ${field}` },
         { status: 400 }
@@ -305,14 +304,14 @@ export async function PUT(request: NextRequest) {
       inversorId,
     } = body
 
-    // Validar campos requeridos
+    // El bastidor NO entra: lo trae el permiso de circulación y un coche dado
+    // de alta sin él tiene que poder editarse igual.
     if (
       !id ||
       !referencia ||
       !marca ||
       !modelo ||
       !matricula ||
-      !bastidor ||
       !kms ||
       !tipo
     ) {
@@ -336,7 +335,7 @@ export async function PUT(request: NextRequest) {
     const uniqueCheck = await checkUniqueFields(
       referencia,
       matricula,
-      bastidor,
+      bastidor || null,
       id
     )
 
@@ -347,13 +346,15 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // Actualizar el vehículo
+    // Actualizar el vehículo. bastidor '' → null: la columna es TEXT UNIQUE y
+    // Postgres admite muchos NULL pero un solo '': el segundo coche sin
+    // bastidor reventaría con duplicate key.
     const vehiculoActualizado = await updateVehiculo(id, {
       referencia,
       marca,
       modelo,
       matricula,
-      bastidor,
+      bastidor: bastidor || null,
       kms: parseInt(kms),
       tipo,
       color: color || undefined,
@@ -367,7 +368,7 @@ export async function PUT(request: NextRequest) {
       vehiculo: vehiculoActualizado,
       message: 'Vehículo actualizado exitosamente',
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error actualizando vehículo:', error)
     return NextResponse.json(
       { error: 'Error al actualizar el vehículo' },
@@ -405,7 +406,7 @@ export async function DELETE(request: NextRequest) {
       success: true,
       message: 'Vehículo eliminado exitosamente',
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error eliminando vehículo:', error)
     return NextResponse.json(
       { error: 'Error al eliminar el vehículo' },
