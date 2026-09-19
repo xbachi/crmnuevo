@@ -1,0 +1,16 @@
+En SEVENCARS llevamos más de 15 años ofreciendo vehículos seleccionados, atención personalizada y total transparencia. ¡Más de 500 reseñas positivas en Google avalan nuestra trayectoria!
+
+Hoy te presentamos:
+
+{BLOQUE_VEHICULO}
+
+///// ¿Por qué comprar en SEVENCARS?
+
+* Vehículo revisado y kilómetros certificados
+* 12 meses de garantía (ampliable)
+* Financiación a tu medida, con o sin entrada
+* Aceptamos tu vehículo como parte de pago
+* Más de 500 valoraciones reales
+* Más de 15 años de experiencia
+
+SEVENCARS – Calidad en cada detalle

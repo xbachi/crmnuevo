@@ -1,0 +1,23 @@
+credentials/
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+data/extracciones/
+reports/
+
+# sesión del navegador y grabaciones del panel (contienen cookies)
+data/cochesnet-perfil/
+reports/cochesnet/
+
+# descripciones generadas (se rehacen solas)
+data/descripciones/
+
+# vigilante automático (estado, cerrojo y registro)
+data/vigilar.json
+data/vigilar.lock
+logs/
+
+# registro de coches publicados: lo reescribe publicar.py (también lanzado por vigilar.py);
+# si falta, localizar_producto() busca el producto en la web por matrícula
+data/publicados.json
